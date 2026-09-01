@@ -1,4 +1,6 @@
-import { useState, useRef, useEffect } from 'react';
+// Default `React` import required — JSX here compiles to React.createElement()
+// under this project's classic runtime. See Slider/index.js.
+import React, { useState, useRef, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import Handle from "../Handle";
 import './index.css'; // Import your CSS file

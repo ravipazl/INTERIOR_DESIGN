@@ -260,12 +260,30 @@ export const getProjectByShareId = async (shareId, accessToken) => {
 export const updateProject = async (projectId, data) => {
   const accessToken = getAccessToken();
 
+  // Drop fields the AI projects schema does not declare.
+  //
+  // That schema is `additionalProperties: false` (projects.schema.js), so ONE
+  // undeclared key makes the validator reject the entire PATCH with 400 before
+  // any handler runs — the whole action fails, not just the extra field. That is
+  // what broke "Request quote": it sends quoteImageId + quoteImageUrl, neither
+  // of which the schema declares.
+  //
+  // Dropping them loses nothing. Neither name appears anywhere in the AI backend
+  // — no schema, hook, email or quote page reads them — and the chosen image is
+  // already recorded on the IMAGE itself, via
+  // `imagesService.updateImageInfo(selected._id, { isFavorite: true })` in the
+  // same handler. They were write-only.
+  //
+  // `rejectReason` is deliberately NOT stripped: it carries real information and
+  // is declared in the schema, so it must reach the backend.
+  const { quoteImageUrl, quoteImageId, ...aiData } = data || {};
+
   // Primary update on the AI backend.
   let aiResult = null;
   try {
     const response = await apiService.patch(
       `/projects/${projectId}`,
-      { ...data },
+      { ...aiData },
       {
         headers: {
           Authorization: `Bearer ${accessToken}`,
@@ -290,13 +308,16 @@ export const updateProject = async (projectId, data) => {
   // That must NOT fail the whole action (e.g. "Request quote"): the AI-side
   // update is the source of truth, so we still return its result.
   //
-  // Strip AI-only fields: the design projects schema is strict
-  // (additionalProperties:false) and would 400 on them, which would knock out
-  // the status mirror too. `rejectReason` is AI-only (the design side hears the
-  // reason via the reject email, not this field) — leaving it in was why a client
+  // Strip the remaining design-only offender. The design projects schema is
+  // also strict (additionalProperties:false) and would 400 on `rejectReason`,
+  // which would knock out the status mirror too. The design side hears the
+  // reason via the reject email, not this field — leaving it in was why a client
   // rejection never reached the design app, so its "Close" bar never appeared.
-  // The design app doesn't use any of these fields.
-  const { quoteImageUrl, quoteImageId, rejectReason, ...designData } = data;
+  //
+  // quoteImageUrl / quoteImageId are already gone: `aiData` above dropped them
+  // for BOTH backends. Re-destructuring them here would redeclare the same
+  // consts in this function scope — a SyntaxError.
+  const { rejectReason, ...designData } = aiData;
   try {
     await axios.patch(
       `${process.env.REACT_APP_PAZL_DESIGN_API_BASE_URL}/projects/${projectId}`,

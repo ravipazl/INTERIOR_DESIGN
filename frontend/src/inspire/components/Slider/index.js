@@ -1,4 +1,10 @@
-import { useState, useRef, useEffect } from 'react';
+// The default `React` import is required here, not optional: this project
+// compiles JSX with the CLASSIC runtime, so every tag below becomes
+// React.createElement() and `React` must be in scope. Importing only the hooks
+// threw "ReferenceError: React is not defined" the moment this component
+// rendered — which is exactly when a generated AI image arrived. Every other
+// component in src/inspire imports React the same way.
+import React, { useState, useRef, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import ImageSlider from './ImageSlider';
 import Handler from './Handler';

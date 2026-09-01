@@ -38,6 +38,12 @@ export const projectSchema = {
     // the client's "Accept Quote" bar until the admin sends a NEW quote, which
     // clears it (see projects.js before.patch + project_items.js change hook).
     changeRequestPending: { type: 'boolean' },
+    // Why the client rejected a quote. Sent with status 'quotation_rejected'
+    // (see ProjectDetail's reject flow). It was missing here, and because this
+    // schema is `additionalProperties: false` the whole PATCH was rejected with
+    // 400 — so rejecting a quote failed outright and the reason never reached
+    // anyone.
+    rejectReason: { type: 'string' },
     createdAt: { type: 'string', format: 'date-time' },
     updatedAt: { type: 'string', format: 'date-time' }
   }
