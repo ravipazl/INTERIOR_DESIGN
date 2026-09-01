@@ -1,0 +1,29 @@
+.row_container {
+	padding-bottom: "10px";
+	border-radius: "8px";
+	background-color: "#FFF6E0";
+}
+
+.row_container.selected {
+	background-color: #E9E5EC !important;
+}
+
+.row_container:hover {
+	background-color: #F7F7F7 !important;
+}
+
+.selected {
+	box-shadow: none !important;
+	text-decoration: none !important;
+	font-size: 14px;
+	font-weight: 400;
+	color: #07143b;
+	padding: 5px;
+}
+
+.view-more {
+	font-size: 16px;
+	font-weight: 700;
+	color: #414063;
+	text-decoration: none !important;
+}

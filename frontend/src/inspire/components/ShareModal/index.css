@@ -1,0 +1,28 @@
+.btn-close {
+    margin: 0px !important;
+}
+.modal-body {
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    min-height: 150px !important;
+}
+.copy-button {
+    height: 34px;
+    padding: 0px;
+    font-size: 10px;
+    border: none;
+    border-radius: 50%;
+}
+.success-info {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+}
+
+.button-body {
+    display: flex;
+    justify-content: space-around;
+    width: 100%;
+}

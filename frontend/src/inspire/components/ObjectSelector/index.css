@@ -1,0 +1,340 @@
+/* ============================================================================
+   PAZL editor shell — Phase 0-1 (light mode only). Design tokens + 3-panel shell.
+   Existing controls are re-housed unchanged; Phase 2 will card-ify them further.
+   ============================================================================ */
+.osel-shell {
+  --page: #f5f4f1;
+  --panel: #ffffff;
+  --surface: #f2f1ec;
+  --surface-2: #eceae4;
+  --line: #e7e5df;
+  --line-strong: #dad8d0;
+  --ink: #25242b;
+  --ink-2: #6c6976;
+  --ink-3: #9c99a3;
+  --green: #16a06a;
+  --green-hover: #128a5b;
+  --green-bg: #e7f5ee;
+  --green-ink: #0c6b47;
+  --red-ink: #a83621;
+  --sel: #3b7ded;
+  --sel-bg: #e8f0fe;
+  --sel-ink: #1b4fb0;
+  --r-card: 14px;
+  --sh-card: 0 1px 2px rgba(28, 27, 34, 0.04), 0 6px 20px rgba(28, 27, 34, 0.06);
+  --sh-pop: 0 8px 30px rgba(28, 27, 34, 0.14);
+  --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+
+  height: 100%;
+  display: grid;
+  grid-template-rows: 56px 1fr 30px;
+  background: var(--page);
+  color: var(--ink);
+  font-family: var(--font);
+  -webkit-font-smoothing: antialiased;
+}
+.osel-body { padding: 0 !important; background: var(--page); overflow: hidden; }
+.osel-shell button { font-family: var(--font); cursor: pointer; }
+.osel-mut { color: var(--ink-2); font-size: 13px; line-height: 1.5; }
+
+/* ---------- top toolbar ---------- */
+.osel-top {
+  display: flex; align-items: center; gap: 14px; padding: 0 16px;
+  background: var(--panel); border-bottom: 1px solid var(--line);
+}
+.osel-brand { display: flex; align-items: center; gap: 9px; font-weight: 600; font-size: 14px; letter-spacing: 0.02em; }
+.osel-logo {
+  width: 26px; height: 26px; border-radius: 8px; background: var(--green);
+  display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 13px;
+}
+.osel-proj { display: flex; align-items: center; gap: 10px; padding-left: 14px; border-left: 1px solid var(--line); }
+.osel-proj-name { font-size: 14px; font-weight: 500; }
+.osel-proj-badge { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--ink-2); }
+.osel-top-spacer { flex: 1; }
+.osel-btn {
+  height: 32px; border-radius: 8px; padding: 0 14px; font-size: 13px; font-weight: 500;
+  border: 1px solid var(--line-strong); background: var(--panel); color: var(--ink);
+  display: inline-flex; align-items: center; gap: 7px;
+}
+.osel-btn:hover { background: var(--surface); }
+.osel-btn-primary { background: var(--green); border-color: var(--green); color: #fff; }
+.osel-btn-primary:hover { background: var(--green-hover); }
+.osel-btn-danger { background: #b23b3b; border-color: #b23b3b; color: #fff; }
+.osel-btn-danger:hover { background: #9c3131; }
+.osel-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+/* Floating furniture cutout being positioned over the room. */
+.osel-placing {
+  position: absolute; transform: translate(-50%, -50%);
+  cursor: grab; touch-action: none; user-select: none; -webkit-user-drag: none;
+  filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.35));
+  outline: 2px dashed rgba(47, 111, 219, 0.9); outline-offset: 2px;
+}
+.osel-placing:active { cursor: grabbing; }
+.osel-slabel { display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: var(--ink-2); }
+.osel-slabel input[type="range"] { width: 100%; }
+.osel-check { display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 13px; color: var(--ink-2); cursor: pointer; }
+.osel-check input { width: 15px; height: 15px; }
+
+/* Mask brush */
+.osel-canvas.brushing { cursor: none; }
+.osel-brushring {
+  position: absolute; transform: translate(-50%, -50%); border-radius: 50%;
+  border: 1.5px solid #2f6fdb; box-shadow: 0 0 0 1.5px rgba(255, 255, 255, 0.85);
+  pointer-events: none; z-index: 3;
+}
+
+/* ---------- 3-panel body ---------- */
+.osel-main {
+  display: grid; grid-template-columns: 280px minmax(0, 1fr) 340px; gap: 14px;
+  padding: 14px; min-height: 0; overflow: hidden;
+}
+.osel-col { display: flex; flex-direction: column; gap: 12px; min-height: 0; overflow: auto; }
+.osel-col::-webkit-scrollbar { width: 8px; }
+.osel-col::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: 8px; }
+.osel-card {
+  background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-card);
+  box-shadow: var(--sh-card); padding: 14px 15px;
+}
+.osel-h {
+  margin: 0 0 10px; font-size: 11px; font-weight: 600; letter-spacing: 0.07em;
+  text-transform: uppercase; color: var(--ink-3);
+}
+.osel-mt { margin-top: 10px; }
+.osel-fine { font-size: 12px; color: var(--ink-3); margin: 9px 0 0; }
+.osel-chip {
+  display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 500;
+  padding: 3px 10px; border-radius: 20px;
+}
+.osel-chip-ok { background: var(--green-bg); color: var(--green-ink); }
+.osel-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); flex: none; }
+.osel-selrow { display: flex; flex-wrap: wrap; gap: 8px; }
+
+/* ---------- center canvas ---------- */
+.osel-center { display: flex; flex-direction: column; gap: 10px; min-height: 0; }
+.osel-stage-area { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; }
+.osel-stagewrap { position: relative; max-width: 100%; max-height: 100%; line-height: 0; }
+.osel-stage {
+  position: relative;
+  border-radius: 16px; overflow: hidden; box-shadow: var(--sh-card); background: var(--panel);
+}
+.osel-canvas { display: block; max-width: 100%; max-height: 100%; width: auto; height: auto; cursor: crosshair; user-select: none; }
+.osel-overlay {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; gap: 8px;
+  background: rgba(255, 255, 255, 0.62); color: var(--ink); font-size: 0.9rem; border-radius: 16px;
+}
+.osel-hintbar {
+  display: flex; align-items: center; gap: 10px; flex: none;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+  box-shadow: var(--sh-card); padding: 8px 12px;
+}
+.osel-hint { font-size: 13px; color: var(--ink-2); }
+.osel-hint-spacer { flex: 1; }
+.osel-toggle {
+  height: 30px; border-radius: 8px; padding: 0 12px; font-size: 12.5px; font-weight: 500;
+  border: 1px solid var(--line-strong); background: var(--panel); color: var(--ink-2);
+}
+.osel-toggle.on { background: var(--sel-bg); border-color: var(--sel); color: var(--sel-ink); }
+
+/* ---------- pins on the canvas ---------- */
+.osel-pins { position: absolute; inset: 0; pointer-events: none; }
+.osel-pin {
+  position: absolute; transform: translate(-50%, -50%); width: 24px; height: 24px; border-radius: 50%;
+  color: #fff; border: 2px solid #fff; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+  display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600;
+  line-height: 1; cursor: default; pointer-events: auto; z-index: 5; transition: transform 0.1s ease;
+}
+.osel-pin:hover { transform: translate(-50%, -50%) scale(1.12); z-index: 20; }
+/* Note label — ALWAYS visible on the picture (not hover). */
+.osel-pin-tip {
+  position: absolute; left: 50%; transform: translateX(-50%); display: block;
+  background: #24233a; color: #f4f3fb; padding: 6px 10px; border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1); font-size: 12.5px; font-weight: 500; line-height: 1.35;
+  text-align: center; width: max-content; max-width: 200px; white-space: normal;
+  pointer-events: none; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35); z-index: 21;
+}
+.osel-pin-tip::after { content: ""; position: absolute; left: 50%; border: 6px solid transparent; }
+.osel-pin.tip-down .osel-pin-tip { top: calc(100% + 9px); }
+.osel-pin.tip-down .osel-pin-tip::after { bottom: 100%; transform: translateX(-50%); border-bottom-color: #24233a; }
+.osel-pin.tip-up .osel-pin-tip { bottom: calc(100% + 9px); }
+.osel-pin.tip-up .osel-pin-tip::after { top: 100%; transform: translateX(-50%); border-top-color: #24233a; }
+
+/* ---------- notes (re-housed) ---------- */
+.osel-notes { display: flex; flex-direction: column; gap: 6px; }
+
+/* ---------- status bar ---------- */
+.osel-statusbar {
+  display: flex; align-items: center; gap: 18px; padding: 0 16px;
+  background: var(--panel); border-top: 1px solid var(--line); font-size: 12px; color: var(--ink-2);
+}
+.osel-st { display: flex; align-items: center; gap: 6px; }
+.osel-st b { color: var(--ink); font-weight: 500; }
+.osel-st-r { margin-left: auto; }
+.osel-dot-ok { background: var(--green); }
+
+/* re-housed controls become cards inside the right panel */
+.osel-col > .osel-tools,
+.osel-col > .osel-adjust,
+.osel-col > .osel-note-add,
+.osel-col > .osel-notes {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--r-card);
+  box-shadow: var(--sh-card);
+  padding: 14px 15px;
+  margin-top: 0 !important;
+}
+
+/* ============================================================================
+   Phase 2 — polished control cards (color, sliders, notes timeline)
+   ============================================================================ */
+.osel-swrow { display: flex; flex-wrap: wrap; gap: 8px; }
+.osel-sw {
+  width: 30px; height: 30px; border-radius: 9px; border: 0; cursor: pointer;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12);
+}
+.osel-sw.sel { box-shadow: 0 0 0 2px var(--panel), 0 0 0 4px var(--sel); }
+.osel-pickrow { display: flex; align-items: center; gap: 10px; margin-top: 12px; }
+.osel-colorinput {
+  width: 40px; height: 32px; padding: 0; border: 1px solid var(--line-strong);
+  border-radius: 8px; background: none; cursor: pointer; flex: none;
+}
+.osel-hex { font-size: 12.5px; color: var(--ink-2); letter-spacing: 0.02em; flex: 1; }
+.osel-reset { height: 28px; padding: 0 11px; }
+
+.osel-adjcol { display: flex; flex-direction: column; gap: 15px; }
+.osel-adjrow { display: flex; flex-direction: column; gap: 8px; }
+.osel-adjtop { display: flex; justify-content: space-between; align-items: center; font-size: 13px; }
+.osel-adjname { font-weight: 500; }
+.osel-adjright { display: flex; align-items: center; gap: 8px; color: var(--ink-2); }
+.osel-adjval { font-variant-numeric: tabular-nums; min-width: 30px; text-align: right; }
+.osel-adjreset {
+  width: 22px; height: 22px; border: 0; background: transparent; color: var(--ink-3);
+  border-radius: 6px; font-size: 13px;
+}
+.osel-adjreset:hover { background: var(--surface); color: var(--ink); }
+
+.osel-range {
+  -webkit-appearance: none; appearance: none; width: 100%; height: 5px;
+  border-radius: 6px; background: var(--surface-2); outline: none;
+}
+.osel-range::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none; width: 16px; height: 16px; border-radius: 50%;
+  background: #fff; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25), 0 0 0 1px var(--line-strong); cursor: pointer;
+}
+.osel-range::-moz-range-thumb {
+  width: 16px; height: 16px; border: 0; border-radius: 50%;
+  background: #fff; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25), 0 0 0 1px var(--line-strong); cursor: pointer;
+}
+.osel-range:focus-visible { box-shadow: 0 0 0 3px var(--sel-bg); }
+
+.osel-actions { display: flex; flex-wrap: wrap; gap: 9px; }
+.osel-actions .osel-btn { flex: 1 1 calc(50% - 9px); justify-content: center; white-space: nowrap; }
+
+.osel-notelist { display: flex; flex-direction: column; }
+.osel-note { display: flex; align-items: center; gap: 9px; padding: 8px 0; border-bottom: 1px solid var(--line); }
+.osel-note:first-child { padding-top: 0; }
+.osel-note:last-child { border-bottom: 0; }
+.osel-note-pin {
+  flex: none; width: 20px; height: 20px; border-radius: 50%; color: #fff;
+  display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600;
+}
+.osel-note.done .osel-note-pin { opacity: 0.5; }
+.osel-note-text {
+  flex: 1; min-width: 0; border: 0; background: transparent; font-size: 13px;
+  color: var(--ink); padding: 3px 4px; border-radius: 6px;
+}
+.osel-note-text:hover { background: var(--surface); }
+.osel-note-text:focus { outline: none; background: var(--surface); box-shadow: 0 0 0 2px var(--sel-bg); }
+.osel-note.done .osel-note-text { text-decoration: line-through; color: var(--ink-3); }
+.osel-note-done, .osel-note-del {
+  flex: none; width: 24px; height: 24px; border: 0; background: transparent; color: var(--ink-3);
+  border-radius: 6px; font-size: 14px;
+}
+.osel-note-done:hover { background: var(--green-bg); color: var(--green-ink); }
+.osel-note-del:hover { background: #fbebe7; color: #a83621; }
+.osel-composer { display: flex; align-items: center; gap: 7px; margin-top: 11px; }
+.osel-note-type {
+  flex: none; height: 32px; padding: 0 8px; border: 1px solid var(--line-strong); border-radius: 8px;
+  font-size: 12.5px; font-weight: 600; background: var(--panel);
+}
+.osel-note-input {
+  flex: 1; min-width: 0; height: 32px; padding: 0 10px; border: 1px solid var(--line-strong);
+  border-radius: 8px; font-size: 13px; background: var(--panel); color: var(--ink);
+}
+.osel-note-input:focus { outline: none; border-color: var(--sel); box-shadow: 0 0 0 3px var(--sel-bg); }
+.osel-note-add-btn { flex: none; height: 32px; }
+
+/* ===== Phase 3 — object context (thumbnail + readout) ===== */
+.osel-thumb {
+  width: 100%; height: 132px; border-radius: 10px; border: 1px solid var(--line);
+  background:
+    linear-gradient(45deg, var(--surface) 25%, transparent 25%) 0 0 / 14px 14px,
+    linear-gradient(-45deg, var(--surface) 25%, transparent 25%) 0 0 / 14px 14px,
+    linear-gradient(45deg, transparent 75%, var(--surface) 75%) 0 0 / 14px 14px,
+    linear-gradient(-45deg, transparent 75%, var(--surface) 75%) 0 0 / 14px 14px,
+    var(--panel);
+  display: flex; align-items: center; justify-content: center; overflow: hidden; margin-bottom: 12px;
+}
+.osel-thumb img { max-width: 100%; max-height: 100%; object-fit: contain; }
+.osel-meta { display: flex; flex-direction: column; gap: 7px; }
+.osel-metarow { display: flex; justify-content: space-between; align-items: baseline; font-size: 12.5px; }
+.osel-metak { color: var(--ink-2); }
+.osel-metav { color: var(--ink); font-weight: 600; font-variant-numeric: tabular-nums; }
+.osel-bar { height: 6px; border-radius: 6px; background: var(--surface-2); overflow: hidden; margin: 1px 0 3px; }
+.osel-bar span { display: block; height: 100%; border-radius: 6px; transition: width 0.25s ease; }
+
+/* ===== Phase 4 — canvas polish (selection outline + floating toolbar) ===== */
+.osel-outline {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  pointer-events: none; z-index: 2;
+}
+.osel-seltoolbar {
+  position: absolute; z-index: 6; transform: translate(-50%, calc(-100% - 10px));
+  display: inline-flex; align-items: center; gap: 2px; padding: 3px;
+  background: var(--ink); color: #fff; border-radius: 10px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.28); line-height: 1;
+  animation: osel-tb-in 0.12s ease-out;
+}
+.osel-seltoolbar.below { transform: translate(-50%, calc(100% + 10px)); }
+.osel-seltoolbar::after {
+  content: ""; position: absolute; left: 50%; bottom: -5px; transform: translateX(-50%) rotate(45deg);
+  width: 9px; height: 9px; background: var(--ink); border-radius: 2px;
+}
+.osel-seltoolbar.below::after { bottom: auto; top: -5px; }
+.osel-stbtn {
+  border: 0; background: transparent; color: #fff; font-size: 12.5px; font-weight: 600;
+  padding: 5px 10px; border-radius: 7px; cursor: pointer; white-space: nowrap;
+}
+.osel-stbtn:hover { background: rgba(255, 255, 255, 0.16); }
+.osel-stsep { width: 1px; height: 16px; background: rgba(255, 255, 255, 0.22); }
+@keyframes osel-tb-in {
+  from { opacity: 0; transform: translate(-50%, calc(-100% - 4px)); }
+  to { opacity: 1; }
+}
+
+/* ===== Phase 5 — interaction & accessibility ===== */
+/* Visible focus ring for keyboard users on every interactive control in the shell. */
+.osel-shell button:focus-visible,
+.osel-shell a:focus-visible,
+.osel-shell input:focus-visible,
+.osel-shell select:focus-visible,
+.osel-canvas:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--sel-bg), 0 0 0 1px var(--sel);
+}
+.osel-sw:focus-visible { box-shadow: 0 0 0 2px var(--panel), 0 0 0 4px var(--sel); }
+.osel-range:focus-visible { box-shadow: 0 0 0 3px var(--sel-bg); }
+
+/* keyboard-shortcut hint in the status bar */
+.osel-kbd-hint { color: var(--ink-3); }
+.osel-kbd-hint kbd {
+  font: inherit; font-size: 11px; padding: 1px 5px; border-radius: 5px;
+  border: 1px solid var(--line-strong); background: var(--surface); color: var(--ink-2);
+}
+@media (max-width: 900px) { .osel-kbd-hint { display: none; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .osel-seltoolbar { animation: none; }
+  .osel-bar span { transition: none; }
+}

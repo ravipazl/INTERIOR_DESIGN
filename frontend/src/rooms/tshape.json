@@ -1,0 +1,309 @@
+{
+  "floorplan": {
+    "version": "2.0.1a",
+    "corners": {
+      "72d57560-0135-40bd-4e82-e64a1739627e": {
+        "x": 0,
+        "y": 0,
+        "elevation": 9.842525000000999
+      },
+      "cc4f26b2-82df-3ff4-2406-434645d7f3fd": {
+        "x": 11.000005940001117,
+        "y": 0,
+        "elevation": 9.842525000000999
+      },
+      "2aeb50e8-a7d4-5549-e8fe-7530579cb76f": {
+        "x": 11.000005940001117,
+        "y": 6.000003240000609,
+        "elevation": 9.842525000000999
+      },
+      "cc259ec8-d6ff-62f7-0e84-1425dfdbeac5": {
+        "x": 21.000011340002132,
+        "y": 6.000003240000609,
+        "elevation": 9.842525000000999
+      },
+      "569ba203-5814-550a-816e-e3acb412a8b2": {
+        "x": 21.000011340002132,
+        "y": 15.000008100001523,
+        "elevation": 9.842525000000999
+      },
+      "5f24ec34-35de-c76b-3eeb-75690225b7a3": {
+        "x": 11.000005940001117,
+        "y": 15.000008100001523,
+        "elevation": 9.842525000000999
+      },
+      "52b047fa-94bb-df7d-ff04-e54a6cb57831": {
+        "x": 11.000005940001117,
+        "y": 21.000011340002132,
+        "elevation": 9.842525000000999
+      },
+      "334038ed-c763-d884-b00a-167945070ffd": {
+        "x": 0,
+        "y": 21.000011340002132,
+        "elevation": 9.842525000000999
+      }
+    },
+    "walls": [
+      {
+        "corner1": "72d57560-0135-40bd-4e82-e64a1739627e",
+        "corner2": "cc4f26b2-82df-3ff4-2406-434645d7f3fd",
+        "frontTexture": {
+          "color": "#FFFFFF",
+          "name": "Solid",
+          "colormap": "/assets/rooms/textures/library/solids/21051.jpg",
+          "emissive": "#000000",
+          "reflective": 0.5,
+          "shininess": 0.5
+        },
+        "backTexture": {
+          "color": "#FFFFFF",
+          "name": "Solid",
+          "colormap": "/assets/rooms/textures/library/solids/21051.jpg",
+          "emissive": "#000000",
+          "reflective": 0.5,
+          "shininess": 0.5
+        },
+        "wallType": "STRAIGHT",
+        "a": {
+          "x": 118.53938079811284,
+          "y": 118.53938079811283
+        },
+        "b": {
+          "x": 216.7406192018872,
+          "y": 118.53938079811284
+        },
+        "thickness": 0.3280841666667
+      },
+      {
+        "corner1": "cc4f26b2-82df-3ff4-2406-434645d7f3fd",
+        "corner2": "2aeb50e8-a7d4-5549-e8fe-7530579cb76f",
+        "frontTexture": {
+          "color": "#FFFFFF",
+          "name": "Solid",
+          "colormap": "/assets/rooms/textures/library/solids/21321.jpg",
+          "emissive": "#000000",
+          "reflective": 0.5,
+          "shininess": 0.5
+        },
+        "backTexture": {
+          "color": "#FFFFFF",
+          "name": "Solid",
+          "colormap": "/assets/rooms/textures/library/solids/21321.jpg",
+          "emissive": "#000000",
+          "reflective": 0.5,
+          "shininess": 0.5
+        },
+        "wallType": "STRAIGHT",
+        "a": {
+          "x": 270.62215592830216,
+          "y": 64.65784407169791
+        },
+        "b": {
+          "x": 270.6221559283021,
+          "y": 118.2221559283021
+        },
+        "thickness": 0.3280841666667
+      },
+      {
+        "corner1": "2aeb50e8-a7d4-5549-e8fe-7530579cb76f",
+        "corner2": "cc259ec8-d6ff-62f7-0e84-1425dfdbeac5",
+        "frontTexture": {
+          "color": "#FFFFFF",
+          "name": "Solid",
+          "colormap": "/assets/rooms/textures/library/solids/21051.jpg",
+          "emissive": "#000000",
+          "reflective": 0.5,
+          "shininess": 0.5
+        },
+        "backTexture": {
+          "color": "#FFFFFF",
+          "name": "Solid",
+          "colormap": "/assets/rooms/textures/library/solids/21051.jpg",
+          "emissive": "#000000",
+          "reflective": 0.5,
+          "shininess": 0.5
+        },
+        "wallType": "STRAIGHT",
+        "a": {
+          "x": 443.0430734528299,
+          "y": 290.64307345282987
+        },
+        "b": {
+          "x": 532.3169265471702,
+          "y": 290.64307345282987
+        },
+        "thickness": 0.3280841666667
+      },
+      {
+        "corner1": "cc259ec8-d6ff-62f7-0e84-1425dfdbeac5",
+        "corner2": "569ba203-5814-550a-816e-e3acb412a8b2",
+        "frontTexture": {
+          "color": "#FFFFFF",
+          "name": "Solid",
+          "colormap": "/assets/rooms/textures/library/solids/21321.jpg",
+          "emissive": "#000000",
+          "reflective": 0.5,
+          "shininess": 0.5
+        },
+        "backTexture": {
+          "color": "#FFFFFF",
+          "name": "Solid",
+          "colormap": "/assets/rooms/textures/library/solids/21321.jpg",
+          "emissive": "#000000",
+          "reflective": 0.5,
+          "shininess": 0.5
+        },
+        "wallType": "STRAIGHT",
+        "a": {
+          "x": 543.0932338924532,
+          "y": 279.8667661075468
+        },
+        "b": {
+          "x": 543.0932338924532,
+          "y": 360.21323389245316
+        },
+        "thickness": 0.3280841666667
+      },
+      {
+        "corner1": "569ba203-5814-550a-816e-e3acb412a8b2",
+        "corner2": "5f24ec34-35de-c76b-3eeb-75690225b7a3",
+        "frontTexture": {
+          "color": "#FFFFFF",
+          "name": "Solid",
+          "colormap": "/assets/rooms/textures/library/solids/21051.jpg",
+          "emissive": "#000000",
+          "reflective": 0.5,
+          "shininess": 0.5
+        },
+        "backTexture": {
+          "color": "#FFFFFF",
+          "name": "Solid",
+          "colormap": "/assets/rooms/textures/library/solids/21051.jpg",
+          "emissive": "#000000",
+          "reflective": 0.5,
+          "shininess": 0.5
+        },
+        "wallType": "STRAIGHT",
+        "a": {
+          "x": 532.3169265471702,
+          "y": 349.4369265471702
+        },
+        "b": {
+          "x": 443.04307345282984,
+          "y": 349.4369265471701
+        },
+        "thickness": 0.3280841666667
+      },
+      {
+        "corner1": "5f24ec34-35de-c76b-3eeb-75690225b7a3",
+        "corner2": "52b047fa-94bb-df7d-ff04-e54a6cb57831",
+        "frontTexture": {
+          "color": "#FFFFFF",
+          "name": "Solid",
+          "colormap": "/assets/rooms/textures/library/solids/21321.jpg",
+          "emissive": "#000000",
+          "reflective": 0.5,
+          "shininess": 0.5
+        },
+        "backTexture": {
+          "color": "#FFFFFF",
+          "name": "Solid",
+          "colormap": "/assets/rooms/textures/library/solids/21321.jpg",
+          "emissive": "#000000",
+          "reflective": 0.5,
+          "shininess": 0.5
+        },
+        "wallType": "STRAIGHT",
+        "a": {
+          "x": 270.6221559283021,
+          "y": 521.8578440716979
+        },
+        "b": {
+          "x": 270.6221559283021,
+          "y": 575.4221559283021
+        },
+        "thickness": 0.3280841666667
+      },
+      {
+        "corner1": "52b047fa-94bb-df7d-ff04-e54a6cb57831",
+        "corner2": "334038ed-c763-d884-b00a-167945070ffd",
+        "frontTexture": {
+          "color": "#FFFFFF",
+          "name": "Solid",
+          "colormap": "/assets/rooms/textures/library/solids/21051.jpg",
+          "emissive": "#000000",
+          "reflective": 0.5,
+          "shininess": 0.5
+        },
+        "backTexture": {
+          "color": "#FFFFFF",
+          "name": "Solid",
+          "colormap": "/assets/rooms/textures/library/solids/21051.jpg",
+          "emissive": "#000000",
+          "reflective": 0.5,
+          "shininess": 0.5
+        },
+        "wallType": "STRAIGHT",
+        "a": {
+          "x": 216.74061920188717,
+          "y": 521.5406192018872
+        },
+        "b": {
+          "x": 118.53938079811283,
+          "y": 521.5406192018872
+        },
+        "thickness": 0.3280841666667
+      },
+      {
+        "corner1": "334038ed-c763-d884-b00a-167945070ffd",
+        "corner2": "72d57560-0135-40bd-4e82-e64a1739627e",
+        "frontTexture": {
+          "color": "#FFFFFF",
+          "name": "Solid",
+          "colormap": "/assets/rooms/textures/library/solids/21321.jpg",
+          "emissive": "#000000",
+          "reflective": 0.5,
+          "shininess": 0.5
+        },
+        "backTexture": {
+          "color": "#FFFFFF",
+          "name": "Solid",
+          "colormap": "/assets/rooms/textures/library/solids/21321.jpg",
+          "emissive": "#000000",
+          "reflective": 0.5,
+          "shininess": 0.5
+        },
+        "wallType": "STRAIGHT",
+        "a": {
+          "x": 226.30245425094267,
+          "y": 413.77754574905737
+        },
+        "b": {
+          "x": 226.3024542509427,
+          "y": 226.30245425094267
+        },
+        "thickness": 0.3280841666667
+      }
+    ],
+    "rooms": {
+      "72d57560-0135-40bd-4e82-e64a1739627e,cc4f26b2-82df-3ff4-2406-434645d7f3fd,2aeb50e8-a7d4-5549-e8fe-7530579cb76f,cc259ec8-d6ff-62f7-0e84-1425dfdbeac5,569ba203-5814-550a-816e-e3acb412a8b2,5f24ec34-35de-c76b-3eeb-75690225b7a3,52b047fa-94bb-df7d-ff04-e54a6cb57831,334038ed-c763-d884-b00a-167945070ffd": {
+        "name": "A New Room"
+      }
+    },
+    "wallTextures": [],
+    "floorTextures": {},
+    "newFloorTextures": {
+      "2aeb50e8-a7d4-5549-e8fe-7530579cb76f,334038ed-c763-d884-b00a-167945070ffd,52b047fa-94bb-df7d-ff04-e54a6cb57831,569ba203-5814-550a-816e-e3acb412a8b2,5f24ec34-35de-c76b-3eeb-75690225b7a3,72d57560-0135-40bd-4e82-e64a1739627e,cc259ec8-d6ff-62f7-0e84-1425dfdbeac5,cc4f26b2-82df-3ff4-2406-434645d7f3fd": {
+        "color": "#FFFFFF",
+        "name": "Solid",
+        "colormap": "/assets/models/textures/10159.jpg",
+        "emissive": "#000000",
+        "reflective": 0.5,
+        "shininess": 0.5
+      }
+    },
+    "carbonSheet": {},
+    "units": "feetAndInch"
+  },
+  "items": []
+}

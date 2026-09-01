@@ -1,0 +1,160 @@
+
+.project-modal-content {
+  position: absolute;
+  top: 15%;
+  left: 35%;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  border: 0.5px solid #ccc;
+  border-radius: 8px;
+  width: 450px;
+  background-color: #fff;
+}
+
+.project-modal-title {
+    font-family: Source Sans Pro;
+    font-size: 18px;
+    font-weight: 700;
+    line-height: 32px;
+    color: #414063;
+}
+
+.project-modal-header {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    height: 45px;
+    width: 450px;
+    border-bottom: 0.5px solid #ddd;
+}
+
+.project-spacing {
+    width: 30px;
+}
+
+.project-modal-close-icon {
+    width: 22px;
+    height: 22px;
+    background-color: #414063;
+    border-radius: 50px;
+    padding: 4px;
+    margin-right: 18px;
+    cursor: pointer;
+}
+
+.project-modal-form-container {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    margin: 0 10px 10px 10px;
+}
+
+.project-check-container {
+    margin-left: 4.2em;
+}
+
+.project-modal-check-container {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: flex-start;
+    margin: 20px 10px;
+}
+
+.project-modal-form-label {
+    font-family: Source Sans Pro;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 21px;
+    letter-spacing: 0.02em;
+    text-align: left;
+    color: #414063;
+}
+
+.project-modal-form-input {
+    width: 244px;
+    height: 37px;
+    border-radius: 2px;
+    background-color: #edeaef;
+    padding: 5px;
+}
+
+textarea:focus, input:focus {
+    outline: auto;
+    outline-color: #414063;
+}
+
+.save-project-button {
+    width: 163px;
+    height: 41px;
+    padding: 4px 24px 4px 24px;
+    border-radius: 2px;
+    gap: 12px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.save-project-button-text {
+    font-family: Source Sans Pro;
+    font-size: 14px;
+    font-weight: 400;
+    letter-spacing: 0.02em;
+    color: #fff;
+}
+
+.project-form-check-container {
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-start;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.project-form-checked-input {
+    width: 18px;
+    height: 18px;
+    border-radius: 2px;
+    background-color: #414063;
+    cursor: pointer;
+}
+
+.project-form-unchecked-input {
+    width: 18px;
+    height: 18px;
+    border-radius: 2px;
+    background-color: #edeaef;
+    cursor: pointer;
+}
+
+.project-form-check-label {
+    font-family: Source Sans Pro;
+    font-size: 14px;
+    font-weight: 400;
+    line-height: 21px;
+    letter-spacing: 0.02em;
+    text-align: right;
+    color: #414063;
+    margin-left: 4px;
+}
+
+.project-modal-footer {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.project-modal-dropdown {
+    width: 244px;
+    height: 37px;
+    border-radius: 2px;
+    font-size: 14px;
+    font-weight: 400;
+    color: #414063;
+    background-color: #edeaef;
+    padding: 0 4px;
+}
+
+.project-modal-dropdown:focus {
+    outline: auto;
+    outline-color: #414063;
+}

@@ -1,0 +1,277 @@
+[
+    {
+      "id": 1,
+      "name": "Carcase",
+      "children": [
+        {
+          "id": 2,
+          "name": "Top",
+          "children": [
+            {
+              "id": 5,
+              "name": "Core material"
+            },
+            {
+              "id": 6,
+              "name": "Interior finish"
+            },
+            {
+              "id": 7,
+              "name": "Exterior finish"
+            },
+            {
+              "id": 8,
+              "name": "Edge band"
+            }
+          ]
+        },
+        {
+          "id": 3,
+          "name": "Bottom",
+          "children": [
+            {
+              "id": 5,
+              "name": "Core material"
+            },
+            {
+              "id": 6,
+              "name": "Interior finish"
+            },
+            {
+              "id": 7,
+              "name": "Exterior finish"
+            },
+            {
+              "id": 8,
+              "name": "Edge band"
+            }
+          ]
+        },
+        {
+          "id": 4,
+          "name": "Front",
+          "children": [
+            {
+              "id": 5,
+              "name": "Core material"
+            },
+            {
+              "id": 6,
+              "name": "Interior finish"
+            },
+            {
+              "id": 7,
+              "name": "Exterior finish"
+            },
+            {
+              "id": 8,
+              "name": "Edge band"
+            }
+          ]
+        },
+        {
+          "id": 4,
+          "name": "Back",
+          "children": [
+            {
+              "id": 5,
+              "name": "Core material"
+            },
+            {
+              "id": 6,
+              "name": "Interior finish"
+            },
+            {
+              "id": 7,
+              "name": "Exterior finish"
+            },
+            {
+              "id": 8,
+              "name": "Edge band"
+            }
+          ]
+        },
+        {
+          "id": 5,
+          "name": "Left side",
+          "children": [
+            {
+              "id": 5,
+              "name": "Core material"
+            },
+            {
+              "id": 6,
+              "name": "Interior finish"
+            },
+            {
+              "id": 7,
+              "name": "Exterior finish"
+            },
+            {
+              "id": 8,
+              "name": "Edge band"
+            }
+          ]
+        },
+        {
+          "id": 6,
+          "name": "Right side",
+          "children": [
+            {
+              "id": 5,
+              "name": "Core material"
+            },
+            {
+              "id": 6,
+              "name": "Interior finish"
+            },
+            {
+              "id": 7,
+              "name": "Exterior finish"
+            },
+            {
+              "id": 8,
+              "name": "Edge band"
+            }
+          ]
+        }
+      ]
+    }, {
+      "id": 2,
+      "name": "Shutter",
+      "children": [
+        {
+          "id": 2,
+          "name": "Top",
+          "children": [
+            {
+              "id": 5,
+              "name": "Core material"
+            },
+            {
+              "id": 6,
+              "name": "Interior finish"
+            },
+            {
+              "id": 7,
+              "name": "Exterior finish"
+            },
+            {
+              "id": 8,
+              "name": "Edge band"
+            }
+          ]
+        },
+        {
+          "id": 3,
+          "name": "Bottom",
+          "children": [
+            {
+              "id": 5,
+              "name": "Core material"
+            },
+            {
+              "id": 6,
+              "name": "Interior finish"
+            },
+            {
+              "id": 7,
+              "name": "Exterior finish"
+            },
+            {
+              "id": 8,
+              "name": "Edge band"
+            }
+          ]
+        },
+        {
+          "id": 4,
+          "name": "Front",
+          "children": [
+            {
+              "id": 5,
+              "name": "Core material"
+            },
+            {
+              "id": 6,
+              "name": "Interior finish"
+            },
+            {
+              "id": 7,
+              "name": "Exterior finish"
+            },
+            {
+              "id": 8,
+              "name": "Edge band"
+            }
+          ]
+        },
+        {
+          "id": 4,
+          "name": "Back",
+          "children": [
+            {
+              "id": 5,
+              "name": "Core material"
+            },
+            {
+              "id": 6,
+              "name": "Interior finish"
+            },
+            {
+              "id": 7,
+              "name": "Exterior finish"
+            },
+            {
+              "id": 8,
+              "name": "Edge band"
+            }
+          ]
+        },
+        {
+          "id": 5,
+          "name": "Left side",
+          "children": [
+            {
+              "id": 5,
+              "name": "Core material"
+            },
+            {
+              "id": 6,
+              "name": "Interior finish"
+            },
+            {
+              "id": 7,
+              "name": "Exterior finish"
+            },
+            {
+              "id": 8,
+              "name": "Edge band"
+            }
+          ]
+        },
+        {
+          "id": 6,
+          "name": "Right side",
+          "children": [
+            {
+              "id": 5,
+              "name": "Core material"
+            },
+            {
+              "id": 6,
+              "name": "Interior finish"
+            },
+            {
+              "id": 7,
+              "name": "Exterior finish"
+            },
+            {
+              "id": 8,
+              "name": "Edge band"
+            }
+          ]
+        }
+      ]
+    }
+  ]

@@ -1,0 +1,13 @@
+.pazl-checkbox {
+    opacity: 0;
+    position: absolute;
+    cursor: pointer;
+}
+
+.pazl-checkbox-check {
+    cursor: pointer;
+}
+
+.pazl-checkbox-uncheck {
+    cursor: pointer;
+}

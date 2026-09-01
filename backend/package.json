@@ -1,0 +1,97 @@
+{
+  "name": "pazl-design-backend",
+  "description": "",
+  "version": "0.0.0",
+  "homepage": "",
+  "private": true,
+  "keywords": [
+    "feathers"
+  ],
+  "author": {},
+  "contributors": [],
+  "bugs": {},
+  "engines": {
+    "node": ">= 16.14.2"
+  },
+  "feathers": {
+    "language": "js",
+    "packager": "npm",
+    "database": "mongodb",
+    "framework": "koa",
+    "transports": [
+      "rest",
+      "websockets"
+    ],
+    "schema": "json"
+  },
+  "directories": {
+    "lib": "src",
+    "test": "test"
+  },
+  "files": [
+    "lib/client.js",
+    "lib/**/*.d.ts",
+    "lib/**/*.shared.js"
+  ],
+  "main": "src/client",
+  "type": "module",
+  "scripts": {
+    "start": "node src",
+    "dev": "nodemon src/",
+    "prettier": "npx prettier \"**/*.js\" --write",
+    "thumbnails": "node scripts/upload-thumbnails.js",
+    "thumbnails:generate": "node scripts/generate-thumbnails.js",
+    "thumbnails:categories": "node scripts/set-category-thumbnails.js",
+    "models:deletable": "node scripts/flag-models-deletable.js",
+    "mocha": "cross-env NODE_ENV=test mocha test/ --recursive --exit",
+    "test": "npm run mocha",
+    "bundle:client": "npm pack --pack-destination ./public"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.105.0",
+    "@feathersjs/adapter-commons": "^5.0.8",
+    "@feathersjs/authentication": "^5.0.8",
+    "@feathersjs/authentication-client": "^5.0.8",
+    "@feathersjs/authentication-local": "^5.0.8",
+    "@feathersjs/authentication-oauth": "^5.0.8",
+    "@feathersjs/configuration": "^5.0.8",
+    "@feathersjs/errors": "^5.0.8",
+    "@feathersjs/feathers": "^5.0.8",
+    "@feathersjs/koa": "^5.0.8",
+    "@feathersjs/mongodb": "^5.0.8",
+    "@feathersjs/schema": "^5.0.8",
+    "@feathersjs/socketio": "^5.0.8",
+    "@feathersjs/transport-commons": "^5.0.8",
+    "@gltf-transform/core": "^4.3.0",
+    "@gltf-transform/extensions": "^4.3.0",
+    "@gltf-transform/functions": "^4.3.0",
+    "@koa/multer": "^3.1.0",
+    "axios-cache-interceptor": "^1.5.2",
+    "config": "^3.3.12",
+    "dotenv": "^16.3.1",
+    "draco3d": "^1.5.7",
+    "feathers-hooks-common": "^8.1.1",
+    "ffmpeg-static": "^5.3.0",
+    "ffprobe-static": "^3.1.0",
+    "form-data": "^4.0.5",
+    "gltf-pipeline": "^4.3.1",
+    "meshoptimizer": "^1.1.1",
+    "mongodb": "^5.7.0",
+    "multer": "^1.4.5-lts.1",
+    "nodemailer": "^9.0.3",
+    "replicate": "^0.14.1",
+    "sharp": "^0.34.5",
+    "uuid": "^9.0.1",
+    "winston": "^3.10.0"
+  },
+  "devDependencies": {
+    "@feathersjs/cli": "^5.0.8",
+    "@feathersjs/rest-client": "^5.0.8",
+    "axios": "^1.16.1",
+    "cross-env": "^7.0.3",
+    "mocha": "^10.2.0",
+    "nodemon": "^3.0.1",
+    "prettier": "^3.0.3",
+    "xlsx": "^0.18.5"
+  }
+}

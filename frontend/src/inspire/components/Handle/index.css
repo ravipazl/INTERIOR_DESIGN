@@ -1,0 +1,26 @@
+.cd-handle {
+    position: absolute;
+    height: 30px;
+    width: 30px;
+    left: 40%;
+    top: 50%;
+    margin-left: -15px;
+    margin-top: -22px;
+    border-radius: 50%;
+    border-color: white;
+    background: #414063 url('../../assets/images/right-left-arrow.svg') no-repeat center center;
+    cursor: move;
+    box-shadow: 0 0 0 6px rgba(0, 0, 0, 0.2), 0 0 10px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+    opacity: 0;
+    transform: translate3d(0, 0, 0) scale(0);
+}
+
+.cd-handle.draggable {
+    background-color: #FFFFFF;
+}
+
+.is-visible .cd-handle {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+    transition: transform 0.3s 0.7s, opacity 0s 0.7s;
+}

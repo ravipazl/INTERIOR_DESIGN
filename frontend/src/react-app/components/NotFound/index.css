@@ -1,0 +1,30 @@
+.projects-not-found-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    height: 84vh;
+}
+
+.projects-not-found-icon {
+    width: 87.5px;
+    height: 100px;
+}
+
+.projects-not-found-title {
+    font-family: Source Sans Pro;
+    font-size: 20px;
+    font-weight: 600;
+    line-height: 35px;
+    letter-spacing: 0em;
+    text-align: center;
+}
+
+.projects-not-found-subtitle {
+    font-family: Source Sans Pro;
+    font-size: 16px;
+    font-weight: 400;
+    line-height: 28px;
+    letter-spacing: 0em;
+    text-align: center;
+}

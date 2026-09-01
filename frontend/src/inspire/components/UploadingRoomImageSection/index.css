@@ -1,0 +1,13 @@
+.title_border_expanded_collapsed {
+    border-left: 3px solid #FFBE26;
+}
+
+.title_text_expanded_collapsed {
+    font-size: 14px;
+    font-weight: 600;
+    color: #07143B;
+}
+.loading{
+    font-size: 10px;
+    margin-top: 6px;
+}

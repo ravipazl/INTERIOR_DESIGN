@@ -1,0 +1,121 @@
+.projects-dashboard-container {
+    height: 100vh;
+}
+
+.title-flex-container {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 20px;
+}
+
+.create-project-flex-container {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+}
+
+.title {
+    font-family: Source Sans Pro;
+    font-size: 16px;
+    font-weight: 700;
+    color: #414063;
+}
+
+.create-project-button {
+    padding: 8px 24px;
+    border-radius: 4px;
+    color: #fff;
+    margin-left: 5px;
+}
+
+.create-project-button-text {
+    font-family: Source Sans Pro;
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 21px;
+    letter-spacing: 0.02em;
+}
+
+.search-icon {
+    position: absolute;
+    z-index: 1;
+    width: 24px;
+    height: 24px;
+    margin: 0 10px;
+}
+
+.project-card-skeleton-container {
+    width: 258px;
+    height: 376px;
+    border: 0.5px solid #ccc;
+    margin: 20px 0 20px 20px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.search-bar {
+    border-radius: 50px;
+    background-color: #ccc;
+    width: 219px;
+    height: 37px;
+    padding-left: 40px;
+    position: relative;
+}
+
+.filter {
+    margin: 0 15px;
+    cursor: pointer;
+}
+
+.filter-dropdown-options {
+    position: absolute;
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    background-color: #fff;
+    border-radius: 4px;
+}
+
+.filter-dropdown-option-checked {
+    width: 14px;
+    height: 14px;
+    border-radius: 2px;
+    background-color: #414063;
+    margin-left: 10px;
+}
+
+.filter-dropdown-option-unchecked {
+    width: 14px;
+    height: 14px;
+    border-radius: 2px;
+    background-color: #EDEAF0;
+    margin-left: 10px;
+}
+
+.filter-dropdown-option {
+    padding: 6px 0;
+    background-color: #fff;
+    transition: background-color 0.2s ease;
+    border-radius: 4px;
+}
+
+.filter-dropdown-container {
+    margin: 0 20px;
+}
+
+.filter-dropdown-divider {
+    border-bottom: 1px solid #ccc;
+    width: 100%;
+}
+
+.projects-flex-container {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    height: 100vh;
+}

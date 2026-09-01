@@ -1,0 +1,112 @@
+.fav-pic-container {
+  position: relative;
+  margin-right: 20px;
+}
+
+.fav-pic {
+  width: 187px !important;
+  height: 127px !important;
+  object-fit: cover;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.like-icon {
+  color: red;
+  cursor: pointer;
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  font-size: 20px;
+}
+
+.heading {
+  font-size: 16px !important;
+}
+
+.room_type_title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #07143b;
+}
+
+.theme_name {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-align: end;
+}
+
+.theme_date {
+  font-size: 10px;
+  font-weight: 400;
+}
+
+.fav-pic-block {
+  width: 163px;
+  height: 127px;
+  top: 187px;
+  left: 10px;
+  border-radius: 8px;
+}
+
+.border-bottom {
+  border-bottom: 0.5px solid #bdbbc07d;
+}
+
+.conversion-path {
+  padding-top: 70px !important;
+  padding: 14px;
+}
+
+.flex-container {
+  display: flex;
+  flex-direction: row;
+  margin-bottom: 40px;
+}
+
+.room_and_theme_name {
+  position: absolute;
+  bottom: 4px;
+  overflow: hidden;
+  background-color: rgba(255 255 255 / 0.8);
+  inset: auto 0 0 0;
+  padding: 8px;
+}
+
+.magic_wand {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background-color: white;
+  border-radius: 30px;
+  padding: 4px;
+}
+
+/* Add this to your existing CSS file or create a new one */
+
+@media print {
+  body {
+    font-size: 12pt;
+  }
+
+  /* Adjust the styles for your specific layout */
+  .button-icons {
+    display: none; /* Hide buttons and icons for printing */
+  }
+
+  .text-black {
+    color: black; /* Set text color for printing */
+  }
+
+  .fw-bold {
+    font-weight: bold; /* Set font weight for printing */
+  }
+
+  /* Add other print-specific styles as needed */
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+}

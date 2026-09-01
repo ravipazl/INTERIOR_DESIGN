@@ -1,0 +1,79 @@
+.wall-modal-title-container {
+    padding: 8px;
+    background-color: #eee;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.wall-modal-title {
+   color: #414063;
+   font-weight: bold;
+}
+
+.wall-title {
+    color: #414063;
+    font-size: 14px;
+    font-weight: bold;
+    margin-top: 4px;
+}
+
+.wall-color-header {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    background-color: #eee;
+    padding: 10px;
+}
+
+.wall-color-title {
+    color: #414063;
+    font-weight: bold;
+}
+
+.select-items {
+    color: #414063;
+    text-decoration: underline;
+    font-size: 14px;
+}
+
+.wall-option-container {
+    color: #414063;
+}
+
+.wall-selected-container {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+}
+
+.textures-flex-container {
+    background-color: #fff;
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: space-evenly;
+    flex-wrap: wrap;
+    white-space: unset;
+    width: 20em;
+    height: 22.5em;
+    overflow-y: scroll;
+    padding-bottom: 1em;
+}
+
+.texture-name {
+    padding: 2px;
+    text-align: center;
+    font-size: 14px;
+    flex-wrap: wrap;
+    white-space: unset;
+    width: 8.5em;
+}
+
+.add-wall-items-container {
+    margin: 12px 0;
+}

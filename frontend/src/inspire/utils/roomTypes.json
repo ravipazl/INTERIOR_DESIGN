@@ -1,0 +1,17 @@
+[{
+        "id": 1,
+        "roomType": "Living Room"
+    },
+    {
+        "id": 2,
+        "roomType": "Dining room"
+    },
+    {
+        "id": 3,
+        "roomType": "Bedroom"
+    },
+    {
+        "id": 4,
+        "roomType": "Kitchen"
+    }
+]

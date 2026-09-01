@@ -1,0 +1,8 @@
+.thumbnail-card {
+  cursor: pointer !important;
+  transition: box-shadow 0.3s;
+}
+
+.thumbnail-card:hover {
+  box-shadow: 0px 2px 4px 0px #414063 !important;
+}

@@ -1,0 +1,28 @@
+.landscape-comparing-image {
+    width: 550px;
+    height: 40vh;
+    max-height: 60vh;
+}
+
+.cd-image-label {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    color: #fff;
+    white-space: nowrap;
+    padding: 1em;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: transform 0.3s 0.7s, opacity 0.3s 0.7s;
+    width: 550px !important;
+    height: 40vh !important;
+}
+
+.cd-image-label.is-hidden {
+    visibility: hidden;
+}
+
+.is-visible .cd-image-label {
+    opacity: 1;
+    transform: translateY(0);
+}

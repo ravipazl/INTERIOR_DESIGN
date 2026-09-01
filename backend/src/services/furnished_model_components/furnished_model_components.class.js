@@ -1,0 +1,10 @@
+import { MongoDBService } from '@feathersjs/mongodb'
+
+export class FurnishedModelComponentService extends MongoDBService {}
+
+export const getOptions = (app) => {
+  return {
+    paginate: app.get('paginate'),
+    Model: app.get('mongodbClient').then((db) => db.collection('furnished_model_components'))
+  }
+}

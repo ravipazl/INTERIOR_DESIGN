@@ -1,0 +1,36 @@
+.undo-modal-title {
+    padding: 10px;
+    background-color: #eee;
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    color: #414063;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.undo-title {
+    color: #414063;
+    font-size: 14px;
+    font-weight: bold;
+    margin-top: 4px;
+}
+
+.divider {
+    border-bottom: 1px solid #ccc;
+    width: 100%;
+    margin: 2px 0;
+    align-self: center;
+}
+
+.undo-items-container {
+    overflow-y: scroll;
+}
+
+.undo-item {
+    cursor: pointer;
+}
+
+.undo-item:hover {
+    background-color: #eee;
+}

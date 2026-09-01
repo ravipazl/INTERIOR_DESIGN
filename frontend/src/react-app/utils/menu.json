@@ -1,0 +1,380 @@
+[
+  {
+    "id": "4c3d9086-fce6-472d-acc4-5aec54b9618e",
+    "name": "floor_plan",
+    "items": [
+      {
+        "id": "5e6d7090-fa24-46f0-8627-af395f39edbf",
+        "itemName": "select",
+        "itemType": "button",
+        "iconName": "gesture_select",
+        "value": null,
+        "classification": "edit",
+        "actionType": "EDIT_SELECT"
+      },
+      {
+        "id": "53810cd3-fa8e-4874-8dfb-4cd8dc7e0940",
+        "itemName": "draw",
+        "itemType": "button",
+        "iconName": "draw",
+        "value": null,
+        "classification": "edit",
+        "actionType": "EDIT_DRAW"
+      },
+      {
+        "id": "b4458ddb-bbfe-4d70-9fd0-2ff7a84e54fb",
+        "itemName": "undo",
+        "itemType": "button",
+        "iconName": "undo",
+        "value": null,
+        "classification": "edit",
+        "actionType": "EDIT_UNDO"
+      },
+      {
+        "id": "d5554a6e-0c18-4469-9b98-057845feaddc",
+        "itemName": "redo",
+        "itemType": "button",
+        "iconName": "redo",
+        "value": null,
+        "classification": "edit",
+        "actionType": "EDIT_REDO"
+      },
+      {
+        "id": "c8b9d593-f797-4928-9e5e-521860eea5ce",
+        "itemName": "clear",
+        "itemType": "button",
+        "iconName": "ink_eraser",
+        "value": null,
+        "classification": "edit",
+        "actionType": "EDIT_CLEAR"
+      },
+      {
+        "id": "1e066ab9-1f51-4da5-b042-9b9672bd4533",
+        "itemName": "templates",
+        "itemType": "button",
+        "iconName": "space_dashboard",
+        "value": null,
+        "classification": "settings",
+        "actionType": "SETTINGS_TEMPLATES"
+      },
+      {
+        "id": "f5c8763c-435f-42cd-8baf-50ea1e8ec3be",
+        "itemName": "import",
+        "itemType": "button",
+        "iconName": "download",
+        "value": null,
+        "classification": "settings",
+        "actionType": "SETTINGS_IMPORT"
+      },
+      {
+        "id": "3afd42ca-7252-4737-804f-f20fc2bb5c7e",
+        "itemName": "export",
+        "itemType": "button",
+        "iconName": "share_windows",
+        "value": null,
+        "classification": "settings",
+        "actionType": "SETTINGS_EXPORT"
+      },
+      {
+        "id": "634beb49-6c10-4ce2-b843-13369153d5df",
+        "itemName": "units",
+        "itemType": "dropdown",
+        "iconName": "keyboard_arrow_down",
+        "unitOptions": [
+          {
+            "id": "c8272749-0a31-4640-865f-222d5987ef7c",
+            "name": "feet",
+            "value": "ft"
+          },
+          {
+            "id": "074aa2d0-8561-403c-ba5a-1b504ab73209",
+            "name": "millimeters",
+            "value": "mm"
+          }
+        ],
+        "classification": "settings",
+        "actionType": "SETTINGS_UNITS"
+      },
+      {
+        "id": "e6f3f9e9-1b9f-4e9b-9d0a-7f0c1e3c8bde",
+        "itemName": "snap",
+        "itemType": "toggle",
+        "iconName": "toggle_off",
+        "value": false,
+        "classification": "settings",
+        "actionType": "SETTINGS_SNAP"
+      },
+      {
+        "id": "e4905b71-856a-46c0-a265-43c9306d2a1a",
+        "itemName": "dimension",
+        "itemType": "input",
+        "unitOptions": [
+          {
+            "id": "de88a195-7110-46c9-8148-af8126da85ec",
+            "name": "feet",
+            "value": "ft"
+          },
+          {
+            "id": "158fc775-aac6-46db-9022-a76ff17c335e",
+            "name": "meters",
+            "value": "m"
+          }
+        ],
+        "value": 0,
+        "iconName": "",
+        "classification": "wall_properties",
+        "actionType": "WALL_PROPERTIES"
+      },
+      {
+        "id": "e5a1dc60-f921-4ea1-a568-5e298ecfbe1b",
+        "itemName": "wall_thickness",
+        "itemType": "input",
+        "unitOptions": [
+          {
+            "id": "02d9e94f-064a-4e62-b495-c7b0bc6bfa65",
+            "name": "feet",
+            "value": "ft"
+          },
+          {
+            "id": "3ca9404d-9856-4788-9222-33c144f8214a",
+            "name": "meters",
+            "value": "m"
+          }
+        ],
+        "value": 0,
+        "classification": "wall_properties",
+        "iconName": "",
+        "actionType": "WALL_PROPERTIES"
+      },
+      {
+        "id": "dd4e042b-d28c-48ee-8ea5-63ef35f7afc5",
+        "itemName": "delete_wall",
+        "itemType": "button",
+        "iconName": "delete",
+        "value": null,
+        "classification": "wall_properties",
+        "actionType": "WALL_PROPERTIES"
+      },
+      {
+        "id": "5874f278-71f2-42b1-b180-db59664f734d",
+        "itemName": "corner_elevation",
+        "itemType": "input",
+        "unitOptions": [
+          {
+            "id": "d34db957-455c-4480-8687-c95f54c51f0a",
+            "name": "feet",
+            "value": "ft"
+          },
+          {
+            "id": "16a7e419-146c-4081-83f7-ee3a7436c41d",
+            "name": "millimeters",
+            "value": "mm"
+          }
+        ],
+        "value": 0,
+        "classification": "wall_corner_properties",
+        "iconName": "",
+        "actionType": "WALL_CORNER_PROPERTIES"
+      },
+      {
+        "id": "9bc5d289-9fa4-48da-8449-602422c24c96",
+        "itemName": "delete_corner",
+        "itemType": "button",
+        "iconName": "delete",
+        "value": null,
+        "classification": "wall_corner_properties",
+        "actionType": "WALL_CORNER_PROPERTIES"
+      },
+      {
+        "id": "b6b9b4d4-9c6a-4c0f-9e6f-6a6f7f6b9fcd",
+        "itemName": "room_name",
+        "itemType": "input",
+        "iconName": "",
+        "value": null,
+        "classification": "room_properties",
+        "actionType": "ROOM_PROPERTIES"
+      }
+    ]
+  },
+  {
+    "id": "b5df11d8-27d8-414f-9bb2-79527adde2eb",
+    "name": "furnish",
+    "items": [
+      {
+        "id": "d549d978-2ca8-4fab-bb2e-212da789be2c",
+        "itemName": "undo",
+        "itemType": "button",
+        "iconName": "undo",
+        "value": null,
+        "classification": "edit",
+        "actionType": "EDIT_UNDO"
+      },
+      {
+        "id": "f4fc4d74-d192-41c1-975d-86bd087a6698",
+        "itemName": "redo",
+        "itemType": "button",
+        "iconName": "redo",
+        "value": null,
+        "classification": "edit",
+        "actionType": "EDIT_REDO"
+      },
+      {
+        "id": "4d4d900f-ece9-467a-b005-1c8cf4bcf78a",
+        "itemName": "multiSelect",
+        "itemType": "button",
+        "iconName": "gesture_select",
+        "value": null,
+        "classification": "edit",
+        "actionType": "EDIT_SELECT"
+      },
+      {
+        "id": "91eee286-7fa6-4844-8d3e-f9d621f62288",
+        "itemName": "history",
+        "itemType": "button",
+        "iconName": "history",
+        "value": null,
+        "classification": "edit",
+        "actionType": "EDIT_HISTORY"
+      },
+      {
+        "id": "fa487ee0-6878-4ab4-ad39-6e47c19b2bf7",
+        "itemName": "free_view",
+        "itemType": "button",
+        "iconName": "visibility",
+        "value": null,
+        "classification": "edit",
+        "actionType": "EDIT_FREE_VIEW"
+      },
+      {
+        "id": "856d7654-3dd9-46f1-af40-fc11d15a2ff9",
+        "itemName": "add_item",
+        "itemType": "button",
+        "iconName": "add",
+        "value": null,
+        "classification": "furnish_tool",
+        "actionType": "FURNISH_TOOL_ADD_ITEM"
+      },
+      {
+        "id": "9b1b7c84-c0b5-4f43-9e90-1fb8b7d7d2b1",
+        "itemName": "upload",
+        "itemType": "button",
+        "iconName": "upload",
+        "value": null,
+        "classification": "furnish_tool",
+        "actionType": "FURNISH_TOOL_UPLOAD"
+      },
+      {
+        "id": "f7d62a37-3e22-4b21-9b1f-4d61b6d2e7f5",
+        "itemName": "generate",
+        "itemType": "button",
+        "iconName": "auto_awesome",
+        "value": null,
+        "classification": "furnish_tool",
+        "actionType": "FURNISH_TOOL_GENERATE"
+      },
+      {
+        "id": "a1b2c3d4-5e6f-7890-abcd-ef1234567890",
+        "itemName": "search_models",
+        "itemType": "button",
+        "iconName": "travel_explore",
+        "value": null,
+        "classification": "furnish_tool",
+        "actionType": "FURNISH_TOOL_SEARCH"
+      },
+      {
+        "id": "576d7624-16f7-4188-8ece-b3f898a0ab86",
+        "itemName": "top_view",
+        "itemType": "button",
+        "iconName": "view_comfy",
+        "value": null,
+        "classification": "camera",
+        "actionType": "CAMERA_TOP_VIEW"
+      },
+      {
+        "id": "939bdd4d-563a-46a0-b45a-9767e7cf454e",
+        "itemName": "3d_view",
+        "itemType": "button",
+        "iconName": "deployed_code",
+        "value": null,
+        "classification": "camera",
+        "actionType": "CAMERA_3D_VIEW"
+      },
+      {
+        "id": "06973d29-7f80-419c-9007-3355e680e468",
+        "itemName": "zoom_in",
+        "itemType": "button",
+        "iconName": "zoom_in",
+        "value": null,
+        "classification": "camera",
+        "actionType": "CAMERA_ZOOM_IN"
+      },
+      {
+        "id": "dfe185d8-8824-4c90-ad4a-0b88dbae10b4",
+        "itemName": "zoom_out",
+        "itemType": "button",
+        "iconName": "zoom_out",
+        "value": null,
+        "classification": "camera",
+        "actionType": "CAMERA_ZOOM_OUT"
+      },
+      {
+        "id": "saveLink",
+        "itemName": "snapshot",
+        "itemType": "button",
+        "iconName": "screenshot_region",
+        "value": null,
+        "classification": "camera",
+        "actionType": "CAMERA_SNAPSHOT"
+      },
+      {
+        "id": "88287e7e-7fd4-421c-9ab7-dc90726ca40d",
+        "itemName": "shortcuts",
+        "itemType": "button",
+        "iconName": "keyboard",
+        "value": null,
+        "classification": "camera",
+        "actionType": "CAMERA_SHORTCUTS"
+      },
+      {
+        "id": "c47d3834-0b53-44c2-93fb-e75d51026b2c",
+        "itemName": "object",
+        "itemType": "button",
+        "iconName": null,
+        "value": null,
+        "classification": "camera",
+        "actionType": "CAMERA_FOCUS_OBJECT"
+      },
+      {
+        "id": "85991417-4a5d-4a17-b581-da1c86da5cdf",
+        "itemName": "room",
+        "itemType": "button",
+        "iconName": null,
+        "value": null,
+        "classification": "camera",
+        "actionType": "CAMERA_FOCUS_ROOM"
+      },
+      {
+        "id": "1f4c186a-2275-4d2e-8ac3-bfdd5bf3b9c1",
+        "itemName": "gltf",
+        "itemType": "button",
+        "iconName": "share_windows",
+        "value": null,
+        "classification": "export",
+        "actionType": "EXPORT_GLTF"
+      }
+    ]
+  },
+  {
+    "id": "a4db4948-225f-41fd-bfcd-d1b94aa4eb6b",
+    "name": "production",
+    "items": [
+      {
+        "id": "be1852cb-ab8e-40b8-8900-e46da67eb432",
+        "itemName": "Select",
+        "itemType": "Edit",
+        "iconName": "",
+        "actionType": "EDIT"
+      }
+    ]
+  }
+]

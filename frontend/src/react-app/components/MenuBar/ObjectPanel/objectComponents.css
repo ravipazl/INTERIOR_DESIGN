@@ -1,0 +1,57 @@
+.ht_selected {
+  background-color: #e9e5ec;
+}
+
+.type-pattern-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #414063;
+}
+
+.type-pattern-dropdown {
+  font-size: 12px;
+  font-weight: 400;
+  color: #414063;
+  border: 1px solid #ccc;
+  border-radius: 2px;
+  margin-bottom: 4px;
+}
+
+.down-arrow {
+  background-image: url("/public/assets/icons/down.png");
+}
+
+.next-arrow {
+  background-image: url("/public/assets/icons/next.png");
+}
+
+.finishing-texture-container {
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+component-modal-container {
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: space-between !important;
+}
+
+.truncate {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 18ch; /* Limiting to 18 characters */
+}

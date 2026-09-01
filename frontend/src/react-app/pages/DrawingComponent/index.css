@@ -1,0 +1,44 @@
+.dashboard {
+  background: #b7b7b759;
+}
+
+/* The 3D canvas container fills #bp3d-js-app so the renderer can size to its
+   container (enables docked layouts). #bp3d-js-app is position:fixed inset:0,
+   so it is always the full viewport regardless of ancestors. */
+#bp3djs-viewer3d {
+  width: 100%;
+  height: 100%;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+}
+
+.toolbar button {
+  margin-right: 10px;
+}
+
+.mouse-functionality {
+  display: flex;
+  justify-content: space-evenly;
+  align-items: center;
+  z-index: 1000;
+  background-color: var(--pz-panel-header);
+  border: 1px solid var(--pz-panel-border);
+  width: 16em;
+  position: fixed;
+  bottom: 10px;
+  border-radius: 12px;
+  margin: 0 42vw;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+}
+
+.mouse-func-icon {
+  opacity: 0.7;
+  width: 28px;
+}
+
+.mouse-functionality-text {
+  font-size: 12px;
+}

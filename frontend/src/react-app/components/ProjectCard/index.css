@@ -1,0 +1,117 @@
+
+.project-card-container {
+    width: 258px;
+    height: 376px;
+    border: 0.5px solid #ccc;
+    margin: 20px 0 20px 20px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.project-image-container {
+    width: 16em;
+    max-width: 257px;
+    height: 163px;
+    background: #e9e5ec;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.project-image {
+    width: 181.44px;
+    height: 163px;
+}
+
+.project-title {
+    font-family: Source Sans Pro;
+    font-size: 16px;
+    font-weight: 700;
+    color: #414063;
+    text-decoration: underline;
+    margin: 10px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.project-creator {
+    font-family: Source Sans Pro;
+    font-size: 12px;
+    flex-wrap: wrap;
+    color: #888;
+    margin-left: 10px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.project-info {
+    color: #414063;
+    margin-left: 10px;
+    margin-right: 6px;
+    font-family: Source Sans Pro;
+    font-size: 13px;
+    font-weight: 600;
+    text-align: left;
+}
+
+.project-info-value {
+    font-family: Source Sans Pro;
+    font-size: 13px;
+    font-weight: 400;
+    line-height: 20px;
+    color: #414063;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.project-flex-container {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+    margin: 5px 0;
+}
+
+.project-card-divider {
+    border-bottom: 0.5px solid #ccc;
+    margin: 10px;
+}
+
+.project-card-actions {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    margin: 5px 20px;
+}
+
+.project-edit-icon {
+    width: 24px;
+    height: 24px;
+    cursor: pointer;
+}
+
+.project-share-icon {
+    width: 24px;
+    height: 24px;
+    cursor: pointer;
+}
+
+.project-view-button {
+    width: 78px;
+    height: 37px;
+    padding: 8px 24px;
+    border-radius: 4px;
+    color: #fff;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.project-view-button-text {
+    font-family: Source Sans Pro;
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 21px;
+    letter-spacing: 0.02em;
+}

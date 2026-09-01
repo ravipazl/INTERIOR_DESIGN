@@ -1,0 +1,222 @@
+.title-header-color {
+  background-color: #e9e5ec;
+}
+
+.expanded_container_section {
+  width: 100%;
+  height: 100vh;
+}
+
+.title {
+  font-size: 14px !important;
+  font-weight: 700;
+  color: #414063 !important;
+}
+
+.expanded_header_number {
+  font-size: 40px;
+  font-weight: 700;
+  color: #000000;
+  line-height: 70px;
+  margin: 0px;
+  display: flex;
+  align-items: center;
+}
+
+.expanded_header_text {
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 31.5px;
+  color: #07143b;
+}
+
+.image-container {
+  display: flex;
+}
+
+.image-container img {
+  margin-right: 10px;
+  max-width: 100px;
+  /* Adjust the max-width as needed */
+  max-height: 100px;
+  /* Adjust the max-height as needed */
+}
+
+.view_all_button {
+  font-size: 14px;
+  font-weight: 400;
+  color: #07143b;
+  text-decoration: underline;
+  padding: 20px 5px;
+}
+
+.dropdown_title {
+  background-color: white;
+  font-size: 12px;
+  font-weight: 400;
+  color: rgba(204, 204, 204, 0.8);
+  border: none;
+  border-radius: 4px;
+  padding: 12px 20px 12px 20px;
+  width: 150px;
+}
+
+.dropdown_item {
+  background-color: white;
+  width: 150px;
+}
+
+.dropdown_item_text {
+  font-size: 16px;
+  font-weight: 400;
+  color: rgba(28, 27, 31, 1);
+  cursor: pointer;
+  padding: 0px 0px 0px 15px;
+}
+
+.container1,
+.container2,
+.container3 {
+  border-right: 1px solid rgba(28, 27, 31, 0.25);
+  overflow: hidden;
+  transition: flex-basis 0.3s;
+}
+
+.stepper-header-text {
+  color: #414063 !important;
+  font-size: 16px !important;
+  font-style: normal;
+  font-weight: 700;
+  line-height: "31.5px";
+}
+
+.stepper-header-number {
+  color: #333333;
+  text-align: center;
+  font-size: 36px !important;
+  font-style: normal;
+  font-weight: 700;
+  line-height: 70px;
+}
+
+.border {
+  border: 1px solid #ccc !important;
+}
+
+.border-right {
+  border-right: 1px solid #ccc !important;
+}
+
+.border-left {
+  border-left: 1px solid #ccc !important;
+}
+
+.border-top {
+  border-top: 1px solid #ccc !important;
+}
+
+.border-bottom {
+  border-bottom: 1px solid #ccc !important;
+}
+
+/* CustomTabs.css */
+
+/* Style for the tab navigation */
+.nav-tabs {
+  border-bottom: 4px solid #ddd;
+  /* Add a bottom border to the entire tab navigation */
+}
+
+/* Style for each individual tab */
+.nav-tabs .nav-link {
+  border: none;
+  /* Remove the default border for all tabs */
+  border-bottom: 2px solid transparent;
+  /* Add a transparent bottom border for all tabs */
+  color: #333;
+  /* Default text color */
+}
+
+.nav-link {
+  padding: 12px !important;
+}
+
+/* .custom-tabs .nav-tabs {
+  border-bottom: 2px solid #333 !important; /* Change color and style as needed */
+.nav-underline .nav-link.active {
+  border-bottom: 3px solid "#FFBE26" !important;
+}
+
+.history-card {
+  cursor: pointer !important;
+  transition: box-shadow 0.3s;
+}
+
+.history-card:hover {
+  box-shadow: 0px 2px 4px 0px #414063 !important;
+}
+
+.generated-design-image {
+  border-radius: 8px;
+  cursor: pointer;
+  background-size: cover;
+  transition: box-shadow 0.3s;
+}
+
+.generated-design-image:hover {
+  box-shadow: 0px 3px 14px 3px gray;
+}
+
+.history-scroll {
+  overflow-x: scroll;
+}
+
+.generated-image {
+  max-height: calc(100vh - 250px) !important;
+}
+
+.stepper3-container {
+  max-width: 100vw !important;
+}
+
+.custom-modal {
+  height: calc(100vh - 80px);
+  max-width: 100%;
+}
+
+.overflow-y-auto {
+  margin-left: 0px;
+}
+
+.overflow-y-auto.portrait {
+  overflow-y: hidden !important;
+}
+
+.overflow-y-auto.landscape {
+  overflow-y: auto !important;
+}
+
+.history-border {
+  border-left: 0.25px solid #333333;
+  padding-left: 36px;
+}
+
+image-slider-landscape .modal-dialog {
+  width: 100% !important;
+  height: 100%;
+  margin: 0 !important;
+  padding: 0;
+}
+
+image-slider-landscape .modal-content {
+  height: auto;
+  min-height: 100%;
+  border-radius: 0 !important;
+  position: fixed !important;
+  top: 0;
+  bottom: 0;
+}
+
+.selected-room {
+  font-weight: 700;
+}

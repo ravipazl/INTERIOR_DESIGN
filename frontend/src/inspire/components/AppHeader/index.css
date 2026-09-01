@@ -1,0 +1,59 @@
+.brand-title {
+  color: #414063;
+  font-family: 'Source Sans Pro';
+  font-size: 20px;
+  font-style: normal;
+  font-weight: 700;
+  line-height: 35px;
+}
+
+.header_link:hover {
+  text-decoration: underline;
+  color: #414063 !important;
+}
+
+.back-icon {
+  margin-right: 10px;
+  cursor: pointer;
+}
+
+.badge-width {
+  width: 30px;
+}
+
+.button-width {
+  width: 180px;
+}
+
+.counter-icon {
+  position: absolute;
+  top: 0px;
+  right: 0px;
+  width: auto;
+  border-radius: 50% !important;
+
+}
+
+.nav-border-active {
+  height: 8px !important;
+}
+
+.logo-active {
+  border: none !important;
+}
+
+.logo-active:active {
+  border: none !important;
+}
+
+.logo-active:focus-visible {
+  border: none !important;
+}
+
+.profile-button {
+  background-color: #FFFFFF !important;
+  border: none !important;
+  color: #414063 !important;
+  box-shadow: none !important;
+  padding-left: 2px !important;
+}

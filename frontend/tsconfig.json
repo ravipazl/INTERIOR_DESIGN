@@ -1,0 +1,38 @@
+{
+  "compilerOptions": {
+    "target": "es5",
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "strict": true,
+    "forceConsistentCasingInFileNames": true,
+    "noFallthroughCasesInSwitch": true,
+    "module": "esnext",
+    "moduleResolution": "node",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "traceResolution": true,
+    "noEmit": true,
+    "jsx": "react-jsx",
+    "baseUrl": ".",
+    "paths": {
+      "@pazl/events/*": ["src/events/*"],
+      "@pazl/entities/*": ["src/react-app/entities/*"],
+      "@pazl/context/*": ["src/react-app/context/*"],
+      "@pazl/services/*": ["src/react-app/services/*"],
+      "@pazl/components/*": ["src/react-app/components/*"],
+      "@pazl/pages/*": ["src/react-app/pages/*"],
+      "@pazl/models/*": ["src/react-app/models/*"],
+      "@pazl/routes/*": ["src/react-app/routes/*"],
+      "@pazl/utils/*": ["src/react-app/utils/*"],
+      "@pazl/helpers/*": ["src/react-app/helpers/*"],
+      "@pazl/assets/*": ["src/react-app/assets/*"],
+      "@pazl/main/*": ["src/scripts/*"], // all the core modules of pazl
+      "@pazl/*": ["src/*"] // all the js files inside src
+    }
+  },
+  "include": ["src", "**/*.ts", "**/*.js"],
+  "exclude": ["node_modules", "build", "scripts"]
+}

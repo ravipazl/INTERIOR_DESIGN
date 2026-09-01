@@ -1,0 +1,115 @@
+.toggle-container {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+
+.app-header-flex-container {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+
+.user-icon-img {
+  height: 24px;
+  width: 24px;
+  margin-right: -8px;
+}
+
+.dark-user-icon-img {
+  filter: invert(1);
+  height: 24px;
+  width: 24px;
+  margin-right: -6px;
+}
+
+.icon-img {
+  height: 20px;
+  width: 20px;
+  margin-top: -2px;
+}
+
+.dark-icon-img {
+  filter: invert(1);
+  height: 20px;
+  width: 20px;
+  margin-top: -2px;
+}
+
+.custom-dropdown {
+  padding: 10px;
+  cursor: pointer;
+  text-align: right;
+  position: relative;
+}
+
+.dropdown-options {
+  position: absolute;
+  /* Drop cleanly BELOW the email (was 80% → overlapped it) and align to the
+     right edge (was left:50% → pushed it sideways/off-screen). Raised z-index
+     so it sits above the header instead of behind it. */
+  top: 100%;
+  right: 0;
+  left: auto;
+  margin: 6px 0 0 0;
+  padding: 0;
+  list-style: none;
+  z-index: 1000;
+  min-width: 130px;
+  text-align: left;
+}
+
+.dropdown-option {
+  padding: 2px 10px;
+  background-color: #fff;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.dropdown-option:hover {
+  background-color: #f0f0f0;
+}
+
+.save-button {
+  font-size: 12px;
+  background-image: var(--pz-accent-grad, linear-gradient(135deg, #059669, #34d399));
+  background-color: #059669;
+  padding: 0 12px;
+  box-shadow: 0 2px 8px rgba(5, 150, 105, 0.3);
+}
+
+.save-button:hover {
+  filter: brightness(1.08);
+}
+
+.back-button {
+  cursor: pointer;
+  margin-left: 4px;
+  width: 16px;
+  height: 16px;
+}
+
+.spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid #fff;
+  border-bottom-color: transparent;
+  border-radius: 50%;
+  display: inline-block;
+  box-sizing: border-box;
+  animation: rotation 1s linear infinite;
+  margin-right: 4px;
+  margin-bottom: -2px;
+}
+
+@keyframes rotation {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}

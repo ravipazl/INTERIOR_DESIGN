@@ -1,0 +1,99 @@
+.container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-evenly !important;
+    height: 100vh;
+    width: 100vw;
+}
+
+.email_password_text_field {
+    width: 330px;
+}
+
+.email_password_text {
+    font-size: 12px;
+    font-weight: 400;
+    color: #CCCCCC;
+    height: 44px !important;
+}
+
+.forgot_password_text {
+    color: #FFBE26;
+    font-size: 12px;
+    font-weight: 400;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+.login {
+    box-shadow: 0px 4px 4px 0px #00000040 !important;
+    width: 330px;
+}
+
+.or {
+    font-size: 12px;
+    font-weight: 400;
+}
+
+.new_user_login {
+    font-size: 12px;
+    font-weight: 700;
+    color: #000000;
+    text-decoration: underline;
+    margin: 0px;
+    cursor: pointer;
+}
+
+.resendotp {
+    margin-top: 35px;
+    font-size: 12px;
+    font-weight: 400;
+    color: #CCCCCC;
+    text-align: center;
+}
+
+.resendAfterTimeup {
+    margin-top: 35px;
+    font-size: 12px;
+    font-weight: 400;
+    text-align: center;
+    cursor: pointer;
+}
+
+.password-container {
+    position: relative;
+}
+
+.eye-icon {
+    position: absolute;
+    top: 28%;
+    right: 4%;
+    cursor: pointer;
+}
+
+.visibility-eye {
+    color: #D9D9D9;
+}
+
+.visibility-eye.icon {
+    color: #1C1B1F;
+}
+
+.disabled-button:disabled {
+    box-shadow: none !important;
+}
+
+.password-input-style {
+    border: 1px solid rgb(222, 226, 230);
+    border-radius: 4px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.075) !important;
+}
+
+.email_password_text:focus-visible {
+    outline: none !important;
+}
+
+.invalid-password {
+    border: 1px solid #dc3545 !important;
+}

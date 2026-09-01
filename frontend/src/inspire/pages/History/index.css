@@ -1,0 +1,60 @@
+.history-container {
+    background-color: #F7F1E3;
+    padding-top: 2em;
+    padding-bottom: 2em;
+}
+
+.hist-image-gallery {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+    margin-left: 20px;
+    overflow: auto;
+
+}
+
+
+.hist-pic-container {
+    position: relative;
+    margin-right: 20px;
+}
+
+.heading {
+    font-size: 16px !important;
+}
+
+.hist-pic {
+    width: 187px !important;
+    height: 127px !important;
+    object-fit: cover;
+    border-radius: 8px;
+}
+
+.hist-unlike-icon {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    font-size: 20px;
+    color: #fff;
+    cursor: pointer;
+}
+
+.hist-like-icon {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    font-size: 20px;
+    color: red;
+    cursor: pointer;
+}
+
+.alert-box {
+    padding: 200px !important;
+}
+
+.noData {
+    font-size: 20px;
+    font-weight: 600;
+    color: #07143B;
+}

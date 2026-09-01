@@ -1,0 +1,37 @@
+[
+    {
+        "id": 0,
+        "value": "open",
+        "name": "Open"
+    },
+    {
+        "id": 1,
+        "value": "quotation_requested",
+        "name": "Quotation Requested"
+    },
+    {
+        "id": 4,
+        "value": "quotation_pending_approval",
+        "name": "Pending Approval"
+    },
+    {
+        "id": 2,
+        "value": "closed",
+        "name": "Closed"
+    },
+    {
+        "id": 3,
+        "value": "quotation_sent",
+        "name": "Quotation sent"
+    },
+    {
+        "id": 7,
+        "value": "quotation_accepted",
+        "name": "Quotation Accepted"
+    },
+    {
+        "id": 8,
+        "value": "quotation_rejected",
+        "name": "Quotation Rejected"
+    }
+]

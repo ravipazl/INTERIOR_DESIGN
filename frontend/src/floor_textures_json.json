@@ -1,0 +1,46 @@
+[
+
+    {
+        "name": "Hardwood_001",
+        "bumpmap": "textures/Floor/Hardwood_001/Hardwood2_bump.jpg",
+        "colormap": "textures/Floor/Hardwood_001/Hardwood2_diffuse.jpg",
+        "roughnessmap": "textures/Floor/Hardwood_001/Hardwood2_roughness.jpg"
+    },
+    {
+        "name": "Marble_White_007_SD",
+        "reflective": 0.1,
+        "ambientmap": "textures/Floor/Marble_White_007_SD/Marble_White_007_ambientOcclusion.jpg",
+        "bumpmap": "textures/Floor/Marble_White_007_SD/Marble_White_007_height.png",
+        "normalmap": "textures/Floor/Marble_White_007_SD/Marble_White_007_normal.jpg",
+        "colormap": "textures/Floor/Marble_White_007_SD/Marble_White_007_basecolor.jpg",
+        "roughnessmap": "textures/Floor/Marble_White_007_SD/Marble_White_007_roughness.jpg"
+    },
+
+    {
+        "name": "Rubber_Floor_001",
+        "repeat": 100,
+        "reflective": 1.0,
+        "roughnessmap": "textures/Floor/Rubber_Floor_001/Rubber_Floor_001_roughness.jpg",
+        "colormap": "textures/Floor/Rubber_Floor_001/Rubber_Floor_001_basecolor.jpg",
+        "ambientmap": "textures/Floor/Rubber_Floor_001/Rubber_Floor_001_ambientOcclusion.jpg",
+        "normalmap": "textures/Floor/Rubber_Floor_001/Rubber_Floor_001_normal.jpg"
+    },
+    {
+        "name": "Wood_Herringbone_Tiles_001",
+        "repeat": 100,
+        "ambientmap": "textures/Floor/Wood_Herringbone_Tiles_001/Wood_Herringbone_Tiles_001_ambientOcclusion.jpg",
+        "colormap": "textures/Floor/Wood_Herringbone_Tiles_001/Wood_Herringbone_Tiles_001_basecolor.jpg",
+        "normalmap": "textures/Floor/Wood_Herringbone_Tiles_001/Wood_Herringbone_Tiles_001_normal.jpg",
+        "roughnessmap": "textures/Floor/Wood_Herringbone_Tiles_001/Wood_Herringbone_Tiles_001_roughness.jpg"
+    },
+    {
+        "name": "Marble_Tiles_001",
+        "repeat": 100,
+        "reflective": 0.1,
+        "ambientmap": "textures/Floor/Marble_Tiles_001/Marble_Tiles_001_ambientOcclusion.jpg",
+        "colormap": "textures/Floor/Marble_Tiles_001/Marble_Tiles_001_basecolor.jpg",
+        "roughnessmap": "textures/Floor/Marble_Tiles_001/Marble_Tiles_001_roughness.jpg",
+        "normalmap": "textures/Floor/Marble_Tiles_001/Marble_Tiles_001_normal.jpg"
+    }
+
+]

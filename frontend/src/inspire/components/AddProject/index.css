@@ -1,0 +1,33 @@
+.bg-container {
+    background-color: #F7F1E3;
+    height: 400px;
+    width: 400px;
+}
+
+.detail-container {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    font-weight: bold;
+    margin: 20px 0px;
+}
+
+.detail-container2 {
+    display: flex;
+    justify-content: flex-end;
+    margin-left: 60px;
+}
+
+.form-detail {
+    height: 306px;
+    width: 330px;
+    align-items: center;
+    justify-content: center;
+}
+
+.project-detail-close {
+    margin-left: 20px;
+    cursor: pointer;
+    color: #000;
+}

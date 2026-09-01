@@ -1,0 +1,9 @@
+.copy-modal-title {
+    padding: 10px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: rgb(9, 137, 15);
+    font-size: 14px;
+    border-top: 1px solid #eee;
+}

@@ -1,0 +1,70 @@
+{
+  "host": "localhost",
+  "port": 3400,
+  "public": "./public/",
+  "origins": [
+    "http://localhost:3400",
+    "http://localhost:3040",
+    "https://inspire.pazl.info",
+    "https://design.pazl.info",
+    "https://api-ai.pazl.info"
+  ],
+  "paginate": {
+    "default": 10000,
+    "max": 5000
+  },
+  "mongodb": "mongodb://127.0.0.1:27017/interior-design",
+  "authentication": {
+    "entity": "user",
+    "service": "users",
+    "secret": "WL29WaRP8iAsTJLbD38wv1ChJApmvMdZ",
+    "authStrategies": [
+      "jwt",
+      "local",
+      "google",
+      "facebook",
+      "twitter",
+      "auth0",
+      "anonymous",
+      "apiKey"
+    ],
+    "apiKey": {
+      "allowedKeys": ["61afdfe6-76ee-4c56-89c5-c81e27be34f6"],
+      "header": "x-access-token"
+    },
+    "jwtOptions": {
+      "header": {
+        "typ": "access"
+      },
+      "audience": "https://yourdomain.com",
+      "algorithm": "HS256",
+      "expiresIn": "1d"
+    },
+    "local": {
+      "usernameField": "email",
+      "passwordField": "password"
+    },
+    "oauth": {
+      "google": {
+        "key": "<Client ID>",
+        "secret": "<Client secret>"
+      },
+      "facebook": {
+        "key": "<Client ID>",
+        "secret": "<Client secret>"
+      },
+      "twitter": {
+        "key": "<Client ID>",
+        "secret": "<Client secret>"
+      },
+      "github": {
+        "key": "<Client ID>",
+        "secret": "<Client secret>"
+      },
+      "auth0": {
+        "key": "<Client ID>",
+        "secret": "<Client secret>"
+      }
+    }
+  }
+}

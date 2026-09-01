@@ -1,0 +1,42 @@
+[
+  {
+    "colorName": "Red",
+    "colorValue": "#FF0000"
+  },
+  {
+    "colorName": "Blue",
+    "colorValue": "#0000FF"
+  },
+  {
+    "colorName": "Green",
+    "colorValue": "#008000"
+  },
+  {
+    "colorName": "Yellow",
+    "colorValue": "#FFFF00"
+  },
+  {
+    "colorName": "Purple",
+    "colorValue": "#800080"
+  },
+  {
+    "colorName": "Orange",
+    "colorValue": "#FFA500"
+  },
+  {
+    "colorName": "Pink",
+    "colorValue": "#FFC0CB"
+  },
+  {
+    "colorName": "Brown",
+    "colorValue": "#A52A2A"
+  },
+  {
+    "colorName": "Cyan",
+    "colorValue": "#00FFFF"
+  },
+  {
+    "colorName": "Gray",
+    "colorValue": "#808080"
+  }
+]
