@@ -619,18 +619,28 @@ const Stepper1Expanded = ({
   // Mark the chosen image favourite + flip the project into "quotation_requested"
   // (same flow as the Generate step). Reports the real outcome — a refused write
   // returns null, so we never claim success for a request that wasn't saved.
+  // `selected` is an ARRAY — the picker is multi-select. One image is just a
+  // list of one.
   const handleSendQuote = async (selected) => {
-    if (!selected?._id) return;
+    const picked = (Array.isArray(selected) ? selected : [selected]).filter(
+      (i) => i?._id
+    );
+    if (!picked.length) return;
     setSendingQuote(true);
     try {
-      await imagesService.updateImageInfo(selected._id, { isFavorite: true });
-      const quoteImageUrl = selected.url
-        ? `${process.env.REACT_APP_UPLOADED_IMAGES_BASE_PATH}/${selected.url}`
-        : undefined;
+      // Favourite EVERY chosen image — that is how the design side knows which
+      // designs the quote covers.
+      await Promise.all(
+        picked.map((img) =>
+          imagesService.updateImageInfo(img._id, { isFavorite: true })
+        )
+      );
       const updateResponse = await updateProject(currentProject?._id, {
         status: "quotation_requested",
-        quoteImageId: selected._id,
-        ...(quoteImageUrl ? { quoteImageUrl } : {}),
+        // quoteImageIds is the real list; quoteImageId keeps the first one so
+        // older readers and existing projects keep working.
+        quoteImageIds: picked.map((i) => i._id),
+        quoteImageId: picked[0]._id,
       });
       if (!updateResponse) {
         toast.error(

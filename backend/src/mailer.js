@@ -42,7 +42,12 @@ export const getDesignUrl = () =>
 export const getAppUrl = () =>
   (process.env.APP_URL || process.env.PAZL_INSPIRE_URL || 'http://localhost:3000').replace(/\/$/, '')
 
-export const sendMail = async ({ to, subject, text, html }) => {
+// `attachments` is nodemailer's array. Pass `{ path, cid }` to EMBED an image in
+// the body: reference it from the HTML as `cid:<id>` (renderActionEmail's
+// imageUrl accepts that). Embedding matters because a linked
+// http://localhost:3400/... image never loads in the recipient's mail client —
+// not from another machine, and not in production.
+export const sendMail = async ({ to, subject, text, html, attachments }) => {
   const tx = getTransporter()
   if (!tx) return { sent: false, reason: 'smtp-not-configured' }
   try {
@@ -51,7 +56,8 @@ export const sendMail = async ({ to, subject, text, html }) => {
       to,
       subject,
       text,
-      html
+      html,
+      ...(attachments && attachments.length ? { attachments } : {})
     })
     return { sent: true }
   } catch (err) {

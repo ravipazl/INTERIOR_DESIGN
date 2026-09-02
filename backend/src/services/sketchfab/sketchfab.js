@@ -31,6 +31,7 @@ import { v4 as uuidv4 } from 'uuid'
 import { NodeIO } from '@gltf-transform/core'
 import { ALL_EXTENSIONS } from '@gltf-transform/extensions'
 import { prune } from '@gltf-transform/functions'
+import { measureDocumentMm, resolveDimensions } from '../../utils/measure-glb.js'
 import { MeshoptDecoder, MeshoptEncoder } from 'meshoptimizer'
 
 const __dirname = path.dirname(url.fileURLToPath(import.meta.url))
@@ -344,8 +345,12 @@ async function processGlb(buffer, { stripTextures }) {
   await doc.transform(prune())
   const componentNames = extractComponentNamesFromDoc(doc)
   const materialNames = extractMaterialNamesFromDoc(doc)
+  // Measure while the document is already parsed — the catalog record below
+  // used to store a fixed 500 mm placeholder, and the frontend SCALES the mesh
+  // to match it, which is what made imported models appear doll-sized.
+  const measured = measureDocumentMm(doc)
   const out = await io.writeBinary(doc)
-  return { buffer: Buffer.from(out), componentNames, materialNames }
+  return { buffer: Buffer.from(out), componentNames, materialNames, measured }
 }
 
 // -------- import job --------------------------------------------------------
@@ -357,7 +362,10 @@ async function runImport(job, app, params) {
     categoryId,
     stripTextures,
     credit,
-    placementType
+    placementType,
+    // Optional { widthMm, heightMm, depthMm } typed in the import dialog. When
+    // absent (the normal case) the measured size is used.
+    dimensionOverride
   } = params
   try {
     job.stage = 'fetching_url'
@@ -373,12 +381,14 @@ async function runImport(job, app, params) {
     let processed = original
     let componentNames = []
     let materialNames = []
+    let measured = null
     let processedOk = false
     try {
       const r = await processGlb(original, { stripTextures })
       processed = r.buffer
       componentNames = r.componentNames
       materialNames = r.materialNames
+      measured = r.measured
       processedOk = true
       console.log(
         `[sketchfab] processGlb OK for ${uid}: ${original.length} -> ${processed.length} bytes, ${componentNames.length} mesh names, ${materialNames.length} material names`
@@ -433,6 +443,18 @@ async function runImport(job, app, params) {
       /* not fatal */
     }
 
+    // Real size instead of the old fixed [500, 500, 500]. The frontend SCALES a
+    // placed model to match its declared dimensions, so the placeholder was
+    // shrinking every imported model — a 2 m sofa came in at 500 mm. Falls back
+    // to the placeholder only when the model cannot be measured or measures
+    // implausibly (scraped files are not always authored in metres).
+    const resolvedDims = resolveDimensions(measured, dimensionOverride)
+    console.log(
+      `[sketchfab] dimensions for ${uid}: [${resolvedDims.dimensions.join(
+        ', '
+      )}] mm (source: ${resolvedDims.source})`
+    )
+
     const now = new Date().toISOString()
     const doc = {
       name: displayName || safe.replace(/\.glb$/i, ''),
@@ -440,7 +462,7 @@ async function runImport(job, app, params) {
       thumbnail: '',
       thumbnails: '',
       categoryId,
-      dimensions: [500, 500, 500],
+      dimensions: resolvedDims.dimensions,
       maxWidth: 9999,
       standardWidth: [1, 500, 9999],
       price: 0,
@@ -648,6 +670,17 @@ export const sketchfab = (app) => {
       const credit =
         body.credit && typeof body.credit === 'object' ? body.credit : null
 
+      // Optional manual size from the import dialog. Any missing/invalid value
+      // falls through to the measured size.
+      const dimensionOverride =
+        body.dimensions && typeof body.dimensions === 'object'
+          ? {
+              widthMm: Number(body.dimensions.widthMm),
+              heightMm: Number(body.dimensions.heightMm),
+              depthMm: Number(body.dimensions.depthMm)
+            }
+          : null
+
       const job = newJob()
       ctx.status = 202
       ctx.body = { jobId: job.id, status: 'queued' }
@@ -658,7 +691,8 @@ export const sketchfab = (app) => {
         categoryId,
         stripTextures,
         credit,
-        placementType
+        placementType,
+        dimensionOverride
       })
       return
     }

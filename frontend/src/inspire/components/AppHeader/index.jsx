@@ -26,6 +26,7 @@ import UserContext from "../../context/UserContext";
 import ServiceContext from "../../context/ServiceContext";
 import { signOut } from "../../services/authService";
 import { getGeneratedImages } from "../../services/imagesService";
+import QuoteImagePicker from "../QuoteImagePicker";
 import {
   updateProject,
   getProjectsByStatus,
@@ -62,6 +63,15 @@ const AppHeader = ({ user, showLogo, isGuestUser }) => {
   const [historyCount, setHistoryCount] = useState(0);
   const [showShareModal, setShowShareModal] = useState(false);
   const [isheaderMobile, setIsHeaderMobile] = useState(window.innerWidth < 992);
+  // "Get Quote" opens the SAME image picker the "Request quote" button uses on
+  // the upload step. It used to fire the request straight off, so the admin got
+  // a quote request with no indication of which design the client actually
+  // wanted — the two buttons mean the same thing and now behave the same way.
+  const [showGetQuoteModal, setShowGetQuoteModal] = useState(false);
+  const [sendingQuote, setSendingQuote] = useState(false);
+  const [quoteUploaded, setQuoteUploaded] = useState([]);
+  const [quoteEdited, setQuoteEdited] = useState([]);
+  const [quoteGenerated, setQuoteGenerated] = useState([]);
   // Quotation requests shown in the header bell dropdown. A notification is
   // just a project awaiting a quote — no separate notifications collection.
   // Unread = never read, or read BEFORE the latest request on that project.
@@ -482,7 +492,24 @@ const AppHeader = ({ user, showLogo, isGuestUser }) => {
     "quotation_accepted",
   ].includes(currentProject?.status);
 
-  const handleGetQuote = async () => {
+  // Load the project's uploaded / edited / generated images for the picker.
+  // Same three calls the upload step makes — the picker groups them into its
+  // All / Uploaded / Edited / Generated tabs.
+  const loadQuoteImages = async () => {
+    if (!currentProject?._id) return;
+    const [up, ed, gen] = await Promise.all([
+      imagesService.getImagesByType(currentProject._id, "input"),
+      imagesService.getImagesByType(currentProject._id, "edited"),
+      imagesService.getImagesByType(currentProject._id, "generated"),
+    ]);
+    setQuoteUploaded(up?.data || []);
+    setQuoteEdited(ed?.data || []);
+    setQuoteGenerated(gen?.data || []);
+  };
+
+  // Opens the picker. The request is NOT sent here — it is sent by
+  // handleSendQuote once the client has chosen an image.
+  const handleGetQuote = () => {
     if (quoteInProgress) {
       toast.info("A quotation is already in progress for this project.", {
         position: toast.POSITION.TOP_RIGHT,
@@ -490,30 +517,65 @@ const AppHeader = ({ user, showLogo, isGuestUser }) => {
       });
       return;
     }
-    const data = { status: "quotation_requested" };
-    const updateResponse = await updateProject(currentProject?._id, data);
-    // updateProject returns null when the backend refused the write, so this no
-    // longer reports success for a request that was never saved.
-    if (!updateResponse) {
-      toast.error("Could not send your quotation request. Please try again.", {
-        position: toast.POSITION.TOP_RIGHT,
-        theme: "colored",
-      });
-      return;
-    }
-    // The request IS saved either way — only the admin's email may have failed.
-    // Say which happened rather than a blanket "requested!", so the client is
-    // never told the admin was notified when nobody was.
-    if (updateResponse.adminNotified) {
-      toast.success("Quotation requested — the admin has been notified by email.", {
-        position: toast.POSITION.TOP_RIGHT,
-        theme: "colored",
-      });
-    } else {
-      toast.warning(
-        "Quotation requested. We could not email the admin just now, but your request is saved and visible to them.",
-        { position: toast.POSITION.TOP_RIGHT, theme: "colored", autoClose: 8000 }
+    loadQuoteImages();
+    setShowGetQuoteModal(true);
+  };
+
+  // `selected` is an ARRAY — the picker is multi-select. One image is just a
+  // list of one.
+  const handleSendQuote = async (selected) => {
+    const picked = (Array.isArray(selected) ? selected : [selected]).filter(
+      (i) => i?._id
+    );
+    if (!picked.length) return;
+    setSendingQuote(true);
+    try {
+      // Favourite EVERY chosen image — that is how the design side knows which
+      // designs the quote covers.
+      await Promise.all(
+        picked.map((img) =>
+          imagesService.updateImageInfo(img._id, { isFavorite: true })
+        )
       );
+      const updateResponse = await updateProject(currentProject?._id, {
+        status: "quotation_requested",
+        // Both fields: quoteImageIds is the real list, quoteImageId keeps the
+        // first one so anything still reading the old single field (and every
+        // project already in the database) keeps working.
+        quoteImageIds: picked.map((i) => i._id),
+        quoteImageId: picked[0]._id,
+      });
+      // updateProject returns null when the backend refused the write, so this
+      // never reports success for a request that was not saved.
+      if (!updateResponse) {
+        toast.error("Could not send your quotation request. Please try again.", {
+          position: toast.POSITION.TOP_RIGHT,
+          theme: "colored",
+        });
+        return;
+      }
+      // The request IS saved either way — only the admin's email may have
+      // failed. Say which happened rather than a blanket "requested!".
+      if (updateResponse.adminNotified) {
+        toast.success("Quotation requested — the admin has been notified by email.", {
+          position: toast.POSITION.TOP_RIGHT,
+          theme: "colored",
+        });
+      } else {
+        toast.warning(
+          "Quotation requested. We could not email the admin just now, but your request is saved and visible to them.",
+          { position: toast.POSITION.TOP_RIGHT, theme: "colored", autoClose: 8000 }
+        );
+      }
+      setShowGetQuoteModal(false);
+    } catch (e) {
+      console.error(e);
+      toast.error("Couldn't send for quote.", {
+        position: toast.POSITION.TOP_RIGHT,
+        theme: "colored",
+      });
+    } finally {
+      setSendingQuote(false);
     }
   };
 
@@ -569,6 +631,18 @@ const AppHeader = ({ user, showLogo, isGuestUser }) => {
         show={showShareModal}
         onHide={() => setShowShareModal(false)}
         shareUrl={`${currentProject?.shareId}`}
+      />
+
+      {/* Same picker the upload step's "Request quote" uses, so both buttons
+          lead to one flow: choose an image, then send. */}
+      <QuoteImagePicker
+        show={showGetQuoteModal}
+        onHide={() => setShowGetQuoteModal(false)}
+        uploaded={quoteUploaded}
+        edited={quoteEdited}
+        generated={quoteGenerated}
+        onSend={handleSendQuote}
+        sending={sendingQuote}
       />
 
       <Container fluid className="border-bottom p-0">

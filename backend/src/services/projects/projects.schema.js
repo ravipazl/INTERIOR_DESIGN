@@ -44,6 +44,16 @@ export const projectSchema = {
     // 400 — so rejecting a quote failed outright and the reason never reached
     // anyone.
     rejectReason: { type: 'string' },
+    // Which image the client picked in "Choose an image to send for quote".
+    // Declared here so the PATCH is accepted — this schema is
+    // `additionalProperties: false`, so an undeclared key fails the WHOLE
+    // request with 400. The quote-request notification reads it to embed that
+    // image in the admin's email (see projects.js).
+    quoteImageId: { type: 'string' },
+    // The full set the client ticked — a quote usually covers several designs.
+    // `quoteImageId` above is kept (holding the first) so projects saved before
+    // multi-select, and anything still reading the single field, keep working.
+    quoteImageIds: { type: 'array', items: { type: 'string' } },
     createdAt: { type: 'string', format: 'date-time' },
     updatedAt: { type: 'string', format: 'date-time' }
   }

@@ -276,7 +276,15 @@ export const updateProject = async (projectId, data) => {
   //
   // `rejectReason` is deliberately NOT stripped: it carries real information and
   // is declared in the schema, so it must reach the backend.
-  const { quoteImageUrl, quoteImageId, ...aiData } = data || {};
+  // `quoteImageId` is now DECLARED in the AI projects schema, so it is allowed
+  // through — the backend uses it to embed the chosen design in the admin's
+  // "quote requested" email. Previously both keys were stripped, which is why
+  // that email arrived with no picture of what was being quoted.
+  //
+  // `quoteImageUrl` is still dropped: it is an absolute URL built in the
+  // browser, the schema does not declare it, and the backend resolves the file
+  // itself from the id. Sending it would 400 the whole PATCH.
+  const { quoteImageUrl, ...aiData } = data || {};
 
   // Primary update on the AI backend.
   let aiResult = null;
@@ -317,7 +325,10 @@ export const updateProject = async (projectId, data) => {
   // quoteImageUrl / quoteImageId are already gone: `aiData` above dropped them
   // for BOTH backends. Re-destructuring them here would redeclare the same
   // consts in this function scope — a SyntaxError.
-  const { rejectReason, ...designData } = aiData;
+  // `quoteImageId` is dropped here too: it is declared on the AI side only, and
+  // the design backend's projects schema is equally strict, so forwarding it
+  // would 400 the mirror.
+  const { rejectReason, quoteImageId, quoteImageIds, ...designData } = aiData;
 
   // In the MERGED app both base URLs point at the same server, so this mirror is
   // a second, identical PATCH of the row that was just written. It is not merely

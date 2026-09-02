@@ -299,6 +299,33 @@ function ObjectProperties({
       : 0;
   };
 
+  // Does this model genuinely come in a set of fixed widths?
+  //
+  // The width field is a DROPDOWN of presets, unlike Height and Depth which are
+  // plain inputs. That is right for a cabinet range sold at 600 / 900 / 1200,
+  // and wrong for everything else — yet imported models are written with
+  // `standardWidth: [1, 500, 9999]`, a placeholder from the importer. Because
+  // that array is non-empty, the old `!standardWidth?.length` test treated it as
+  // a real range and showed a dropdown offering 1 mm and 9999 mm. Typing a width
+  // on an imported sofa then took three clicks via "Custom Width".
+  //
+  // So judge the CONTENT, not just the length: drop values outside a plausible
+  // furniture range, and require at least two distinct ones left. A single
+  // preset is not a choice either — an uploaded model ships with exactly one
+  // (see the note below), and a one-option dropdown is worse than an input.
+  const PRESET_MIN_MM = 100;
+  const PRESET_MAX_MM = 4000;
+  const hasWidthPresets = () => {
+    const list = modelObject?.standardWidth;
+    if (!Array.isArray(list)) return false;
+    const usable = new Set(
+      list
+        .map((v: any) => Number(v))
+        .filter((v: number) => Number.isFinite(v) && v >= PRESET_MIN_MM && v <= PRESET_MAX_MM)
+    );
+    return usable.size >= 2;
+  };
+
   // "Custom Width" means ANY sensible width, not one of the presets. Uploaded
   // models ship with a single standardWidth (min === max), which used to freeze
   // the custom input to that one number. So in custom mode we validate against a
@@ -621,8 +648,7 @@ function ObjectProperties({
                         >
                           W
                         </button>
-                        {showCustomWidthInput ||
-                        !modelObject.standardWidth?.length ? (
+                        {showCustomWidthInput || !hasWidthPresets() ? (
                           <input
                             type="number"
                             className="relative m-0 -mr-0.5 block w-[1px] min-w-0 flex-auto border-neutral-300 bg-[color:var(--pz-input-bg)] bg-clip-padding px-1 py-[0.25rem] text-xs text-center font-normal leading-[1.6] text-neutral-700 outline-none transition duration-200 ease-in-out focus:z-[3] focus:border-primary focus:text-neutral-700 focus:shadow-[inset_0_0_0_1px_rgb(59,113,202)] focus:outline-none dark:border-neutral-600 dark:text-neutral-200 dark:placeholder:text-neutral-200 dark:focus:border-primary"
@@ -820,8 +846,7 @@ function ObjectProperties({
                         />
                       </div>
                     </div>
-                    {showCustomWidthInput ||
-                    !modelObject.standardWidth?.length ? (
+                    {showCustomWidthInput || !hasWidthPresets() ? (
                       <div className="text-xs font-normal text-primary dark:text-neutral-200">
                         <span>min: {getCustomMinWidth()}</span>
                         <span className="px-2">max: {getCustomMaxWidth()}</span>
