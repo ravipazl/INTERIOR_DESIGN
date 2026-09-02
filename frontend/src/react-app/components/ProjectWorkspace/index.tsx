@@ -263,6 +263,11 @@ const ProjectWorkspace: React.FC<{
   clientEmail?: string;
   // The project's creation date — used as "Project started"'s date.
   projectCreatedAt?: string;
+  // Passed straight through to the Tracker tab, which renders "Close Project"
+  // on its final "Done & handover" row.
+  canCloseProject?: boolean;
+  closingProject?: boolean;
+  onCloseProject?: () => void;
 }> = ({
   projectId,
   status,
@@ -272,6 +277,9 @@ const ProjectWorkspace: React.FC<{
   onClearFilter,
   projectCreatedAt,
   clientEmail,
+  canCloseProject,
+  closingProject,
+  onCloseProject,
 }) => {
   const [tab, setTab] = useState<ItemKind>("document");
 
@@ -555,6 +563,9 @@ const ProjectWorkspace: React.FC<{
           onAdvance={onChangeRequest}
           clientEmail={clientEmail}
           projectCreatedAt={projectCreatedAt}
+          canCloseProject={canCloseProject}
+          closingProject={closingProject}
+          onCloseProject={onCloseProject}
         />
       ) : (
       <>

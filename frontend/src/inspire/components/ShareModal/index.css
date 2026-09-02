@@ -1,7 +1,17 @@
-.btn-close {
-    margin: 0px !important;
-}
-.modal-body {
+/* CSS imported from a component is GLOBAL — these rules applied to every modal
+   in the app, not just this one.
+
+   `.btn-close { margin: 0 !important }` was the worst of it: Bootstrap pushes a
+   modal's close button to the right corner with `margin: -.5rem -.5rem -.5rem
+   auto`, and killing that `auto` left the ✕ stuck against the title in EVERY
+   dialog (Add Team, Assign Architect, …). This modal's header has no
+   `closeButton` at all, so the rule did nothing here — it was pure collateral
+   damage. Deleted.
+
+   `.modal-body` IS needed here (the body uses `flex-column align-items-center`,
+   which needs a flex container), so it is scoped to this modal instead of
+   removed. */
+.share-modal .modal-body {
     display: flex;
     align-items: center;
     justify-content: space-around;

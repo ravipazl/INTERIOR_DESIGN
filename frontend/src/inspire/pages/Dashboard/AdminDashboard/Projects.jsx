@@ -500,22 +500,27 @@ const Projects = () => {
         )
       : filterData;
 
-  const filteredProjects = scopedData.filter(
-    (item) =>
-      (item.name &&
-        item.name.toLowerCase().includes(filterText.toLowerCase())) ||
-      (item.clientName &&
-        item.clientName.toLowerCase().includes(filterText.toLowerCase())) ||
-      (item.ownerUser &&
-        ((item.ownerUser.name &&
-          item.ownerUser.name
-            .toLowerCase()
-            .includes(filterText.toLowerCase())) ||
-          (item.ownerUser.email &&
-            item.ownerUser.email
-              .toLowerCase()
-              .includes(filterText.toLowerCase()))))
-  );
+  // An EMPTY search box must show everything.
+  //
+  // The old predicate was a chain of `field && field.includes(query)` tests. On
+  // an empty query `"".includes("")` is true — but ONLY for rows that have the
+  // field at all. A project with no name, no clientName and no ownerUser failed
+  // every branch and was silently dropped, so the table read "There are no
+  // records to display" while the counters above it said 2 projects.
+  // Short-circuiting on an empty query is both correct and cheaper.
+  const query = (filterText || "").trim().toLowerCase();
+  const matchesQuery = (value) =>
+    typeof value === "string" && value.toLowerCase().includes(query);
+
+  const filteredProjects = query
+    ? scopedData.filter(
+        (item) =>
+          matchesQuery(item.name) ||
+          matchesQuery(item.clientName) ||
+          matchesQuery(item.ownerUser?.name) ||
+          matchesQuery(item.ownerUser?.email)
+      )
+    : scopedData;
 
   const columns = useMemo(() => [
     {
@@ -652,7 +657,19 @@ const Projects = () => {
                 {statusLabel}
               </Dropdown.Toggle>
 
-              <Dropdown.Menu>
+              {/* The table body is a 400px `overflow-y: auto` box (DataTable's
+                  fixedHeader + fixedHeaderScrollHeight), so an absolutely
+                  positioned menu is clipped at the container edge — only the
+                  first sliver of the status list was visible.
+                  `strategy: "fixed"` positions the menu against the VIEWPORT
+                  instead, which takes it out of that scroll container's clipping
+                  entirely. `renderOnMount` lets Popper measure the menu before
+                  it is first shown, so the very first open is placed correctly
+                  rather than jumping. */}
+              <Dropdown.Menu
+                renderOnMount
+                popperConfig={{ strategy: "fixed" }}
+              >
                 {projectStatus.map((status, index) => (
                   <Dropdown.Item
                     key={status.id}
@@ -682,9 +699,13 @@ const Projects = () => {
           );
         }
       },
-      ignoreRowClick: true,
       reorder: true,
       ignoreRowClick: true,
+      // Let the open status menu spill out of its cell. Without this the cell
+      // itself clips it, on top of the scroll-container clipping handled by the
+      // menu's fixed positioning above. (`ignoreRowClick` was listed twice here;
+      // the duplicate is dropped.)
+      allowOverflow: true,
       minWidth: "150px",
     },
     {

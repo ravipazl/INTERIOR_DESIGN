@@ -14,6 +14,7 @@ import {
 import { ProjectService, getOptions } from './projects.class.js'
 import { projectPath, projectMethods } from './projects.shared.js'
 import { fastJoin } from 'feathers-hooks-common'
+import { getInspireUrl, renderActionEmail, sendMail, esc, fmtWhen } from '../../mailer.js'
 export * from './projects.class.js'
 export * from './projects.schema.js'
 
@@ -142,6 +143,122 @@ const logStageEventOnStatusChange = async (context) => {
   return context
 }
 
+// ---------------------------------------------------------------------------
+// ASSIGN ARCHITECT — email the architect when they are assigned to a project.
+//
+// The frontend (Projects.jsx handleAssignArchitect) decides which toast to show
+// from `architectNotified` on the PATCH response. Nothing set it, so it was
+// always undefined → always falsy → the admin always saw "the notification email
+// could not be sent", and in fact no mail was ever attempted: the projects
+// service had no mail code at all.
+//
+// Duplicate suppression is time-based, NOT "did the value change".
+//
+// The frontend's updateProject() PATCHes the project TWICE (once as the AI
+// backend, once as the "design" backend), and in this merged app
+// REACT_APP_API_BASE_URL and REACT_APP_PAZL_DESIGN_API_BASE_URL are BOTH
+// http://localhost:3400 — so both land here and would send two identical emails.
+//
+// The obvious guard, "only send when architectUserId actually changed", is
+// WRONG: re-assigning the architect who is already on the project is a normal
+// admin action (and the only possible action when there is a single architect in
+// the system), and it must still notify them. That guard silently sent nothing.
+//
+// Instead we record who was last notified and when, and skip only a repeat to
+// the SAME architect inside a short window — long enough to swallow the
+// duplicate PATCH, far shorter than any deliberate re-assignment.
+// ---------------------------------------------------------------------------
+
+const NOTIFY_DEDUPE_MS = 60 * 1000
+
+// Best-effort: a mail failure must never fail the assignment itself, so every
+// path here is caught and only reflected in `architectNotified`.
+const notifyArchitectOnAssignment = async (context) => {
+  const architectUserId = context.data && context.data.architectUserId
+  if (!architectUserId) return context
+
+  const project = Array.isArray(context.result) ? context.result[0] : context.result
+  if (!project) return context
+
+  // Default to false so the UI never claims an email went out when it didn't.
+  project.architectNotified = false
+
+  // Skip only the duplicate PATCH: same architect, notified moments ago.
+  const lastTo = project.architectNotifiedTo
+  const lastAt = project.architectNotifiedAt ? Date.parse(project.architectNotifiedAt) : 0
+  if (
+    lastTo &&
+    String(lastTo) === String(architectUserId) &&
+    Number.isFinite(lastAt) &&
+    Date.now() - lastAt < NOTIFY_DEDUPE_MS
+  ) {
+    // The first of the pair already sent it and reported architectNotified:true
+    // to the UI, so nothing is lost by staying false here.
+    return context
+  }
+
+  try {
+    const architect = await context.app.service('users').get(architectUserId)
+    const to = architect?.email
+    if (!to) {
+      console.error(`[assign-architect] user ${architectUserId} has no email; not notified`)
+      return context
+    }
+
+    const projectName = project.name || 'a project'
+    const html = renderActionEmail({
+      title: 'You have been assigned to a project',
+      intro: `Hi ${esc(architect.name || 'there')}, you are now the architect for <strong>${esc(
+        projectName
+      )}</strong>.`,
+      details: [
+        ['Project', projectName],
+        ['Client', project.clientName],
+        ['Address', project.address],
+        ['Assigned', fmtWhen()]
+      ],
+      ctaText: 'Open project',
+      ctaUrl: `${getInspireUrl()}/projects`
+    })
+
+    const result = await sendMail({
+      to,
+      subject: `You have been assigned to ${projectName}`,
+      text:
+        `Hi ${architect.name || 'there'},\n\n` +
+        `You are now the architect for "${projectName}".\n\n` +
+        `Open it here: ${getInspireUrl()}/projects\n`,
+      html
+    })
+
+    project.architectNotified = result.sent === true
+    if (!result.sent) {
+      console.error('[assign-architect] email not sent:', result.reason)
+      return context
+    }
+
+    // Stamp who was notified and when — this is what the dedupe window above
+    // reads on the duplicate PATCH. Written straight to the collection (not via
+    // patch()) so it does not re-enter these hooks. `_id` came from the DB, so
+    // its type already matches; no idQuery needed.
+    project.architectNotifiedTo = String(architectUserId)
+    project.architectNotifiedAt = new Date().toISOString()
+    const model = await context.service.getModel(context.params)
+    await model.updateOne(
+      { _id: project._id },
+      {
+        $set: {
+          architectNotifiedTo: project.architectNotifiedTo,
+          architectNotifiedAt: project.architectNotifiedAt
+        }
+      }
+    )
+  } catch (err) {
+    console.error('[assign-architect] notify failed:', err?.message)
+  }
+  return context
+}
+
 export const project = (app) => {
   app.use(projectPath, new ProjectService(getOptions(app)), {
     methods: projectMethods,
@@ -195,8 +312,9 @@ export const project = (app) => {
     },
     after: {
       all: [fastJoin(projectsJoinResolver)],
-      // Log a dated stage_event whenever the project status changes.
-      patch: [logStageEventOnStatusChange]
+      // Log a dated stage_event whenever the project status changes, and email
+      // the architect when one is newly assigned.
+      patch: [logStageEventOnStatusChange, notifyArchitectOnAssignment]
     },
     error: {
       all: []

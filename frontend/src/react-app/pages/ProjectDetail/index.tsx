@@ -542,27 +542,12 @@ const ProjectDetail = () => {
                   close the project.
                 </div>
               )}
-            {project?.status === "quotation_accepted" &&
-              (currentUser?.permissions === UserPermission.ADMIN ||
-                currentUser?.permissions === UserPermission.SUPER_ADMIN) && (
-                <div
-                  className="flex flex-wrap items-center justify-between gap-2 m-2 px-4 py-3 rounded"
-                  style={{ background: "#fff7ed", border: "1px solid #fed7aa" }}
-                >
-                  <span className="text-sm text-[#1f2033]">
-                    The client has accepted the quote. You can now close the
-                    project.
-                  </span>
-                  <button
-                    className="px-6 py-2 rounded text-white disabled:opacity-60 disabled:cursor-not-allowed"
-                    style={{ background: "#414063" }}
-                    onClick={handleCloseProject}
-                    disabled={closing}
-                  >
-                    {closing ? "Closing…" : "Close Project"}
-                  </button>
-                </div>
-              )}
+            {/* The "client has accepted — you can now close the project" banner
+                used to live here. Closing a project now happens on the Tracker's
+                final "Done & handover" row (see TrackerAdmin), so the last step
+                of the work is also where the project is finished. The banner is
+                gone rather than kept text-only: an announcement whose action has
+                moved elsewhere reads as broken. */}
             {project?.status === "quotation_rejected" &&
               currentUser?.permissions === UserPermission.USER && (
                 <div
@@ -625,6 +610,13 @@ const ProjectDetail = () => {
                 }
                 filterStage={workspaceStage}
                 onClearFilter={() => setWorkspaceStage("")}
+                canCloseProject={
+                  project?.status === "quotation_accepted" &&
+                  (currentUser?.permissions === UserPermission.ADMIN ||
+                    currentUser?.permissions === UserPermission.SUPER_ADMIN)
+                }
+                closingProject={closing}
+                onCloseProject={handleCloseProject}
                 onChangeRequest={() => {
                   getProject();
                   setTrackerRefresh((k) => k + 1);

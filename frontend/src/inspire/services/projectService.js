@@ -318,6 +318,25 @@ export const updateProject = async (projectId, data) => {
   // for BOTH backends. Re-destructuring them here would redeclare the same
   // consts in this function scope — a SyntaxError.
   const { rejectReason, ...designData } = aiData;
+
+  // In the MERGED app both base URLs point at the same server, so this mirror is
+  // a second, identical PATCH of the row that was just written. It is not merely
+  // wasteful: any side effect the backend attaches to a PATCH runs twice — which
+  // is why assigning an architect tried to email them twice. Skip it when the two
+  // backends are the same host; keep it when they are genuinely split.
+  const sameOrigin = (a, b) => {
+    const norm = (u) => String(u || "").trim().replace(/\/+$/, "").toLowerCase();
+    return norm(a) && norm(a) === norm(b);
+  };
+  if (
+    sameOrigin(
+      process.env.REACT_APP_API_BASE_URL,
+      process.env.REACT_APP_PAZL_DESIGN_API_BASE_URL
+    )
+  ) {
+    return aiResult;
+  }
+
   try {
     await axios.patch(
       `${process.env.REACT_APP_PAZL_DESIGN_API_BASE_URL}/projects/${projectId}`,

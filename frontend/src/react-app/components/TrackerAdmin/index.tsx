@@ -24,6 +24,13 @@ interface Props {
   clientEmail?: string;
   // The project's creation date — used as "Project started"'s date.
   projectCreatedAt?: string;
+  // "Close Project" is rendered on the final "Done & handover" row, so finishing
+  // a project happens where the work visibly ends instead of in a separate
+  // banner at the top of the page. The PAGE still owns the action and its
+  // pending state — this component only decides WHERE the control appears.
+  canCloseProject?: boolean;
+  closingProject?: boolean;
+  onCloseProject?: () => void;
 }
 
 const DONE = "#0F6E56";
@@ -57,6 +64,9 @@ const TrackerAdmin: React.FC<Props> = ({
   onAdvance,
   clientEmail,
   projectCreatedAt,
+  canCloseProject = false,
+  closingProject = false,
+  onCloseProject,
 }) => {
   const [events, setEvents] = useState<any[]>([]);
   const [expected, setExpected] = useState("");
@@ -599,6 +609,32 @@ const TrackerAdmin: React.FC<Props> = ({
                 <span style={{ fontSize: 12, color: DONE, fontWeight: 600 }}>
                   Completed 🎉
                 </span>
+              )}
+              {/* "Close Project" — the final action, on the final step.
+                  Anchored to the stage KEY rather than `isCurrent`: the quote
+                  can be accepted while the tracker still sits on an earlier
+                  stage, and gating on "current" there would leave no way to
+                  close the project at all. */}
+              {s.key === "completed_handover" && canCloseProject && (
+                <button
+                  onClick={onCloseProject}
+                  disabled={closingProject}
+                  title="The client has accepted the quote — close this project"
+                  style={{
+                    background: "#414063",
+                    color: "#fff",
+                    border: "none",
+                    borderRadius: 8,
+                    padding: "6px 14px",
+                    fontSize: 12,
+                    fontWeight: 600,
+                    cursor: closingProject ? "default" : "pointer",
+                    opacity: closingProject ? 0.6 : 1,
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {closingProject ? "Closing…" : "Close Project"}
+                </button>
               )}
               {/* Action icons show only on DONE (disabled/locked) and CURRENT
                   steps. Upcoming steps show no icons at all. */}
