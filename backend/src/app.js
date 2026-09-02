@@ -13,6 +13,7 @@ import { authentication } from './authentication.js'
 
 import { services } from './services/index.js'
 import { channels } from './channels.js'
+import { imageEditProxy } from './image-edit-proxy.js'
 
 const app = koa(feathers())
 
@@ -24,6 +25,14 @@ app.use(cors())
 app.use(serveStatic(app.get('public')))
 app.use(errorHandler())
 app.use(parseAuthentication())
+
+// BEFORE bodyParser, deliberately. The proxy streams the RAW request through to
+// the Python image service, and bodyParser would consume the stream for JSON
+// requests (/image-edit/segment, /image-edit/inpaint) — the proxy would then
+// forward an empty body. Multipart uploads pass through bodyParser untouched, but
+// registering here keeps both cases correct.
+app.configure(imageEditProxy)
+
 app.use(bodyParser())
 
 // Configure services and transports

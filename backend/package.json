@@ -38,6 +38,7 @@
   "scripts": {
     "start": "node src",
     "dev": "nodemon src/",
+    "image-service": "node scripts/run-image-service.js",
     "prettier": "npx prettier \"**/*.js\" --write",
     "thumbnails": "node scripts/upload-thumbnails.js",
     "thumbnails:generate": "node scripts/generate-thumbnails.js",
