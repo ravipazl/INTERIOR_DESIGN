@@ -287,6 +287,65 @@ const notifyArchitectOnAssignment = async (context) => {
 
 const ADMIN_ROLES = ['admin', 'super_admin']
 
+// ---------------------------------------------------------------------------
+// ACCESS CONTROL — a client must only ever see their OWN projects.
+//
+// `find` was guarded by authenticate('jwt') alone: any logged-in account could
+// list EVERY project in the database. The client app fetches GET /projects with
+// no query at all and shows the first result, so a brand-new user was shown a
+// stranger's rooms, images and designs. That is a cross-account data leak, not
+// a caching glitch — it would happen on any machine, in any browser.
+//
+// Scoping belongs on the SERVER. The admin Projects page already filters rows in
+// the browser, but anything done there is cosmetic: the data has already been
+// sent.
+//
+// Runs AFTER schemaHooks.validateQuery (which is registered in `before.all`), so
+// the conditions added here never have to satisfy the query schema.
+// ---------------------------------------------------------------------------
+const limitProjectsToViewer = async (context) => {
+  // Internal calls (hooks, scripts, the notification code above) are trusted.
+  if (!context.params.provider) return context
+
+  const query = context.params.query || {}
+
+  // A share link is authorised by KNOWING the unguessable shareId, so a query
+  // that filters on it is left alone — that is the whole point of sharing.
+  const filtersShareId =
+    query.shareId !== undefined ||
+    (Array.isArray(query.$and) && query.$and.some((c) => c && c.shareId !== undefined))
+  if (filtersShareId) return context
+
+  const user = context.params.user
+  if (!user?._id) {
+    // Authenticated but no user resolved (e.g. the anonymous strategy) and no
+    // shareId to authorise the read. Return nothing rather than everything.
+    context.params.query = { ...query, _id: '__no_access__' }
+    return context
+  }
+
+  // The team sees everything; that is what the admin dashboard is for.
+  if (ADMIN_ROLES.includes(user.permissions)) return context
+
+  const uid = String(user._id)
+  context.params.query = {
+    ...query,
+    // $and so this survives alongside the caller's own filters — the app sends
+    // `$and[0][status]=...` for the dashboard counters.
+    $and: [
+      ...(Array.isArray(query.$and) ? query.$and : []),
+      {
+        $or: [
+          { ownerUserId: uid },
+          { architectUserId: uid },
+          { sharedUserIDs: uid } // Mongo matches a scalar against array members
+        ]
+      }
+    ]
+  }
+  return context
+}
+
 const notifyAdminsOnQuoteRequest = async (context) => {
   if (!context.data || context.data.status !== 'quotation_requested') return context
 
@@ -486,7 +545,7 @@ export const project = (app) => {
     },
     before: {
       all: [schemaHooks.validateQuery(projectQueryValidator), schemaHooks.resolveQuery(projectQueryResolver)],
-      find: [authenticate('jwt')],
+      find: [authenticate('jwt'), limitProjectsToViewer],
       get: [authenticate('jwt')],
       create: [
         authenticate('jwt'),
