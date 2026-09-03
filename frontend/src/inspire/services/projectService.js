@@ -2,6 +2,26 @@ import axios from "axios";
 import apiService from "./api";
 import { getAccessToken } from "./authService";
 
+// Are the AI backend and the "design backend" the same server?
+//
+// In the MERGED app they are — REACT_APP_API_BASE_URL and
+// REACT_APP_PAZL_DESIGN_API_BASE_URL both point at http://localhost:3400. The
+// mirroring below exists for the older split deployment. Against one server a
+// mirror is not a mirror: it is a SECOND write to the same collection.
+//
+// On create that produced two documents sharing one id — one with an ObjectId
+// `_id`, one with a String `_id`, because the id travels as JSON text. Mongo
+// treats those as different keys, so its unique index never complains, and the
+// copies then drift apart as later updates land on whichever matches by type.
+// That is why one project appeared twice in the admin list with different
+// statuses.
+const mirrorsToSelf = () => {
+  const norm = (u) => String(u || "").trim().replace(/\/+$/, "").toLowerCase();
+  const a = norm(process.env.REACT_APP_API_BASE_URL);
+  const b = norm(process.env.REACT_APP_PAZL_DESIGN_API_BASE_URL);
+  return Boolean(a) && a === b;
+};
+
 export const createProject = async (data) => {
   try {
     const accessToken = getAccessToken();
@@ -20,7 +40,9 @@ export const createProject = async (data) => {
     // same project in both databases. Previously each backend assigned its own
     // _id, so the design copy was unreachable by the AI-side id (→ 404).
     // Best-effort: a failure here must not break project creation.
-    if (created?._id) {
+    // Skip the mirror when both URLs are the same server — see mirrorsToSelf().
+    // Without this the project is created TWICE.
+    if (created?._id && !mirrorsToSelf()) {
       try {
         await axios.post(
           `${process.env.REACT_APP_PAZL_DESIGN_API_BASE_URL}/projects`,

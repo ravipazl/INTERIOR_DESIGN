@@ -94,6 +94,16 @@ const getColorForStatus = (status) => {
 
 const PROJECTS_PAGE_LIMIT = 50;
 
+// How often the list re-checks for work done elsewhere (an architect finishing a
+// design, a client requesting a quote). Each tick is 5 requests: the list plus
+// the four status counters.
+//
+// 5s was chosen over the 20s this started at because the admin's complaint was
+// the WAIT, and while they are sitting watching the list that delay is the whole
+// experience. Going below ~2s only adds load — nobody can tell 2s from 5s when
+// waiting on someone else's work.
+const PROJECTS_REFRESH_MS = 5000;
+
 const Projects = () => {
   const { loading, setLoading } = useContext(UserRoleContext);
   const location = useLocation();
@@ -156,6 +166,53 @@ const Projects = () => {
   useEffect(() => {
     getProjects();
   }, [currentUser]);
+
+  // Keep this list in step with work happening elsewhere — an architect adding a
+  // model, a BOQ regenerating, a client requesting a quote. The page used to
+  // fetch ONCE on mount, so an admin watching it saw nothing until they reloaded
+  // and changes made seconds earlier looked like they had not happened.
+  //
+  // Polling rather than live events, deliberately: it is the pattern this
+  // codebase already uses (ProjectTracker/index.jsx refreshes on an interval
+  // for exactly this reason), and channels.js currently publishes every event to
+  // every authenticated user — switching to sockets would need that scoped first
+  // or it would push other people's projects to the browser.
+  //
+  // Only polls while the tab is VISIBLE; a background tab refreshing every few
+  // seconds is pure waste.
+  useEffect(() => {
+    if (!currentUser) return;
+    let timer = null;
+    const start = () => {
+      if (timer) return;
+      timer = setInterval(() => {
+        // Page 1 only — re-fetching while the admin reads page 3 would yank the
+        // table out from under them.
+        if (currentPageNumber <= 1) getProjects(true);
+      }, PROJECTS_REFRESH_MS);
+    };
+    const stop = () => {
+      if (timer) clearInterval(timer);
+      timer = null;
+    };
+    const onVisibility = () => {
+      if (document.hidden) {
+        stop();
+      } else {
+        // Refresh on return: coming back to a stale list is exactly when the
+        // delay is most noticeable.
+        if (currentPageNumber <= 1) getProjects(true);
+        start();
+      }
+    };
+    if (!document.hidden) start();
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      stop();
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentUser, currentPageNumber]);
 
   useEffect(() => {
     filterProjects(selectedProjectStatus, projects);
@@ -235,8 +292,11 @@ const Projects = () => {
     }
   };
 
-  const getProjects = async () => {
-    setLoading(true);
+  // `silent` skips the loading spinner. The 20s background refresh uses it —
+  // flashing a spinner over a table the admin is reading, three times a minute,
+  // would be worse than the staleness it fixes.
+  const getProjects = async (silent = false) => {
+    if (!silent) setLoading(true);
     const projectResponse = await getAllProjects(PROJECTS_PAGE_LIMIT, 0);
     if (projectResponse?.data) {
       let arr = [];
@@ -259,7 +319,7 @@ const Projects = () => {
       const quoteReqProjCount = await getQuotationRequestedProjectsCount();
       setQuotationRequestedProjectsCount(quoteReqProjCount);
     }
-    setLoading(false);
+    if (!silent) setLoading(false);
   };
 
   const getProjectsByPage = async () => {
