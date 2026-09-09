@@ -8,6 +8,7 @@ import "./index.css";
 import ProjectContext from "../../../context/ProjectContext";
 import Button from "react-bootstrap/Button";
 import AppHeader from "../../../components/AppHeader";
+import NavRail from "@pazl/components/NavRail";
 import ConfirmationModal from "../../../components/ConfirmationModal";
 import { DashboardCard } from "../../../components/DashboardCard";
 import TitleHeader from "../../../components/TitleHeader";
@@ -854,7 +855,9 @@ const Projects = () => {
   const [selectedUserForEdit, setSelectedUserForEdit] = useState(null);
 
   return (
-    <>
+    <div className="pz-app-shell">
+      <NavRail variant="app" />
+      <div className="pz-app-main">
       <ToastContainer />
       <ShareModal
         show={showShareModal}
@@ -963,7 +966,8 @@ const Projects = () => {
           clearSelectedRows={toggleCleared}
         />
       </Container>
-    </>
+      </div>
+    </div>
   );
 };
 

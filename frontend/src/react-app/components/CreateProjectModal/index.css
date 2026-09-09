@@ -11,7 +11,7 @@
 }
 
 .project-modal-title {
-    font-family: Source Sans Pro;
+    font-family: Inter, Arial, sans-serif;
     font-size: 18px;
     font-weight: 700;
     line-height: 32px;
@@ -63,7 +63,7 @@
 }
 
 .project-modal-form-label {
-    font-family: Source Sans Pro;
+    font-family: Inter, Arial, sans-serif;
     font-size: 14px;
     font-weight: 600;
     line-height: 21px;
@@ -95,7 +95,7 @@ textarea:focus, input:focus {
 }
 
 .save-project-button-text {
-    font-family: Source Sans Pro;
+    font-family: Inter, Arial, sans-serif;
     font-size: 14px;
     font-weight: 400;
     letter-spacing: 0.02em;
@@ -127,7 +127,7 @@ textarea:focus, input:focus {
 }
 
 .project-form-check-label {
-    font-family: Source Sans Pro;
+    font-family: Inter, Arial, sans-serif;
     font-size: 14px;
     font-weight: 400;
     line-height: 21px;

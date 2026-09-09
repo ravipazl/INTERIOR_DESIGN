@@ -503,7 +503,7 @@ const ProjectDetail = () => {
                   </span>
                   <button
                     className="px-6 py-2 rounded text-white disabled:opacity-60 disabled:cursor-not-allowed"
-                    style={{ background: "#059669" }}
+                    style={{ background: "#5b3df5" }}
                     onClick={handleAcceptQuote}
                     disabled={accepting}
                   >

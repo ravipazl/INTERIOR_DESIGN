@@ -104,6 +104,49 @@ const ShortcutsModal = ({
                   <span className="shortcut-key">V</span>
                 </div>
               </div>
+
+              {/* MOUSE — moved here from the floating pill on the 3D canvas.
+                  That pill was a legend drawn like a row of buttons, so people
+                  clicked it and nothing happened. The guidance itself was the
+                  only place orbit / zoom / pan were written down, so it lives
+                  here now: the keyboard icon in the toolbar already opens this
+                  modal, and it is where someone looks when they are stuck. */}
+              <div className="shortcut-container">
+                <div>
+                  <div className="shortcut-title">Rotate the view</div>
+                  <div className="shortcut-desc">
+                    Drag with the left mouse button to orbit around the room. In
+                    top view this is the right button instead.
+                  </div>
+                </div>
+                <div>
+                  <span className="shortcut-key">Left drag</span>
+                </div>
+              </div>
+              <div className="shortcut-container">
+                <div>
+                  <div className="shortcut-title">Zoom</div>
+                  <div className="shortcut-desc">
+                    Scroll the mouse wheel to move closer to or further from the
+                    room.
+                  </div>
+                </div>
+                <div>
+                  <span className="shortcut-key">Scroll</span>
+                </div>
+              </div>
+              <div className="shortcut-container">
+                <div>
+                  <div className="shortcut-title">Pan</div>
+                  <div className="shortcut-desc">
+                    Drag with the right mouse button to slide the view sideways
+                    without turning it. In top view this is the left button.
+                  </div>
+                </div>
+                <div>
+                  <span className="shortcut-key">Right drag</span>
+                </div>
+              </div>
             </TEModalBody>
           </div>
         </TEModalContent>

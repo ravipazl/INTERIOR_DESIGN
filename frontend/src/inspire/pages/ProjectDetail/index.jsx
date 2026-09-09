@@ -30,6 +30,7 @@ import History from "../History";
 import UploadedImages from "./UploadedImages";
 import ProjectInfoCard from "./ProjectInfoCard";
 import ProjectWorkspace from "../../components/ProjectWorkspace";
+import NavRail from "@pazl/components/NavRail";
 import ProjectTracker from "../../components/ProjectTracker";
 import "./index.css";
 import NoHistory from "../../assets/images/no_history.svg";
@@ -502,7 +503,15 @@ const ProjectDetail = () => {
   // The screen itself offers a "Download PDF" for the archived quote document.
   const handleViewBoq = () => setShowBoqScreen(true);
 
-  return (
+  // The client's rail follows them here, because both of its project links land
+  // on THIS page — without it they arrive with no sidebar and no way back to
+  // the upload screen. Clients only: staff reach this page from their own rail
+  // on Projects, and a guest opening a /share link has no account at all, so
+  // neither should be given a client sidebar.
+  const showClientRail =
+    !isGuestUser && currentUser?.permissions === USER_ROLES.USER;
+
+  const page = (
     <>
       <AppHeader
         user={currentUser}
@@ -596,7 +605,16 @@ const ProjectDetail = () => {
 
       <Container fluid className="p-0">
         <Row className="overflow-x-hidden overflow-y-hidden project-container p-0 m-0 w-100 h-100vh">
-          <Stack className="px-0">
+          {/* For a client the rail now does this navigation, so the horizontal
+              strip is HIDDEN rather than removed — the same call we made in the
+              Designer, where two controls driving one piece of state was the
+              confusing part, not the tabs themselves.
+
+              Hiding only: every Tab stays mounted and every pane still works, so
+              ?tab=... keeps opening any of them and nothing becomes unreachable
+              for staff, for guests, or through a link. Only the strip's own
+              buttons stop being drawn, and only for a signed-in client. */}
+          <Stack className={`px-0 ${showClientRail ? "pz-hide-tabstrip" : ""}`}>
             <Tabs
               activeKey={activeTab || selectedTabKey}
               onSelect={handleTabSelect}
@@ -673,7 +691,14 @@ const ProjectDetail = () => {
                     </p>
                   </Container>
                 ) : (
-                  <UploadedImages images={uploadedImages} />
+                  // editedImages is already loaded on this page for the All
+                  // Images tab. Passing it here gives that same array a second,
+                  // CLIENT-VISIBLE consumer, so an edit made from an uploaded
+                  // photo appears beneath that photo. No extra fetch.
+                  <UploadedImages
+                    images={uploadedImages}
+                    editedImages={editedImages}
+                  />
                 )}
               </Tab>
               <Tab
@@ -827,40 +852,24 @@ const ProjectDetail = () => {
             </Tabs>
           </Stack>
         </Row>
-        {currentUser?.permissions === USER_ROLES.USER && (
-          <Row className="d-block d-lg-none">
-            <Navbar fixed="bottom" className="bg-light p-2">
-              <div
-                className="d-flex align-items-center
-            justify-content-between w-100 justify-content-md-evenly"
-              >
-                <Button
-                  variant="outlined"
-                  className="outline-button button-width-mobile w-100 mx-1 px-0"
-                  style={{ width: "180px" }}
-                  onClick={navigateToDashboard}
-                >
-                  Generate Inspiration
-                </Button>
-                <Button
-                  className="primary-button-filled button-width-mobile w-100 mx-1"
-                  variant="primary"
-                  onClick={handleGetQuoteModal}
-                  disabled={quoteInProgress}
-                  title={
-                    quoteInProgress
-                      ? "A quotation is already in progress for this project."
-                      : undefined
-                  }
-                >
-                  Get Quote
-                </Button>
-              </div>
-            </Navbar>
-          </Row>
-        )}
+        {/* The mobile bottom bar held the same two client-only buttons as the
+            header - Generate Inspiration and Get Quote - and went with them.
+            Get Quote duplicated "Request quote" on the upload page; Generate
+            Inspiration was the last entry to the AI styling path, which is no
+            longer part of the client flow. */}
       </Container>
     </>
+  );
+
+  // Wrapped only for a client, so staff and guests get this page exactly as
+  // before — same markup, same styles, nothing shifted.
+  if (!showClientRail) return page;
+
+  return (
+    <div className="pz-app-shell">
+      <NavRail variant="client" clientHasProject={!!currentProject?._id} />
+      <div className="pz-app-main">{page}</div>
+    </div>
   );
 };
 

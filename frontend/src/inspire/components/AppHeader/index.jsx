@@ -2,7 +2,6 @@ import React, { useContext, useEffect, useState } from "react";
 import {
   Badge,
   Button,
-  ButtonGroup,
   Col,
   Container,
   Nav,
@@ -15,9 +14,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { ToastContainer, toast } from "react-toastify";
 import FavoriteIcon from "../../assets/images/fav_icon.svg";
 import HistoryIcon from "../../assets/images/history_icon.svg";
-import Logout from "../../assets/images/logout.svg";
 import pazlLogo from "../../assets/images/pazl_logo.svg";
-import Profile from "../../assets/images/profile_avatar.svg";
 import Share from "../../assets/images/share_icon.svg";
 import { CountContext } from "../../context/CountContext";
 import ProjectContext from "../../context/ProjectContext";
@@ -46,7 +43,6 @@ import Title from "../AppHeaderTitle";
 import ShareModal from "../ShareModal";
 import "./index.css";
 import Dropdown from 'react-bootstrap/Dropdown';
-import DropdownButton from 'react-bootstrap/DropdownButton';
 import SplitButton from 'react-bootstrap/SplitButton';
 
 
@@ -183,11 +179,7 @@ const AppHeader = ({ user, showLogo, isGuestUser }) => {
   // former routes to /dashboard → NotFound for non-users; the latter wrongly
   // flips the project to "quotation_requested").
   const isUser = currentUser?.permissions === USER_ROLES.USER;
-  const teamsIsActive = location.pathname.includes("/teams");
-  const rateCardIsActive = location.pathname.includes("/rate-card");
   const isDashboard = location.pathname.includes("/dashboard");
-  const projectsIsActive =
-    location.pathname === "/projects" || location.pathname === "/";
 
   useEffect(() => {
     if (historyStatus === "updated" || favoriteStatus === "updated") {
@@ -415,10 +407,6 @@ const AppHeader = ({ user, showLogo, isGuestUser }) => {
     setFavoriteCount(favCount);
   };
 
-  const handleLogout = async () => {
-    await authService.signOut();
-    navigate("/signin");
-  };
 
   const handleLogoClick = () => {
     // Single entry point: "/" (HomeDispatcher) sends each role to the right
@@ -456,9 +444,6 @@ const AppHeader = ({ user, showLogo, isGuestUser }) => {
     }
   };
 
-  const navigateToProjects = () => {
-    navigate("/projects"); // Navigate to the "Projects" route
-  };
 
   // The bell is only useful if it lands on the requests themselves.
   //
@@ -472,13 +457,21 @@ const AppHeader = ({ user, showLogo, isGuestUser }) => {
     navigate(QUOTE_REQUESTS_URL);
   };
 
-  const navigateToTeams = () => {
-    navigate("/teams"); // Navigate to the "Teams" route
-  };
 
-  const navigateToRateCard = () => {
-    navigate("/rate-card"); // BOQ master rates (moved here from the design app)
-  };
+
+  // "Request quote" is shown ONLY on the client's Uploaded images page.
+  //
+  // That page is where the client chooses the photo the quote is about, so the
+  // button sits next to the thing it acts on. It is deliberately not on My
+  // rooms: handleSendQuote writes quoteImageIds and flips THAT project's
+  // status, and on the rooms list there may be no project selected yet — the
+  // button would have to guess which room it meant.
+  //
+  // Matches ProjectDetail's own tab resolution: an explicit ?tab= wins, so
+  // ?tab=uploadedImages is the reliable test.
+  const onUploadedImagesPage =
+    location.pathname.includes("/project-detail") &&
+    new URLSearchParams(location.search).get("tab") === "uploadedImages";
 
   // A client may (re)request a quote ONLY when the project is not already in an
   // active quote/build cycle. Requesting mid-flow would reset the project back to
@@ -671,7 +664,25 @@ const AppHeader = ({ user, showLogo, isGuestUser }) => {
                 </Button>
               </Navbar.Brand>
               {isheaderMobile && (
-                <Col className="d-flex justify-content-end">
+                <Col className="d-flex justify-content-end align-items-center">
+                  {/* Same button as the desktop row below. The desktop row is
+                      gated on !isheaderMobile, so without this a client on a
+                      phone would have no way to request a quote at all — and
+                      the phone is where clients actually are. */}
+                  {isUser && onUploadedImagesPage && !isGuestUser && (
+                    <Button
+                      className="primary-button-filled"
+                      onClick={handleGetQuote}
+                      disabled={sendingQuote || quoteInProgress}
+                      style={{
+                        whiteSpace: "nowrap",
+                        fontSize: "13px",
+                        padding: "6px 12px",
+                      }}
+                    >
+                      {sendingQuote ? "Sending…" : "Request quote"}
+                    </Button>
+                  )}
                   <Button variant="link">
                     <img
                       src={Share}
@@ -729,93 +740,59 @@ const AppHeader = ({ user, showLogo, isGuestUser }) => {
                             </Nav.Link>
                           </Col>
                         )}
-                        <Col>
-                          <Nav.Link
-                            className="d-flex align-items-center header_link position-relative"
-                            onClick={() =>
-                              handleNavLinkClick("/project-detail", {
-                                tab: "history",
-                              })
-                            }
-                          >
-                            {isheaderMobile && (
-                              <img
-                                src={HistoryIcon}
-                                alt="history"
-                                className="pe-3"
-                              />
-                            )}
-                            History{" "}
-                            {!isheaderMobile && (
-                              <Badge
-                                className="ms-1 badge-width counter-icon"
-                                bg="primary"
-                              >
-                                {historyCount || 0}
-                              </Badge>
-                            )}
-                          </Nav.Link>
-                        </Col>
-                        <Col>
-                          <Nav.Link
-                            className="d-flex align-items-center header_link position-relative"
-                            onClick={() =>
-                              handleNavLinkClick("/project-detail", {
-                                tab: "favorites",
-                              })
-                            }
-                          >
-                            {isheaderMobile && (
-                              <img
-                                src={FavoriteIcon}
-                                alt="fav"
-                                className="pe-3"
-                              />
-                            )}
-                            Favorites
-                            {!isheaderMobile && (
-                              <Badge
-                                className="ms-1 badge-width counter-icon"
-                                bg="primary"
-                              >
-                                {favoriteCount || 0}{" "}
-                              </Badge>
-                            )}
-                          </Nav.Link>
-                        </Col>
+                        {/* History and Favorites stood here. Removed for the
+                            client: the nav rail now owns their navigation, and
+                            both simply opened tabs on /project-detail that the
+                            rail already reaches. This row is gated on isDashboard,
+                            and Router.js sends every non-client away from
+                            /dashboard, so nothing is taken from staff. Share stays
+                            above - it is an action, not a destination. */}
                       </Row>
                     )}
                     <ToastContainer />
                     {showLogo && !isheaderMobile && !isGuestUser && (
                       <Row className="d-lg-flex flex-lg-row flex-column align-items-center">
-                        {isUser && (
-                          <Col className="pb-lg-0 pb-3 pe-lg-3">
+                        {/* "Generate Inspiration" and "Get Quote" stood here.
+                            Both were client-only (isUser), so removing them takes
+                            nothing from staff.
+
+                            Get Quote showed on EVERY page for EVERY role, and
+                            for staff it wrongly flipped the project to
+                            "quotation_requested". It has since come back as the
+                            scoped "Request quote" just below: client only,
+                            Uploaded images only, and disabled mid-quote.
+
+                            Generate Inspiration routed back to /dashboard for the
+                            AI styling path, which is no longer part of the client
+                            flow — the theme and generate steps came out of the
+                            wizard, so this was its last entry point. */}
+
+                        {/* Request quote — back, but scoped. The old Get Quote
+                            showed on every page for every role; this appears
+                            only for a client, only on Uploaded images, and only
+                            when the project is not already mid-quote.
+
+                            Same handler as before: it opens QuoteImagePicker
+                            rather than firing straight away, so the admin
+                            always learns WHICH image the request is about. */}
+                        {isUser && onUploadedImagesPage && (
+                          <Col className="p-0 me-2">
                             <Button
-                              variant="outlined"
-                              className="outline-button button-width"
-                              onClick={naviateToDashboard}
-                            >
-                              Generate Inspiration
-                            </Button>
-                          </Col>
-                        )}
-                        {isUser && (
-                          <Col className="p-0">
-                            <Button
-                              variant="primary"
-                              className="primary-button-filled button-width"
+                              className="primary-button-filled"
                               onClick={handleGetQuote}
-                              disabled={quoteInProgress}
+                              disabled={sendingQuote || quoteInProgress}
                               title={
                                 quoteInProgress
-                                  ? "A quotation is already in progress for this project."
-                                  : undefined
+                                  ? "A quotation is already in progress for this project"
+                                  : "Choose a photo and send it for a quotation"
                               }
+                              style={{ whiteSpace: "nowrap" }}
                             >
-                              Get Quote
+                              {sendingQuote ? "Sending…" : "Request quote"}
                             </Button>
                           </Col>
                         )}
+
                         <Col className="p-0">
                           <Button className="button-icons">
                             <img
@@ -829,47 +806,11 @@ const AppHeader = ({ user, showLogo, isGuestUser }) => {
                     )}
                     {(isAdmin || isSuperAdmin) && (
                       <Row className="d-lg-flex flex-lg-row flex-column">
-                        <Col className="p-0">
-                          <Nav.Link onClick={navigateToProjects}>
-                            <span
-                              className={`${projectsIsActive
-                                ? "border-bottom border-primary fw-bold p-2 border-4"
-                                : ""
-                                }`}
-                            >
-                              Projects
-                            </span>
-                          </Nav.Link>
-                        </Col>
-                        <Col className="p-0">
-                          <Nav.Link onClick={navigateToTeams}>
-                            <span
-                              className={`${teamsIsActive
-                                ? "border-bottom border-primary fw-bold p-2 border-4"
-                                : ""
-                                }`}
-                            >
-                              Teams
-                            </span>
-                          </Nav.Link>
-                        </Col>
-                        {/* xs="auto" + text-nowrap: the sibling Cols are
-                            equal-width, so a two-word label would wrap to
-                            "Rate / Card". Sizing this one to its content keeps
-                            it on a single line and leaves Projects/Teams as they
-                            were. */}
-                        <Col xs="auto" className="p-0 text-nowrap">
-                          <Nav.Link onClick={navigateToRateCard}>
-                            <span
-                              className={`${rateCardIsActive
-                                ? "border-bottom border-primary fw-bold p-2 border-4"
-                                : ""
-                                }`}
-                            >
-                              Rate Card
-                            </span>
-                          </Nav.Link>
-                        </Col>
+                        {/* Projects / Teams / Rate Card used to sit here. The
+                            nav rail (NavRail) now owns that navigation on every
+                            page, so these were a second set of links to the
+                            same three places. The bell stays — it is not
+                            navigation, it is unread quotation requests. */}
                         {/* Notifications. The bell opens the list of quotation
                             requests; opening one marks it read and jumps to it. */}
                         <Col className="p-0">
@@ -1182,54 +1123,15 @@ const AppHeader = ({ user, showLogo, isGuestUser }) => {
                         </Dropdown.Menu>
                       </Dropdown>
                     )}
-                    <img
-                      className="d-none d-lg-block "
-                      src={Profile}
-                      alt="profile"
-                      style={{ paddingLeft: '30px' }}
-                    />
-                    <div className="d-flex align-items-center">
-                      <DropdownButton
-                        className="d-none d-lg-block"
-                        bsPrefix="profile-button"
-                        as={ButtonGroup}
-                        align={{ lg: 'end' }}
-                        title={currentUser?.email || "User"}
-                        id="dropdown-menu-align-responsive-1"
-                      >
-                        <Dropdown.Item eventKey="1"
-                          onClick={handleLogout}
-                        >Logout </Dropdown.Item>
-                      </DropdownButton>
-                    </div>
-                    <Nav.Link
-                      className="d-block d-lg-none"
-                      onClick={handleLogout}
-                    >
-                      {isheaderMobile && (
-                        <img src={Logout} alt="logout" className="pe-3" />
-                      )}
-                      Logout
-                    </Nav.Link>
-                    {/* <NavDropdown
-                      title={currentUser?.email || "User"}
-                      id={`offcanvasNavbarDropdown-expand-${expand}`}
-                      className="d-none d-lg-block"
-                    >
-                      <NavDropdown.Item
-                        onClick={handleLogout}>
-                        Logout
-                      </NavDropdown.Item>
-                    </NavDropdown>
-                    <Nav.Link
-                      className="d-block d-lg-none"
-                      onClick={handleLogout}
-                    >
-                      {isheaderMobile && (
-                        <img src={Logout} alt="logout" className="pe-3" />
-                      )}
-                      Logout
-                    </Nav.Link> */}
+                    {/* The profile avatar and its Logout dropdown used to sit
+                        here. Both moved to the foot of the nav rail, which
+                        shows the same account and signs out the same way — and
+                        additionally flushes any unsaved design first. Two
+                        account menus on one screen was one too many.
+
+                        The mobile Logout link went with it: the rail is
+                        present at every breakpoint, so a separate small-screen
+                        path would drift out of sync. */}
                   </Nav>
                 </Offcanvas.Body>
               </Navbar.Offcanvas>

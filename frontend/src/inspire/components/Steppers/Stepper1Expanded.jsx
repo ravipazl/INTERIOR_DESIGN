@@ -761,10 +761,14 @@ const Stepper1Expanded = ({
                   {" "}
                   + Add Room
                 </Button>
+                {/* "Request quote" is now the ONLY forward action. The "Next"
+                    button that stood beside it led to the theme step, which is
+                    no longer part of the client flow. Filled rather than
+                    outlined, because it is what the client came here to do. */}
                 {selectedImage?._id && (
                   <Button
-                    className="outline-button me-3"
-                    variant="outline"
+                    className="primary-button-filled"
+                    variant="primary"
                     onClick={handleGetQuoteModal}
                     disabled={quoteInProgress}
                     title={
@@ -776,15 +780,6 @@ const Stepper1Expanded = ({
                     Request quote
                   </Button>
                 )}
-                <Button
-                  disabled={!selectedImage || !selectedImage.roomType}
-                  className="primary-button-filled"
-                  style={{ width: "129px" }}
-                  onClick={handleNext}
-                  variant="primary"
-                >
-                  Next
-                </Button>
               </span>
             </div>
           </Navbar>
@@ -831,10 +826,13 @@ const Stepper1Expanded = ({
               >
                 + Add Room
               </Button>
+              {/* Same as the desktop row above: "Next" went to the theme tab,
+                  which no longer exists, so "Request quote" is the only way
+                  forward and takes the filled treatment. */}
               {selectedImage?._id && (
                 <Button
-                  variant="outlined"
-                  className="outline-button button-width-mobile w-100 mx-1"
+                  variant="primary"
+                  className="primary-button-filled button-width-mobile w-100 mx-1"
                   onClick={handleGetQuoteModal}
                   disabled={quoteInProgress}
                   title={
@@ -846,17 +844,6 @@ const Stepper1Expanded = ({
                   Request quote
                 </Button>
               )}
-              <Button
-                disabled={!selectedImage || !selectedImage.roomType}
-                className="primary-button-filled button-width-mobile w-100 mx-1"
-                onClick={() => {
-                  handleNext();
-                  handleTabNavigation("2");
-                }}
-                variant="primary"
-              >
-                Next
-              </Button>
             </div>
           </Navbar>
         </Row>

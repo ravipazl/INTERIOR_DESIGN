@@ -3,6 +3,7 @@ import "./index.css";
 import { convertToTitleCase } from "@pazl/utils/genericFunctions";
 import { Model } from "@pazl/entities/Model";
 import GroupedButtons from "./groupedButtons";
+import ToolbarPortal from "./ToolbarPortal";
 import { MenuItem } from "../../helpers/Types";
 import RoomPanel from "./RoomPanel/roomPanel";
 import {
@@ -50,8 +51,21 @@ import { EVENT_ITEM_SELECTED } from "@pazl/main/core/events";
 
 interface FurnishMenuProps {
   furnishTabData: string[];
+  /**
+   * Is the 3D tab the one on screen? Used ONLY to gate the toolbar this menu
+   * portals into the navbar. It duplicates what `activeTab` says, but it is
+   * passed separately so MenuBar can derive it from the same const that shows
+   * the pane — the two must never disagree.
+   */
+  active?: boolean;
   activeTab: string;
   onTopView: (value: boolean) => void;
+  /** Bumped by the rail's Render step — opens the render panel. */
+  renderSignal?: number;
+  /** Bumped by the rail's 3D step — reopens the catalogue. */
+  exploreSignal?: number;
+  /** Which rail item is active: "furnish" (catalogue) or "render" (panel). */
+  navView?: string;
 }
 
 export enum ACTION_MODES {
@@ -79,12 +93,18 @@ export enum ACTION_MODES {
 
 const FurnishMenu = ({
   furnishTabData,
+  active = true,
   activeTab,
   onTopView,
+  renderSignal,
+  exploreSignal,
+  navView,
 }: FurnishMenuProps) => {
   const buttonRef = useRef<HTMLButtonElement>(null);
   const [mode, setMode] = useState<ACTION_MODES>(ACTION_MODES.CAM_3D_VIEW);
-  const [showRoomPanel, setShowRoomPanel] = useState(false);
+  // Open by default: the catalogue is the reason you come to the 3D step, so
+  // requiring a click on Explore first was a toll on every visit.
+  const [showRoomPanel, setShowRoomPanel] = useState(true);
   const [showObjectPanel, setShowObjectPanel] = useState(false);
   const [showWallPropertiesModal, setShowWallPropertiesModal] = useState(false);
   const [showDoorPropertiesModal, setShowDoorPropertiesModal] = useState(false);
@@ -156,24 +176,117 @@ const FurnishMenu = ({
     };
   }, []);
 
-  // On entering FURNISH, frame the WHOLE floor plan in the pulled-back dollhouse
-  // overview (Coohom-style) instead of leaving the camera zoomed-in / close.
-  // Small delay so the 3D scene + floorplan are ready before we fit.
+  // Frame the whole floor plan in the pulled-back dollhouse overview EVERY time
+  // you enter the 3D step.
+  //
+  // This used to have an empty dep array despite a comment claiming "on
+  // entering FURNISH": MenuBar keeps every pane mounted, so it ran exactly once
+  // when the editor loaded — while you were still on Floor plan, before the
+  // plan existed. Draw a new plan, switch to 3D, and the camera was never
+  // re-framed; it sat wherever it had been left, often inside the geometry.
+  //
+  // Keyed on navView, NOT activeTab: Render is also the FURNISH tab, and Render
+  // renders "your current view" — re-framing on the way into it would throw
+  // away the shot the user had just lined up.
+  //
+  // __frameFloorplanWhenReady replaces the old fixed 300ms guess: it waits for
+  // the floorplan to actually have a size, retrying per frame, so a plan that
+  // loads slowly still gets framed instead of missing the window.
   useEffect(() => {
-    const t = setTimeout(() => {
-      try {
-        const rp = (BlueprintInterface as any)?.blueprint3d?.roomplanner;
-        // Glide into the dollhouse overview (Coohom-style) instead of snapping.
-        rp?.frameFloorplan?.(true);
-        // Walls solid (100%); floor semi-transparent (50%).
-        rp?.setWallOpacity?.(1);
-        rp?.setFloorOpacity?.(0.5);
-      } catch (e) {
-        /* framing / opacity are best-effort */
-      }
-    }, 300);
-    return () => clearTimeout(t);
+    if (navView !== "furnish") return;
+    try {
+      const rp = (BlueprintInterface as any)?.blueprint3d?.roomplanner;
+      rp?.__frameFloorplanWhenReady?.(0, true);
+      // Walls solid (100%); floor semi-transparent (50%).
+      rp?.setWallOpacity?.(1);
+      rp?.setFloorOpacity?.(0.5);
+      // Arrive with NOTHING selected, so the dimension chips only appear once
+      // you click something here.
+      //
+      // The selection is shared between the two steps: place a door on the
+      // Floor plan and it stays selected, so switching to 3D showed its width
+      // and offsets before you had touched anything - the numbers looked like
+      // a permanent fixture of the door rather than a response to selecting
+      // it. Clearing on entry makes "click to measure" the real behaviour.
+      BlueprintInterface.clearSelection3D?.();
+      setSelectedModel(undefined);
+      setSelectedDoorClass(null);
+      setSelectedRoom(null);
+      setShowObjectPanel(false);
+      setShowWallPropertiesModal(false);
+      setShowDoorPropertiesModal(false);
+      setShowRoomPropertiesModal(false);
+    } catch (e) {
+      /* framing / opacity are best-effort */
+    }
+  }, [navView]);
+
+  /**
+   * Clearing the floor plan empties the geometry, but every selection made in
+   * the 3D step lives HERE, in this component state. Without this the panels
+   * survive the clear: switch to 3D afterwards and Window / Door Properties is
+   * still open - frame colour, glass colour, width, height - for an opening
+   * that no longer exists.
+   *
+   * The catalogue (showRoomPanel) is deliberately NOT reset: it lists the model
+   * library, not the scene, so it stays valid and is what you need next.
+   */
+  useEffect(() => {
+    const onCleared = () => {
+      setSelectedModel(undefined);
+      setSelectedDoorClass(null);
+      setSelectedRoom(null);
+      setShowObjectPanel(false);
+      setShowWallPropertiesModal(false);
+      setShowDoorPropertiesModal(false);
+      setShowRoomPropertiesModal(false);
+      setShowObjectCopiedPanel(false);
+      setShowUndoPanel(false);
+      setIsOnlyWallItems(false);
+      setIsOnlyFloorItems(false);
+      setMode(ACTION_MODES.CAM_3D_VIEW);
+    };
+    window.addEventListener("pazl-floorplan-cleared", onCleared);
+    return () =>
+      window.removeEventListener("pazl-floorplan-cleared", onCleared);
   }, []);
+
+  // Reopen the catalogue every time you ARRIVE at the 3D step. The initial
+  // useState(true) is not enough on its own: MenuBar keeps this component
+  // mounted and merely hides the pane, so leaving for Floor plan and coming
+  // back would otherwise restore whatever state you left behind.
+  //
+  // Keyed on activeTab, so it fires only on entry — closing the panel while
+  // you are already on 3D is respected and not undone on the next render.
+  useEffect(() => {
+    if (activeTab === MENU_TABS.FURNISH) {
+      setShowRoomPanel(true);
+    }
+  }, [activeTab]);
+
+  // Clicking 3D in the rail reopens the catalogue even when you are already on
+  // 3D — the replacement for the toolbar's removed "Explore" button. A counter
+  // rather than a boolean so a repeat click still fires; skipped at 0 so the
+  // first render does not fight the effects above.
+  useEffect(() => {
+    if (exploreSignal) {
+      setShowRoomPanel(true);
+    }
+  }, [exploreSignal]);
+
+  // The catalogue and the render panel occupy the SAME left slot, so exactly
+  // one is shown at a time. Driven by navView because both are the FURNISH tab
+  // and cannot be told apart from activeTab alone.
+  const [renderCloseSignal, setRenderCloseSignal] = useState(0);
+  useEffect(() => {
+    if (navView === "render") {
+      setShowRoomPanel(false);
+    } else if (navView === "furnish") {
+      setRenderCloseSignal((n) => n + 1);
+      setShowRoomPanel(true);
+    }
+  }, [navView]);
+
 
   useEffect(() => {
     if (BlueprintInterface && BlueprintInterface.blueprint3d) {
@@ -710,9 +823,15 @@ const FurnishMenu = ({
       {/* Snap engine toolbar — floating widget, Furnish mode only. */}
       <SnapControlPanel />
       {/* Photorealistic render — floating button, opens the Render view. */}
-      <RenderViewModal />
-      {/* AI Inspiration — captures the 3D design & opens the AI styling app. */}
-      <AiInspirationButton />
+      <RenderViewModal
+        openSignal={renderSignal}
+        closeSignal={renderCloseSignal}
+      />
+      {/* AI Inspiration — captures the 3D design & opens the AI styling app.
+          Hidden on request. The component is untouched and still imported, so
+          restoring it is a matter of removing this comment wrapper; nothing
+          else in the 3D view depended on it being mounted.
+      <AiInspirationButton /> */}
       {showRoomPanel && (
         <RoomPanel
           onHideRoomPanel={() => {
@@ -725,6 +844,11 @@ const FurnishMenu = ({
           }}
           isOnlyWallItems={isOnlyWallItems}
           isOnlyFloorItems={isOnlyFloorItems}
+          // Moved out of the toolbar into the panel's "Add model" section.
+          // The modals stay here; only the trigger moved.
+          onUpload={() => setShowToolbarUploadModal(true)}
+          onGenerate={() => setShowGenerateModal(true)}
+          onSearchModels={() => setShowSearchModelsModal(true)}
         />
       )}
       {showObjectPanel && selectedModel && (
@@ -770,6 +894,11 @@ const FurnishMenu = ({
           handleSelectAllRoomItems={handleSelectAllRoomItems}
         />
       )}
+      {/* Currently unreachable: the only two things that set showUndoPanel true
+          were the chevrons under undo/redo, removed from the toolbar above.
+          Left in place because it is inert while the flag stays false, so
+          restoring version history later means adding one trigger rather than
+          rebuilding the panel. */}
       {showUndoPanel && (
         <UndoPanel
           title={mode === ACTION_MODES.REDO ? "Redo History" : "Undo History"}
@@ -846,7 +975,8 @@ const FurnishMenu = ({
           }
         }}
       />
-      <div className="bg-neutral-50 dark:bg-[#4E4E4E] flex">
+      <ToolbarPortal active={active}>
+      <div className="flex items-center">
         {furnishTabData.map((item: string) => (
           <div key={item} className="rounded last bg-white dark:bg-[#4E4E4E]">
             <GroupedButtons
@@ -857,84 +987,16 @@ const FurnishMenu = ({
               buttonRef={buttonRef}
               activeTab={activeTab}
             />
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "row",
-                justifyContent:
-                  item === "edit" && activeTab === MENU_TABS.FURNISH
-                    ? "space-between"
-                    : "center",
-                paddingRight:
-                  item === "edit" && activeTab === MENU_TABS.FURNISH
-                    ? "20px"
-                    : 0,
-              }}
-            >
-              {item === "edit" && activeTab === MENU_TABS.FURNISH ? (
-                <div
-                  style={{
-                    display: "flex",
-                    flexDirection: "row",
-                    marginTop: "-8px",
-                    cursor: "pointer",
-                  }}
-                >
-                  <div
-                    className="d-flex justify-content-center mx-6"
-                    onClick={() => {
-                      setShowUndoPanel(!showUndoPanel);
-                      setMode(ACTION_MODES.UNDO);
-                      if (showUndoPanel) {
-                        setMode(ACTION_MODES.NONE);
-                      }
-                    }}
-                  >
-                    <img
-                      src={
-                        mode === ACTION_MODES.UNDO
-                          ? require("../../images/up.svg")
-                          : require("../../images/down.svg")
-                      }
-                      width={mode === ACTION_MODES.UNDO ? 16 : 20}
-                      height={mode === ACTION_MODES.UNDO ? 16 : 20}
-                      style={
-                        mode === ACTION_MODES.UNDO ? { marginTop: "2px" } : {}
-                      }
-                    />
-                  </div>
-                  <div
-                    className="d-flex justify-content-center mx-6"
-                    onClick={() => {
-                      setShowUndoPanel(!showUndoPanel);
-                      setMode(ACTION_MODES.REDO);
-                      if (showUndoPanel) {
-                        setMode(ACTION_MODES.NONE);
-                      }
-                    }}
-                  >
-                    <img
-                      src={
-                        mode === ACTION_MODES.REDO
-                          ? require("../../images/up.svg")
-                          : require("../../images/down.svg")
-                      }
-                      width={mode === ACTION_MODES.REDO ? 16 : 20}
-                      height={mode === ACTION_MODES.REDO ? 16 : 20}
-                      style={
-                        mode === ACTION_MODES.REDO ? { marginTop: "2px" } : {}
-                      }
-                    />
-                  </div>
-                </div>
-              ) : null}
-              {/* <p className="text-center text-sm font-normal text-black dark:text-[#FFFFFF]">
-                {convertToTitleCase(item)}
-              </p> */}
-            </div>
+            {/* Two chevrons used to hang BELOW the undo and redo buttons here,
+                opening a floor-plan version-history list. They were removed: the
+                toolbar now sits in the navbar, so anything stacked under a button
+                overflowed past the navbar edge and read as clipped stray glyphs.
+                Undo and redo themselves are unaffected - those are the toolbar
+                buttons above, which run handleUndo/handleRedo directly. */}
           </div>
         ))}
       </div>
+      </ToolbarPortal>
     </>
   );
 };

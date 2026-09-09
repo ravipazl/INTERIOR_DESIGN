@@ -24,6 +24,7 @@ import {
   inviteUser,
 } from "../../../services/authService";
 import InviteTeamsModal from "../../../components/InviteTeamsModal";
+import NavRail from "@pazl/components/NavRail";
 // ToastContainer is already mounted by <AppHeader /> on this page.
 import { toast } from "react-toastify";
 import DataTable, { createTheme } from "react-data-table-component";
@@ -297,7 +298,9 @@ const Teams = () => {
   }, [filterText, resetPaginationToggle]);
 
   return (
-    <>
+    <div className="pz-app-shell">
+      <NavRail variant="app" />
+      <div className="pz-app-main">
       <AppHeader />
       <ConfirmationModal
         show={showDeleteConfirmationModal}
@@ -338,7 +341,8 @@ const Teams = () => {
           subHeaderComponent={subHeaderComponentMemo}
         />
       </Container>
-    </>
+      </div>
+    </div>
   );
 };
 

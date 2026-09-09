@@ -197,7 +197,7 @@ function RoomPanelModal({
             <button
               onClick={onAddItemToSceneClick}
               disabled={isDeleting}
-              className="mt-0.5 rounded-lg px-3 py-0.5 text-[11px] bg-[#414063] dark:bg-[#FFFFFF] text-[#FFFFFF] dark:text-[#414063] disabled:opacity-40"
+              className="mt-0.5 rounded-lg px-3 py-0.5 text-[11px] bg-[color:var(--pz-accent)] text-white disabled:opacity-40"
             >
               + Add
             </button>

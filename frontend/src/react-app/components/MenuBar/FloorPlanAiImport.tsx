@@ -159,7 +159,7 @@ const FloorPlanAiImport: React.FC<{ inline?: boolean }> = ({
         className={
           inline
             ? "w-full flex items-center justify-center gap-1.5 rounded-md border border-[color:var(--pz-panel-border)] px-2.5 py-1.5 text-xs font-medium text-black dark:text-white hover:bg-[color:var(--pz-panel-hover)]"
-            : "fixed top-[200px] left-[260px] z-10 flex items-center gap-1 rounded-md bg-white dark:bg-[#4E4E4E] shadow-[0_4px_4px_0px_rgba(0,0,0,0.25)] px-3 py-2 text-sm font-medium text-black dark:text-white"
+            : "fixed top-[200px] left-[calc(var(--pz-nav-w,0px)+260px)] z-10 flex items-center gap-1 rounded-md bg-white dark:bg-[#4E4E4E] shadow-[0_4px_4px_0px_rgba(0,0,0,0.25)] px-3 py-2 text-sm font-medium text-black dark:text-white"
         }
         title="Import a floor plan with AI"
       >
@@ -172,7 +172,7 @@ const FloorPlanAiImport: React.FC<{ inline?: boolean }> = ({
   }
 
   return (
-    <div className="fixed top-[200px] left-[260px] z-10 w-60 rounded-md bg-white dark:bg-[#4E4E4E] shadow-[0_4px_4px_0px_rgba(0,0,0,0.25)] p-3 text-sm">
+    <div className="fixed top-[200px] left-[calc(var(--pz-nav-w,0px)+260px)] z-10 w-60 rounded-md bg-white dark:bg-[#4E4E4E] shadow-[0_4px_4px_0px_rgba(0,0,0,0.25)] p-3 text-sm">
       <input
         ref={inputRef}
         type="file"

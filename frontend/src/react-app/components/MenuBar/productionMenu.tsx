@@ -10,6 +10,11 @@ const ProductionMenu = ({ activeTab, projectId }: any) => {
   // when the architect sends for approval, so the BOQ is attached to the email.
   const boqPdfGetter = useRef<(() => Promise<Blob | null>) | null>(null);
 
+  // The BOQ and the render history live together on this page: "Send to admin"
+  // submits both as one package, and RenderHistory pulls the BOQ PDF straight
+  // from BoqTable below. They were briefly split across two rail items, which
+  // meant only one was mounted and the email silently lost its attachment.
+
   return (
     <div className="production-container bg-white dark:bg-[#333333]">
       <div
@@ -34,13 +39,15 @@ const ProductionMenu = ({ activeTab, projectId }: any) => {
           </span>
         </button>
       </div>
-      <BoqTable
-        projectId={projectId}
-        activeTab={activeTab}
-        registerPdfGetter={(fn) => {
-          boqPdfGetter.current = fn;
-        }}
-      />
+      <div>
+        <BoqTable
+          projectId={projectId}
+          activeTab={activeTab}
+          registerPdfGetter={(fn) => {
+            boqPdfGetter.current = fn;
+          }}
+        />
+      </div>
       {/* Render history lives on the Production page, alongside the BOQ: every
           render made in the editor is saved here, and the team selects which to
           send to the admin / publish to the client. `activeTab` lets it refresh
@@ -48,13 +55,15 @@ const ProductionMenu = ({ activeTab, projectId }: any) => {
           loaded (e.g. a video rendered after the photo) still appear.
           `getBoqPdf` pulls the BOQ PDF from the BoqTable above so "Send to admin"
           can attach it. */}
-      <RenderHistory
-        projectId={projectId}
-        activeTab={activeTab}
-        getBoqPdf={() =>
-          boqPdfGetter.current ? boqPdfGetter.current() : Promise.resolve(null)
-        }
-      />
+      <div>
+        <RenderHistory
+          projectId={projectId}
+          activeTab={activeTab}
+          getBoqPdf={() =>
+            boqPdfGetter.current ? boqPdfGetter.current() : Promise.resolve(null)
+          }
+        />
+      </div>
       <FullRoomViewModal
         show={showRoomView}
         onClose={() => setShowRoomView(false)}

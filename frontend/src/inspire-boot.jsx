@@ -7,8 +7,10 @@ import isPropValid from "@emotion/is-prop-valid";
 import InspireApp from "./inspire/App";
 import { UserRoleProvider } from "./inspire/context/UserRoleContext";
 import "bootstrap/dist/css/bootstrap.min.css";
-import "@fontsource/poppins";
-import "@fontsource/source-sans-pro";
+import "@fontsource/inter"; // 400
+import "@fontsource/inter/500.css";
+import "@fontsource/inter/600.css";
+import "@fontsource/inter/700.css";
 import "./inspire/index.css";
 import "./inspire/custom.scss";
 import "react-super-responsive-table/dist/SuperResponsiveTableStyle.css";

@@ -2,7 +2,10 @@ import React, { useEffect, useContext, useState } from "react";
 import DashboardProvider from "./context/dashboardContext";
 import Router from "./routes/router";
 import "tw-elements-react/dist/css/tw-elements-react.min.css";
-import "@fontsource/source-sans-pro"; // Defaults to weight 400
+import "@fontsource/inter"; // 400
+import "@fontsource/inter/500.css";
+import "@fontsource/inter/600.css";
+import "@fontsource/inter/700.css";
 import "material-symbols";
 import "../css/styles.css";
 import { SyncService } from "./services/syncService";

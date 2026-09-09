@@ -1047,6 +1047,13 @@ let __lastGhostSnapPoint = null; // last SNAPPED floor point → used by the dro
 
 function __getDropSnapManager() {
   if (!__dropSnapManager) __dropSnapManager = new SnapManager();
+  // This is a SECOND manager, separate from the one the in-scene drag uses, so
+  // the toolbar's Snapping switch (which reaches only the drag controls'
+  // manager) never touched it. Mirror the master here on every use, otherwise
+  // turning Snapping off would still leave catalogue drops snapping. If the
+  // scene manager isn't up yet, fall back to this one's own default.
+  const master = BlueprintInterface.getSnapManager?.();
+  if (master) __dropSnapManager.active = master.active;
   return __dropSnapManager;
 }
 

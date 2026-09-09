@@ -1,21 +1,21 @@
 import React, { useContext, useEffect, useState } from "react";
 import { Col, Container, Nav, Row } from "react-bootstrap";
 import { StepperContext } from "../../context/StepperContext";
-import Stepper1 from "./Stepper1";
-import Stepper2 from "./Stepper2";
-import Stepper3 from "./Stepper3";
 import "./index.css";
-import Tab from "react-bootstrap/Tab";
-import Tabs from "react-bootstrap/Tabs";
 import ProjectContext from "../../context/ProjectContext";
-import Stepper2Expanded from "./Stepper2Expanded";
-import Stepper3Expanded from "./Stepper3Expanded";
+// Only step 1 is rendered now — see the note above the return. The imports for
+// Stepper1/2/3, Stepper2Expanded, Stepper3Expanded and react-bootstrap's
+// Tab/Tabs went with the renders that used them; the component FILES are all
+// still here, so restoring the styling path means re-adding those imports.
 import Stepper1Expanded from "./Stepper1Expanded";
 import { useTypeStore } from "../../context/TypeStoreContext";
 import ServiceContext from "../../context/ServiceContext";
 
 const Steppers = () => {
-  const { activeStep, setActiveStep, setSelectedImage, selectedImage, handleNext } =
+  // activeStep and handleNext are no longer read here — there is one step, so
+  // nothing advances. setActiveStep is kept: handleTabNavigation still hands it
+  // to Stepper1Expanded, whose own modals use it.
+  const { setActiveStep, setSelectedImage, selectedImage } =
     useContext(StepperContext);
   const { currentProject } = useContext(ProjectContext);
   const {authService, imagesService} = useContext(ServiceContext);
@@ -121,71 +121,42 @@ const Steppers = () => {
     console.log('activeStep', event);
   };
 
+  /**
+   * The client flow is now ONE step: upload a room photo, then request a quote
+   * on it.
+   *
+   * "02 Theme" and "03 Generate" are hidden. They were the AI styling path —
+   * pick a theme, generate concepts, mark up objects — and a client had to walk
+   * all three before they could ask for a price. Requesting a quote never
+   * needed any of it: handleSendQuote reads only the image's _id and url, and
+   * Stepper1Expanded has carried its own "Request quote" button all along.
+   *
+   * Stepper2 / Stepper3 and their Expanded / Collapsed halves are left in the
+   * tree untouched, not deleted — restoring the styling path is a matter of
+   * putting these renders back, not rebuilding three screens.
+   *
+   * Rendering Stepper1Expanded DIRECTLY rather than through Stepper1 is
+   * deliberate: Stepper1 shows the collapsed rail whenever activeStep !== 1,
+   * and with nothing left to navigate to, a stale activeStep of 2 or 3 would
+   * collapse the only screen the client has to a 124px sliver.
+   */
   return (
     <>
       <div className="d-block d-lg-none">
-        <Tabs
-          variant="underline"
-          className="custom-tabs"
-          justify
-          activeKey={activeStep}
-          onSelect={handleTabNavigation}
-        >
-          <Tab eventKey="1" title="01 Room">
-            <Stepper1Expanded
-              rooms={rooms}
-              setRooms={setRooms}
-              themeArray={themeArray}
-              handleTabNavigation={handleTabNavigation}
-            />
-          </Tab>
-          <Tab eventKey="2" title="02 Theme">
-            <Stepper2Expanded
-              themeArray={themeArray}
-              handleTabNavigation={handleTabNavigation}
-            />
-          </Tab>
-          <Tab eventKey="3" title="03 Generate">
-            <Stepper3Expanded />
-          </Tab>
-        </Tabs>
+        <Stepper1Expanded
+          rooms={rooms}
+          setRooms={setRooms}
+          themeArray={themeArray}
+          handleTabNavigation={handleTabNavigation}
+        />
       </div>
       <div className="d-none d-lg-block">
-        <div className="d-flex align-items-start justify-content-start flex-nowrap">
-          <div
-            className="p-0 m-0"
-            style={{
-              flexBasis: activeStep === 1 ? "100%" : "124px",
-              minWidth: activeStep === 1 ? "calc(100% - 248px)" : "124px",
-              transition: `flex-basis 0.3s`,
-            }}
-          >
-            <Stepper1
-              rooms={rooms}
-              setRooms={setRooms}
-              themeArray={themeArray}
-            />
-          </div>
-          <div
-            className="p-0 m-0 border"
-            style={{
-              flexBasis: activeStep === 2 ? "100%" : "124px",
-              minWidth: activeStep === 2 ? "calc(100% - 248px)" : "124px",
-              transition: `flex-basis 0.3s`,
-            }}
-          >
-            <Stepper2 themeArray={themeArray} />
-          </div>
-          <div
-            className="p-0 m-0"
-            style={{
-              flexBasis: activeStep === 3 ? "100%" : "124px",
-              minWidth: activeStep === 3 ? "calc(100% - 248px)" : "124px",
-              transition: `flex-basis 0.3s`,
-            }}
-          >
-            <Stepper3 />
-          </div>
+        <div className="p-0 m-0" style={{ width: "100%" }}>
+          <Stepper1Expanded
+            rooms={rooms}
+            setRooms={setRooms}
+            themeArray={themeArray}
+          />
         </div>
       </div>
     </>

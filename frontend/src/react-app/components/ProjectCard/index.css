@@ -23,7 +23,7 @@
 }
 
 .project-title {
-    font-family: Source Sans Pro;
+    font-family: Inter, Arial, sans-serif;
     font-size: 16px;
     font-weight: 700;
     color: #414063;
@@ -35,7 +35,7 @@
 }
 
 .project-creator {
-    font-family: Source Sans Pro;
+    font-family: Inter, Arial, sans-serif;
     font-size: 12px;
     flex-wrap: wrap;
     color: #888;
@@ -49,14 +49,14 @@
     color: #414063;
     margin-left: 10px;
     margin-right: 6px;
-    font-family: Source Sans Pro;
+    font-family: Inter, Arial, sans-serif;
     font-size: 13px;
     font-weight: 600;
     text-align: left;
 }
 
 .project-info-value {
-    font-family: Source Sans Pro;
+    font-family: Inter, Arial, sans-serif;
     font-size: 13px;
     font-weight: 400;
     line-height: 20px;
@@ -109,7 +109,7 @@
 }
 
 .project-view-button-text {
-    font-family: Source Sans Pro;
+    font-family: Inter, Arial, sans-serif;
     font-size: 12px;
     font-weight: 400;
     line-height: 21px;

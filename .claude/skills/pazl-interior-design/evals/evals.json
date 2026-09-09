@@ -1,0 +1,26 @@
+{
+  "skill_name": "pazl-interior-design",
+  "evals": [
+    {
+      "id": 0,
+      "name": "fixed-overlay-nav-rail-offset",
+      "prompt": "In the PAZL designer at D:/INTERIOR_DESIGN, add a small floating \"Help\" pill button at the bottom-left of the 3D view, in the same row as the existing Snap and AI Inspiration buttons. Clicking it should just console.log for now. Don't start the dev server.",
+      "expected_output": "A new fixed-position button whose `left` is calc(var(--pz-nav-w, 0px) + Npx), so it is not hidden under the 64px nav rail. Placed in src/react-app, consistent with the existing Snap (+16) and AI Inspiration (+116) offsets.",
+      "files": []
+    },
+    {
+      "id": 1,
+      "name": "mongo-field-and-collection-gotchas",
+      "prompt": "Some items in my 3D scene render as blank boxes. Query the MongoDB for the project at D:/INTERIOR_DESIGN and tell me how many active placed items reference a model that is missing its 3D file, and list any model names affected. Just report what you find - don't change code.",
+      "expected_output": "Uses the furnished_models collection (with underscore) and checks the modelFileUrl field (not url). Correctly reports that all active placed items resolve to a model that has a file, rather than falsely reporting mass breakage.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "name": "accent-retheme-scope",
+      "prompt": "I want to change the PAZL designer's accent colour from the current indigo to green #16a34a. Make the change in D:/INTERIOR_DESIGN and then tell me what you changed and whether anything else in the app still needs updating.",
+      "expected_output": "Edits the --pz-accent family in frontend/src/css/styles.css as a value-only change, and explicitly flags that src/inspire is NOT tokenised so it must not be blind-swept. Should not mass-replace hex codes across inspire.",
+      "files": []
+    }
+  ]
+}

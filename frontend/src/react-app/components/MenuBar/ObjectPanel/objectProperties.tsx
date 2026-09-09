@@ -313,6 +313,14 @@ function ObjectProperties({
   // furniture range, and require at least two distinct ones left. A single
   // preset is not a choice either — an uploaded model ships with exactly one
   // (see the note below), and a one-option dropdown is worse than an input.
+  // Master switch for the whole preset mechanism. OFF: W is always a typed
+  // input, matching H and D. The detection below is sound for what it can see,
+  // but a dimensions array cannot tell "this range is sold at 600/900/1200"
+  // from "the importer guessed four numbers" — and getting it wrong hides the
+  // width field behind a dropdown. Flip to true to bring presets back once a
+  // model can declare a real fixed-width range.
+  const WIDTH_PRESETS_ENABLED = false;
+
   const PRESET_MIN_MM = 100;
   const PRESET_MAX_MM = 4000;
   const hasWidthPresets = () => {
@@ -570,7 +578,7 @@ function ObjectProperties({
                   <button
                     type="button"
                     id="exportItemGlbButton"
-                    className="flex flex-row items-center justify-center text-[#059669] p-2.5"
+                    className="flex flex-row items-center justify-center text-[#5b3df5] p-2.5"
                     title="Download this model as a .glb file"
                     onClick={(evt) => {
                       evt.preventDefault();
@@ -648,7 +656,27 @@ function ObjectProperties({
                         >
                           W
                         </button>
-                        {showCustomWidthInput || !hasWidthPresets() ? (
+                        {/* W is a plain number input, exactly like H and D.
+                            It used to be `showCustomWidthInput ||
+                            !hasWidthPresets()`, falling back to a <select> of
+                            standardWidth presets. The guard could not tell a
+                            real size range from importer junk: this Coffee
+                            Table ships standardWidth [420, 350, 700, 9999],
+                            three of which look plausible, so it drew a dropdown
+                            offering those four numbers and buried typing a
+                            width behind "Custom Width".
+
+                            Presets only ever made sense for modular ranges
+                            sold at fixed carcass widths (600/900/1200), where
+                            they stop an unmanufacturable size reaching the
+                            quotation. That is a property of the PRODUCT, not
+                            something derivable from a dimensions array — so
+                            until it is modelled as such, every width is typed.
+                            hasWidthPresets and the <select> markup are kept
+                            below for whenever it is. */}
+                        {!WIDTH_PRESETS_ENABLED ||
+                        showCustomWidthInput ||
+                        !hasWidthPresets() ? (
                           <input
                             type="number"
                             className="relative m-0 -mr-0.5 block w-[1px] min-w-0 flex-auto border-neutral-300 bg-[color:var(--pz-input-bg)] bg-clip-padding px-1 py-[0.25rem] text-xs text-center font-normal leading-[1.6] text-neutral-700 outline-none transition duration-200 ease-in-out focus:z-[3] focus:border-primary focus:text-neutral-700 focus:shadow-[inset_0_0_0_1px_rgb(59,113,202)] focus:outline-none dark:border-neutral-600 dark:text-neutral-200 dark:placeholder:text-neutral-200 dark:focus:border-primary"

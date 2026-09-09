@@ -405,6 +405,62 @@ BlueprintInterface.redrawDoors2D = () => {
   }
 };
 
+/**
+ * Drop the 3D viewer's selection and hide the dimension chips that belong to it.
+ *
+ * The dimensions a door or window shows in 3D are HTML nodes on document.body
+ * plus an SVG line overlay — NOT objects in the Three.js scene. Viewer3d draws
+ * them for `__currentItemSelected` on every frame, and hides them only when that
+ * item, its model or its wall is missing.
+ *
+ * Clearing the floor plan deletes the geometry but leaves that selection
+ * pointing at the door that used to exist, and the door still holds a reference
+ * to its now-detached wall — so the guard never fires and the numbers stay
+ * frozen over an empty canvas. Reloading clears them only because the whole
+ * viewer is rebuilt from the (empty) saved scene, which is why the leftovers
+ * survive a clear but not a refresh.
+ *
+ * Nulling the selection lets the existing guard do its job on the next frame;
+ * the chips are hidden here too so they go at once rather than whenever a render
+ * next happens to run.
+ */
+BlueprintInterface.clearSelection3D = () => {
+  try {
+    const v3d =
+      BlueprintInterface.blueprint3d &&
+      BlueprintInterface.blueprint3d.roomplanner;
+    if (!v3d) return;
+    if (v3d.__currentItemSelected) {
+      try {
+        v3d.__currentItemSelected.selected = false;
+      } catch (e) {
+        /* the item may already be torn down */
+      }
+      v3d.__currentItemSelected = null;
+    }
+    if (v3d.dragcontrols) v3d.dragcontrols.__selected = null;
+    try {
+      if (v3d.transformControls) v3d.transformControls.detach();
+    } catch (e) {
+      /* nothing was attached */
+    }
+    if (v3d.__dimLabels)
+      v3d.__dimLabels.forEach((l) => {
+        if (l && !l.__editing) l.style.display = "none";
+      });
+    if (v3d.__dimLines)
+      v3d.__dimLines.forEach((ln) =>
+        [ln.main, ln.t1, ln.t2].forEach((l) => {
+          if (l) l.style.display = "none";
+        })
+      );
+    v3d.needsUpdate = true;
+    v3d.shouldRender = true;
+  } catch (e) {
+    console.error("clearSelection3D failed", e);
+  }
+};
+
 // Set the overall-dimensions overlay mode in the 2D view. Read-only overlay,
 // OFF by default. `mode` is "off" | "inner" | "outer"; only one is ever shown
 // at a time (OUTER = footprint / outside faces, INNER = clear span / inside
