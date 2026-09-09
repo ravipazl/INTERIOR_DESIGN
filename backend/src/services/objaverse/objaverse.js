@@ -27,6 +27,7 @@ import { v4 as uuidv4 } from 'uuid'
 import { NodeIO } from '@gltf-transform/core'
 import { ALL_EXTENSIONS } from '@gltf-transform/extensions'
 import { prune } from '@gltf-transform/functions'
+import { measureDocumentMm, resolveDimensions } from '../../utils/measure-glb.js'
 import { MeshoptDecoder, MeshoptEncoder } from 'meshoptimizer'
 import draco3d from 'draco3d'
 
@@ -260,8 +261,11 @@ async function processGlb(buffer, { stripTextures }) {
   await doc.transform(prune())
   const componentNames = extractComponentNamesFromDoc(doc)
   const materialNames = extractMaterialNamesFromDoc(doc)
+  // Measure while the document is parsed — the record below stored a fixed
+  // 500 mm placeholder, and the frontend scales the mesh to match it.
+  const measured = measureDocumentMm(doc)
   const out = await io.writeBinary(doc)
-  return { buffer: Buffer.from(out), componentNames, materialNames }
+  return { buffer: Buffer.from(out), componentNames, materialNames, measured }
 }
 
 // -------- import job --------------------------------------------------------
@@ -278,11 +282,13 @@ async function runImport(job, app, params) {
     job.lastUpdate = Date.now()
     let processed = original
     let componentNames = []
+    let measured = null
     let processedOk = false
     try {
       const r = await processGlb(original, { stripTextures })
       processed = r.buffer
       componentNames = r.componentNames
+      measured = r.measured
       processedOk = true
       console.log(
         `[objaverse] processGlb OK ${uid}: ${original.length} -> ${processed.length} bytes, ${componentNames.length} meshes`
@@ -320,7 +326,7 @@ async function runImport(job, app, params) {
       thumbnail: '',
       thumbnails: '',
       categoryId,
-      dimensions: [500, 500, 500],
+      dimensions: resolveDimensions(measured).dimensions,
       maxWidth: 9999,
       standardWidth: [1, 500, 9999],
       price: 0,

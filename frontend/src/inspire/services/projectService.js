@@ -2,6 +2,26 @@ import axios from "axios";
 import apiService from "./api";
 import { getAccessToken } from "./authService";
 
+// Are the AI backend and the "design backend" the same server?
+//
+// In the MERGED app they are — REACT_APP_API_BASE_URL and
+// REACT_APP_PAZL_DESIGN_API_BASE_URL both point at http://localhost:3400. The
+// mirroring below exists for the older split deployment. Against one server a
+// mirror is not a mirror: it is a SECOND write to the same collection.
+//
+// On create that produced two documents sharing one id — one with an ObjectId
+// `_id`, one with a String `_id`, because the id travels as JSON text. Mongo
+// treats those as different keys, so its unique index never complains, and the
+// copies then drift apart as later updates land on whichever matches by type.
+// That is why one project appeared twice in the admin list with different
+// statuses.
+const mirrorsToSelf = () => {
+  const norm = (u) => String(u || "").trim().replace(/\/+$/, "").toLowerCase();
+  const a = norm(process.env.REACT_APP_API_BASE_URL);
+  const b = norm(process.env.REACT_APP_PAZL_DESIGN_API_BASE_URL);
+  return Boolean(a) && a === b;
+};
+
 export const createProject = async (data) => {
   try {
     const accessToken = getAccessToken();
@@ -20,7 +40,9 @@ export const createProject = async (data) => {
     // same project in both databases. Previously each backend assigned its own
     // _id, so the design copy was unreachable by the AI-side id (→ 404).
     // Best-effort: a failure here must not break project creation.
-    if (created?._id) {
+    // Skip the mirror when both URLs are the same server — see mirrorsToSelf().
+    // Without this the project is created TWICE.
+    if (created?._id && !mirrorsToSelf()) {
       try {
         await axios.post(
           `${process.env.REACT_APP_PAZL_DESIGN_API_BASE_URL}/projects`,
@@ -276,7 +298,15 @@ export const updateProject = async (projectId, data) => {
   //
   // `rejectReason` is deliberately NOT stripped: it carries real information and
   // is declared in the schema, so it must reach the backend.
-  const { quoteImageUrl, quoteImageId, ...aiData } = data || {};
+  // `quoteImageId` is now DECLARED in the AI projects schema, so it is allowed
+  // through — the backend uses it to embed the chosen design in the admin's
+  // "quote requested" email. Previously both keys were stripped, which is why
+  // that email arrived with no picture of what was being quoted.
+  //
+  // `quoteImageUrl` is still dropped: it is an absolute URL built in the
+  // browser, the schema does not declare it, and the backend resolves the file
+  // itself from the id. Sending it would 400 the whole PATCH.
+  const { quoteImageUrl, ...aiData } = data || {};
 
   // Primary update on the AI backend.
   let aiResult = null;
@@ -317,7 +347,29 @@ export const updateProject = async (projectId, data) => {
   // quoteImageUrl / quoteImageId are already gone: `aiData` above dropped them
   // for BOTH backends. Re-destructuring them here would redeclare the same
   // consts in this function scope — a SyntaxError.
-  const { rejectReason, ...designData } = aiData;
+  // `quoteImageId` is dropped here too: it is declared on the AI side only, and
+  // the design backend's projects schema is equally strict, so forwarding it
+  // would 400 the mirror.
+  const { rejectReason, quoteImageId, quoteImageIds, ...designData } = aiData;
+
+  // In the MERGED app both base URLs point at the same server, so this mirror is
+  // a second, identical PATCH of the row that was just written. It is not merely
+  // wasteful: any side effect the backend attaches to a PATCH runs twice — which
+  // is why assigning an architect tried to email them twice. Skip it when the two
+  // backends are the same host; keep it when they are genuinely split.
+  const sameOrigin = (a, b) => {
+    const norm = (u) => String(u || "").trim().replace(/\/+$/, "").toLowerCase();
+    return norm(a) && norm(a) === norm(b);
+  };
+  if (
+    sameOrigin(
+      process.env.REACT_APP_API_BASE_URL,
+      process.env.REACT_APP_PAZL_DESIGN_API_BASE_URL
+    )
+  ) {
+    return aiResult;
+  }
+
   try {
     await axios.patch(
       `${process.env.REACT_APP_PAZL_DESIGN_API_BASE_URL}/projects/${projectId}`,

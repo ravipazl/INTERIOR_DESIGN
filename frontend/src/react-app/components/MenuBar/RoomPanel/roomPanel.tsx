@@ -13,12 +13,19 @@ import RoomPanelSkeleton from "./roomPanelSkeleton";
 import { MODEL_TYPES } from "@pazl/entities/Model";
 import UploadModelModal from "@pazl/components/UploadModelModal";
 import AddCategoryModal from "@pazl/components/AddCategoryModal";
+import useDockTop from "@pazl/react-app/hooks/useDockTop";
 
 interface RoomPanelTypeProps {
   onHideRoomPanel: () => void;
   onHideObjectPanel: () => void;
   isOnlyWallItems: boolean;
   isOnlyFloorItems: boolean;
+  /** The three ways to bring a model in. They were toolbar buttons; the
+   *  modals they open still live in furnishMenu, which renders this panel,
+   *  so plain callbacks are enough — no portal or event bus needed. */
+  onUpload?: () => void;
+  onGenerate?: () => void;
+  onSearchModels?: () => void;
 }
 
 // Placement-type pill tabs for the Explore panel. Each pill filters the
@@ -130,6 +137,102 @@ const DEFAULT_ICON_D = [
   "M12 22.08V12",
 ];
 
+// Panel geometry. The item grid's offset is DERIVED from the category panel's
+// width — they were separate literals, so widening the category panel to match
+// the Floor plan panel left the grid starting 56px underneath it.
+const CAT_INSET = 4;   // gap between the nav rail and the category panel
+const CAT_W = 200;     // category panel width
+const ITEMS_W = 320;   // item grid width (2 cards per row)
+const ITEMS_LEFT = CAT_INSET + CAT_W;
+
+/** Collapsible section, matching the Floor plan panel's sections. `action`
+ *  renders on the header row (used for the Category "+"), and stops its own
+ *  click from toggling the section. */
+function PanelSection({
+  id,
+  title,
+  open,
+  onToggle,
+  action,
+  grow,
+  children,
+}: {
+  id: string;
+  title: string;
+  open: boolean;
+  onToggle: (id: string) => void;
+  action?: React.ReactNode;
+  /** Take the leftover height and scroll inside. For the category tree, which
+   *  is the only section long enough to need it. */
+  grow?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <div
+      className={`border-b border-[color:var(--pz-panel-border)] ${
+        grow && open ? "flex-1 min-h-0 flex flex-col" : "shrink-0"
+      }`}
+    >
+      <div className="w-full flex items-center gap-2 px-3 py-2.5">
+        <button
+          type="button"
+          onClick={() => onToggle(id)}
+          aria-expanded={open}
+          className="flex items-center gap-2 flex-1 min-w-0 text-left"
+        >
+          <span
+            className={`material-symbols-outlined text-[18px] text-[color:var(--pz-panel-muted)] transition-transform ${
+              open ? "rotate-90" : ""
+            }`}
+          >
+            chevron_right
+          </span>
+          <span className="text-[13px] font-semibold text-[color:var(--pz-text)] truncate">
+            {title}
+          </span>
+        </button>
+        {action}
+      </div>
+      {open ? (
+        <div
+          className={`px-3 pb-3 ${
+            grow ? "flex-1 min-h-0 overflow-y-auto" : ""
+          }`}
+        >
+          {children}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+/** Tool card, same treatment as Walls / Select in the Floor plan panel. */
+function ToolCard({
+  icon,
+  label,
+  onClick,
+}: {
+  icon: string;
+  label: string;
+  onClick?: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title={label}
+      className="flex flex-col items-center justify-center gap-1 rounded-lg border border-[color:var(--pz-panel-border)] bg-white dark:bg-[#3a3a3a] p-2 h-[62px] transition hover:border-[color:var(--pz-accent)]"
+    >
+      <span className="material-symbols-outlined text-[20px] text-[color:var(--pz-accent)]">
+        {icon}
+      </span>
+      <span className="text-[10.5px] leading-tight text-neutral-600 dark:text-neutral-200 text-center truncate w-full">
+        {label}
+      </span>
+    </button>
+  );
+}
+
 function CategoryIcon({ name }: { name: string }) {
   const n = String(name || "").toLowerCase();
   const def = CATEGORY_ICON_DEFS.find((entry) =>
@@ -161,6 +264,9 @@ function RoomPanel({
   onHideObjectPanel,
   isOnlyWallItems,
   isOnlyFloorItems,
+  onUpload,
+  onGenerate,
+  onSearchModels,
 }: RoomPanelTypeProps) {
   const [treeData, setTreeData] = useState<TreeNode[]>([]);
   const [selectedTreeNode, setSelectedTreeNode] = useState({} as TreeNode);
@@ -172,6 +278,16 @@ function RoomPanel({
   const [showAddCategoryModal, setShowAddCategoryModal] =
     useState<boolean>(false);
   // null = create main; string = preset parent (sub-category creation)
+  // Both sections start open — the panel is the reason you are on this step.
+  const dockTop = useDockTop();
+  const [openSections, setOpenSections] = useState<string[]>([
+    "addmodel",
+    "category",
+  ]);
+  const toggleSection = (id: string) =>
+    setOpenSections((v) =>
+      v.includes(id) ? v.filter((x) => x !== id) : [...v, id]
+    );
   const [addCategoryParentId, setAddCategoryParentId] =
     useState<string | null>(null);
   // Active placement-type pill (Explore filter). Resets to "all" whenever a
@@ -620,20 +736,22 @@ function RoomPanel({
           `}
         />
         <div
-          className={`cursor-pointer w-full mr-1 cursor-pointer bg-no-repeat ${
+          className={`cursor-pointer w-full min-w-0 mr-1 cursor-pointer bg-no-repeat ${
             node.isSelected() ? "bg-[#E9E5EC]" : ""
           }`}
           onClick={() => onRoomPanelTreeViewClick(node)}
         >
           <div
-            className={`font-normal text-sm py-1 flex items-center gap-1.5 ${
+            className={`font-normal text-sm py-1 flex items-center gap-1.5 min-w-0 ${
               node.isSelected()
                 ? "text-primary dark:text-[#333333]"
                 : "text-primary dark:text-neutral-50"
             }`}
           >
             <CategoryIcon name={node.data.name} />
-            <span>{node.data.name}</span>
+            <span className="truncate" title={node.data.name}>
+              {node.data.name}
+            </span>
           </div>
         </div>
         {/* Hover "+" for main categories only — quick sub-category add */}
@@ -644,7 +762,7 @@ function RoomPanel({
               setAddCategoryParentId(node.data.id);
               setShowAddCategoryModal(true);
             }}
-            className="opacity-0 group-hover:opacity-100 text-xs px-1.5 py-0.5 mr-1 rounded bg-[#414063] text-white hover:opacity-100"
+            className="opacity-0 group-hover:opacity-100 text-xs px-1.5 py-0.5 mr-1 rounded bg-[color:var(--pz-accent)] text-white hover:opacity-100"
             title={`Add a sub-category under "${node.data.name}"`}
           >
             +
@@ -658,15 +776,21 @@ function RoomPanel({
   return (
     <>
       {showRoomPanelModal && (
-        <div className="fixed top-48 block left-[260px] z-10 h-full w-[320px] scrollbar shadow-[0_4px_4px_0px_rgba(0,0,0,0.25)] bg-white dark:bg-neutral-700">
-          <div className="h-screen mb-10px">
+        <div className="fixed block z-10 scrollbar shadow-[0_4px_4px_0px_rgba(0,0,0,0.25)] bg-white dark:bg-neutral-700"
+          style={{
+            width: ITEMS_W,
+            left: `calc(var(--pz-nav-w, 0px) + ${ITEMS_LEFT}px)`,
+            top: dockTop,
+            bottom: 0,
+          }}>
+          <div className="h-full flex flex-col mb-10px">
             <div className="bg-[#E9E5EC] dark:bg-[#333333] flex items-center justify-between px-4">
               <h5 className="p-2 text-sm text-center font-semibold leading-tight text-neutral-600 dark:text-neutral-50">
                 {selectedTreeNode.data.name}
               </h5>
               <div className="flex items-center gap-3">
                 <button
-                  className="text-xs px-3 py-1 rounded bg-[#414063] text-white hover:opacity-90"
+                  className="text-xs px-3 py-1 rounded bg-[color:var(--pz-accent)] text-white hover:opacity-90"
                   title="Upload your own .glb files into this category"
                   onClick={() => setShowUploadModal(true)}
                 >
@@ -682,80 +806,12 @@ function RoomPanel({
               </div>
             </div>
             <div className="p-2 pb-[225px] max-h-full overflow-y-auto">
-              {/* Coohom-style search box — type to filter the items /
-                  sub-categories below by name. */}
-              <div className="relative mb-3 px-1">
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search items…"
-                  className="w-full text-xs pl-8 pr-7 py-2 rounded-md border border-[#C2C1DB] bg-white dark:bg-neutral-600 dark:text-neutral-100 dark:border-neutral-500 focus:outline-none focus:border-[#414063]"
-                />
-                <svg
-                  className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-neutral-400 pointer-events-none"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  aria-hidden="true"
-                >
-                  <circle cx="11" cy="11" r="7" />
-                  <path d="M21 21l-4-4" />
-                </svg>
-                {searchQuery && (
-                  <button
-                    type="button"
-                    onClick={() => setSearchQuery("")}
-                    title="Clear search"
-                    className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 flex items-center justify-center text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-100 leading-none"
-                  >
-                    ×
-                  </button>
-                )}
-              </div>
-
-              {/* Placement-type pill tabs — ALWAYS visible while the Explore
-                  panel is open. "All" browses categories normally; a specific
-                  pill (Floor/Wall/Ceiling/In-wall) shows every matching model
-                  in the selected category AND its sub-categories. */}
-              <div className="flex flex-wrap gap-1.5 mb-3 px-1">
-                {PLACEMENT_FILTERS.map((f) => (
-                  <button
-                    key={f.key}
-                    type="button"
-                    onClick={() => setPlacementFilter(f.key)}
-                    className={`text-xs px-3 py-1 rounded-full border transition-colors ${
-                      placementFilter === f.key
-                        ? "bg-[#414063] text-white border-[#414063]"
-                        : "bg-transparent text-[#414063] dark:text-neutral-200 border-[#C2C1DB] hover:bg-[#E9E5EC] dark:hover:bg-neutral-600"
-                    }`}
-                  >
-                    {f.label}
-                  </button>
-                ))}
-              </div>
-
-              {/* Coohom-style Sort dropdown — reorders the models shown below. */}
-              <div className="flex items-center justify-end gap-2 mb-3 px-1">
-                <label className="text-xs text-neutral-500 dark:text-neutral-300">
-                  Sort
-                </label>
-                <select
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value)}
-                  className="text-xs px-2 py-1 rounded border border-[#C2C1DB] bg-white dark:bg-neutral-600 dark:text-neutral-100 focus:outline-none"
-                >
-                  {SORT_OPTIONS.map((o) => (
-                    <option key={o.key} value={o.key}>
-                      {o.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
+              {/* Search box, placement pills and Sort removed — the category
+                  tree already narrows the list, and the panel is now 320px
+                  wide, where three stacked filter rows cost more space than
+                  they earned. The state behind them stays at its defaults
+                  (placementFilter "all", empty query, default sort), so the
+                  list below simply browses the selected category. */}
               {placementFilter !== "all" ? (
                 /* A specific placement pill is active → show matching models
                    gathered from this category's whole subtree. */
@@ -862,40 +918,76 @@ function RoomPanel({
           </div>
         </div>
       )}
-      <div className="fixed top-48 block left-1 z-10 w-64 h-screen scrollbar shadow-[0_4px_4px_0px_rgba(0,0,0,0.25)] bg-white dark:bg-neutral-700">
-        <div className="h-screen">
-          <div className="bg-[#E9E5EC] dark:bg-[#333333] flex items-center justify-between px-2 py-1">
-            <h5 className="text-sm font-semibold leading-tight text-neutral-600 dark:text-neutral-50">
-              Selected Room Type
-            </h5>
-            <div className="flex items-center gap-1">
+      <div className="fixed block z-10 scrollbar shadow-[0_4px_4px_0px_rgba(0,0,0,0.25)] bg-white dark:bg-neutral-700"
+        style={{
+          width: CAT_W,
+          left: `calc(var(--pz-nav-w, 0px) + ${CAT_INSET}px)`,
+          top: dockTop,
+          bottom: 0,
+        }}>
+        <div className="h-full flex flex-col overflow-hidden">
+          {/* Panel title, matching the Floor plan panel. */}
+          <div className="shrink-0 bg-[color:var(--pz-panel-header)] flex items-center justify-between px-3 pt-2.5 pb-2 border-b border-[color:var(--pz-panel-border)]">
+            <span className="text-[15px] font-semibold text-[color:var(--pz-text)]">
+              3D model
+            </span>
+            <button
+              type="button"
+              onClick={() => onHideRoomPanel()}
+              className="text-neutral-500 hover:text-neutral-800 dark:text-neutral-300 dark:hover:text-white leading-none text-lg px-1"
+              title="Close"
+            >
+              ×
+            </button>
+          </div>
+
+          {/* Section 1 — the three ways to bring a model in. These were toolbar
+              buttons; the cards match the Floor plan panel's tool cards. */}
+          <PanelSection
+            id="addmodel"
+            title="Add model"
+            open={openSections.includes("addmodel")}
+            onToggle={toggleSection}
+          >
+            <div className="grid grid-cols-3 gap-2">
+              <ToolCard icon="upload" label="Upload" onClick={onUpload} />
+              <ToolCard icon="auto_awesome" label="Generate" onClick={onGenerate} />
+              <ToolCard icon="travel_explore" label="Search" onClick={onSearchModels} />
+            </div>
+          </PanelSection>
+
+          {/* Section 2 — the category tree. Plus is icon-only: the old
+              "+ Category" label wrapped onto two lines in this width. */}
+          <PanelSection
+            id="category"
+            title="Category"
+            grow
+            open={openSections.includes("category")}
+            onToggle={toggleSection}
+            action={
               <button
-                onClick={() => {
+                onClick={(e) => {
+                  e.stopPropagation();
                   setAddCategoryParentId(null);
                   setShowAddCategoryModal(true);
                 }}
-                className="text-xs px-2 py-0.5 rounded bg-[#414063] text-white hover:opacity-90"
+                className="w-6 h-6 grid place-items-center rounded bg-[color:var(--pz-accent)] text-white hover:opacity-90 shrink-0"
                 title="Add a new top-level category (or pick a parent inside the modal)"
               >
-                + Category
+                <span className="material-symbols-outlined text-[16px] leading-none">
+                  add
+                </span>
               </button>
-              <button
-                type="button"
-                onClick={() => onHideRoomPanel()}
-                className="text-neutral-500 hover:text-neutral-800 dark:text-neutral-300 dark:hover:text-white leading-none text-lg px-1"
-                title="Close"
-              >
-                ×
-              </button>
+            }
+          >
+            <div>
+              {treeData?.length ? (
+                <Tree {...required} {...handlers} renderNode={renderNode} />
+              ) : (
+                <RoomPanelSkeleton />
+              )}
             </div>
-          </div>
-          <div className="p-2 pb-[225px] max-h-full overflow-y-auto">
-            {treeData?.length ? (
-              <Tree {...required} {...handlers} renderNode={renderNode} />
-            ) : (
-              <RoomPanelSkeleton />
-            )}
-          </div>
+          </PanelSection>
         </div>
       </div>
       <UploadModelModal

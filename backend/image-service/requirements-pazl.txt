@@ -1,0 +1,48 @@
+# Production dependencies for the pazl image-edit service (app/pazl_api.py).
+# Pinned to the versions proven in local dev. This is the COMPLETE set the API
+# needs — SAM2 (select), LaMa (remove), rembg+matting (add), CLIPSeg (text).
+#
+# Install EVERYTHING with one command:
+#
+#   pip install -r requirements-pazl.txt
+#
+# The `--extra-index-url` line below adds PyTorch's CPU wheel index alongside
+# PyPI, and torch/torchvision are pinned to the explicit "+cpu" build — that
+# version exists ONLY on the CPU index, so pip is forced to fetch the small
+# CPU build instead of the multi-GB CUDA (GPU) build. Works on Windows + Linux.
+--extra-index-url https://download.pytorch.org/whl/cpu
+
+# --- PyTorch (CPU build — runs SAM2 / LaMa / CLIPSeg) ---
+torch==2.13.0+cpu
+torchvision==0.28.0+cpu
+
+# --- Core API ---
+fastapi==0.141.1
+uvicorn[standard]==0.52.4
+python-multipart==0.0.32
+pydantic==2.13.4
+
+# --- Imaging ---
+pillow==12.3.0
+numpy==2.5.2
+opencv-python==5.0.0.93          # cv2 (mask dilation + TELEA fallback)
+
+# --- SAM2 (HD click-select) ---
+sam2==1.1.0
+huggingface_hub==1.28.0
+
+# --- Remove object (LaMa inpaint) ---
+# NOTE: simple-lama-inpainting 0.1.2 is installed SEPARATELY with --no-deps:
+#   pip install --no-deps simple-lama-inpainting==0.1.2
+# Its package metadata wrongly caps numpy<2.0, which conflicts with opencv/torch
+# (both need numpy>=2). It actually runs fine on numpy 2.x, so we install it
+# without dependency resolution. All its real deps (numpy, opencv, pillow, torch,
+# torchvision) are already installed by this file.
+
+# --- Add object (rembg cutout + alpha matting) ---
+rembg==2.0.81
+onnxruntime==1.29.0
+PyMatting==1.1.15
+
+# --- Text-select (CLIPSeg) ---
+transformers==5.15.1

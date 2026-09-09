@@ -15,7 +15,11 @@ function worker() {
     const base = process.env.PUBLIC_URL || '';
     // ?v= busts the browser cache when the worker (or its refine.js sibling)
     // changes; bump it on any worker/refine.js edit.
-    _worker = new Worker(`${base}/sam.worker.js?v=refine4`);
+    // v bumped to refine6: sam.worker.js now passes logSeverityLevel:3 in the
+    // ORT session options, which is what actually silences the
+    // [W:onnxruntime:...] noise. Without a new query string the browser keeps
+    // serving the cached worker.
+    _worker = new Worker(`${base}/sam.worker.js?v=refine6`);
     _worker.onmessage = (e) => {
       const d = e.data;
       if (d.type === 'info') {

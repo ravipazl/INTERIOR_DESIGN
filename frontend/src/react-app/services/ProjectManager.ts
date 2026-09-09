@@ -108,6 +108,36 @@ export class ProjectManager {
         floorPlanId,
         rotation
       );
+
+      // PERSIST THE SCENE NOW.
+      //
+      // Creating the furnished_models row is only half the job. Until the floor
+      // plan itself is saved, the item exists in the database but NOT in
+      // `scene.items` — and on the next load, loadSceneInitially() treats a row
+      // that the scene does not reference as an ORPHAN and sets isActive:false.
+      // The BOQ prices only active models, so an item the user added and could
+      // see in the viewport silently vanished from the Bill of Quantity.
+      //
+      // Pressing Save afterwards does NOT rescue it: Save writes the scene, but
+      // the deactivation has already happened. That is why the same item can end
+      // up in the scene AND marked inactive at once — visible in Furnish,
+      // missing from Production.
+      //
+      // Only imported/decor models were hit, because catalog units get edited
+      // afterwards (material, size, position) and every one of those actions
+      // already calls updateFloorPlan().
+      //
+      // Runs inside the guard and after createFurnishedModel, so the scene is
+      // written only once the row it points at exists. Best-effort: a failed
+      // save must not throw out of "add item".
+      try {
+        await this.updateFloorPlan(HISTORY_TITLES.FLOOR_ITEM_ADDED);
+      } catch (e) {
+        console.error(
+          "ProjectManager ~ createSceneElements ~ scene save failed; this item may be dropped from the BOQ on reload",
+          e
+        );
+      }
     }
   }
 

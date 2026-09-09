@@ -78,14 +78,14 @@
 }
 
 .clear-modal-title {
-  font-family: Source Sans Pro;
+  font-family: Inter, Arial, sans-serif;
   font-size: 18px;
   font-weight: 700;
   text-align: center;
 }
 
 .clear-modal-subtitle {
-  font-family: Source Sans Pro;
+  font-family: Inter, Arial, sans-serif;
   font-size: 16px;
   font-weight: 500;
   margin: 6px 0;
@@ -115,7 +115,7 @@
 }
 
 .clear-button-text {
-  font-family: Source Sans Pro;
+  font-family: Inter, Arial, sans-serif;
   font-size: 14px;
   font-weight: 400;
   line-height: 21px;
@@ -150,7 +150,7 @@
 }
 
 .shortcuts-modal-title {
-  font-family: Source Sans Pro;
+  font-family: Inter, Arial, sans-serif;
   font-size: 18px;
   font-weight: 700;
   text-align: left;
@@ -175,7 +175,7 @@
 }
 
 .shortcuts-button-text {
-  font-family: Source Sans Pro;
+  font-family: Inter, Arial, sans-serif;
   font-size: 16px;
   font-weight: 600;
   line-height: 21px;
@@ -208,7 +208,7 @@
 }
 
 .shortcut-title {
-  font-family: Source Sans Pro;
+  font-family: Inter, Arial, sans-serif;
   font-size: 14px;
   font-weight: 600;
   line-height: 18px;
@@ -216,7 +216,7 @@
 }
 
 .shortcut-desc {
-  font-family: Source Sans Pro;
+  font-family: Inter, Arial, sans-serif;
   font-size: 14px;
   font-weight: 300;
   line-height: 15px;
@@ -227,7 +227,7 @@
 }
 
 .shortcut-key {
-  font-family: Source Sans Pro;
+  font-family: Inter, Arial, sans-serif;
   font-size: 14px;
   font-weight: 400;
   padding: 8px 16px 8px 16px;

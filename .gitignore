@@ -148,3 +148,14 @@ vite.config.ts.timestamp-*
 # workspace files — stays in git. Distribute the .glb files separately
 # (CDN / object store / zip) and drop them into frontend/public/assets/models/glb/.
 *.glb
+
+# Python image-edit service: its virtualenv and downloaded model weights.
+# Both are large, machine-specific and re-creatable via
+# scripts/setup_image_service.py — never commit them.
+backend/image-service/.venv/
+backend/image-service/model-cache/
+
+# Python bytecode from the image-edit service. Regenerated on every run and
+# tied to the exact interpreter version — never useful in the repo.
+__pycache__/
+*.py[cod]

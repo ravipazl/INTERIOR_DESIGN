@@ -98,7 +98,7 @@ const SaveTemplateButton: React.FC<{ inline?: boolean }> = ({
         className={
           inline
             ? "w-full flex items-center justify-center gap-1.5 rounded-md border border-[color:var(--pz-panel-border)] px-2.5 py-1.5 text-xs font-medium text-black dark:text-white hover:bg-[color:var(--pz-panel-hover)]"
-            : "fixed bottom-3 left-[260px] z-10 flex items-center gap-1 rounded-md bg-white dark:bg-[#4E4E4E] shadow-[0_4px_4px_0px_rgba(0,0,0,0.25)] px-3 py-2 text-sm font-medium text-black dark:text-white"
+            : "fixed bottom-3 left-[calc(var(--pz-nav-w,0px)+260px)] z-10 flex items-center gap-1 rounded-md bg-white dark:bg-[#4E4E4E] shadow-[0_4px_4px_0px_rgba(0,0,0,0.25)] px-3 py-2 text-sm font-medium text-black dark:text-white"
         }
         title="Save the current floor plan as a reusable template"
       >

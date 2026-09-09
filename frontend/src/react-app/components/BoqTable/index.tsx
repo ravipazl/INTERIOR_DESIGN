@@ -325,8 +325,8 @@ const OtherCostsEditor: React.FC<{
           type="button"
           onClick={() => setRows([...rows, { label: "", amount: "" }])}
           style={{
-            color: "#059669",
-            border: "1px dashed #059669",
+            color: "#5b3df5",
+            border: "1px dashed #5b3df5",
             borderRadius: 4,
             padding: "2px 10px",
             background: "none",
@@ -556,8 +556,8 @@ const HardwareEditor: React.FC<{
             ])
           }
           style={{
-            color: "#059669",
-            border: "1px dashed #059669",
+            color: "#5b3df5",
+            border: "1px dashed #5b3df5",
             borderRadius: 4,
             padding: "2px 10px",
             background: "none",

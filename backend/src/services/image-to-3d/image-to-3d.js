@@ -15,6 +15,7 @@ import multer from '@koa/multer'
 import { v4 as uuidv4 } from 'uuid'
 import { ObjectId } from 'mongodb'
 import { NodeIO } from '@gltf-transform/core'
+import { measureDocumentMm, resolveDimensions } from '../../utils/measure-glb.js'
 import { ALL_EXTENSIONS } from '@gltf-transform/extensions'
 import { MeshoptDecoder } from 'meshoptimizer'
 import {
@@ -134,10 +135,14 @@ async function processTripoGlb(buffer) {
     dropUnsafeExtensions(doc)
     renameMeshesSequentially(doc)
     const componentNames = extractComponentNamesFromDoc(doc)
+    // Measure while parsed — the record below stored a fixed 500 mm
+    // placeholder and the frontend scales the mesh to match it.
+    const measured = measureDocumentMm(doc)
     const out = await glbIo.writeBinary(doc)
     return {
       buffer: Buffer.from(out),
       componentNames,
+      measured,
       ok: true
     }
   } catch (e) {
@@ -317,7 +322,11 @@ async function runJob(job, app, params) {
       thumbnail: '',
       thumbnails: '',
       categoryId,
-      dimensions: [500, 500, 500], // generic default; auto-scale fits on load
+      // Real measured size. This used to be a fixed [500, 500, 500] "generic
+      // default" — but it is not inert: the frontend SCALES a placed model to
+      // match its declared dimensions, so the placeholder shrank every import.
+      // Falls back to the old placeholder only if the model cannot be measured.
+      dimensions: resolveDimensions(processed.measured).dimensions,
       maxWidth: 9999,
       standardWidth: [1, 500, 9999],
       price: 0,

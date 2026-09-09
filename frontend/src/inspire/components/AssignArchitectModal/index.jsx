@@ -66,7 +66,13 @@ function AssignArchitectModal({ show, onHide, onConfirm, project }) {
       >
         {architects.map((architect, index) => {
           return (
-            <div style={{ width: "100%" }}>
+            // Keyed by the architect's id, not the array index: React uses this
+            // to match rows across re-renders. Without a key it warned and, more
+            // importantly, could reuse the wrong row's DOM when the list changes
+            // — which here means the selected radio button jumping to a
+            // different architect. Falls back to the index only if an id is
+            // missing.
+            <div key={architect?._id ?? index} style={{ width: "100%" }}>
               <div
                 style={{
                   display: "flex",

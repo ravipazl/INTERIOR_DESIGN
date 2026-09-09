@@ -3,11 +3,62 @@
 }
 
 /* The 3D canvas container fills #bp3d-js-app so the renderer can size to its
-   container (enables docked layouts). #bp3d-js-app is position:fixed inset:0,
-   so it is always the full viewport regardless of ancestors. */
+   container (enables docked layouts).
+
+   #bp3d-js-app is `position: relative; flex: 1` — it is sized by its FLEX
+   PARENT, not the viewport. (It was position:fixed inset:0 once; that is no
+   longer true, and believing the old note will lead you to assume the canvas
+   ignores docked siblings such as the Scene panel or the nav rail. It does
+   not — it reflows around them.) */
 #bp3djs-viewer3d {
   width: 100%;
   height: 100%;
+}
+
+/* Expand / collapse handle for the left panel.
+   Collapsed: a slim tab against the canvas edge.
+   Open: the same tab straddling the panel's right border, so it reads as
+   belonging to the panel rather than floating over the drawing. */
+.pz-panel-tab {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 30;
+  width: 18px;
+  height: 46px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid var(--pz-panel-border);
+  background: var(--pz-panel-surface);
+  color: var(--pz-text-2);
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  transition: color 0.14s ease, background 0.14s ease;
+}
+.pz-panel-tab:hover {
+  color: var(--pz-accent);
+  background: var(--pz-panel-header);
+}
+.pz-panel-tab:focus-visible {
+  outline: 2px solid var(--pz-accent);
+  outline-offset: 2px;
+}
+/* collapsed: sits in the flow at the canvas edge */
+.pz-panel-tab:not(.is-open) {
+  position: relative;
+  top: auto;
+  transform: none;
+  align-self: center;
+  flex: none;
+  border-left: 0;
+  border-radius: 0 6px 6px 0;
+}
+/* open: hangs off the panel's right edge */
+.pz-panel-tab.is-open {
+  right: -18px;
+  border-left: 0;
+  border-radius: 0 6px 6px 0;
 }
 
 .toolbar {
@@ -30,7 +81,12 @@
   position: fixed;
   bottom: 10px;
   border-radius: 12px;
-  margin: 0 42vw;
+  /* Centre over the CANVAS, not the viewport. This is position:fixed, so it
+     must skip the nav rail explicitly; the old `margin: 0 42vw` centred on the
+     whole window and left it sitting half a rail-width off. */
+  left: var(--pz-nav-w, 0px);
+  right: 0;
+  margin: 0 auto;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
 }
 

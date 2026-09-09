@@ -101,10 +101,13 @@ const Switch: React.FC<{
 const SnapControlPanel: React.FC = () => {
   const [ready, setReady] = useState(false);
   const [open, setOpen] = useState(false);
-  // Snap starts OFF so dragging is smooth/free by default (matches SnapEngine).
-  const [active, setActive] = useState(false);
-  const [enabled, setEnabled] = useState<Record<string, boolean>>({});
-  const [wallOffset, setWallOffset] = useState(10);
+  // Snap starts ON, matching SnapManager's default. This is only the value
+  // shown before the manager is found; the poll below replaces it with the
+  // manager's real state, and the panel does not render until then.
+  const [active, setActive] = useState(true);
+  // The per-source `enabled` map and the wall-gap value are both gone from
+  // this panel: one switch is the whole control surface now. The engine still
+  // owns both (config.enabled, config.wallExtraOffset).
 
   // Poll for the SnapManager — it is created after the scene loads.
   useEffect(() => {
@@ -113,8 +116,6 @@ const SnapControlPanel: React.FC = () => {
       const mgr = BlueprintInterface.getSnapManager?.();
       if (!mgr) return false;
       setActive(mgr.active !== false);
-      setEnabled({ ...(mgr.config?.enabled || {}) });
-      setWallOffset(mgr.config?.wallExtraOffset ?? 10);
       setReady(true);
       return true;
     };
@@ -136,18 +137,9 @@ const SnapControlPanel: React.FC = () => {
     });
   }, []);
 
-  const toggleKind = useCallback((kind: string) => {
-    setEnabled((prev) => {
-      const next = !prev[kind];
-      BlueprintInterface.setSnapEnabled?.(kind, next);
-      return { ...prev, [kind]: next };
-    });
-  }, []);
-
-  const changeWallOffset = useCallback((value: number) => {
-    setWallOffset(value);
-    BlueprintInterface.setSnapWallOffset?.(value);
-  }, []);
+  // toggleKind and changeWallOffset lived here. Their only callers were the
+  // per-source toggles and the wall-gap slider; the engine still exposes
+  // setSnapEnabled(kind, bool) and setSnapWallOffset(cm) if either is needed.
 
   if (!ready) return null;
 
@@ -160,7 +152,8 @@ const SnapControlPanel: React.FC = () => {
         title="Snap settings"
         style={{
           position: "fixed",
-          left: 16,
+          // offset past the nav rail; fixed elements ignore it otherwise
+          left: "calc(var(--pz-nav-w, 0px) + 16px)",
           bottom: 16,
           zIndex: 50,
           display: "flex",
@@ -195,7 +188,8 @@ const SnapControlPanel: React.FC = () => {
     <div
       style={{
         position: "fixed",
-        left: 16,
+        // offset past the nav rail; fixed elements ignore it otherwise
+        left: "calc(var(--pz-nav-w, 0px) + 16px)",
         bottom: 16,
         zIndex: 50,
         width: 246,
@@ -215,7 +209,9 @@ const SnapControlPanel: React.FC = () => {
           justifyContent: "space-between",
           padding: "10px 12px",
           background: "#f3f4f6",
-          borderBottom: "1px solid #e5e7eb",
+          // No borderBottom: with the toggles, wall gap and footer all gone,
+          // the header IS the panel, and a divider under the last row drew a
+          // line along the bottom edge with nothing beneath it.
         }}
       >
         <span style={{ fontSize: 13, fontWeight: 700 }}>Snapping</span>
@@ -240,84 +236,27 @@ const SnapControlPanel: React.FC = () => {
         </div>
       </div>
 
-      {/* per-source toggles */}
-      <div style={{ padding: "6px 12px 8px" }}>
-        {SNAP_KINDS.map((k) => (
-          <div
-            key={k.key}
-            title={k.hint}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              padding: "6px 0",
-              opacity: active ? 1 : 0.45,
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <span
-                style={{
-                  width: 10,
-                  height: 10,
-                  borderRadius: 2,
-                  background: k.color,
-                  flexShrink: 0,
-                }}
-              />
-              <span style={{ fontSize: 12.5 }}>{k.label}</span>
-            </div>
-            <Switch
-              on={!!enabled[k.key]}
-              disabled={!active}
-              onChange={() => toggleKind(k.key)}
-            />
-          </div>
-        ))}
-      </div>
+      {/* Two blocks stood here and both are gone, leaving the master switch as
+          the entire control surface.
 
-      {/* wall gap calibration */}
-      <div
-        style={{
-          padding: "8px 12px 10px",
-          borderTop: "1px solid #e5e7eb",
-          opacity: active && enabled.wall ? 1 : 0.45,
-        }}
-      >
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            fontSize: 12,
-            marginBottom: 4,
-          }}
-        >
-          <span>Wall gap</span>
-          <span style={{ fontWeight: 600 }}>{wallOffset} cm</span>
-        </div>
-        <input
-          type="range"
-          min={0}
-          max={30}
-          step={1}
-          value={wallOffset}
-          disabled={!active || !enabled.wall}
-          onChange={(e) => changeWallOffset(Number(e.target.value))}
-          style={{ width: "100%" }}
-        />
-      </div>
+          The six per-source toggles asked the architect to reason about snap
+          SOURCES, which is engine vocabulary, not design vocabulary. The Wall
+          gap slider set how far an item rests from a wall — one correct value
+          for a given wall thickness, so a calibration rather than a choice.
 
-      {/* footer hint */}
-      <div
-        style={{
-          padding: "7px 12px",
-          background: "#f3f4f6",
-          borderTop: "1px solid #e5e7eb",
-          fontSize: 11,
-          color: "#666",
-        }}
-      >
-        Hold <b>Shift</b> while dragging to bypass snapping.
-      </div>
+          Nothing was removed from the engine: SNAP_KINDS is still declared
+          above, and setSnapEnabled(kind, bool) / setSnapWallOffset(cm) still
+          work from the console or from an "Advanced" disclosure if one is ever
+          wanted back. */}
+
+      {/* The footer hint stood here — it described what snapping does and
+          mentioned the Shift bypass. Removed: the panel is one labelled switch
+          now, and a paragraph of explanation under it was more panel than the
+          control needed. Shift-to-bypass is still live (DragRoomItemsControl3D
+          tracks __shiftHeld and SnapManager.query returns null for it) but is
+          no longer surfaced anywhere in the UI — it is not in the keyboard
+          shortcuts panel either. Worth adding there if it should stay
+          discoverable. */}
     </div>
   );
 };

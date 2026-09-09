@@ -122,7 +122,7 @@ const MenuButton: React.FC<MenuTabProps> = ({
               className={`material-symbols-outlined ${
                 itemData.iconName
                   ? "font-extralight dark:text-[#ffffff]"
-                  : "h-6 font-semibold text-xs font-['Source_Sans_Pro'] dark:text-[#ffffff]"
+                  : "h-6 font-semibold text-xs font-['Inter'] dark:text-[#ffffff]"
               }
                   ${
                     isDisabled

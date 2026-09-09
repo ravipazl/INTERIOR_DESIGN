@@ -261,7 +261,7 @@ const RenderHistory: React.FC<Props> = ({
         }}
         title="Click to preview"
         style={{
-          border: isSel ? "2px solid #059669" : "1px solid #e5e7eb",
+          border: isSel ? "2px solid #5b3df5" : "1px solid #e5e7eb",
           borderRadius: 8,
           overflow: "hidden",
           cursor: "pointer",
@@ -378,7 +378,7 @@ const RenderHistory: React.FC<Props> = ({
                 letterSpacing: 0.4,
                 padding: "2px 7px",
                 borderRadius: 10,
-                background: "#059669",
+                background: "#5b3df5",
                 color: "#fff",
               }}
             >
@@ -800,7 +800,7 @@ const RenderHistory: React.FC<Props> = ({
         <button
           className="px-4 py-2 rounded text-sm text-white"
           style={{
-            background: disabled || preparing ? "#9ca3af" : "#059669",
+            background: disabled || preparing ? "#9ca3af" : "#5b3df5",
             cursor: disabled || preparing ? "default" : "pointer",
           }}
           onClick={openSendPreview}
@@ -1258,7 +1258,7 @@ const RenderHistory: React.FC<Props> = ({
                 onClick={confirmSend}
                 disabled={busy}
                 className="px-4 py-2 rounded text-sm text-white"
-                style={{ background: busy ? "#9ca3af" : "#059669" }}
+                style={{ background: busy ? "#9ca3af" : "#5b3df5" }}
               >
                 {busy
                   ? sendingLabel

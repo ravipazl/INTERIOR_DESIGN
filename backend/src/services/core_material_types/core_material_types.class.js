@@ -1,6 +1,8 @@
-import { MongoDBService } from '@feathersjs/mongodb'
+// This collection stores `_id` as a STRING. The default adapter casts a
+// 24-hex id to ObjectId, so get() misses every row — see StringIdMongoService.
+import { StringIdMongoService } from '../../utils/string-id-service.js'
 
-export class CoreMaterialTypeService extends MongoDBService {}
+export class CoreMaterialTypeService extends StringIdMongoService {}
 
 export const getOptions = (app) => {
   return {

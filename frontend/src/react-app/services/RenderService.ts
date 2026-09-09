@@ -147,9 +147,38 @@ export const RenderService = {
     }
   },
 
+  /**
+   * Is the editor camera standing inside the room? The render panel uses
+   * this to choose its framing default - "current view" only makes sense
+   * when the current view is of a room rather than the whole plan from
+   * outside. Defaults to true (leave the user's view alone) if it cannot
+   * be determined.
+   */
+  isCameraInsideRoom: (): boolean => {
+    try {
+      const viewer = (BlueprintInterface as any)?.blueprint3d?.roomplanner;
+      if (!viewer || typeof viewer.isCameraInsideRoom !== "function")
+        return true;
+      return !!viewer.isCameraInsideRoom();
+    } catch (e) {
+      return true;
+    }
+  },
+
   startRender: async (
     settings?: RenderSettings,
-    options?: { autoFrame?: boolean }
+    options?: {
+      autoFrame?: boolean;
+      /**
+       * How the shot is composed.
+       *   "current"  - the editor camera, so the render matches the screen
+       *   "interior" - inside the room at eye height, square on to the
+       *                furniture wall (Viewer3d.getInteriorCameraView)
+       *   "auto"     - no camera sent; render.py frames the whole plan
+       * autoFrame is kept for older callers and means framing: "auto".
+       */
+      framing?: "interior" | "current" | "auto";
+    }
   ) => {
     const viewer = (BlueprintInterface as any).blueprint3d.roomplanner;
     // Self-contained .glb (geometry + materials + embedded textures).
@@ -161,10 +190,22 @@ export const RenderService = {
       new Blob([glbBuffer], { type: "model/gltf-binary" }),
       "room.glb"
     );
-    // Auto-frame: omit the camera so the render engine composes the whole room.
-    // Otherwise send the current view so the render matches the screen.
-    if (!options?.autoFrame) {
-      fd.append("camera", JSON.stringify(viewer.getCameraView()));
+    // Interior falls back to the CURRENT view, not to auto-frame: if the
+    // room is too small to stand in, matching the screen is a far better
+    // failure than another shot of the box from outside - the exact result
+    // this option exists to avoid.
+    const framing =
+      options?.framing || (options?.autoFrame ? "auto" : "current");
+    if (framing !== "auto") {
+      let cam = null;
+      if (
+        framing === "interior" &&
+        typeof viewer.getInteriorCameraView === "function"
+      ) {
+        cam = viewer.getInteriorCameraView();
+      }
+      if (!cam) cam = viewer.getCameraView();
+      fd.append("camera", JSON.stringify(cam));
     }
     if (settings) fd.append("settings", JSON.stringify(settings));
 

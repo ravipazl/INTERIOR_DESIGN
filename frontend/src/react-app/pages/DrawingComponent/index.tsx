@@ -1,12 +1,9 @@
 import React, { useEffect, useState } from "react";
 import AppHeader from "@pazl/components/AppHeader";
+import NavRail from "@pazl/components/NavRail";
 import MenuBar from "@pazl/components/MenuBar";
-import FurnishOutliner from "@pazl/components/MenuBar/FurnishOutliner";
-import SceneOutliner from "@pazl/components/MenuBar/SceneOutliner";
-import FloorPlanAiImport from "@pazl/components/MenuBar/FloorPlanAiImport";
 import FloorPlanTools from "@pazl/components/MenuBar/FloorPlanTools";
 import EditorShortcuts2D from "@pazl/components/MenuBar/EditorShortcuts2D";
-import SaveTemplateButton from "@pazl/components/MenuBar/SaveTemplateButton";
 import BlueprintInterface from "@pazl/blueprint-interface";
 import { AuthService } from "@pazl/services/authService";
 import { CategoriesService } from "@pazl/services/categoriesService";
@@ -36,13 +33,24 @@ const DrawingComponent = ({
   );
   const currentUser = AuthService.getCurrentUser();
   const [isLoading, setIsLoading] = useState(true);
+  // WRITE-ONLY since the mouse-controls pill was removed — the pill was the only
+  // reader (it swapped the left/right click icons in top view). The setter is
+  // still MenuBar's required `onTopView` prop, so the state stays rather than
+  // reaching into another component's interface to delete two lines. Anything
+  // that needs to know about top view again can just read it.
   const [isTopView, setIsTopView] = useState(false);
   const [activeTab, setActiveTab] = useState<string>(
     (params.has("tab") ? params.get("tab") : null) || "floor_plan"
   );
+  // One-shot nav request from the rail. MenuBar consumes it and clears it, so
+  // MenuBar keeps owning the switching logic and there is no second source of
+  // truth for which view is open.
+  const [navRequest, setNavRequest] = useState<string | null>(null);
+  // Also write-only now, for the same reason: it gated the mouse-controls pill
+  // to the 3D tab, and that pill is gone. Kept for the same reason as isTopView.
   const [isFurnishTabSelected, setIsFurnishTabSelected] = useState(false);
-  // Whether the docked "Scene" panel (FurnishOutliner) is shown. The panel's
-  // × hides it; a small "Scene" button brings it back.
+  // Whether the Floor plan tool panel is expanded. The chevron handle on the
+  // panel edge toggles it; when collapsed a slim tab brings it back.
   const [showScene, setShowScene] = useState(true);
   const [project, setProject] = useState<Project | null>(null);
   const isAccessibleToEdit3dDesign =
@@ -158,29 +166,53 @@ const DrawingComponent = ({
 
   if (!isLoading && !isAccessibleToEdit3dDesign) {
     return (
-      <div className={`${isDarkMode ? "dark" : "light"}`}>
-        <AppHeader
-          isDarkMode={isDarkMode}
-          toggleMode={toggleMode}
-          lastSavedTime={isLoading ? "" : lastSavedTime}
-          isErrorSyncing={isErrorSyncing}
-          handleSync={handleSync}
-        />
-        <Loader />
+      // Same shell as the loaded view, so the rail does not pop in when the
+      // project finishes loading.
+      <div
+        className={`${isDarkMode ? "dark" : "light"}`}
+        style={{ display: "flex", height: "100vh", overflow: "hidden" }}
+      >
+        <NavRail />
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <AppHeader
+            isDarkMode={isDarkMode}
+            toggleMode={toggleMode}
+            lastSavedTime={isLoading ? "" : lastSavedTime}
+            isErrorSyncing={isErrorSyncing}
+            handleSync={handleSync}
+          />
+          <Loader />
+        </div>
       </div>
     );
   }
 
   return (
+    // Outer row: navigation rail (fixed 64px) + everything else in a column.
+    // The rail sits OUTSIDE the column so it spans full height like the mockup,
+    // and because #bp3d-js-app is container-sized the canvas just reflows 64px
+    // narrower — same mechanism as the Scene panel documented further down.
     <div
       className={`${isDarkMode ? "dark" : "light"}`}
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        height: "100vh",
-        overflow: "hidden",
-      }}
+      style={{ display: "flex", height: "100vh", overflow: "hidden" }}
     >
+      <NavRail
+        activeView={activeTab}
+        onNavigate={setNavRequest}
+        // Flush to the server before any link leaves the editor — autosave only
+        // ticks every 5s, so without this a click on Dashboard can drop the
+        // last few seconds of work.
+        onBeforeLeave={handleSync}
+      />
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          flex: 1,
+          minWidth: 0,
+          overflow: "hidden",
+        }}
+      >
       <AppHeader
         isDarkMode={isDarkMode}
         toggleMode={toggleMode}
@@ -199,28 +231,37 @@ const DrawingComponent = ({
             setIsFurnishTabSelected(val);
           }}
           onActiveTab={(tab: string) => setActiveTab(tab)}
+          // The rail drives navigation; MenuBar still owns the switching logic.
+          requestedView={navRequest}
+          onNavHandled={() => setNavRequest(null)}
         />
       ) : null}
       {/* Body row: docked Outline sidebar (left) + canvas (fills the rest). The
           canvas is container-sized, so the sidebar pushes it and it reflows. */}
       <div style={{ flex: 1, display: "flex", minHeight: 0 }}>
-        {!isLoading && activeTab === "furnish" && !showScene ? (
-          // Scene panel closed → a compact button to reopen it (frees the space).
-          <div style={{ flexShrink: 0, padding: 8 }}>
-            <button
-              type="button"
-              onClick={() => setShowScene(true)}
-              title="Show scene panel"
-              className="flex items-center gap-1 rounded-md bg-[color:var(--pz-panel-surface)] border border-[color:var(--pz-panel-border)] shadow-[0_4px_4px_0px_rgba(0,0,0,0.25)] px-3 py-2 text-sm font-medium text-black dark:text-white"
-            >
-              <span className="material-symbols-outlined text-[18px] leading-none text-[color:var(--pz-accent)]">
-                account_tree
-              </span>
-              Scene
-            </button>
-          </div>
-        ) : !isLoading &&
-          (activeTab === "furnish" || activeTab === "floor_plan") ? (
+        {/* The left panel now belongs to the Floor plan step ONLY.
+            Both Scene outliners are gone: SceneOutliner (floor plan) listed
+            rooms and walls the canvas already showed, and FurnishOutliner (3D)
+            has been dropped too, so 3D runs full-width and you select a piece
+            by clicking it in the scene. */}
+        {!isLoading && activeTab === "floor_plan" && !showScene ? (
+          // Panel collapsed → a slim tab on the canvas edge brings it back.
+          // Deliberately NOT bound to Ctrl+0 the way the reference tool does:
+          // that is the browser's "reset zoom", and stealing it from someone
+          // who has zoomed the page is worse than having no shortcut.
+          <button
+            type="button"
+            onClick={() => setShowScene(true)}
+            title="Expand panel"
+            aria-label="Expand panel"
+            aria-expanded={false}
+            className="pz-panel-tab"
+          >
+            <span className="material-symbols-outlined text-[20px] leading-none">
+              chevron_right
+            </span>
+          </button>
+        ) : !isLoading && activeTab === "floor_plan" ? (
           <div
             className="pz-animate-in"
             style={{
@@ -233,32 +274,38 @@ const DrawingComponent = ({
               display: "flex",
               flexDirection: "column",
               minHeight: 0,
+              position: "relative",
             }}
           >
-            {activeTab === "furnish" ? (
-              <FurnishOutliner docked onClose={() => setShowScene(false)} />
-            ) : (
-              <>
-                <div style={{ flex: 1, minHeight: 0, overflow: "auto" }}>
-                  <SceneOutliner docked />
-                </div>
-                {/* Floor-plan actions, docked as a footer at the bottom of the
-                    sidebar (matches the redesign). */}
-                <div
-                  style={{
-                    padding: 8,
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: 6,
-                    borderTop: "1px solid var(--pz-panel-border)",
-                    background: "var(--pz-panel-header)",
-                  }}
-                >
-                  <FloorPlanAiImport inline />
-                  <SaveTemplateButton inline />
-                </div>
-              </>
-            )}
+            {/* Collapse handle, straddling the panel's right border. */}
+            <button
+              type="button"
+              onClick={() => setShowScene(false)}
+              title="Collapse panel"
+              aria-label="Collapse panel"
+              aria-expanded
+              className="pz-panel-tab is-open"
+            >
+              <span className="material-symbols-outlined text-[20px] leading-none">
+                chevron_left
+              </span>
+            </button>
+            <div
+              style={{
+                padding: "10px 12px 8px",
+                borderBottom: "1px solid var(--pz-panel-border)",
+                background: "var(--pz-panel-header)",
+              }}
+            >
+              <div
+                style={{ fontSize: 15, fontWeight: 600, color: "var(--pz-text)" }}
+              >
+                Floor plan
+              </div>
+            </div>
+            <div style={{ flex: 1, minHeight: 0, overflow: "auto" }}>
+              <FloorPlanTools />
+            </div>
           </div>
         ) : null}
         <div
@@ -267,7 +314,8 @@ const DrawingComponent = ({
         >
           <div id="bp3djs-viewer2d"></div>
           <div id="bp3djs-viewer3d"></div>
-          {!isLoading && activeTab === "floor_plan" ? <FloorPlanTools /> : null}
+          {/* FloorPlanTools moved OUT of the canvas and into the left panel
+              above — it is no longer a floating overlay. */}
           {!isLoading && activeTab === "floor_plan" ? (
             <EditorShortcuts2D />
           ) : null}
@@ -287,41 +335,20 @@ const DrawingComponent = ({
             click. Overlaying keeps the canvas one fixed size, so selecting
             something changes only the panel. */}
       </div>
-      {!isLoading && isFurnishTabSelected ? (
-        <div className="mouse-functionality">
-          <div className="mouse-functionality-text flex flex-col items-center align-center text-neutral-700 dark:text-neutral-200 py-1">
-            <img
-              className="mouse-func-icon"
-              src={
-                isTopView
-                  ? require("../../images/right-click.png")
-                  : require("../../images/left-click.png")
-              }
-            />
-            Rotating
-          </div>
-          <span className="text-neutral-700 dark:text-neutral-200">|</span>
-          <div className="mouse-functionality-text flex flex-col items-center align-center text-neutral-700 dark:text-neutral-200 py-1">
-            <img
-              className="mouse-func-icon"
-              src={require("../../images/scroll.png")}
-            />
-            Zooming
-          </div>
-          <span className="text-neutral-700 dark:text-neutral-200">|</span>
-          <div className="mouse-functionality-text flex flex-col items-center align-center text-neutral-700 dark:text-neutral-200 py-1">
-            <img
-              className="mouse-func-icon"
-              src={
-                isTopView
-                  ? require("../../images/left-click.png")
-                  : require("../../images/right-click.png")
-              }
-            />
-            Panning
-          </div>
-        </div>
-      ) : null}
+      {/* The Rotating / Zooming / Panning pill stood here.
+
+          It was never a control - three divs with images and no handler, a
+          LEGEND for which mouse button does what. But it was drawn as a rounded
+          pill with dividers, in the toolbar position at the bottom of the
+          canvas, so it read as three buttons: people clicked it, nothing
+          happened, and the app looked broken.
+
+          The information was worth keeping - orbit/zoom/pan were documented
+          nowhere else - so it moved into the Shortcuts modal, which the
+          keyboard icon in the toolbar already opens and which had almost
+          nothing in it. Help belongs somewhere you GO when stuck, not painted
+          permanently over the work. */}
+      </div>
     </div>
   );
 };

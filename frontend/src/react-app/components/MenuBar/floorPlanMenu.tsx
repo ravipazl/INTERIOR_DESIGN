@@ -15,6 +15,7 @@ import {
 import { MenuItem } from "@pazl/helpers/Types";
 import { handleKeyPressEvent } from "@pazl/utils/genericFunctions";
 import GroupedButtons from "@pazl/components/MenuBar/groupedButtons";
+import ToolbarPortal from "./ToolbarPortal";
 import LoaderContext from "@pazl/context/loaderContext";
 import "@pazl/components/MenuBar/index.css";
 import {
@@ -39,8 +40,15 @@ const defaultTemplateCover = require("../../../../public/assets/icons/Standardsh
 
 const FloorPlanMenu = ({
   floorplanTabData,
+  active = true,
 }: {
   floorplanTabData: string[];
+  /**
+   * Is Floor plan the tab on screen? Used ONLY to gate the toolbar this menu
+   * portals into the navbar — the portal escapes the pane MenuBar hides, so it
+   * would otherwise stay up there while you are on another tab.
+   */
+  active?: boolean;
 }) => {
   const isDarkMode = localStorage.getItem("isDarkMode") === "true" || false;
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -165,6 +173,23 @@ const FloorPlanMenu = ({
     }
   };
 
+  // Clear and Template moved to the Floor plan panel's "Draw room" section,
+  // but their modals and state stay here. The panel is a sibling in the tree,
+  // so it asks via a window event rather than duplicating the modals.
+  useEffect(() => {
+    const onClear = () => onOpenClearConfirmModal();
+    const onTemplates = () => {
+      loadSavedTemplates();
+      setShowTemplateMenu(true);
+    };
+    window.addEventListener("pazl-floorplan-clear", onClear);
+    window.addEventListener("pazl-floorplan-templates", onTemplates);
+    return () => {
+      window.removeEventListener("pazl-floorplan-clear", onClear);
+      window.removeEventListener("pazl-floorplan-templates", onTemplates);
+    };
+  }, []);
+
   useEffect(() => {
     if (BlueprintInterface && BlueprintInterface.blueprint3d) {
       handleWallClicked2D((evt: any) => {
@@ -285,6 +310,20 @@ const FloorPlanMenu = ({
     // __drawDoors runs with no items left and clears the orphan door/window
     // symbols — otherwise they linger until the next canvas action.
     BlueprintInterface.redrawDoors2D?.();
+    // Now the 3D side. The dimension chips a door or window shows there are
+    // HTML nodes on document.body plus an SVG overlay, NOT scene objects, so
+    // emptying the geometry never touched them - they stayed frozen over an
+    // empty canvas until a reload rebuilt the viewer. This drops the viewer
+    // selection so its own guard hides them straight away.
+    BlueprintInterface.clearSelection3D?.();
+    // And the React side: every selection made in the 3D step lives in
+    // furnishMenu state, which would otherwise keep the Window / Door
+    // Properties panel open for something that no longer exists.
+    try {
+      window.dispatchEvent(new CustomEvent("pazl-floorplan-cleared"));
+    } catch (e) {
+      /* the clear above already happened; this is cleanup only */
+    }
   };
 
   const onCloseClearConfirmModal = () => {
@@ -313,7 +352,8 @@ const FloorPlanMenu = ({
   return (
     <>
       {showLoader ? <Loader /> : null}
-      <div className="bg-white dark:bg-[#4E4E4E] flex">
+      <ToolbarPortal active={active}>
+      <div className="flex items-center">
         {floorplanTabData.map((item: string) => {
           if (item === "edit" || item === "settings") {
             return (
@@ -334,6 +374,7 @@ const FloorPlanMenu = ({
           }
         })}
       </div>
+      </ToolbarPortal>
       {/* Unified properties panel — one docked panel for whatever is selected. */}
       <PropertiesPanel
         kind={

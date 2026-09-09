@@ -34,7 +34,10 @@ function ShareModal({ show, onHide, shareUrl }) {
 
   return (
     <>
-      <Modal show={show} onHide={onHide} centered>
+      {/* dialogClassName scopes this component's CSS (index.css). Its
+          `.modal-body` override used to be GLOBAL — every modal in the app
+          picked it up. */}
+      <Modal show={show} onHide={onHide} centered dialogClassName="share-modal">
         <Modal.Header className="bg-primary">
           <Modal.Title className="fs-16 text-white">Share</Modal.Title>
           <img src={Close} alt="close" style={{ cursor: "pointer" }} onClick={onHide} />

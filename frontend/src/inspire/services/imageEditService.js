@@ -1,23 +1,40 @@
 import axios from "axios";
+import { getAccessToken } from "./authService";
 
 /**
- * imageEditService — client for the self-hosted pazl image-edit service (SAM2 +
- * LaMa + rembg). It runs on your own server (free models), NOT a paid API.
+ * imageEditService — client for the self-hosted image-edit features (SAM2 +
+ * LaMa + rembg + CLIPSeg). Free models on your own hardware, NOT a paid API.
  *
- * Base URL + optional shared secret come from env so dev points at localhost and
- * prod points at the deployed subdomain:
- *   REACT_APP_PAZL_IMAGEEDIT_URL   (default http://localhost:8199)
- *   REACT_APP_PAZL_IMAGEEDIT_KEY   (the X-Pazl-Key secret; empty in dev)
+ * These endpoints are served by the SAME Node backend as everything else. It
+ * proxies /image-edit/* to the Python service on 127.0.0.1:8199, which is not
+ * reachable from the network at all — see backend/src/image-edit-proxy.js.
  */
 
-const BASE =
-  process.env.REACT_APP_PAZL_IMAGEEDIT_URL || "http://localhost:8199";
-const KEY = process.env.REACT_APP_PAZL_IMAGEEDIT_KEY || "";
+// Derived from the ONE backend URL rather than a dedicated variable.
+//
+// There used to be a REACT_APP_PAZL_IMAGEEDIT_URL, and it was a trap: it pointed
+// at a port nothing served, and because dotenv-webpack inlines env values at
+// COMPILE time, correcting the .env did nothing until the dev server was fully
+// restarted. One value that is already correct everywhere beats a second value
+// that can silently drift.
+const BASE = `${
+  process.env.REACT_APP_API_BASE_URL || "http://localhost:3400"
+}/image-edit`;
 
-const cfg = (extra = {}) => ({
-  ...(KEY ? { headers: { "X-Pazl-Key": KEY } } : {}),
-  ...extra,
-});
+// The proxy requires a logged-in user, so every call carries the same JWT the
+// rest of the app already uses. The old X-Pazl-Key shared secret is gone from
+// the browser entirely — the proxy attaches it server-side, which is the only
+// place a shared secret belongs.
+const cfg = (extra = {}) => {
+  const token = getAccessToken();
+  return {
+    ...extra,
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(extra.headers || {}),
+    },
+  };
+};
 
 // A data: URL PNG -> a Blob (so a bg-removed cutout can be re-uploaded).
 export const dataUrlToBlob = (dataUrl) => {

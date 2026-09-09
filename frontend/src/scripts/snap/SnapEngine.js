@@ -47,11 +47,25 @@ import { Vector2, Vector3, Box3 } from "three";
 
 export class SnapConfig {
   constructor(overrides = {}) {
+    // FURNITURE-TO-FURNITURE ONLY. Snapping relates an item to OTHER ITEMS —
+    // stack it on one, line its edge up with one, centre it on one — and never
+    // to the room shell.
+    //
+    // Why wall and corner are off: they fired constantly as the cursor crossed
+    // the room, since every wall is a candidate from anywhere, and their guide
+    // lines flashed on and off through the whole drag. The three item sources
+    // only have something to say when the dragged item is actually near
+    // another item, so they stay quiet most of the drag and speak when it
+    // matters. Grid stays off because it pulls to an abstract lattice and
+    // fights the other three.
+    //
+    // Every source below is still IMPLEMENTED and correct — including the
+    // corner-hysteresis fix in WallSnap. Flipping one back to true restores it.
     this.enabled = {
-      wall: true,
-      objectEdge: true,
-      objectCenter: true,
-      corner: true, // phase 3 — CornerSnap (inside corner of two walls)
+      wall: false,
+      objectEdge: true, // edge-to-edge with another item
+      objectCenter: true, // centre-aligned with another item
+      corner: false, // phase 3 — CornerSnap (inside corner of two walls)
       grid: false, // designers usually prefer freeform; user can toggle
       surface: true, // rest an item ON TOP of another (flower pot on a table)
       ...(overrides.enabled || {}),
@@ -682,9 +696,12 @@ export class SnapManager {
     // behaves as if it weren't there at all — used by the toolbar's
     // single "Snapping" on/off toggle. Per-source flags in `config.enabled`
     // are preserved so toggling the master back on restores the prior set.
-    // DEFAULT OFF: dragging is smooth/free by default; the user turns Snap ON
-    // (via the bottom-left toggle) only when they want items to align/snap.
-    this.active = false;
+    // DEFAULT ON. It used to default OFF, from a time when snapping meant six
+    // sources firing at once and had to be switched on deliberately. Now it
+    // only relates furniture to other furniture, so it stays quiet until the
+    // dragged item is near another one — not something the architect should
+    // have to find and turn on first. Shift still bypasses it for a drag.
+    this.active = true;
   }
 
   /**

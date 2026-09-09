@@ -12,8 +12,15 @@ const TYPE_LABEL = {
   generated: "Generated",
 };
 
-// Popup shown on "Request quote": one gallery of the project's Uploaded, Edited
-// and Generated images with filter chips; the user picks ONE and sends it.
+// Popup shown on "Request quote" and "Get Quote": one gallery of the project's
+// Uploaded, Edited and Generated images with filter chips.
+//
+// MULTI-select: a quote often covers several designs, and sending them one at a
+// time produced one request (and one admin email) per image. Clicking a tile
+// toggles it; at least one is required, and there is no upper bound.
+//
+// `onSend` receives an ARRAY. Callers that only care about one image can read
+// [0], but both current callers send the whole list.
 function QuoteImagePicker({
   show,
   onHide,
@@ -23,15 +30,26 @@ function QuoteImagePicker({
   onSend,
   sending,
 }) {
-  const [selected, setSelected] = useState(null);
+  const [selected, setSelected] = useState([]);
   const [filter, setFilter] = useState("all");
 
   useEffect(() => {
     if (!show) {
-      setSelected(null);
+      setSelected([]);
       setFilter("all");
     }
   }, [show]);
+
+  const isSelected = (img) => selected.some((s) => s._id === img._id);
+
+  // Toggle, so a second click removes it — the only way to correct a mistake
+  // once more than one tile can be lit.
+  const toggle = (img) =>
+    setSelected((prev) =>
+      prev.some((s) => s._id === img._id)
+        ? prev.filter((s) => s._id !== img._id)
+        : [...prev, img]
+    );
 
   // One combined list, each item tagged with its source type.
   const all = useMemo(
@@ -85,13 +103,14 @@ function QuoteImagePicker({
                 <button
                   key={img._id}
                   type="button"
-                  className={`qip-thumb ${selected?._id === img._id ? "sel" : ""}`}
-                  onClick={() => setSelected(img)}
+                  className={`qip-thumb ${isSelected(img) ? "sel" : ""}`}
+                  onClick={() => toggle(img)}
+                  aria-pressed={isSelected(img)}
                   title={img.roomName || img.themeName || "image"}
                 >
                   <img src={imgSrc(img)} alt={img.roomName || "image"} />
                   <span className="qip-badge">{TYPE_LABEL[img._type]}</span>
-                  {selected?._id === img._id && <span className="qip-check">✓</span>}
+                  {isSelected(img) && <span className="qip-check">✓</span>}
                 </button>
               ))}
             </div>
@@ -110,10 +129,12 @@ function QuoteImagePicker({
         <Button
           variant="primary"
           className="primary-button-filled"
-          disabled={!selected || sending}
+          disabled={selected.length === 0 || sending}
           onClick={() => onSend(selected)}
         >
-          {sending ? "Sending…" : "Send for quote"}
+          {sending
+            ? "Sending…"
+            : `Send for quote${selected.length > 1 ? ` (${selected.length})` : ""}`}
         </Button>
       </Modal.Footer>
     </Modal>

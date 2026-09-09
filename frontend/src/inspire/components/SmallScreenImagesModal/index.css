@@ -34,7 +34,7 @@
 }
 
 .modal-title {
-  font-family: "Source Sans Pro";
+  font-family: Inter, Arial, sans-serif;
   font-size: 16px !important;
   font-weight: 700 !important;
   line-height: 28px !important;
@@ -43,7 +43,7 @@
 }
 
 .image-title {
-  font-family: "Source Sans Pro";
+  font-family: Inter, Arial, sans-serif;
   font-size: 14px;
   font-weight: 600;
   line-height: 25px;

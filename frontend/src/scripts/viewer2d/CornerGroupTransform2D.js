@@ -503,7 +503,11 @@ export class CornerGroupTransform2D extends Graphics {
         this.__center = null;
         this.__scalingHandles = [];
         this.__rotateHandle = new CornerGroupTransformationPoint();
-        this.__translateHandle = new CornerGroupTransformationPoint('./assets/icons/translateGroup.svg');
+        // Absolute path, not './'. A relative URL resolves against the CURRENT
+        // page, so on the /design/... route it became /design/assets/icons/...
+        // and 404'd — the move handle then rendered as an empty texture. The
+        // sibling rotate handle above already uses the absolute form.
+        this.__translateHandle = new CornerGroupTransformationPoint('/assets/icons/translateGroup.svg');
 
         this.__resizer = null;
 

@@ -6,41 +6,59 @@
     --light: rgb(249 250 251);
     /* Phase A — shared panel design tokens. Match the existing inspector so the
        outline + properties panels read as one system. Change here once. */
-    /* --- LIGHT theme (modern Emerald studio) --- */
-    --pz-bg: #e4ebe8;
+    /* --- LIGHT theme (Indigo studio) ---
+       Palette supplied by the client; the four rgba() values are the accent at
+       low alpha, since the supplied set had no transparent variant and the
+       active tab / hover rows need one. */
+    --pz-bg: #f6f7fb;
     --pz-panel-surface: #ffffff;
-    --pz-panel-header: #f4f9f7;
-    --pz-sidebar-bg: #eef4f1;
-    --pz-panel-border: #dde6e2;
-    --pz-panel-muted: #9ca3af;
-    --pz-panel-hover: #e4f3ec;
-    --pz-text: #102a1f;
-    --pz-text-2: #647067;
-    --pz-input-bg: #f1f5f3;
-    --pz-accent: #059669;
-    --pz-accent-2: #34d399;
-    --pz-accent-grad: linear-gradient(135deg, #059669 0%, #34d399 100%);
-    --pz-accent-soft: rgba(5, 150, 105, 0.12);
-    --pz-accent-tint: rgba(16, 185, 129, 0.08);
-    --pz-elev: 0 1px 3px rgba(16, 42, 31, 0.08), 0 1px 2px rgba(16, 42, 31, 0.04);
+    --pz-panel-header: #f6f7fb;
+    --pz-sidebar-bg: #f6f7fb;
+    --pz-panel-border: #e5e7eb;
+    --pz-panel-muted: #7a8191;
+    --pz-panel-hover: rgba(91, 61, 245, 0.08);
+    --pz-text: #172033;
+    --pz-text-2: #697386;
+    --pz-input-bg: #f6f7fb;
+    --pz-accent: #5b3df5;
+    --pz-accent-2: #4b30dc;
+    --pz-accent-grad: linear-gradient(135deg, #4b30dc 0%, #5b3df5 100%);
+    --pz-accent-soft: rgba(91, 61, 245, 0.12);
+    --pz-accent-tint: rgba(91, 61, 245, 0.07);
+    --pz-elev: 0 2px 8px rgba(0, 0, 0, 0.05);
+    /* Navigation rail — a constant dark surface, so it does NOT follow the
+       light/dark theme. Its accent stays #5b3df5 in both.
+
+       --pz-nav-w MUST match .pz-nav's width. Anything position:fixed and
+       anchored to the LEFT edge is positioned against the viewport, not the
+       rail's sibling, so it has to add this offset or it renders underneath
+       the rail (which sits at z-index 1100). See SnapControlPanel and
+       AiInspirationButton. */
+    --pz-nav-w: 64px;
+    --pz-nav-bg: #0f172a;
+    --pz-nav-hover: #1b2338;
+    --pz-nav-border: #1e293b;
+    --pz-nav-ink: #94a3b8;
+    --pz-nav-ink-on: #ffffff;
   }
   .dark,
   html.dark {
-    /* --- DARK theme (retired; kept for safety, Emerald-tuned) --- */
-    --pz-bg: #121a17;
-    --pz-panel-surface: #1a241f;
-    --pz-panel-header: #1d2823;
-    --pz-panel-border: #2e3a34;
-    --pz-panel-muted: #6b7077;
-    --pz-panel-hover: rgba(52, 211, 153, 0.12);
-    --pz-text: #e7e8ea;
-    --pz-text-2: #9ba0a6;
-    --pz-input-bg: #141d19;
-    --pz-accent: #34d399;
-    --pz-accent-2: #6ee7b7;
-    --pz-accent-grad: linear-gradient(135deg, #10b981 0%, #6ee7b7 100%);
-    --pz-accent-soft: rgba(52, 211, 153, 0.2);
-    --pz-accent-tint: rgba(52, 211, 153, 0.12);
+    /* --- DARK theme (retired; kept for safety, Indigo-tuned) --- */
+    --pz-bg: #0f1117;
+    --pz-panel-surface: #171a22;
+    --pz-panel-header: #1c202a;
+    --pz-panel-border: #272b36;
+    --pz-panel-muted: #7a8191;
+    --pz-panel-hover: rgba(141, 118, 255, 0.14);
+    --pz-text: #e8eaf2;
+    --pz-text-2: #a2a9ba;
+    --pz-input-bg: #12151c;
+    /* lightened so white-on-accent and accent-on-dark both stay legible */
+    --pz-accent: #8d76ff;
+    --pz-accent-2: #a996ff;
+    --pz-accent-grad: linear-gradient(135deg, #7358ff 0%, #a996ff 100%);
+    --pz-accent-soft: rgba(141, 118, 255, 0.2);
+    --pz-accent-tint: rgba(141, 118, 255, 0.12);
   }
   html {
     @apply text-neutral-800;
@@ -69,7 +87,7 @@
 
 body {
   overflow: hidden;
-  font-family: "Source Sans Pro";
+  font-family: Inter, Arial, sans-serif;
 }
 
 header .navbar {
@@ -1164,7 +1182,7 @@ iframe {
 }
 
 #main {
-  font-family: "Montserrat", sans-serif !important;
+  font-family: Inter, Arial, sans-serif !important;
 }
 
 #main p {

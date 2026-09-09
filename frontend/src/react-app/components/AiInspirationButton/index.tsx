@@ -56,7 +56,7 @@ const AiInspirationButton: React.FC = () => {
         position: "fixed",
         // Inline on the LEFT, in one row with Snap (left:16) and Render — sits
         // just to the right of the Snap pill at the same bottom level.
-        left: 116,
+        left: "calc(var(--pz-nav-w, 0px) + 116px)",
         bottom: 16,
         zIndex: 50,
         display: "flex",

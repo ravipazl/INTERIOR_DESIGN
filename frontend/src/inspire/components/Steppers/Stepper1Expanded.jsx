@@ -619,18 +619,28 @@ const Stepper1Expanded = ({
   // Mark the chosen image favourite + flip the project into "quotation_requested"
   // (same flow as the Generate step). Reports the real outcome — a refused write
   // returns null, so we never claim success for a request that wasn't saved.
+  // `selected` is an ARRAY — the picker is multi-select. One image is just a
+  // list of one.
   const handleSendQuote = async (selected) => {
-    if (!selected?._id) return;
+    const picked = (Array.isArray(selected) ? selected : [selected]).filter(
+      (i) => i?._id
+    );
+    if (!picked.length) return;
     setSendingQuote(true);
     try {
-      await imagesService.updateImageInfo(selected._id, { isFavorite: true });
-      const quoteImageUrl = selected.url
-        ? `${process.env.REACT_APP_UPLOADED_IMAGES_BASE_PATH}/${selected.url}`
-        : undefined;
+      // Favourite EVERY chosen image — that is how the design side knows which
+      // designs the quote covers.
+      await Promise.all(
+        picked.map((img) =>
+          imagesService.updateImageInfo(img._id, { isFavorite: true })
+        )
+      );
       const updateResponse = await updateProject(currentProject?._id, {
         status: "quotation_requested",
-        quoteImageId: selected._id,
-        ...(quoteImageUrl ? { quoteImageUrl } : {}),
+        // quoteImageIds is the real list; quoteImageId keeps the first one so
+        // older readers and existing projects keep working.
+        quoteImageIds: picked.map((i) => i._id),
+        quoteImageId: picked[0]._id,
       });
       if (!updateResponse) {
         toast.error(
@@ -751,10 +761,14 @@ const Stepper1Expanded = ({
                   {" "}
                   + Add Room
                 </Button>
+                {/* "Request quote" is now the ONLY forward action. The "Next"
+                    button that stood beside it led to the theme step, which is
+                    no longer part of the client flow. Filled rather than
+                    outlined, because it is what the client came here to do. */}
                 {selectedImage?._id && (
                   <Button
-                    className="outline-button me-3"
-                    variant="outline"
+                    className="primary-button-filled"
+                    variant="primary"
                     onClick={handleGetQuoteModal}
                     disabled={quoteInProgress}
                     title={
@@ -766,15 +780,6 @@ const Stepper1Expanded = ({
                     Request quote
                   </Button>
                 )}
-                <Button
-                  disabled={!selectedImage || !selectedImage.roomType}
-                  className="primary-button-filled"
-                  style={{ width: "129px" }}
-                  onClick={handleNext}
-                  variant="primary"
-                >
-                  Next
-                </Button>
               </span>
             </div>
           </Navbar>
@@ -821,10 +826,13 @@ const Stepper1Expanded = ({
               >
                 + Add Room
               </Button>
+              {/* Same as the desktop row above: "Next" went to the theme tab,
+                  which no longer exists, so "Request quote" is the only way
+                  forward and takes the filled treatment. */}
               {selectedImage?._id && (
                 <Button
-                  variant="outlined"
-                  className="outline-button button-width-mobile w-100 mx-1"
+                  variant="primary"
+                  className="primary-button-filled button-width-mobile w-100 mx-1"
                   onClick={handleGetQuoteModal}
                   disabled={quoteInProgress}
                   title={
@@ -836,17 +844,6 @@ const Stepper1Expanded = ({
                   Request quote
                 </Button>
               )}
-              <Button
-                disabled={!selectedImage || !selectedImage.roomType}
-                className="primary-button-filled button-width-mobile w-100 mx-1"
-                onClick={() => {
-                  handleNext();
-                  handleTabNavigation("2");
-                }}
-                variant="primary"
-              >
-                Next
-              </Button>
             </div>
           </Navbar>
         </Row>

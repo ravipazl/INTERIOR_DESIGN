@@ -378,9 +378,18 @@ export class Viewer3D extends Scene {
           ? el.clientWidth / el.clientHeight
           : window.innerWidth / Math.max(1, window.innerHeight);
       // Distance so the larger of width/height fits the frustum, plus padding.
+      //
+      // FRAME_PADDING is how far back the dollhouse view sits. 1.0 would fit
+      // the plan edge-to-edge with no margin; higher pulls the camera back and
+      // shrinks the room on screen. Because this is perspective, apparent size
+      // scales roughly with 1/distance — so doubling this halves the room.
+      //
+      // Was 1.45, which filled the viewport and left no breathing room around
+      // the plan. Adjust this single number to taste.
+      const FRAME_PADDING = 2.4;
       const fitForHeight = extent / 2 / Math.tan(fov / 2);
       const fitForWidth = fitForHeight / Math.min(1, aspect);
-      const dist = Math.max(fitForHeight, fitForWidth) * 1.45;
+      const dist = Math.max(fitForHeight, fitForWidth) * FRAME_PADDING;
       // Dollhouse direction: pulled back, elevated, angled.
       const dir = new Vector3(0.55, 0.72, 0.55).normalize();
       const endPos = new Vector3(
@@ -2004,7 +2013,9 @@ export class Viewer3D extends Scene {
     }
   }
 
-  __frameFloorplanWhenReady(attempt = 0) {
+  // `animate` added so callers entering the 3D step can glide into the
+  // dollhouse view rather than snapping, while still waiting for real geometry.
+  __frameFloorplanWhenReady(attempt = 0, animate = false) {
     const scope = this;
     try {
       const size =
@@ -2013,12 +2024,12 @@ export class Viewer3D extends Scene {
         scope.floorplan.getSize();
       const valid = size && ((size.x || 0) > 50 || (size.z || 0) > 50);
       if (valid) {
-        scope.frameFloorplan();
+        scope.frameFloorplan(animate);
         return;
       }
       if (attempt < 30 && typeof requestAnimationFrame === "function") {
         requestAnimationFrame(() =>
-          scope.__frameFloorplanWhenReady(attempt + 1)
+          scope.__frameFloorplanWhenReady(attempt + 1, animate)
         );
       }
     } catch (e) {
@@ -3498,6 +3509,192 @@ export class Viewer3D extends Scene {
       fov: cam.isPerspectiveCamera ? cam.fov : 50,
       aspect: cam.aspect || 16 / 9,
     };
+  }
+
+  /**
+   * Interior bounding box (cm) of the biggest room in the plan.
+   * interiorCorners are Vector2 where .x -> world x and .y -> world z.
+   * Null when there is no usable plan.
+   */
+  __largestRoomBox() {
+    const scope = this;
+    const rooms =
+      (scope.floorplan &&
+        scope.floorplan.getRooms &&
+        scope.floorplan.getRooms()) ||
+      [];
+    if (!rooms.length) return null;
+    let box = null;
+    let bestArea = -1;
+    rooms.forEach((room) => {
+      const pts = (room && room.interiorCorners) || [];
+      if (pts.length < 3) return;
+      let minX = Infinity;
+      let maxX = -Infinity;
+      let minZ = Infinity;
+      let maxZ = -Infinity;
+      pts.forEach((p) => {
+        minX = Math.min(minX, p.x);
+        maxX = Math.max(maxX, p.x);
+        minZ = Math.min(minZ, p.y);
+        maxZ = Math.max(maxZ, p.y);
+      });
+      const area = (maxX - minX) * (maxZ - minZ);
+      if (Number.isFinite(area) && area > bestArea) {
+        bestArea = area;
+        box = { minX, maxX, minZ, maxZ };
+      }
+    });
+    return box;
+  }
+
+  /**
+   * Is the editor camera standing INSIDE the room, at a height you could stand
+   * at? The editor opens in the pulled-back dollhouse view (frameFloorplan), so
+   * rendering "my current view" without moving first gives a small open-topped
+   * box floating in sky. The render panel uses this to pick its framing
+   * DEFAULT - a check, not an override.
+   *
+   * The height test matters as much as the position one: horizontally inside
+   * the room but five metres up is still the dollhouse view.
+   */
+  isCameraInsideRoom() {
+    const scope = this;
+    try {
+      const box = scope.__largestRoomBox();
+      const cam = scope.camera;
+      if (!box || !cam || !cam.position) return false;
+      const p = cam.position;
+      const CEILING = 260; // cm
+      return (
+        p.x > box.minX &&
+        p.x < box.maxX &&
+        p.z > box.minZ &&
+        p.z < box.maxZ &&
+        p.y > 0 &&
+        p.y < CEILING
+      );
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /**
+   * A camera inside the room, at eye height, square on to the wall the
+   * furniture is against, and CENTRED on that furniture.
+   *
+   * Why front-on and not the corner diagonal. The diagonal is the textbook
+   * interior shot - the longest sightline, the most depth - and it was tried
+   * here and rejected: standing in the far corner put the sofa at the edge of
+   * frame with a blank wall through the middle. A straight, centred elevation
+   * is what actually reads when showing a client the units on a wall.
+   *
+   *   Pick the furniture wall  whichever of the four the furniture centroid
+   *                            sits closest to.
+   *   Back off to the opposite wall, so as much of the subject wall fits as
+   *                            the room allows.
+   *   Line up ON the furniture the camera shares the furniture's cross-axis
+   *                            coordinate, so the view is PERPENDICULAR to the
+   *                            wall and the furniture lands in the MIDDLE of
+   *                            frame rather than off to one side.
+   *   Eye height 150 cm, lens level (target y == camera y). Tilt and the
+   *                            verticals converge, which instantly reads CG.
+   *   55 deg vertical FOV      about a 24 mm lens: wide enough for a real room,
+   *                            short of wide-angle barrel distortion.
+   *
+   * Returns null when there is nothing sensible to shoot (no plan, or a room
+   * too small to stand in); the caller falls back to the current view.
+   */
+  getInteriorCameraView() {
+    const scope = this;
+    try {
+      const box = scope.__largestRoomBox();
+      if (!box) return null;
+
+      const width = box.maxX - box.minX;
+      const depth = box.maxZ - box.minZ;
+      // Under ~1.2 m there is nowhere to stand; the lens would be in a wall.
+      if (!(width > 120 && depth > 120)) return null;
+
+      const EYE = 150; // cm
+      const cx = (box.minX + box.maxX) / 2;
+      const cz = (box.minZ + box.maxZ) / 2;
+
+      let items = [];
+      try {
+        items = (scope.physicalRoomItems || []).filter((it) => {
+          const p = it && it.position;
+          return (
+            p &&
+            p.x >= box.minX &&
+            p.x <= box.maxX &&
+            p.z >= box.minZ &&
+            p.z <= box.maxZ
+          );
+        });
+      } catch (e) {
+        items = [];
+      }
+
+      const fx = items.length
+        ? items.reduce((s, it) => s + it.position.x, 0) / items.length
+        : cx;
+      const fz = items.length
+        ? items.reduce((s, it) => s + it.position.z, 0) / items.length
+        : cz;
+
+      // Which wall is the furniture against? The nearest one. An empty room
+      // falls back to the -Z wall: arbitrary, but stable, so the same room
+      // always renders the same shot.
+      const gaps = [
+        { wall: "minZ", d: fz - box.minZ },
+        { wall: "maxZ", d: box.maxZ - fz },
+        { wall: "minX", d: fx - box.minX },
+        { wall: "maxX", d: box.maxX - fx },
+      ];
+      const subject = items.length
+        ? gaps.reduce((a, b) => (b.d < a.d ? b : a))
+        : { wall: "minZ" };
+
+      const insetOf = (span) =>
+        Math.min(Math.max(span * 0.08, 25), 60, span / 2 - 20);
+      const insetX = insetOf(width);
+      const insetZ = insetOf(depth);
+      const clamp = (val, lo, hi) => Math.max(lo, Math.min(hi, val));
+
+      let pos;
+      let aim;
+      if (subject.wall === "minZ") {
+        const x = clamp(fx, box.minX + insetX, box.maxX - insetX);
+        pos = { x, z: box.maxZ - insetZ };
+        aim = { x, z: box.minZ }; // same x => perpendicular, subject centred
+      } else if (subject.wall === "maxZ") {
+        const x = clamp(fx, box.minX + insetX, box.maxX - insetX);
+        pos = { x, z: box.minZ + insetZ };
+        aim = { x, z: box.maxZ };
+      } else if (subject.wall === "minX") {
+        const z = clamp(fz, box.minZ + insetZ, box.maxZ - insetZ);
+        pos = { x: box.maxX - insetX, z };
+        aim = { x: box.minX, z };
+      } else {
+        const z = clamp(fz, box.minZ + insetZ, box.maxZ - insetZ);
+        pos = { x: box.minX + insetX, z };
+        aim = { x: box.maxX, z };
+      }
+
+      const S = 0.01; // cm -> m, matching getCameraView and the exported glb
+      return {
+        position: [pos.x * S, EYE * S, pos.z * S],
+        // Same height as the camera: a level lens keeps verticals vertical.
+        target: [aim.x * S, EYE * S, aim.z * S],
+        fov: 55,
+        aspect:
+          scope.camera && scope.camera.aspect ? scope.camera.aspect : 16 / 9,
+      };
+    } catch (e) {
+      console.warn("getInteriorCameraView failed (non-fatal)", e);
+      return null;
+    }
   }
 
   /*saveString( text, filename ) {

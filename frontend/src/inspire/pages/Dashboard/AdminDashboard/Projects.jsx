@@ -8,6 +8,7 @@ import "./index.css";
 import ProjectContext from "../../../context/ProjectContext";
 import Button from "react-bootstrap/Button";
 import AppHeader from "../../../components/AppHeader";
+import NavRail from "@pazl/components/NavRail";
 import ConfirmationModal from "../../../components/ConfirmationModal";
 import { DashboardCard } from "../../../components/DashboardCard";
 import TitleHeader from "../../../components/TitleHeader";
@@ -94,6 +95,16 @@ const getColorForStatus = (status) => {
 
 const PROJECTS_PAGE_LIMIT = 50;
 
+// How often the list re-checks for work done elsewhere (an architect finishing a
+// design, a client requesting a quote). Each tick is 5 requests: the list plus
+// the four status counters.
+//
+// 5s was chosen over the 20s this started at because the admin's complaint was
+// the WAIT, and while they are sitting watching the list that delay is the whole
+// experience. Going below ~2s only adds load — nobody can tell 2s from 5s when
+// waiting on someone else's work.
+const PROJECTS_REFRESH_MS = 5000;
+
 const Projects = () => {
   const { loading, setLoading } = useContext(UserRoleContext);
   const location = useLocation();
@@ -156,6 +167,53 @@ const Projects = () => {
   useEffect(() => {
     getProjects();
   }, [currentUser]);
+
+  // Keep this list in step with work happening elsewhere — an architect adding a
+  // model, a BOQ regenerating, a client requesting a quote. The page used to
+  // fetch ONCE on mount, so an admin watching it saw nothing until they reloaded
+  // and changes made seconds earlier looked like they had not happened.
+  //
+  // Polling rather than live events, deliberately: it is the pattern this
+  // codebase already uses (ProjectTracker/index.jsx refreshes on an interval
+  // for exactly this reason), and channels.js currently publishes every event to
+  // every authenticated user — switching to sockets would need that scoped first
+  // or it would push other people's projects to the browser.
+  //
+  // Only polls while the tab is VISIBLE; a background tab refreshing every few
+  // seconds is pure waste.
+  useEffect(() => {
+    if (!currentUser) return;
+    let timer = null;
+    const start = () => {
+      if (timer) return;
+      timer = setInterval(() => {
+        // Page 1 only — re-fetching while the admin reads page 3 would yank the
+        // table out from under them.
+        if (currentPageNumber <= 1) getProjects(true);
+      }, PROJECTS_REFRESH_MS);
+    };
+    const stop = () => {
+      if (timer) clearInterval(timer);
+      timer = null;
+    };
+    const onVisibility = () => {
+      if (document.hidden) {
+        stop();
+      } else {
+        // Refresh on return: coming back to a stale list is exactly when the
+        // delay is most noticeable.
+        if (currentPageNumber <= 1) getProjects(true);
+        start();
+      }
+    };
+    if (!document.hidden) start();
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      stop();
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentUser, currentPageNumber]);
 
   useEffect(() => {
     filterProjects(selectedProjectStatus, projects);
@@ -235,8 +293,11 @@ const Projects = () => {
     }
   };
 
-  const getProjects = async () => {
-    setLoading(true);
+  // `silent` skips the loading spinner. The 20s background refresh uses it —
+  // flashing a spinner over a table the admin is reading, three times a minute,
+  // would be worse than the staleness it fixes.
+  const getProjects = async (silent = false) => {
+    if (!silent) setLoading(true);
     const projectResponse = await getAllProjects(PROJECTS_PAGE_LIMIT, 0);
     if (projectResponse?.data) {
       let arr = [];
@@ -259,7 +320,7 @@ const Projects = () => {
       const quoteReqProjCount = await getQuotationRequestedProjectsCount();
       setQuotationRequestedProjectsCount(quoteReqProjCount);
     }
-    setLoading(false);
+    if (!silent) setLoading(false);
   };
 
   const getProjectsByPage = async () => {
@@ -500,22 +561,27 @@ const Projects = () => {
         )
       : filterData;
 
-  const filteredProjects = scopedData.filter(
-    (item) =>
-      (item.name &&
-        item.name.toLowerCase().includes(filterText.toLowerCase())) ||
-      (item.clientName &&
-        item.clientName.toLowerCase().includes(filterText.toLowerCase())) ||
-      (item.ownerUser &&
-        ((item.ownerUser.name &&
-          item.ownerUser.name
-            .toLowerCase()
-            .includes(filterText.toLowerCase())) ||
-          (item.ownerUser.email &&
-            item.ownerUser.email
-              .toLowerCase()
-              .includes(filterText.toLowerCase()))))
-  );
+  // An EMPTY search box must show everything.
+  //
+  // The old predicate was a chain of `field && field.includes(query)` tests. On
+  // an empty query `"".includes("")` is true — but ONLY for rows that have the
+  // field at all. A project with no name, no clientName and no ownerUser failed
+  // every branch and was silently dropped, so the table read "There are no
+  // records to display" while the counters above it said 2 projects.
+  // Short-circuiting on an empty query is both correct and cheaper.
+  const query = (filterText || "").trim().toLowerCase();
+  const matchesQuery = (value) =>
+    typeof value === "string" && value.toLowerCase().includes(query);
+
+  const filteredProjects = query
+    ? scopedData.filter(
+        (item) =>
+          matchesQuery(item.name) ||
+          matchesQuery(item.clientName) ||
+          matchesQuery(item.ownerUser?.name) ||
+          matchesQuery(item.ownerUser?.email)
+      )
+    : scopedData;
 
   const columns = useMemo(() => [
     {
@@ -652,7 +718,19 @@ const Projects = () => {
                 {statusLabel}
               </Dropdown.Toggle>
 
-              <Dropdown.Menu>
+              {/* The table body is a 400px `overflow-y: auto` box (DataTable's
+                  fixedHeader + fixedHeaderScrollHeight), so an absolutely
+                  positioned menu is clipped at the container edge — only the
+                  first sliver of the status list was visible.
+                  `strategy: "fixed"` positions the menu against the VIEWPORT
+                  instead, which takes it out of that scroll container's clipping
+                  entirely. `renderOnMount` lets Popper measure the menu before
+                  it is first shown, so the very first open is placed correctly
+                  rather than jumping. */}
+              <Dropdown.Menu
+                renderOnMount
+                popperConfig={{ strategy: "fixed" }}
+              >
                 {projectStatus.map((status, index) => (
                   <Dropdown.Item
                     key={status.id}
@@ -682,9 +760,13 @@ const Projects = () => {
           );
         }
       },
-      ignoreRowClick: true,
       reorder: true,
       ignoreRowClick: true,
+      // Let the open status menu spill out of its cell. Without this the cell
+      // itself clips it, on top of the scroll-container clipping handled by the
+      // menu's fixed positioning above. (`ignoreRowClick` was listed twice here;
+      // the duplicate is dropped.)
+      allowOverflow: true,
       minWidth: "150px",
     },
     {
@@ -773,7 +855,9 @@ const Projects = () => {
   const [selectedUserForEdit, setSelectedUserForEdit] = useState(null);
 
   return (
-    <>
+    <div className="pz-app-shell">
+      <NavRail variant="app" />
+      <div className="pz-app-main">
       <ToastContainer />
       <ShareModal
         show={showShareModal}
@@ -882,7 +966,8 @@ const Projects = () => {
           clearSelectedRows={toggleCleared}
         />
       </Container>
-    </>
+      </div>
+    </div>
   );
 };
 

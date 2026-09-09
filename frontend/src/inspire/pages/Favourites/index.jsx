@@ -254,7 +254,13 @@ const Favourites = ({
             {groupingImages.map((group, index) => (
               <div key={index}>
                 {group.inputUrls.map((inputUrl, inputIndex) => (
+                  // Keyed by the source image URL, unique within a group; the
+                  // index is only a fallback. The OUTER map already had a key,
+                  // this inner one did not - which is what React warned about,
+                  // and it let these rows be reused against the wrong data when
+                  // a group's images change.
                   <div
+                    key={inputUrl?.inputUrl ?? inputIndex}
                     className="flex-container"
                     style={{
                       backgroundColor: index % 2 === 0 ? "#F7F7F7" : "white",

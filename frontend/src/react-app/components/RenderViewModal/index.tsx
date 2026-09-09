@@ -8,6 +8,7 @@ import {
 } from "../../services/RenderService";
 import { ProjectWorkspaceService } from "../../services/ProjectWorkspaceService";
 import { AuthService } from "../../services/authService";
+import useDockTop from "@pazl/react-app/hooks/useDockTop";
 
 /**
  * RenderViewModal — photorealistic "Render" view.
@@ -101,6 +102,100 @@ const ENVIRONMENTS: { label: string; value: string; swatch: string }[] = [
   { label: "Studio", value: "studio", swatch: "#eeeeea" },
 ];
 
+/**
+ * Default finish (the Image tab) and lighting.
+ *
+ * These used to be dead neutral — every knob at "do nothing" — which is a
+ * defensible engineering default and a poor photographic one. A raw render is
+ * flat and slightly cold, so the same corrections were being made by hand on
+ * every single render. These start the image where a photographer would.
+ *
+ * ONE SOURCE OF TRUTH: the state initialisers, the "has this been modified"
+ * check and the Reset button all read from here. They were three hard-coded
+ * copies of 6500/100/0, which is exactly the kind of thing that drifts — change
+ * a default and Reset silently starts resetting to something else.
+ *
+ * The values, and why each one:
+ *
+ *  temperature 5600 K  6500 is neutral; LOWER is warmer (see kelvinRgb in
+ *                      backend/src/services/render/render.js). Interiors read
+ *                      as warm — 5600 is a gentle shift, not an orange filter.
+ *                      The tint is luminance-normalised, so it does not change
+ *                      brightness.
+ *  contrast    +8      Renders come out hazy next to a photograph. c = 1.08,
+ *                      pivoting on mid-grey.
+ *  shadows     +20     NOT decoration — it is what stops the contrast crushing
+ *                      the blacks. Contrast alone gives an offset of
+ *                      127.5 × (1 − 1.08) = −10.2, so everything under ~9 clips
+ *                      to pure black. The shadow lift folds in as
+ *                      off × c = 20/100 × 25 × 1.08 = +5.4, leaving −4.8. Real
+ *                      rooms have no pure black corners.
+ *  saturation  106 %   CG interiors sit a little grey against a photo. Small
+ *                      on purpose; more starts to look like a filter.
+ *  highlights  0       Deliberately untouched. Despite the name this is a
+ *                      global SLOPE (1 + h × 0.3), not a highlight rolloff —
+ *                      using it to tame blown windows just darkens the whole
+ *                      image. Left for the user to reach for knowingly.
+ *  vignette    0       A default vignette is the one grade people notice and
+ *                      read as "filtered".
+ *  autoContrast false  sharp's normalise() stretches the histogram per image,
+ *                      so two renders of the SAME room grade differently when
+ *                      one happens to contain something bright. Consistency
+ *                      matters more than the occasional rescue.
+ *  environment overcast  Soft, even, forgiving light. "Daylight" throws hard
+ *                      sun patches that need the sun direction tuned per room
+ *                      before they look right, and blows out windows.
+ *  useSun      false   A key sun on top of the HDRI needs a direction chosen
+ *                      per room; wrong, it looks worse than no sun at all.
+ *
+ * Everything here remains a slider — these are starting points, not policy.
+ */
+// How the shot is composed. "Current view" is right when you have lined a shot
+// up; "Interior" when you have not, and do not want the pulled-back dollhouse
+// the editor opens with. Which one is the DEFAULT is decided by looking at
+// where the camera actually is - see the openSignal effect.
+const FRAMINGS: {
+  label: string;
+  value: "interior" | "current" | "auto";
+  hint: string;
+}[] = [
+  {
+    label: "Current view",
+    value: "current",
+    hint: "Matches what you see on screen right now.",
+  },
+  {
+    label: "Interior",
+    value: "interior",
+    hint: "Inside the room at eye height, centred on the furniture.",
+  },
+  {
+    label: "Whole room",
+    value: "auto",
+    hint: "Composed from outside - the dollhouse view.",
+  },
+];
+
+const FINISH_DEFAULTS = {
+  temperature: 5600,
+  saturation: 106,
+  highlights: 0,
+  shadows: 20,
+  vignette: 0,
+  dof: 0,
+  skyRotation: 0,
+  contrast: 8,
+  autoContrast: false,
+};
+
+const LIGHT_DEFAULTS = {
+  environment: "overcast",
+  useSun: false,
+  sunTime: 50,
+  sunDir: 0,
+  roomLights: 100,
+};
+
 const POLL_MS = 3000;
 
 /**
@@ -129,7 +224,10 @@ const guessMaterialType = (name: string): string => {
   return "";
 };
 
-const RenderViewModal: React.FC = () => {
+const RenderViewModal: React.FC<{
+  openSignal?: number;
+  closeSignal?: number;
+}> = ({ openSignal, closeSignal }) => {
   const [open, setOpen] = useState(false);
   const [status, setStatus] = useState<Status>("idle");
   const [progress, setProgress] = useState<number | null>(null);
@@ -152,7 +250,16 @@ const RenderViewModal: React.FC = () => {
   // Default OFF: an interior shot from the user's own camera is what people
   // want. Auto-frame pulls the camera outside for an overhead "doll-house"
   // view — useful occasionally, but the wrong default.
-  const [autoFrame, setAutoFrame] = useState(false);
+  // Both fixed defaults failed, in opposite directions: "interior" threw away
+  // a shot the user had deliberately lined up, and "current" faithfully
+  // reproduced the dollhouse the editor opens with. So the default is decided
+  // by LOOKING at where the camera is, each time the panel opens.
+  const [framing, setFraming] = useState<"interior" | "current" | "auto">(
+    "current"
+  );
+  const [cameraOutside, setCameraOutside] = useState(false);
+  // Derived, not stored - one source of truth for how the shot is framed.
+  const autoFrame = framing === "auto";
   const [view, setView] = useState("corner");
   const [engine, setEngine] = useState("EEVEE");
   const [resIdx, setResIdx] = useState(0); // index into RESOLUTIONS (default 720p)
@@ -160,26 +267,47 @@ const RenderViewModal: React.FC = () => {
   const [format, setFormat] = useState("PNG");
   const [exposure, setExposure] = useState(0); // brightness -/+
   const [denoise, setDenoise] = useState(true);
-  const [environment, setEnvironment] = useState("daylight");
+  const [environment, setEnvironment] = useState(LIGHT_DEFAULTS.environment);
   // Post-processing "finish" — the Enscape-style knobs applied on top of the
-  // render. Every default is NEUTRAL, so an untouched render is unchanged.
-  const [temperature, setTemperature] = useState(6500); // Kelvin (6500 = neutral)
-  const [saturation, setSaturation] = useState(100); // % (100 = unchanged)
-  const [highlights, setHighlights] = useState(0); // -100..100
-  const [shadows, setShadows] = useState(0); // -100..100
-  const [vignette, setVignette] = useState(0); // 0..100 %
-  const [dof, setDof] = useState(0); // 0..100 %
-  const [skyRotation, setSkyRotation] = useState(0); // degrees
-  const [contrast, setContrast] = useState(0); // -100..100
-  const [autoContrast, setAutoContrast] = useState(false);
+  // render. Defaults come from FINISH_DEFAULTS above, which explains each one.
+  const [temperature, setTemperature] = useState(FINISH_DEFAULTS.temperature); // Kelvin (6500 = neutral, lower = warmer)
+  const [saturation, setSaturation] = useState(FINISH_DEFAULTS.saturation); // % (100 = unchanged)
+  const [highlights, setHighlights] = useState(FINISH_DEFAULTS.highlights); // -100..100
+  const [shadows, setShadows] = useState(FINISH_DEFAULTS.shadows); // -100..100
+  const [vignette, setVignette] = useState(FINISH_DEFAULTS.vignette); // 0..100 %
+  const [dof, setDof] = useState(FINISH_DEFAULTS.dof); // 0..100 %
+  const [skyRotation, setSkyRotation] = useState(FINISH_DEFAULTS.skyRotation); // degrees
+  const [contrast, setContrast] = useState(FINISH_DEFAULTS.contrast); // -100..100
+  const [autoContrast, setAutoContrast] = useState(FINISH_DEFAULTS.autoContrast);
   const [whiteBackground, setWhiteBackground] = useState(false);
   // Lighting (Enscape's Atmosphere): a time-of-day sun + room-light brightness.
-  const [useSun, setUseSun] = useState(false);
-  const [sunTime, setSunTime] = useState(50); // 0..100 (50 = noon)
-  const [sunDir, setSunDir] = useState(0); // degrees
-  const [roomLights, setRoomLights] = useState(100); // % of default
+  const [useSun, setUseSun] = useState(LIGHT_DEFAULTS.useSun);
+  const [sunTime, setSunTime] = useState(LIGHT_DEFAULTS.sunTime); // 0..100 (50 = noon)
+  const [sunDir, setSunDir] = useState(LIGHT_DEFAULTS.sunDir); // degrees
+  const [roomLights, setRoomLights] = useState(LIGHT_DEFAULTS.roomLights); // % of default
   const [showAdjust, setShowAdjust] = useState(false); // collapse the extra knobs
   const [showLight, setShowLight] = useState(false); // collapse the lighting knobs
+  const dockTop = useDockTop();
+
+  // The rail's Render step bumps this to open the panel. A counter rather than
+  // a boolean, so asking again re-opens it after you have closed it.
+  useEffect(() => {
+    if (!openSignal) return;
+    setMaterials(RenderService.listMaterials());
+    // Decided on OPEN, not on mount: the camera moves while the user works, so
+    // a mount-time answer is stale by the time they render.
+    const inside = RenderService.isCameraInsideRoom();
+    setCameraOutside(!inside);
+    setFraming(inside ? "current" : "interior");
+    setOpen(true);
+  }, [openSignal]);
+
+  // Closed when the rail moves to 3D — the catalogue takes the same left slot,
+  // so leaving this open would stack the two panels.
+  useEffect(() => {
+    if (!closeSignal) return;
+    setOpen(false);
+  }, [closeSignal]);
   const [tab, setTab] = useState<"render" | "materials">("render");
   // The scene's materials, refreshed each time the panel opens (the room can
   // change while the panel is closed).
@@ -467,7 +595,7 @@ const RenderViewModal: React.FC = () => {
           artificialLight: roomLights / 100,
           materials: Object.keys(overrides).length ? overrides : undefined,
         },
-        { autoFrame }
+        { framing, autoFrame }
       );
       setStatus("queued");
       pollTimer.current = setInterval(async () => {
@@ -670,84 +798,57 @@ const RenderViewModal: React.FC = () => {
     </div>
   );
 
-  // True when any finish knob is off its neutral default.
+  // True when any finish knob is off its DEFAULT — which is no longer the same
+  // as neutral, so both this and Reset read FINISH_DEFAULTS rather than
+  // repeating the numbers. Repeating them is how "Reset" quietly starts
+  // resetting to something nobody chose.
   const adjustDirty =
-    temperature !== 6500 ||
-    saturation !== 100 ||
-    highlights !== 0 ||
-    shadows !== 0 ||
-    vignette !== 0 ||
-    dof !== 0 ||
-    skyRotation !== 0 ||
-    contrast !== 0 ||
-    autoContrast;
+    temperature !== FINISH_DEFAULTS.temperature ||
+    saturation !== FINISH_DEFAULTS.saturation ||
+    highlights !== FINISH_DEFAULTS.highlights ||
+    shadows !== FINISH_DEFAULTS.shadows ||
+    vignette !== FINISH_DEFAULTS.vignette ||
+    dof !== FINISH_DEFAULTS.dof ||
+    skyRotation !== FINISH_DEFAULTS.skyRotation ||
+    contrast !== FINISH_DEFAULTS.contrast ||
+    autoContrast !== FINISH_DEFAULTS.autoContrast;
 
   const resetAdjust = () => {
-    setTemperature(6500);
-    setSaturation(100);
-    setHighlights(0);
-    setShadows(0);
-    setVignette(0);
-    setDof(0);
-    setSkyRotation(0);
-    setContrast(0);
-    setAutoContrast(false);
+    setTemperature(FINISH_DEFAULTS.temperature);
+    setSaturation(FINISH_DEFAULTS.saturation);
+    setHighlights(FINISH_DEFAULTS.highlights);
+    setShadows(FINISH_DEFAULTS.shadows);
+    setVignette(FINISH_DEFAULTS.vignette);
+    setDof(FINISH_DEFAULTS.dof);
+    setSkyRotation(FINISH_DEFAULTS.skyRotation);
+    setContrast(FINISH_DEFAULTS.contrast);
+    setAutoContrast(FINISH_DEFAULTS.autoContrast);
   };
 
-  // --- collapsed pill ------------------------------------------------------
-  if (!open) {
-    return (
-      <button
-        type="button"
-        onClick={() => {
-          // Re-read the scene each time: the room may have changed while the
-          // panel was closed. Overrides are kept, keyed by name.
-          setMaterials(RenderService.listMaterials());
-          setOpen(true);
-        }}
-        title="Photorealistic render"
-        style={{
-          position: "fixed",
-          // Inline on the LEFT, in one row with Snap (left:16) and AI Inspiration
-          // (left:116) — sits to the right of the AI Inspiration pill.
-          left: 278,
-          bottom: 16,
-          zIndex: 50,
-          display: "flex",
-          alignItems: "center",
-          gap: 8,
-          padding: "8px 14px",
-          borderRadius: 20,
-          border: "none",
-          background: "var(--pz-accent-grad, #059669)",
-          color: "#fff",
-          boxShadow: "0 4px 14px rgba(5,150,105,0.4)",
-          cursor: "pointer",
-          fontSize: 13,
-          fontWeight: 600,
-        }}
-      >
-        <span style={{ fontSize: 15 }}>✦</span> Render
-      </button>
-    );
-  }
+  // The floating "Render" pill used to sit here, in the bottom-left row with
+  // Snap and AI Inspiration. Removed: Render is now a step in the nav rail, so
+  // the pill was a second control for the same thing. Closed = render nothing;
+  // the rail opens this panel via openSignal.
+  if (!open) return null;
 
   // --- expanded panel ------------------------------------------------------
+  // Docked on the LEFT, matching the Floor plan and 3D model panels, instead of
+  // floating on the right. Same width, same top edge (measured off the canvas
+  // row), so all three read as one panel that changes contents per step.
   return (
     <div
       style={{
         position: "fixed",
-        right: 16,
-        top: 90,
-        bottom: 16,
+        left: "calc(var(--pz-nav-w, 0px) + 4px)",
+        top: dockTop,
+        bottom: 0,
         zIndex: 50,
-        width: 340,
-        maxHeight: "calc(100vh - 106px)",
-        background: "#fff",
-        borderRadius: 12,
-        boxShadow: "0 6px 24px rgba(0,0,0,0.35)",
+        width: 320,
+        background: "var(--pz-panel-surface)",
+        borderRight: "1px solid var(--pz-panel-border)",
+        boxShadow: "0 4px 4px 0 rgba(0,0,0,0.25)",
         overflow: "hidden",
-        color: "#1f2937",
+        color: "var(--pz-text)",
         fontFamily: "inherit",
         // The header + tabs stay put; only the content below them scrolls, so
         // the tabs are always reachable no matter how tall the result image is.
@@ -803,9 +904,9 @@ const RenderViewModal: React.FC = () => {
               padding: "8px 0",
               border: "none",
               borderBottom:
-                tab === t ? "2px solid #2563eb" : "2px solid transparent",
+                tab === t ? "2px solid var(--pz-accent)" : "2px solid transparent",
               background: "transparent",
-              color: tab === t ? "#2563eb" : "#9ca3af",
+              color: tab === t ? "var(--pz-accent)" : "var(--pz-panel-muted)",
               fontWeight: tab === t ? 600 : 400,
               fontSize: 12.5,
               cursor: "pointer",
@@ -849,9 +950,9 @@ const RenderViewModal: React.FC = () => {
                   marginBottom: 8,
                   height: 30,
                   borderRadius: 6,
-                  border: "1px solid #2563eb",
+                  border: "1px solid var(--pz-accent)",
                   background: "#eff6ff",
-                  color: "#2563eb",
+                  color: "var(--pz-accent)",
                   fontSize: 12,
                   fontWeight: 600,
                   cursor: "pointer",
@@ -881,7 +982,7 @@ const RenderViewModal: React.FC = () => {
                         padding: "6px 8px",
                         borderTop: i ? "1px solid #f3f4f6" : "none",
                         borderLeft: isSel
-                          ? "3px solid #2563eb"
+                          ? "3px solid var(--pz-accent)"
                           : "3px solid transparent",
                         background: isSel ? "#eff6ff" : "#fff",
                         cursor: "pointer",
@@ -926,7 +1027,7 @@ const RenderViewModal: React.FC = () => {
                         <span
                           style={{
                             fontSize: 10,
-                            color: "#2563eb",
+                            color: "var(--pz-accent)",
                             background: "#dbeafe",
                             borderRadius: 4,
                             padding: "1px 6px",
@@ -1224,7 +1325,7 @@ const RenderViewModal: React.FC = () => {
                   background: "transparent",
                   fontSize: 13,
                   fontWeight: 600,
-                  color: "#2563eb",
+                  color: "var(--pz-accent)",
                   cursor: "pointer",
                 }}
               >
@@ -1241,7 +1342,7 @@ const RenderViewModal: React.FC = () => {
                   background: "transparent",
                   fontSize: 13,
                   fontWeight: 600,
-                  color: videoBusy ? "#9ca3af" : "#2563eb",
+                  color: videoBusy ? "#9ca3af" : "var(--pz-accent)",
                   cursor: videoBusy ? "default" : "pointer",
                 }}
               >
@@ -1310,7 +1411,7 @@ const RenderViewModal: React.FC = () => {
                 background: "transparent",
                 fontSize: 13,
                 fontWeight: 600,
-                color: "#2563eb",
+                color: "var(--pz-accent)",
                 cursor: "pointer",
               }}
             >
@@ -1391,7 +1492,7 @@ const RenderViewModal: React.FC = () => {
                 style={{
                   height: "100%",
                   width: `${progress ?? 0}%`,
-                  background: "#2563eb",
+                  background: "var(--pz-accent)",
                   transition: "width 0.3s",
                 }}
               />
@@ -1419,29 +1520,65 @@ const RenderViewModal: React.FC = () => {
           </div>
         )}
 
-        {/* auto-frame toggle */}
-        <label
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-            marginBottom: 10,
-            fontSize: 12.5,
-            cursor: busy ? "not-allowed" : "pointer",
-            opacity: busy ? 0.6 : 1,
-          }}
-        >
-          <input
-            type="checkbox"
-            checked={autoFrame}
-            disabled={busy}
-            onChange={(e) => setAutoFrame(e.target.checked)}
-          />
-          Auto-frame the whole room
-          <span style={{ color: "#6b7280" }}>
-            {autoFrame ? "" : "(uses your current view)"}
-          </span>
-        </label>
+        {/* Framing. This was a single "Auto-frame the whole room" checkbox and
+            BOTH of its states put the camera OUTSIDE the room: unchecked sent
+            the editor camera (the pulled-back dollhouse), checked framed the
+            whole plan from a preset direction. Renders came back as an
+            open-topped box floating in sky. */}
+        <div style={{ marginBottom: 10 }}>
+          <div style={{ fontSize: 12.5, color: "#374151", marginBottom: 6 }}>
+            Framing
+          </div>
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+            {FRAMINGS.map((fr) => (
+              <button
+                key={fr.value}
+                type="button"
+                disabled={busy}
+                title={fr.hint}
+                onClick={() => setFraming(fr.value)}
+                style={{
+                  border:
+                    framing === fr.value
+                      ? "1px solid var(--pz-accent, #5b3df5)"
+                      : "1px solid #d1d5db",
+                  background:
+                    framing === fr.value ? "rgba(91,61,245,0.08)" : "transparent",
+                  color: framing === fr.value ? "#4b30dc" : "#374151",
+                  borderRadius: 6,
+                  padding: "5px 11px",
+                  fontSize: 12,
+                  fontWeight: framing === fr.value ? 600 : 400,
+                  cursor: busy ? "not-allowed" : "pointer",
+                  opacity: busy ? 0.6 : 1,
+                }}
+              >
+                {fr.label}
+              </button>
+            ))}
+          </div>
+          <div style={{ fontSize: 11.5, color: "#6b7280", marginTop: 5 }}>
+            {(FRAMINGS.find((fr) => fr.value === framing) || FRAMINGS[0]).hint}
+          </div>
+          {/* Said BEFORE the render, not after: a Cycles render is minutes and
+              finding out then that the camera was outside wastes all of them. */}
+          {cameraOutside && framing === "current" && (
+            <div
+              style={{
+                fontSize: 11.5,
+                color: "#92400e",
+                background: "rgba(245,158,11,0.12)",
+                border: "1px solid rgba(245,158,11,0.35)",
+                borderRadius: 6,
+                padding: "6px 9px",
+                marginTop: 6,
+              }}
+            >
+              Your camera is outside the room, so this will render the whole
+              plan as a box. Move into the room, or choose <b>Interior</b>.
+            </div>
+          )}
+        </div>
 
         {/* view angle — only relevant when auto-framing */}
         {autoFrame && (
@@ -1509,7 +1646,7 @@ const RenderViewModal: React.FC = () => {
                   title={`Light the room with a ${en.label.toLowerCase()} sky`}
                   style={{
                     padding: 0,
-                    border: active ? "2px solid #2563eb" : "1px solid #d1d5db",
+                    border: active ? "2px solid var(--pz-accent)" : "1px solid #d1d5db",
                     borderRadius: 6,
                     background: "#fff",
                     cursor: busy ? "default" : "pointer",
@@ -1521,7 +1658,7 @@ const RenderViewModal: React.FC = () => {
                   <div
                     style={{
                       fontSize: 10.5,
-                      color: active ? "#2563eb" : "#6b7280",
+                      color: active ? "var(--pz-accent)" : "#6b7280",
                       padding: "3px 0",
                       textAlign: "center",
                     }}
@@ -1780,7 +1917,7 @@ const RenderViewModal: React.FC = () => {
             <span>
               🎨 Image adjustments{" "}
               {adjustDirty && (
-                <span style={{ color: "#059669", fontWeight: 400 }}>• on</span>
+                <span style={{ color: "#5b3df5", fontWeight: 400 }}>• on</span>
               )}
             </span>
             <span style={{ color: "#9ca3af" }}>{showAdjust ? "▲" : "▼"}</span>
@@ -1924,7 +2061,7 @@ const RenderViewModal: React.FC = () => {
             <span>
               ☀️ Lighting{" "}
               {(useSun || roomLights !== 100) && (
-                <span style={{ color: "#059669", fontWeight: 400 }}>• on</span>
+                <span style={{ color: "#5b3df5", fontWeight: 400 }}>• on</span>
               )}
             </span>
             <span style={{ color: "#9ca3af" }}>{showLight ? "▲" : "▼"}</span>

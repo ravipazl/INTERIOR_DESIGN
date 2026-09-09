@@ -3,18 +3,38 @@ import "material-symbols";
 import BlueprintInterface from "@pazl/blueprint-interface.js";
 import { handleDrawFreeShape } from "@pazl/viewer2d-state-interface";
 import { HISTORY_TITLES } from "@pazl/services/ProjectManager";
+import {
+  dimFeetAndInch,
+  dimMeter,
+  dimMilliMeter,
+} from "@pazl/main/core/constants.js";
+import FloorPlanAiImport from "./FloorPlanAiImport";
+import SaveTemplateButton from "./SaveTemplateButton";
 
 /**
- * Floating 2D tool palette (Superbolter-style) docked at the top-right of the
- * floor-plan canvas. Wires each card to an existing engine action:
- *   - Draw walls  → handleDrawFreeShape() (enters DRAW mode)
- *   - Select      → 2D MOVE mode
- *   - Door/Window → adds the DEFAULT parametric door/window (RoomplannerHelper)
- *                   onto a wall, not a static catalog model.
+ * The Floor plan step's tool panel, docked in the left sidebar.
+ *
+ * Was a small floating palette pinned to the top-right of the canvas; it now
+ * lives in the left panel as collapsible sections, so every floor-plan action
+ * is in one place instead of split between a floating box and the Scene panel:
+ *
+ *   Import floor plan        → FloorPlanAiImport (PDF/PNG/JPG/WEBP)
+ *   Draw room                → handleDrawFreeShape() / 2D MOVE mode
+ *   Place doors and windows  → parametric door/window on the SELECTED wall
+ *   Measurements             → the overall-dimensions overlay
+ *
+ * Door/Window add the DEFAULT parametric opening via RoomplannerHelper, not a
+ * static catalog model.
  */
 
 const FloorPlanTools: React.FC = () => {
   const [active, setActive] = useState<string>("");
+  // Which sections are expanded. Import starts CLOSED — it is a one-off at the
+  // start of a project, whereas Draw room is used constantly.
+  const [openSections, setOpenSections] = useState<string[]>([
+    "draw",
+    "openings",
+  ]);
   // Overall-dimensions overlay mode. "outer" = footprint (W×H outside the plan),
   // "inner" = show ALL per-wall labels at once. Mutually exclusive; both sit on
   // top of the always-on individual show-on-select behaviour.
@@ -35,6 +55,33 @@ const FloorPlanTools: React.FC = () => {
       BlueprintInterface?.blueprint3d?.setViewer2DModeToMove?.();
     } catch (e) {
       console.error("FloorPlanTools: select mode failed", e);
+    }
+  };
+
+  /**
+   * Clear and Template moved here from the top toolbar, but their modals
+   * (ConfirmClearFloorplanModal, TemplateMenu) and the state driving them still
+   * live in floorPlanMenu — which is a SIBLING in the tree, not an ancestor, so
+   * props cannot reach it. A window event keeps ownership where it is instead
+   * of duplicating the modals or hoisting their state.
+   */
+  const clearFloorplan = () =>
+    window.dispatchEvent(new CustomEvent("pazl-floorplan-clear"));
+  const openTemplates = () =>
+    window.dispatchEvent(new CustomEvent("pazl-floorplan-templates"));
+
+  // Units calls the engine directly — the same call floorPlanMenu made. Safe to
+  // hold the display value here because the toolbar's copy is now hidden, so
+  // there is only one units control on screen.
+  const [unit, setUnit] = useState<string>("ft");
+  const changeUnit = (v: string) => {
+    setUnit(v);
+    try {
+      BlueprintInterface.setUnit(
+        v === "mm" ? dimMilliMeter : v === "m" ? dimMeter : dimFeetAndInch
+      );
+    } catch (e) {
+      console.error("FloorPlanTools: set unit failed", e);
     }
   };
 
@@ -173,86 +220,159 @@ const FloorPlanTools: React.FC = () => {
     </button>
   );
 
+  /** Collapsible section, chevron on the left like the reference design. */
+  const Section = ({
+    id,
+    title,
+    children,
+  }: {
+    id: string;
+    title: string;
+    children: React.ReactNode;
+  }) => {
+    const open = openSections.includes(id);
+    return (
+      <div className="border-b border-[color:var(--pz-panel-border)] last:border-b-0">
+        <button
+          type="button"
+          onClick={() =>
+            setOpenSections((s) =>
+              s.includes(id) ? s.filter((x) => x !== id) : [...s, id]
+            )
+          }
+          aria-expanded={open}
+          className="w-full flex items-center gap-2 px-3 py-2.5 text-left"
+        >
+          <span
+            className={`material-symbols-outlined text-[18px] text-[color:var(--pz-panel-muted)] transition-transform ${
+              open ? "rotate-90" : ""
+            }`}
+          >
+            chevron_right
+          </span>
+          <span className="text-[13px] font-semibold text-[color:var(--pz-text)]">
+            {title}
+          </span>
+        </button>
+        {open ? <div className="px-3 pb-3">{children}</div> : null}
+      </div>
+    );
+  };
+
   return (
-    <div className="absolute top-4 right-4 z-20 w-[184px] rounded-xl border border-[color:var(--pz-panel-border)] bg-[color:var(--pz-panel-surface)] shadow-[0_4px_16px_rgba(0,0,0,0.12)] p-3">
-      <div className="text-xs font-semibold text-neutral-700 dark:text-neutral-100 mb-2">
-        Structures
-      </div>
-      <div className="grid grid-cols-2 gap-2">
-        <Card
-          icon="square_foot"
-          label="Walls"
-          onClick={drawWalls}
-          isActive={active === "walls"}
-        />
-        <Card
-          icon="pan_tool"
-          label="Select"
-          onClick={selectMode}
-          isActive={active === "select"}
-        />
-      </div>
+    <div className="pz-fp-tools">
+      <Section id="import" title="Import floor plan">
+        <FloorPlanAiImport inline />
+        <p className="mt-2 text-[11px] leading-snug text-[color:var(--pz-text-2)]">
+          PDF, PNG, JPG or WEBP. Walls and rooms are read from the drawing.
+        </p>
 
-      <div className="text-xs font-semibold text-neutral-700 dark:text-neutral-100 mt-3 mb-2">
-        Doors &amp; windows
-      </div>
-      <div className="grid grid-cols-2 gap-2">
-        <Card
-          icon="door_front"
-          label="Door"
-          onClick={() => setPicker(picker === "door" ? null : "door")}
-          isActive={picker === "door"}
-        />
-        <Card
-          icon="window"
-          label="Window"
-          onClick={() => setPicker(picker === "window" ? null : "window")}
-          isActive={picker === "window"}
-        />
-      </div>
-
-      <div className="text-xs font-semibold text-neutral-700 dark:text-neutral-100 mt-3 mb-2">
-        Measurements
-      </div>
-      <div className="grid grid-cols-2 gap-2">
-        <Card
-          icon="crop_free"
-          label="Outer"
-          onClick={() => setDims("outer")}
-          isActive={dimMode === "outer"}
-        />
-        <Card
-          icon="straighten"
-          label="Inner"
-          onClick={() => setDims("inner")}
-          isActive={dimMode === "inner"}
-        />
-      </div>
-
-      {/* Type list — opens when Door/Window is clicked; pick one to place it on
-          the selected wall. */}
-      {picker ? (
-        <div className="mt-2 rounded-lg border border-[color:var(--pz-panel-border)] bg-white dark:bg-[#333] p-1">
-          <div className="text-[11px] font-semibold text-neutral-500 dark:text-neutral-300 px-1 py-1">
-            {picker === "door" ? "Choose a door" : "Choose a window"}
-          </div>
-          {(picker === "door" ? DOOR_OPTIONS : WINDOW_OPTIONS).map((o: any) => (
-            <button
-              key={o.label}
-              type="button"
-              onClick={() =>
-                picker === "door" ? placeDoor(o) : placeWindow(o)
-              }
-              className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-[12px] text-neutral-700 dark:text-neutral-200 hover:bg-[color:var(--pz-accent)]/10"
-            >
-              <span className="material-symbols-outlined text-[18px] text-[color:var(--pz-accent)]">
-                {o.icon}
-              </span>
-              {o.label}
-            </button>
-          ))}
+        <div className="mt-3 pt-3 border-t border-[color:var(--pz-panel-border)]">
+          <SaveTemplateButton inline />
+          {/* Spelled out because the button itself just says "Save", which sits
+              a few centimetres from the project Save in the top bar. This one
+              stores the plan as a reusable template — the Template card in
+              "Draw room" is what loads them back. */}
+          <p className="mt-2 text-[11px] leading-snug text-[color:var(--pz-text-2)]">
+            Saves this plan as a reusable template, not as the project.
+          </p>
         </div>
-      ) : null}
+      </Section>
+
+      <Section id="draw" title="Draw room">
+        <div className="grid grid-cols-2 gap-2">
+          <Card
+            icon="square_foot"
+            label="Walls"
+            onClick={drawWalls}
+            isActive={active === "walls"}
+          />
+          <Card
+            icon="pan_tool"
+            label="Select"
+            onClick={selectMode}
+            isActive={active === "select"}
+          />
+          <Card icon="ink_eraser" label="Clear" onClick={clearFloorplan} />
+          <Card icon="space_dashboard" label="Template" onClick={openTemplates} />
+        </div>
+
+        {/* Units is a dropdown, not an action, so it reads as a labelled field
+            rather than a card. */}
+        <label className="mt-3 block">
+          <span className="block text-[11px] font-semibold text-[color:var(--pz-panel-muted)] mb-1">
+            Units
+          </span>
+          <select
+            value={unit}
+            onChange={(e) => changeUnit(e.target.value)}
+            className="w-full rounded-lg border border-[color:var(--pz-panel-border)] bg-[color:var(--pz-panel-surface)] text-[color:var(--pz-text)] text-[12px] px-2 py-1.5"
+          >
+            <option value="ft">Feet &amp; inches (ft)</option>
+            <option value="mm">Millimetres (mm)</option>
+            <option value="m">Metres (m)</option>
+          </select>
+        </label>
+      </Section>
+
+      <Section id="openings" title="Place doors and windows">
+        <div className="grid grid-cols-2 gap-2">
+          <Card
+            icon="door_front"
+            label="Door"
+            onClick={() => setPicker(picker === "door" ? null : "door")}
+            isActive={picker === "door"}
+          />
+          <Card
+            icon="window"
+            label="Window"
+            onClick={() => setPicker(picker === "window" ? null : "window")}
+            isActive={picker === "window"}
+          />
+        </div>
+
+        {picker ? (
+          <div className="mt-2 rounded-lg border border-[color:var(--pz-panel-border)] bg-[color:var(--pz-input-bg)] p-1">
+            <div className="text-[11px] font-semibold text-[color:var(--pz-panel-muted)] px-1 py-1">
+              {picker === "door" ? "Choose a door" : "Choose a window"}
+            </div>
+            {(picker === "door" ? DOOR_OPTIONS : WINDOW_OPTIONS).map(
+              (o: any) => (
+                <button
+                  key={o.label}
+                  type="button"
+                  onClick={() =>
+                    picker === "door" ? placeDoor(o) : placeWindow(o)
+                  }
+                  className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-[12px] text-[color:var(--pz-text)] hover:bg-[color:var(--pz-accent)]/10"
+                >
+                  <span className="material-symbols-outlined text-[18px] text-[color:var(--pz-accent)]">
+                    {o.icon}
+                  </span>
+                  {o.label}
+                </button>
+              )
+            )}
+          </div>
+        ) : null}
+      </Section>
+
+      <Section id="measure" title="Measurements">
+        <div className="grid grid-cols-2 gap-2">
+          <Card
+            icon="crop_free"
+            label="Outer"
+            onClick={() => setDims("outer")}
+            isActive={dimMode === "outer"}
+          />
+          <Card
+            icon="straighten"
+            label="Inner"
+            onClick={() => setDims("inner")}
+            isActive={dimMode === "inner"}
+          />
+        </div>
+      </Section>
     </div>
   );
 };

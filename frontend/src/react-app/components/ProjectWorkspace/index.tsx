@@ -38,7 +38,7 @@ const input: React.CSSProperties = {
   fontSize: 13,
 };
 const btn: React.CSSProperties = {
-  background: "var(--pz-accent, #059669)",
+  background: "var(--pz-accent, #5b3df5)",
   color: "#fff",
   border: "none",
   borderRadius: 6,
@@ -263,6 +263,11 @@ const ProjectWorkspace: React.FC<{
   clientEmail?: string;
   // The project's creation date — used as "Project started"'s date.
   projectCreatedAt?: string;
+  // Passed straight through to the Tracker tab, which renders "Close Project"
+  // on its final "Done & handover" row.
+  canCloseProject?: boolean;
+  closingProject?: boolean;
+  onCloseProject?: () => void;
 }> = ({
   projectId,
   status,
@@ -272,6 +277,9 @@ const ProjectWorkspace: React.FC<{
   onClearFilter,
   projectCreatedAt,
   clientEmail,
+  canCloseProject,
+  closingProject,
+  onCloseProject,
 }) => {
   const [tab, setTab] = useState<ItemKind>("document");
 
@@ -539,7 +547,7 @@ const ProjectWorkspace: React.FC<{
               cursor: "pointer",
               fontSize: 13,
               fontWeight: 500,
-              background: tab === t.key ? "var(--pz-accent, #059669)" : "#f3f4f6",
+              background: tab === t.key ? "var(--pz-accent, #5b3df5)" : "#f3f4f6",
               color: tab === t.key ? "#fff" : "#374151",
             }}
           >
@@ -555,6 +563,9 @@ const ProjectWorkspace: React.FC<{
           onAdvance={onChangeRequest}
           clientEmail={clientEmail}
           projectCreatedAt={projectCreatedAt}
+          canCloseProject={canCloseProject}
+          closingProject={closingProject}
+          onCloseProject={onCloseProject}
         />
       ) : (
       <>
@@ -699,7 +710,7 @@ const ProjectWorkspace: React.FC<{
                       </div>
                     ) : (
                       <div style={{ fontWeight: 600, fontSize: 13 }}>
-                        <span style={{ color: "#059669" }}>{it.type}</span> · {it.title}
+                        <span style={{ color: "#5b3df5" }}>{it.type}</span> · {it.title}
                       </div>
                     )}
                     {editId !== it._id && it.note ? <div style={muted}>{it.note}</div> : null}
@@ -721,7 +732,7 @@ const ProjectWorkspace: React.FC<{
                             borderRadius: 4,
                             border: "1px solid #e5e7eb",
                             cursor: "pointer",
-                            background: it.status === s ? "#059669" : "#fff",
+                            background: it.status === s ? "#5b3df5" : "#fff",
                             color: it.status === s ? "#fff" : "#374151",
                           }}
                         >

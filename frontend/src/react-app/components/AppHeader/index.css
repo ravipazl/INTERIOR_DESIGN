@@ -75,10 +75,10 @@
 
 .save-button {
   font-size: 12px;
-  background-image: var(--pz-accent-grad, linear-gradient(135deg, #059669, #34d399));
-  background-color: #059669;
+  background-image: var(--pz-accent-grad, linear-gradient(135deg, #5b3df5, #4b30dc));
+  background-color: #5b3df5;
   padding: 0 12px;
-  box-shadow: 0 2px 8px rgba(5, 150, 105, 0.3);
+  box-shadow: 0 2px 8px rgba(91, 61, 245, 0.3);
 }
 
 .save-button:hover {

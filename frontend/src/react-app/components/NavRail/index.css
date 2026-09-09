@@ -1,0 +1,179 @@
+/* App navigation rail — Option A of the design review: 64px, icons only.
+   The rail is a constant dark surface in BOTH light and dark themes, so it uses
+   its own --pz-nav-* tokens rather than the panel ones. Its accent stays
+   #5b3df5 either way; the theme accent lightens in dark mode and would drop
+   white-on-accent contrast to roughly 3:1 on this ground. */
+
+.pz-nav {
+  flex: 0 0 64px;
+  width: 64px;
+  background: var(--pz-nav-bg, #0f172a);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 12px 0;
+  overflow: hidden;
+  /* 1100 clears the legacy full-width `header` rule in css/styles.css, which
+     sits at 1050 and would otherwise paint over the rail. Do not lower this —
+     see the modal note below for why the fix went the other way. */
+  z-index: 1100;
+}
+
+/* Modals have to clear the rail.
+   Bootstrap 5.3 puts a modal at 1055 and its backdrop at 1050, both BELOW the
+   rail's 1100 — so a fullscreen modal was painted under the rail and lost its
+   left 64px. Pazl Studio's object editor showed the symptom plainly: its title
+   read "zl Studio" and the left tool panel was clipped mid-word.
+
+   Raised the modal layer rather than lowering the rail, because dropping
+   .pz-nav under 1050 would put it beneath that legacy `header`, which spans the
+   full width — trading one overlap for another. Nothing that paints correctly
+   today moves; only modals come forward, which is where they belong.
+
+   Set through Bootstrap's own custom properties so this holds whatever order
+   the stylesheets load in; !important because Bootstrap's `.modal` rule has
+   identical specificity and would win on source order alone. */
+.modal {
+  --bs-modal-zindex: 1200 !important;
+}
+.modal-backdrop {
+  --bs-backdrop-zindex: 1190 !important;
+}
+
+
+.pz-nav-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  align-items: center;
+}
+
+/* App-level destinations, above the divider: Dashboard always, plus Teams and
+   Rate card for admins. They LEAVE the project, so they are separated from the
+   four project views below. */
+.pz-nav-links {
+  width: 44px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  flex: none;
+  padding-bottom: 10px;
+  margin-bottom: 10px;
+  border-bottom: 1px solid var(--pz-nav-border, #1e293b);
+}
+
+.pz-nav-i {
+  width: 44px;
+  height: 40px;
+  border-radius: 9px;
+  display: grid;
+  place-items: center;
+  color: var(--pz-nav-ink, #94a3b8);
+  text-decoration: none;
+  transition: background 0.14s ease, color 0.14s ease;
+  cursor: pointer;
+  /* reset, since the four steps are <button> not <a> */
+  background: transparent;
+  border: 0;
+  padding: 0;
+  font: inherit;
+}
+.pz-nav-i:hover {
+  background: var(--pz-nav-hover, #1b2338);
+  color: var(--pz-nav-ink-on, #fff);
+}
+.pz-nav-i.is-active {
+  background: #5b3df5;
+  color: #fff;
+  cursor: default;
+}
+
+/* Account + sign out, pinned to the bottom. margin-top:auto pushes it away
+   from the navigation so it cannot be hit while reaching for a nav item. */
+.pz-nav-account {
+  margin-top: auto;
+  padding-top: 10px;
+  border-top: 1px solid var(--pz-nav-border, #1e293b);
+  width: 44px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+}
+.pz-nav-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #5b3df5;
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+  font-weight: 700;
+  flex: none;
+  user-select: none;
+}
+
+/* Saving before leaving. Brief, but the click must not look ignored. */
+.pz-nav-i.is-leaving {
+  color: #fff;
+  cursor: progress;
+}
+.pz-nav-i.is-leaving svg {
+  animation: pz-nav-pulse 0.9s ease-in-out infinite;
+}
+@keyframes pz-nav-pulse {
+  50% {
+    opacity: 0.35;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pz-nav-i.is-leaving svg {
+    animation: none;
+    opacity: 0.5;
+  }
+}
+.pz-nav-i:focus-visible {
+  outline: 2px solid #8d76ff;
+  outline-offset: 2px;
+}
+
+/* Labels are for screen readers only; sighted users get the native tooltip,
+   which is what buys back the canvas width the full rail would have cost. */
+.pz-nav-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pz-nav-i {
+    transition: none;
+  }
+}
+
+/* A step shown outside the Designer: visible so the rail keeps its shape, but
+   clearly not usable — there is no open project to apply it to. The tooltip
+   says so. */
+.pz-nav-i.is-disabled {
+  /* Visible, just clearly inactive. 0.35 was so faint against the dark rail
+     that the four steps read as missing rather than disabled. */
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.pz-nav-i.is-disabled:hover {
+  background: transparent;
+  color: var(--pz-nav-ink, #94a3b8);
+}

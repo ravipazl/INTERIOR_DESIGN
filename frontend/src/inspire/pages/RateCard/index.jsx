@@ -13,6 +13,7 @@ import {
 } from "react-bootstrap";
 import { getCurrentUser } from "../../services/authService";
 import { USER_ROLES } from "../../utils/constants";
+import NavRail from "@pazl/components/NavRail";
 import {
   getCoreMaterialTypes,
   getCoreMaterialBrands,
@@ -261,17 +262,22 @@ const RateCard = () => {
 
   if (!isAdmin) {
     return (
-      <Container className="py-4">
-        <Alert variant="warning">
-          You don’t have access to the Rate Card. This screen is available to
-          admins only.
-        </Alert>
-      </Container>
+      <div className="pz-app-shell">
+        <NavRail variant="app" />
+        <Container className="py-4">
+          <Alert variant="warning">
+            You don’t have access to the Rate Card. This screen is available to
+            admins only.
+          </Alert>
+        </Container>
+      </div>
     );
   }
 
   return (
-    <Container fluid className="py-4 px-4">
+    <div className="pz-app-shell">
+      <NavRail variant="app" />
+      <Container fluid className="py-4 px-4">
       <div className="d-flex align-items-center justify-content-between mb-3">
         <h4 className="mb-0 fw-semibold">Masters · Rate Card</h4>
         <Button variant="outline-secondary" size="sm" onClick={loadAll}>
@@ -674,7 +680,8 @@ const RateCard = () => {
           </Tab>
         </Tabs>
       )}
-    </Container>
+      </Container>
+    </div>
   );
 };
 
