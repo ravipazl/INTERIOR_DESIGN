@@ -817,7 +817,7 @@ function RoomPanel({
                    gathered from this category's whole subtree. */
                 shownSubtreeModels.length ? (
                   <>
-                  <div className="flex flex-wrap justify-start align-middle">
+                  <div className="flex flex-wrap justify-center align-middle">
                     {pageSlice(shownSubtreeModels).map((model: any) => {
                       const m: any = model;
                       const canDelete = !!(
@@ -854,7 +854,7 @@ function RoomPanel({
                 /* "All" + a parent category → browse its sub-categories. */
                 shownChildren.length ? (
                   <>
-                  <div className="flex flex-wrap justify-start align-middle">
+                  <div className="flex flex-wrap justify-center align-middle">
                     {pageSlice(shownChildren).map((child: any) => (
                       <RoomPanelModalCard
                         childItem={child}
@@ -876,7 +876,7 @@ function RoomPanel({
                 /* "All" + a leaf category → its models. */
                 shownLeafModels.length ? (
                 <>
-                <div className="flex flex-wrap justify-start align-middle">
+                <div className="flex flex-wrap justify-center align-middle">
                   {pageSlice(shownLeafModels).map((model) => {
                     const m: any = model;
                     const canDelete = !!(
