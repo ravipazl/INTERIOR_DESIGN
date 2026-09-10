@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { AuthService } from "../services/authService";
-import { UserPermission } from "../entities/User";
+// UserPermission was imported only for the client-rejection check removed
+// below; the guard now cares whether you are signed in, not which role.
 
 const ProtectedRoute = (props: any) => {
   const [isUserLoggedIn, setIsUserLoggedIn] = useState(false);
@@ -56,15 +57,18 @@ const ProtectedRoute = (props: any) => {
         `${process.env.REACT_APP_PAZL_INSPIRE_URL}/signin?requestedFrom=pazl-3d-design&redirectTo=${window.location.origin}${window.location.pathname}`
       );
     }
-    // Clients (role 'user') do NOT belong in the design / 3D app — this is the
-    // team workspace. Send them back to the Inspire (client) app instead of
-    // showing them the designer site.
-    if (currentUser.permissions === UserPermission.USER) {
-      setIsUserLoggedIn(false);
-      return window.location.replace(
-        `${process.env.REACT_APP_PAZL_INSPIRE_URL}`
-      );
-    }
+    // Clients are ALLOWED in the 3D app now.
+    //
+    // This used to bounce role 'user' straight back to Inspire, on the basis
+    // that the designer was a team-only workspace. That is no longer the
+    // product: a client lands on the projects dashboard and does their own
+    // floor plan, furnishing, render and BOQ - the four steps the landing page
+    // advertises. With the guard in place the "Open Design" button looked
+    // dead, because the redirect fired the moment the page loaded.
+    //
+    // Access to project DATA is still enforced server-side by
+    // limitProjectsToViewer, which scopes on the caller rather than on which
+    // app they happen to be in.
     setIsUserLoggedIn(true);
   };
 

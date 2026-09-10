@@ -6,13 +6,12 @@ import ProjectContext from "../../context/ProjectContext";
 import "./index.css";
 
 /**
- * The client's working page: upload room images, then request a quote.
+ * Upload room images for a project.
  *
- * The rail carries the client's whole journey — "My rooms" here, and "Project
- * workspace" once a quote has been requested and there is something to follow.
- * Both come from the shared NavRail (variant="client"), so the client's sidebar
- * looks and behaves like the one on Projects, Teams and Rate card rather than
- * being a second thing to maintain.
+ * This was the client's landing and the start of the old upload-then-request-a-
+ * quote journey. Clients now land on the projects dashboard and work the way an
+ * architect does, so this page is one screen among several rather than the
+ * whole flow, and it carries the SAME rail as every other page (variant="app").
  *
  * Laid out with the shared .pz-app-shell / .pz-app-main classes, the same as
  * Projects, Teams and Rate card. That is not just for consistency: the shell
@@ -33,7 +32,8 @@ const Dashboard = (user) => {
       {/* The rail's project items appear as soon as a project exists. A sidebar
           whose items come and go as the status changes is harder to trust than
           one that stays put. */}
-      <NavRail variant="client" clientHasProject={!!currentProject?._id} />
+      {/* Same rail as staff - see the note in ProjectDetail. */}
+      <NavRail variant="app" />
       <div className="pz-app-main">
         <AppHeader user={user} />
         <Steppers />

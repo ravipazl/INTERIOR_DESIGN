@@ -1,6 +1,6 @@
 import React, { useContext, useEffect } from "react";
 import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
-import { getProject } from "../services/projectService";
+import { getProject, createProject } from "../services/projectService";
 import { USER_ROLES } from "../utils/constants";
 import UserContext from "../context/UserContext";
 import ProjectContext from "../context/ProjectContext";
@@ -30,6 +30,32 @@ const Router = () => {
       const projectResponse = await getProject(currentUser._id);
       if (projectResponse?.data?.length) {
         setCurrentProject(projectResponse?.data[0]);
+        return;
+      }
+      // A client with NO project gets one made for them.
+      //
+      // This used to happen in pages/Home (handleProjectCreation), which every
+      // client passed through after login. They now land on the projects
+      // dashboard instead, so without this a brand-new client would arrive at
+      // an empty table with no way to create anything.
+      //
+      // Here rather than in the dashboard because this already runs once per
+      // login for exactly this role, and already owns currentProject.
+      try {
+        // Carry the sign-up details onto the project. These are what the
+        // projects list renders as Client Name / Address and what the project
+        // header shows - a project created without them reads N/A in both.
+        const created = await createProject({
+          name: "My Project",
+          status: "open",
+          ownerUserId: currentUser._id,
+          clientName: currentUser.name || "",
+          address: currentUser.address || "",
+          clientEmail: currentUser.email || "",
+        });
+        if (created) setCurrentProject(created);
+      } catch (e) {
+        console.error("could not create the client's first project", e);
       }
     }
   };
@@ -118,7 +144,14 @@ const Router = () => {
             }
           />
         )}
-        {(currentUser?.permissions === USER_ROLES.ADMIN ||
+        {/* Clients are routed here too. They work the way an architect does
+            now, and the dashboard IS their landing - without this route a
+            client clicking through to the list hits NotFound.
+
+            Safe: limitProjectsToViewer scopes by the CALLER, not the route,
+            so a client on /projects still only receives their own. */}
+        {(currentUser?.permissions === USER_ROLES.USER ||
+          currentUser?.permissions === USER_ROLES.ADMIN ||
           currentUser?.permissions === USER_ROLES.SUPER_ADMIN ||
           currentUser?.permissions === USER_ROLES.ARCHITECT) && (
           <Route

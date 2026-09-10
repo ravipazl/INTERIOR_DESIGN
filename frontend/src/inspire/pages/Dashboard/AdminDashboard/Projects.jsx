@@ -240,6 +240,17 @@ const Projects = () => {
     }
   }, [currentPageNumber]);
 
+  // A client sees only their own projects (enforced server-side by
+  // limitProjectsToViewer), so some of these columns carry no information for
+  // them: every row has the same owner, searching by user name searches a list
+  // of one, and they do not assign architects.
+  //
+  // Declared HERE, above the first use. It was originally declared beside the
+  // columns array 300 lines below and referenced in the dependency array just
+  // under this line - a temporal dead zone error that threw on every render
+  // and took the whole table down with it, Actions column included.
+  const isClientViewer = currentUser?.permissions === USER_ROLES.USER;
+
   const subHeaderComponentMemo = React.useMemo(() => {
     const handleClear = () => {
       if (filterText) {
@@ -252,15 +263,19 @@ const Projects = () => {
       <>
         <div className="d-flex align-items-center justify-content-between w-100 bg-transparent">
           <TitleHeader title="All Projects" />
-          <FilterComponent
-            onFilter={(e) => setFilterText(e.target.value)}
-            onClear={handleClear}
-            filterText={filterText}
-          />
+          {/* Searching "by user name" over your own single project is not a
+              search. Hidden for a client; unchanged for staff. */}
+          {!isClientViewer && (
+            <FilterComponent
+              onFilter={(e) => setFilterText(e.target.value)}
+              onClear={handleClear}
+              filterText={filterText}
+            />
+          )}
         </div>
       </>
     );
-  }, [filterText, resetPaginationToggle]);
+  }, [filterText, resetPaginationToggle, isClientViewer]);
 
   const handleFilterData = (status) => {
     setSelectedProjectStatus(status);
@@ -584,7 +599,7 @@ const Projects = () => {
     : scopedData;
 
   const columns = useMemo(() => [
-    {
+    ...(isClientViewer ? [] : [{
       name: "Owner User Name",
       selector: (row) => {
         const namePart = row?.ownerUser?.name
@@ -596,7 +611,7 @@ const Projects = () => {
       sortable: true,
       reorder: true,
       ignoreRowClick: true,
-    },
+    }]),
     {
       name: "Date",
       selector: (row) => {
@@ -638,7 +653,7 @@ const Projects = () => {
       wrap: true,
       ignoreRowClick: true,
     },
-    {
+    ...(isClientViewer ? [] : [{
       name: "Architect",
       selector: (row) => {
         if (row.architectUser) {
@@ -683,7 +698,7 @@ const Projects = () => {
       reorder: true,
       ignoreRowClick: true,
       minWidth: "203px",
-    },
+    }]),
     {
       name: "Status",
       cell: (row) => {
@@ -810,9 +825,13 @@ const Projects = () => {
             }}
             title="Open the 3D app to design this project / build its BOQ"
           >
-            {currentUser?.permissions === USER_ROLES.ARCHITECT
-              ? "Open Design"
-              : "Prepare Quote"}
+            {/* A client now does the design themselves, so they get the
+                architect's label rather than "Prepare Quote" - which
+                described the old flow where someone else designed it. */}
+            {currentUser?.permissions === USER_ROLES.ADMIN ||
+            currentUser?.permissions === USER_ROLES.SUPER_ADMIN
+              ? "Prepare Quote"
+              : "Open Design"}
           </Button>
           {/* Edit / Share are admin actions — hidden from architects. */}
           {(currentUser?.permissions === USER_ROLES.ADMIN ||
@@ -843,7 +862,11 @@ const Projects = () => {
       ignoreRowClick: true,
       button: true,
       allowOverflow: true,
+      // Clients included: this column carries Workspace and Open Design,
+      // which are how they reach their own project at all. Omitting it left
+      // a client with a row they could look at and not open.
       omit: !(
+        currentUser?.permissions === USER_ROLES.USER ||
         currentUser?.permissions === USER_ROLES.ADMIN ||
         currentUser?.permissions === USER_ROLES.SUPER_ADMIN ||
         currentUser?.permissions === USER_ROLES.ARCHITECT

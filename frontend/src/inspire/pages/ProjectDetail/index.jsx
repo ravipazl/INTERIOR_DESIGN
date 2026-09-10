@@ -624,7 +624,12 @@ const ProjectDetail = () => {
               ?tab=... keeps opening any of them and nothing becomes unreachable
               for staff, for guests, or through a link. Only the strip's own
               buttons stop being drawn, and only for a signed-in client. */}
-          <Stack className={`px-0 ${showClientRail ? "pz-hide-tabstrip" : ""}`}>
+          {/* The strip was hidden for clients because their own rail carried
+              the same two destinations. They are on the architect rail now,
+              which does not, so the tabs come back - the same ones an
+              architect sees. Your Mood Book and All Images stay hidden for
+              everyone (tabClassName d-none on those two). */}
+          <Stack className="px-0">
             <Tabs
               activeKey={activeTab || selectedTabKey}
               onSelect={handleTabSelect}
@@ -697,7 +702,12 @@ const ProjectDetail = () => {
                   />
                 )}
               </Tab>
+              {/* Hidden from the strip, like Your Mood Book and All Images.
+                  The pane stays MOUNTED, so ?tab=uploadedImages still opens it
+                  and nothing already linked to it breaks - which matters here,
+                  because setActiveTabBasedOnURL can still select this tab. */}
               <Tab
+                tabClassName="d-none"
                 eventKey="uploadedImages"
                 title="Uploaded Images"
                 className="pb-3 overflow-y-scroll overflow-x-hidden h-100vh"
@@ -885,15 +895,17 @@ const ProjectDetail = () => {
 
   // Wrapped only for a client, so staff and guests get this page exactly as
   // before — same markup, same styles, nothing shifted.
+  // ONE rail for everyone signed in - clients included.
+  //
+  // Clients used to get variant="client" (My rooms / Uploaded images /
+  // Project workspace), which described the old upload-and-request-a-quote
+  // flow. They now work the way an architect does, so they get the same
+  // rail. Guests still get none: a /share link has no account behind it.
   if (!showClientRail && !showStaffRail) return page;
 
   return (
     <div className="pz-app-shell">
-      {showClientRail ? (
-        <NavRail variant="client" clientHasProject={!!currentProject?._id} />
-      ) : (
-        <NavRail variant="app" />
-      )}
+      <NavRail variant="app" />
       <div className="pz-app-main">{page}</div>
     </div>
   );

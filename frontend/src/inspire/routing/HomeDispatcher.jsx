@@ -1,10 +1,10 @@
 import React, { useContext, useEffect } from "react";
 import { Spinner } from "react-bootstrap";
 import UserContext from "../context/UserContext";
-import { USER_ROLES } from "../utils/constants";
 import { getCurrentUser } from "../services/authService";
 import AdminDashboard from "../pages/Dashboard/AdminDashboard";
-import Home from "../pages/Home";
+// Home is no longer a post-login destination - it is the signed-out landing,
+// routed directly. Import removed with the role branch that used it.
 
 // The "receptionist" for the app's single entry point, "/".
 //
@@ -51,12 +51,20 @@ const HomeDispatcher = () => {
     );
   }
 
-  const isAdminLike =
-    user.permissions === USER_ROLES.ADMIN ||
-    user.permissions === USER_ROLES.SUPER_ADMIN ||
-    user.permissions === USER_ROLES.ARCHITECT;
-
-  return isAdminLike ? <AdminDashboard /> : <Home />;
+  // EVERY signed-in role lands on the projects dashboard, clients included.
+  //
+  // Clients used to get the upload-photo / request-quote wizard (Home). They
+  // now work the way an architect does: open their own project and go floor
+  // plan -> furnish -> render -> BOQ, which is what the landing page
+  // advertises.
+  //
+  // Scoping is NOT done here, and does not need to be. limitProjectsToViewer
+  // in backend/src/services/projects already restricts a non-admin to projects
+  // where they are the owner, the architect, or a shared user - and it merges
+  // into , so the five dashboard counters are scoped by the same rule as
+  // the list. Filtering in the browser would be cosmetic; the data would
+  // already have been sent.
+  return <AdminDashboard />;
 };
 
 export default HomeDispatcher;

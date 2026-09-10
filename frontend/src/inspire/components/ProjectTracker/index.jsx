@@ -73,8 +73,13 @@ const ProjectTracker = ({ projectId, status, refreshKey, onStepClick, activeStag
 
   const labelFor = (key, fallback) =>
     events.find((e) => e.stage === key)?.title || fallback;
+  // Hidden either because an admin hid it on THIS project (a stage_event
+  // with status "hidden"), or because the stage is hidden by default for
+  // every project. Both feed the same render rule below, so a stage the
+  // project is currently on still shows.
   const isHidden = (key) =>
-    events.find((e) => e.stage === key)?.status === "hidden";
+    events.find((e) => e.stage === key)?.status === "hidden" ||
+    !!TRACKER_STAGES.find((s) => s.key === key)?.hiddenByDefault;
   const dateFor = (key) => {
     const ev = events.find((e) => e.stage === key);
     if (!ev?.createdAt) return "";

@@ -14,6 +14,10 @@ export const userSchema = {
     id: ObjectIdSchema(),
     email: { type: 'string' },
     name: { type: 'string' },
+    // Collected at sign-up and copied onto the client's first project as its
+    // clientName / address, which is what the projects list and the project
+    // header render. Without them both columns read N/A for every client.
+    address: { type: 'string' },
     password: { type: 'string' },
     creditScore: { type: 'integer' },
     googleId: { type: 'string' },
