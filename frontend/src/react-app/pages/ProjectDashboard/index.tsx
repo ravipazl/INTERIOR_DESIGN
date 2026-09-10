@@ -3,6 +3,7 @@ import CreateProjectModal from "@pazl/components/CreateProjectModal";
 import { Project } from "@pazl/entities/Project";
 import { ProjectsService } from "@pazl/services/projectsService";
 import AppHeader from "@pazl/components/AppHeader";
+import NavRail from "@pazl/components/NavRail";
 import ProjectCard from "@pazl/components/ProjectCard";
 import ShareProjectModal from "@pazl/components/ShareProjectModal";
 import ProjectDashboardSkeleton from "./ProjectDashboardSkeleton";
@@ -187,12 +188,16 @@ const ProjectDashboard = () => {
   };
 
   return (
+    // Same as ProjectDetail: the rail is mounted per page, this one had none,
+    // and therefore no sign-out either.
     <div
-      className={` ${isDarkMode ? "dark" : "light"}`}
+      className={`pz-page-shell ${isDarkMode ? "dark" : "light"}`}
       onClick={() => {
         isFilterOpen && setIsFilterOpen(false);
       }}
     >
+      <NavRail variant="app" />
+      <div className="pz-page-main">
       <div className="projects-dashboard-container dark:bg-[#333333]">
         <AppHeader
           isDarkMode={isDarkMode}
@@ -333,6 +338,7 @@ const ProjectDashboard = () => {
             )}
           </>
         )}
+      </div>
       </div>
     </div>
   );

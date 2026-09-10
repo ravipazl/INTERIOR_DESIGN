@@ -177,3 +177,26 @@
   background: transparent;
   color: var(--pz-nav-ink, #94a3b8);
 }
+
+/* Page shell for the app pages that are NOT the editor (Project list, Project
+   detail). The Designer uses its own height:100vh / overflow:hidden flex
+   layout, which suits a canvas that never scrolls. These pages DO scroll, so
+   the rail is sticky and full-height while the page column scrolls past it -
+   copy the editor layout here instead and the page gets clipped at the fold.
+
+   Lives in the rail stylesheet because the rail is what needs it, and this
+   file already ships wherever NavRail is imported. */
+.pz-page-shell {
+  display: flex;
+  align-items: stretch;
+  min-height: 100vh;
+}
+.pz-page-shell > .pz-nav {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+}
+.pz-page-shell > .pz-page-main {
+  flex: 1;
+  min-width: 0;
+}

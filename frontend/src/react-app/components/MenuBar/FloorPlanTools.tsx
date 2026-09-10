@@ -49,6 +49,18 @@ const FloorPlanTools: React.FC = () => {
     }
   };
 
+  // Draw is a TOGGLE: click once to draw, click again to go back to select.
+  //
+  // The separate "Select" card used to be the way out of draw mode. With that
+  // card hidden, the only remaining exit is the Escape key (Viewer2D
+  // __keyListener), which nothing in the UI mentions - and drawing is sticky by
+  // design, since the auto-return-to-MOVE after each wall is commented out in
+  // Viewer2D. Toggling keeps the exit without putting the button back.
+  const toggleDraw = () => {
+    if (active === "walls") selectMode();
+    else drawWalls();
+  };
+
   const selectMode = () => {
     setActive("select");
     try {
@@ -282,17 +294,15 @@ const FloorPlanTools: React.FC = () => {
       <Section id="draw" title="Draw room">
         <div className="grid grid-cols-2 gap-2">
           <Card
-            icon="square_foot"
-            label="Walls"
-            onClick={drawWalls}
+            icon="edit"
+            label="Draw"
+            onClick={toggleDraw}
             isActive={active === "walls"}
           />
-          <Card
-            icon="pan_tool"
-            label="Select"
-            onClick={selectMode}
-            isActive={active === "select"}
-          />
+          {/* The "Select" card stood here. Removed: it was the mode you are
+              already in - the 2D editor starts in MOVE - so it read as an
+              action when it was really the resting state. Draw now toggles
+              back to it, which is the only thing the card was used for. */}
           <Card icon="ink_eraser" label="Clear" onClick={clearFloorplan} />
           <Card icon="space_dashboard" label="Template" onClick={openTemplates} />
         </div>
