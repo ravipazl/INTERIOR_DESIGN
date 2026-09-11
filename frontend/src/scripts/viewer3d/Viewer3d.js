@@ -676,36 +676,52 @@ export class Viewer3D extends Scene {
       return;
     }
     // Work in WORLD space (added to the scene) — reliable size + visibility.
-    // A cabinet's back is ALWAYS along its DEPTH axis (D = local Z), never its
-    // width axis. So for "auto" we only consider the two depth directions and
-    // pick the sign whose wall is nearer (the wall it backs onto). This is why
-    // choosing among all four sides mis-picked the back near a corner.
-    const th = item.rotation ? item.rotation.y || 0 : 0; // world yaw (item is a scene child)
-    const cosT = Math.cos(th), sinT = Math.sin(th);
-    const depthAxis = [sinT, cosT]; // cabinet front–back axis (local Z = depth)
-    // The back faces AWAY from the room centre (toward the wall); the front faces
-    // INTO the room. So pick the depth-axis sign that points away from centre.
-    // This is reliable regardless of how near any wall is (the old "nearest wall"
-    // test put it on the front when a wall happened to be near the front).
-    let rc = null;
-    try {
-      rc = scope.floorplan && scope.floorplan.getCenter && scope.floorplan.getCenter();
-    } catch (_) {}
-    const toCenterX = (rc ? rc.x : cx) - cx;
-    const toCenterZ = (rc ? rc.z : cz) - cz;
-    const dotToCentre = depthAxis[0] * toCenterX + depthAxis[1] * toCenterZ;
-    // If +depthAxis points toward the centre it is the FRONT → back is the other.
-    let back =
-      dotToCentre > 0 ? [-depthAxis[0], -depthAxis[1]] : [depthAxis[0], depthAxis[1]];
-    // Attach-to override: rotate the back ±90° to use a side wall instead. The
-    // side walls are the SAME two regardless of the back's sign, so Left/Right
-    // keep working; only their labels may swap.
-    if (attach === "left") back = [-back[1], back[0]];
-    else if (attach === "right") back = [back[1], -back[0]];
     // Sizes from the world AABB, projected onto the back / along-wall directions.
     const sizeX = box.max.x - box.min.x;
     const sizeZ = box.max.z - box.min.z;
     const projify = (d) => Math.abs(sizeX * d[0]) + Math.abs(sizeZ * d[1]);
+
+    // Which way is the cabinet's BACK? Its own. Every item faces local +Z and
+    // its back is local -Z — the side that wall placement puts flat on the wall
+    // (items/wall_item.js snapToWall). Read it from the loaded model's WORLD
+    // rotation: a turn can sit on the item OR on its inner model (the Rotate
+    // buttons set combinedRotation on __loadedItem), and item.rotation.y alone
+    // missed those turns.
+    //
+    // This replaces "the back points away from the room centre", which put the
+    // panel on the FRONT of any cabinet standing in the front half of the room.
+    let back = null;
+    let backFrom = "model";
+    try {
+      const q = new Quaternion();
+      (item.__loadedItem || item).getWorldQuaternion(q);
+      const v = new Vector3(0, 0, -1).applyQuaternion(q);
+      const len = Math.hypot(v.x, v.z);
+      if (len > 1e-6) back = [v.x / len, v.z / len];
+    } catch (_) {}
+    if (!back) {
+      const th = item.rotation ? item.rotation.y || 0 : 0;
+      back = [-Math.sin(th), -Math.cos(th)];
+      backFrom = "item";
+    }
+    // Safety net for a model authored facing the other way: when its FRONT end
+    // touches a wall and its back end does not, the wall side is the back — a
+    // backsplash never goes between a cabinet and open floor.
+    try {
+      const halfD = projify(back) / 2;
+      const gap = (d) => {
+        const hit = scope.__wallInDirection(cx, cz, d[0], d[1]);
+        return hit ? Math.hypot(hit.px - cx, hit.pz - cz) - halfD : Infinity;
+      };
+      const TOUCH_CM = 25;
+      if (gap([-back[0], -back[1]]) < TOUCH_CM && gap(back) >= TOUCH_CM) {
+        back = [-back[0], -back[1]];
+        backFrom = "wall";
+      }
+    } catch (_) {}
+    // Attach-to override: rotate the back ±90° to use a side wall instead.
+    if (attach === "left") back = [-back[1], back[0]];
+    else if (attach === "right") back = [back[1], -back[0]];
     const widthDir = [-back[1], back[0]]; // perpendicular to back = along the wall
     const width = Math.max(20, projify(widthDir));
     const halfDepth = projify(back) / 2;
@@ -749,10 +765,9 @@ export class Viewer3D extends Scene {
       widthCm: width,
       heightCm,
       cabinetCenter: { cx, cz },
-      roomCentre: rc ? { x: rc.x, z: rc.z } : null,
       topY,
       back,
-      dotToCentre,
+      backFrom,
       anchor: { anchorX, anchorZ },
       attach,
       material: cfg.materialUrl || "default",
@@ -3706,6 +3721,50 @@ export class Viewer3D extends Scene {
         save( new Blob( [ buffer ], { type: 'application/octet-stream' } ), filename );
     }*/
 
+  /**
+   * The current 3D view as a JPEG data URI, for the AI render service.
+   *
+   * JPEG rather than PNG, and capped on the long edge, because the image is
+   * sent as base64 — which inflates it by about a third. A full-size PNG
+   * screenshot of a 1080p canvas comfortably exceeds the service's size limit
+   * and comes back as a 413. 1536 is the same cap the Python image service
+   * uses on uploads, for the same reason.
+   *
+   * Safe to call at any time: the renderer is created with
+   * preserveDrawingBuffer, but a fresh frame is forced anyway so the capture
+   * cannot pick up a stale buffer after a resize or a tab switch.
+   *
+   * @param {number} maxEdge  longest side in pixels (default 1536)
+   * @param {number} quality  JPEG quality 0-1 (default 0.85)
+   * @returns {string|null} data:image/jpeg;base64,... or null if unavailable
+   */
+  captureViewAsDataUrl(maxEdge = 1536, quality = 0.85) {
+    const scope = this;
+    try {
+      const src = scope.renderer && scope.renderer.domElement;
+      if (!src || !src.width || !src.height) return null;
+
+      scope.renderer.render(scope, scope.camera);
+
+      const scale = Math.min(1, maxEdge / Math.max(src.width, src.height));
+      if (scale >= 1) return src.toDataURL('image/jpeg', quality);
+
+      const out = document.createElement('canvas');
+      out.width = Math.max(1, Math.round(src.width * scale));
+      out.height = Math.max(1, Math.round(src.height * scale));
+      const ctx = out.getContext('2d');
+      if (!ctx) return src.toDataURL('image/jpeg', quality);
+      // JPEG has no alpha; without this the transparent ground would encode
+      // as black and the render would come back as a night scene.
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, out.width, out.height);
+      ctx.drawImage(src, 0, 0, out.width, out.height);
+      return out.toDataURL('image/jpeg', quality);
+    } catch (e) {
+      console.warn('captureViewAsDataUrl failed (non-fatal)', e);
+      return null;
+    }
+  }
   forceRender() {
     let scope = this;
     scope.renderer.render(scope, scope.camera);

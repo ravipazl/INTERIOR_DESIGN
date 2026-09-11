@@ -27,6 +27,7 @@ import { polyHaven } from './poly-haven/poly-haven.js'
 import { objaverse } from './objaverse/objaverse.js'
 import { catalogModelDelete } from './catalog-model-delete/catalog-model-delete.js'
 import { render } from './render/render.js'
+import { aiRender } from './ai-render/ai-render.js'
 import { video } from './video/video.js'
 import { floorplanAi } from './floorplan-ai/floorplan-ai.js'
 import { floorplanTemplates } from './floorplan-templates/floorplan-templates.js'
@@ -79,6 +80,7 @@ export const services = (app) => {
   app.configure(objaverse)
   app.configure(catalogModelDelete)
   app.configure(render)
+  app.configure(aiRender)
   app.configure(video)
   app.configure(floorplanAi)
   app.configure(floorplanTemplates)

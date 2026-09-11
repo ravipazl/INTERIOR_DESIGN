@@ -1,9 +1,14 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { TETabs, TETabsContent, TETabsPane } from "tw-elements-react";
 import ObjectFinishingVariants from "../MenuBar/ObjectPanel/objectFinishingVariants";
 import { Finishing, FinishingBrand } from "@pazl/entities/Finishing";
 import { capitalizeText } from "@pazl/utils/genericFunctions";
 import "./index.css";
+
+// Height of the swatch area: two rows of swatches (a row is ~130px — a 93px
+// tile, its name, and padding), ending just below the second row. The panel
+// is always this tall; the rest of the swatches scroll inside it.
+const SWATCH_AREA_PX = 262;
 
 const ObjectFinishingsModal = ({
   onHideObjectPanel,
@@ -26,6 +31,9 @@ const ObjectFinishingsModal = ({
   selectedFinishingType,
   selectedChildComponent,
   componentGroup,
+  // Optional: when given, an Exterior | Interior switch is shown under the
+  // title. Absent (any other caller), the panel is exactly as before.
+  onSwitchFinishingType,
 }: any) => {
   const externalStyle =
     selectedChildComponent?.externalFinishFinishing ??
@@ -69,6 +77,24 @@ const ObjectFinishingsModal = ({
     );
   }, [componentGroup]);
 
+  // Two rows tall — unless the window is too short for that, in which case
+  // the area shrinks to what is actually left below the dropdowns (never below
+  // one row). Measured, not guessed: a fixed "100vh - 530px" cut the second
+  // row in half on a browser zoomed to 125%, where there is less room.
+  const swatchTopRef = useRef<HTMLDivElement>(null);
+  const [swatchAreaPx, setSwatchAreaPx] = useState(SWATCH_AREA_PX);
+  useLayoutEffect(() => {
+    const fitToWindow = () => {
+      const top = swatchTopRef.current?.getBoundingClientRect().top;
+      if (top == null) return;
+      const room = Math.floor(window.innerHeight - top - 12);
+      setSwatchAreaPx(Math.min(SWATCH_AREA_PX, Math.max(140, room)));
+    };
+    fitToWindow();
+    window.addEventListener("resize", fitToWindow);
+    return () => window.removeEventListener("resize", fitToWindow);
+  }, [styles?.length, selectedStyle?._id, selectedFinishingType, isContentVisible]);
+
   const onClickProperties = () => {
     setIsContentVisible(true);
   };
@@ -96,20 +122,15 @@ const ObjectFinishingsModal = ({
     }
   };
 
-  useEffect(() => {
-    if (variantsContainerRef.current) {
-      variantsContainerRef.current.addEventListener("scroll", handleScroll);
-    }
-    return () => {
-      if (variantsContainerRef.current) {
-        variantsContainerRef.current.removeEventListener("wheel", handleScroll);
-      }
-    };
-  }, [lastScrollTop]);
+  // (Removed) Scrolling the swatches used to hide Type / Style / Brand /
+  // Grain behind a "Properties" button. With a fixed-height panel the top part
+  // stays put and only the swatches scroll, so nothing needs hiding. The
+  // listener also re-attached on every scroll without ever being removed (it
+  // added "scroll" but removed "wheel").
 
   return (
-    <div className="fixed w-[260px] h-[200px] block right-[386px] bottom-0 top-[168px] z-10 shadow-[0_4px_4px_0px_rgba(0,0,0,0.25)] bg-white dark:bg-neutral-700">
-      <div className="h-screen mb-10px bg-white dark:bg-neutral-700">
+    <div className="fixed w-[260px] h-auto block right-[386px] top-[168px] z-10 shadow-[0_4px_4px_0px_rgba(0,0,0,0.25)] bg-white dark:bg-neutral-700">
+      <div className="h-auto bg-white dark:bg-neutral-700">
         <div className=" bg-[#E9E5EC] dark:bg-[#333333] text-l text-center font-medium leading-tight text-neutral-800 dark:text-neutral-50">
           <TETabs className="mb-0 items-center justify-between">
             <div className="p-3 mt-0 bg-[#F9F9FA] border-t border-r border-l border-b-0 border-inherit">
@@ -131,6 +152,35 @@ const ObjectFinishingsModal = ({
               onClick={onHideObjectProperties}
             />
           </TETabs>
+          {onSwitchFinishingType ? (
+            <div className="flex gap-1.5 px-3 py-2 bg-white dark:bg-neutral-700">
+              {(["exterior", "interior"] as const).map((t) => {
+                const on = selectedFinishingType === t;
+                return (
+                  <button
+                    key={t}
+                    type="button"
+                    onClick={() => {
+                      if (!on) onSwitchFinishingType(t);
+                    }}
+                    style={{
+                      flex: 1,
+                      borderRadius: 6,
+                      padding: "6px 0",
+                      fontSize: 12,
+                      fontWeight: 600,
+                      cursor: on ? "default" : "pointer",
+                      border: on ? "1px solid #5b3df5" : "1px solid #dfe2ea",
+                      background: on ? "rgba(91,61,245,0.08)" : "#fff",
+                      color: on ? "#4b30dc" : "#394055",
+                    }}
+                  >
+                    {t === "exterior" ? "Exterior" : "Interior"}
+                  </button>
+                );
+              })}
+            </div>
+          ) : null}
           <TETabsContent className="bg-white m-0 overflow-y-auto h-auto">
             <TETabsPane show={showObjectComponentsModal}>
               <div>
@@ -150,11 +200,14 @@ const ObjectFinishingsModal = ({
                   )}
                   {isContentVisible && (
                     <>
-                      <div className="mt-3">
-                        <div>
-                          <h6 className="type-pattern-title">Type</h6>
-                        </div>
-                        <div>
+                      {/* Type · Style / Brand · Grain as a 2 × 2 grid: half the
+                          height of four stacked rows, so more swatches show
+                          without scrolling. Same selects, same handlers. */}
+                      <div className="grid grid-cols-2 gap-x-2 gap-y-2 mt-3 mb-2.5">
+                        <div className="min-w-0">
+                          <h6 className="type-pattern-title text-[12px] mb-1">
+                            Type
+                          </h6>
                           <select
                             id="dropdown"
                             value={
@@ -165,7 +218,7 @@ const ObjectFinishingsModal = ({
                                 : internalType?.name // Optional chaining
                             }
                             onChange={handleSelectedType}
-                            className="type-pattern-dropdown bg-[#F9F9FA] border-0 w-[225px] h-[28px]"
+                            className="type-pattern-dropdown bg-[#F9F9FA] border-0 w-full h-[28px]"
                           >
                             {finishingCategories?.map((category: any) => (
                               <option key={category._id} value={category.name}>
@@ -174,13 +227,11 @@ const ObjectFinishingsModal = ({
                             ))}
                           </select>
                         </div>
-                      </div>
-                      {styles?.length ? (
-                        <div className="mt-3 mb-2.5">
-                          <div>
-                            <h6 className="type-pattern-title">Style</h6>
-                          </div>
-                          <div>
+                        {styles?.length ? (
+                          <div className="min-w-0">
+                            <h6 className="type-pattern-title text-[12px] mb-1">
+                              Style
+                            </h6>
                             <select
                               id="dropdown"
                               value={
@@ -191,7 +242,7 @@ const ObjectFinishingsModal = ({
                                   : internalStyle?.name
                               }
                               onChange={handleSelectedStyle}
-                              className="type-pattern-dropdown bg-[#F9F9FA] border-0 w-[225px] h-[28px]"
+                              className="type-pattern-dropdown bg-[#F9F9FA] border-0 w-full h-[28px]"
                             >
                               {styles?.map((finishing: Finishing) => (
                                 <option
@@ -203,70 +254,73 @@ const ObjectFinishingsModal = ({
                               ))}
                             </select>
                           </div>
+                        ) : (
+                          // Keeps Brand / Grain on the second line when a type
+                          // has no styles.
+                          <div />
+                        )}
+                        <div className="min-w-0">
+                          <h6 className="type-pattern-title text-[12px] mb-1">
+                            Brand
+                          </h6>
+                          <select
+                            id="dropdown"
+                            value={
+                              (selectedFinishingType === "exterior"
+                                ? externalFinishBrand?._id
+                                : internalFinishBrand?._id) || ""
+                            }
+                            onChange={handleSelectedBrand}
+                            className="type-pattern-dropdown bg-[#F9F9FA] border-0 w-full h-[28px]"
+                          >
+                            <option value="">Select…</option>
+                            {finishingBrands?.map((brand: FinishingBrand) => (
+                              <option key={brand._id} value={brand._id}>
+                                {brand.name}
+                              </option>
+                            ))}
+                          </select>
                         </div>
-                      ) : null}
-                      <div className="flex flex-col items-center">
-                        <div className="pt-3 mb-2.5">
-                          <div>
-                            <h6 className="type-pattern-title">Brand</h6>
-                          </div>
-                          <div>
-                            <select
-                              id="dropdown"
-                              value={
-                                (selectedFinishingType === "exterior"
-                                  ? externalFinishBrand?._id
-                                  : internalFinishBrand?._id) || ""
-                              }
-                              onChange={handleSelectedBrand}
-                              className="type-pattern-dropdown bg-[#F9F9FA] border-0 w-[225px] h-[28px]"
-                            >
-                              <option value="">Select…</option>
-                              {finishingBrands?.map((brand: FinishingBrand) => (
-                                <option key={brand._id} value={brand._id}>
-                                  {brand.name}
-                                </option>
-                              ))}
-                            </select>
-                          </div>
-                        </div>
-                        <div className="mt-3 mb-2.5">
-                          <div>
-                            <h6 className="type-pattern-title">
-                              Grain Direction
-                            </h6>
-                          </div>
-                          <div>
-                            <select
-                              id="dropdown"
-                              value={capitalizeText(
-                                selectedFinishingType === "exterior"
-                                  ? externalFinishGrainDirection
-                                  : internalFinishGrainDirection
-                              )}
-                              onChange={handleSelectedGrainDirection}
-                              className="type-pattern-dropdown bg-[#F9F9FA] border-0 w-[225px] h-[28px]"
-                            >
-                              {grainDirections.map((grainDirection: any) => (
-                                <option
-                                  key={grainDirection._id}
-                                  value={grainDirection.name}
-                                >
-                                  {grainDirection.name}
-                                </option>
-                              ))}
-                            </select>
-                          </div>
+                        <div className="min-w-0">
+                          <h6 className="type-pattern-title text-[12px] mb-1">
+                            Grain Direction
+                          </h6>
+                          <select
+                            id="dropdown"
+                            value={capitalizeText(
+                              selectedFinishingType === "exterior"
+                                ? externalFinishGrainDirection
+                                : internalFinishGrainDirection
+                            )}
+                            onChange={handleSelectedGrainDirection}
+                            className="type-pattern-dropdown bg-[#F9F9FA] border-0 w-full h-[28px]"
+                          >
+                            {grainDirections.map((grainDirection: any) => (
+                              <option
+                                key={grainDirection._id}
+                                value={grainDirection.name}
+                              >
+                                {grainDirection.name}
+                              </option>
+                            ))}
+                          </select>
                         </div>
                       </div>
                     </>
                   )}
                 </div>
                 {selectedStyle ? (
+                  <>
+                  {/* Zero-height marker: where the swatch area starts. */}
+                  <div ref={swatchTopRef} aria-hidden="true" />
                   <div
-                    className={
-                      "overflow-y-auto smooth-transition scroll-smooth"
-                    }
+                    className="overflow-y-auto scroll-smooth"
+                    // Fixed: two rows tall (see swatchAreaPx), so the panel
+                    // ends at the same place for every part. Was
+                    // .smooth-transition, i.e. the full screen height minus
+                    // 166px — starting half-way down the screen, it ran past the
+                    // bottom and the lower swatches were cut off.
+                    style={{ height: swatchAreaPx }}
                     ref={variantsContainerRef}
                   >
                     <ObjectFinishingVariants
@@ -278,6 +332,7 @@ const ObjectFinishingsModal = ({
                       variantsContainerRef={variantsContainerRef}
                     />
                   </div>
+                  </>
                 ) : null}
               </div>
             </TETabsPane>

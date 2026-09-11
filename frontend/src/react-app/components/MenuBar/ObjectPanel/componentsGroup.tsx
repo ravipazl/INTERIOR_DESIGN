@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   capitalizeText,
   convertToSentenceCase,
@@ -91,10 +91,20 @@ const ComponentsGroup = ({
   onBulkRename,
   onRemoveFromGroup,
   onUngroupGroup,
+  quickFinish,
+  // Defaults to the full list, so any other place that renders this component
+  // keeps exactly what it had.
+  showAllParts = true,
+  onToggleAllParts,
 }: ComponentsGroupProps & {
   onBulkRename?: (componentIds: string[], partName: string) => void;
   onRemoveFromGroup?: (comp: any) => void;
   onUngroupGroup?: (group: any) => void;
+  /** Exterior / Interior pressed in the 3D quick popup. n changes per press. */
+  quickFinish?: { type: string; groupName: string; n: number } | null;
+  /** false = card mode: only the picked part, full list behind "All parts". */
+  showAllParts?: boolean;
+  onToggleAllParts?: () => void;
 }) => {
   const [selectedExteriorMaterial, setSelectedExteriorMaterial] = useState<{
     [key: number]: boolean;
@@ -184,6 +194,25 @@ const ComponentsGroup = ({
     handleFinishingTypeSelection(Finishing_Types.INTERIOR);
   };
 
+  // The 3D quick popup's Exterior / Interior buttons. Does what a click on this
+  // group's "-- Exterior" / "-- Interior" row does — same finish panel, same
+  // row highlight — except it always turns the highlight ON rather than
+  // toggling it, because a popup press is never meant to close anything.
+  useEffect(() => {
+    if (!quickFinish) return;
+    const gi = (groupedModelComponents || []).findIndex(
+      (g: any) => g?.name === quickFinish.groupName
+    );
+    if (gi < 0) return;
+    if (quickFinish.type === Finishing_Types.EXTERIOR) {
+      setSelectedExteriorMaterial((prev) => ({ ...prev, [gi]: true }));
+    } else {
+      setSelectedInteriorMaterial((prev) => ({ ...prev, [gi]: true }));
+    }
+    handleFinishingTypeSelection(quickFinish.type);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [quickFinish?.n]);
+
   const externalStyle =
     selectedComponentGroup?.externalFinishFinishing ??
     selectedComponentGroup?.components[0]?.externalFinishFinishing;
@@ -226,6 +255,13 @@ const ComponentsGroup = ({
   // gated separately (name === "handle"), so it still appears only for handles.
   const notHandleComponent = (_comp: any) => true;
 
+  // Card mode: the part picked in 3D is the only row drawn, as one card. Every
+  // setting inside it is the SAME markup the list uses — Part name, Core
+  // Material, Exterior / Interior (Type, Style, Brand, Grain via the finish
+  // panel), Exposed, handles, shutters — so nothing is lost by hiding the list.
+  // Multi-select always uses the list: it has no single part to show.
+  const cardMode = !showAllParts && !isMultiSelectMode;
+
   return (
     <>
       <h5 className="p-1 bg-[#E9E5EC] dark:bg-[#333333] text-l text-center font-medium leading-tight text-neutral-800 dark:text-neutral-50">
@@ -235,11 +271,25 @@ const ComponentsGroup = ({
         className="pl-2 pr-2 pt-2"
         style={{ paddingBottom: "16px" }}
         id="containerTop"
+        data-pz-components
       >
         {/* GROUP PARTS BY NAME — a compact bar. Tick the rows below (checkbox on
             each row), type a part name, Apply → the ticked parts combine into
             that group. No duplicate mesh list. */}
-        {!isMultiSelectMode &&
+        {!cardMode &&
+        !isMultiSelectMode &&
+        onToggleAllParts &&
+        (groupedModelComponents?.length ?? 0) > 0 ? (
+          <button
+            type="button"
+            onClick={onToggleAllParts}
+            className="mb-2 text-[12px] font-semibold text-[#4b30dc] dark:text-[#a996ff] bg-transparent border-0 p-0 cursor-pointer"
+          >
+            ▴ Show only the selected part
+          </button>
+        ) : null}
+        {!cardMode &&
+        !isMultiSelectMode &&
         onBulkRename &&
         (groupedModelComponents?.length ?? 0) > 1 ? (
           <div className="mb-2 flex items-center gap-2 bg-[#f2f4f7] dark:bg-[#2b2b2b] border border-[#e3e8ee] dark:border-[#444] rounded-lg px-2 py-1.5">
@@ -293,19 +343,25 @@ const ComponentsGroup = ({
           </div>
         ) : null}
         {groupedModelComponents?.length ? (
-          groupedModelComponents.map((compGroup: any, groupIndex: number) => (
+          groupedModelComponents.map((compGroup: any, groupIndex: number) =>
+            cardMode && selectedComponentGroup?.name !== compGroup.name ? null : (
             <div
               key={groupIndex}
-              className="font-semibold text-xs text-neutral-800 dark:text-neutral-50"
+              className={`font-semibold text-xs text-neutral-800 dark:text-neutral-50${
+                cardMode
+                  ? " border border-[#00aaff] rounded-lg p-2 bg-[#f5fbff] dark:bg-[#1c2632]"
+                  : ""
+              }`}
             >
               <div
                 className="flex align-center items-center"
+                data-pz-group={compGroup.name}
                 onMouseEnter={() => handleNodeHover(compGroup)}
                 onMouseLeave={() => handleNodeHoverEnd()}
               >
                 {/* Row checkbox — tick rows that belong together, then use the
                     "Group ticked parts as…" bar at the top to combine them. */}
-                {!isMultiSelectMode && onBulkRename ? (
+                {!cardMode && !isMultiSelectMode && onBulkRename ? (
                   <input
                     type="checkbox"
                     className="mr-1.5 cursor-pointer"
@@ -364,6 +420,11 @@ const ComponentsGroup = ({
                   </button>
                 ) : null}
               </div>
+              {cardMode ? (
+                <div className="text-[11px] font-normal text-[#5b6275] dark:text-neutral-300 pl-1 pb-1.5">
+                  Selected part — click another part in 3D to switch
+                </div>
+              ) : null}
               {selectedComponentGroup?.name === compGroup.name && (
                 <ul className="border-l border-l-gray-400 ml-2.5">
                   {/* Part name — naming a part "Shutter", "Side panel", "Leg" …
@@ -801,6 +862,25 @@ const ComponentsGroup = ({
             )}
           </div>
         )}
+        {cardMode && (groupedModelComponents?.length ?? 0) > 0 ? (
+          <>
+            {!selectedComponentGroup ? (
+              <div className="rounded-lg border border-dashed border-[#c9cfdb] dark:border-[#444] px-3 py-3 text-center text-[12px] font-normal text-[#5b6275] dark:text-neutral-300">
+                Click a part of the item in 3D to edit it — a door, a side
+                panel, a shelf.
+              </div>
+            ) : null}
+            {onToggleAllParts ? (
+              <button
+                type="button"
+                onClick={onToggleAllParts}
+                className="mt-2 text-[12px] font-semibold text-[#4b30dc] dark:text-[#a996ff] bg-transparent border-0 p-0 cursor-pointer"
+              >
+                All parts ({groupedModelComponents.length}) ▸
+              </button>
+            ) : null}
+          </>
+        ) : null}
       </div>
     </>
   );

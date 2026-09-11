@@ -103,6 +103,23 @@ export const MATERIAL_TYPES: { label: string; value: string }[] = [
   { label: "Mirror", value: "mirror" },
 ];
 
+/** An AI render job. Same shape as RenderJob plus what the credit call returns. */
+export interface AiRenderJob {
+  id: string;
+  stage: "queued" | "rendering" | "done" | "error";
+  progress: number | null;
+  result: {
+    imageUrl: string;
+    /** Credits left after this render — shown in the panel. */
+    balance?: number;
+    /** What this render cost. 0 means the job failed and was refunded. */
+    cost?: number;
+    /** Quote this to their support when a render comes back wrong. */
+    requestId?: number;
+  } | null;
+  error: string | null;
+}
+
 export interface RenderJob {
   id: string;
   stage: "queued" | "rendering" | "done" | "error";
@@ -162,6 +179,73 @@ export const RenderService = {
       return !!viewer.isCameraInsideRoom();
     } catch (e) {
       return true;
+    }
+  },
+
+  /**
+   * AI render — MyArchitectAI, via our own backend.
+   *
+   * Unlike startRender there is no GLB and no camera: the service takes a
+   * PICTURE. We capture the current 3D view and send that, so whatever is on
+   * screen is what gets rendered — the viewport is the framing tool.
+   *
+   * The API key lives only in the backend .env. This never sees it, and must
+   * not: anything reachable from here is in the JS bundle and readable by any
+   * visitor.
+   */
+  startAiRender: async (opts?: { prompt?: string; outputFormat?: string }) => {
+    const viewer = (BlueprintInterface as any)?.blueprint3d?.roomplanner;
+    if (!viewer || typeof viewer.captureViewAsDataUrl !== "function") {
+      throw new Error("The 3D view is not ready yet.");
+    }
+    const image = viewer.captureViewAsDataUrl();
+    if (!image) throw new Error("Could not capture the 3D view.");
+
+    const accessToken = AuthService.getAccessToken();
+    const response = await axios.post(
+      "/ai-render",
+      { image, prompt: opts?.prompt, outputFormat: opts?.outputFormat },
+      { headers: { Authorization: `Bearer ${accessToken}` } }
+    );
+    if (response.status < 200 || response.status >= 300) {
+      throw new Error(
+        response.data?.message || response.data?.error || `HTTP ${response.status}`
+      );
+    }
+    return response.data as { jobId: string; status: string };
+  },
+
+  /** Same polling shape as pollRenderStatus, against the AI job map. */
+  pollAiRenderStatus: async (jobId: string) => {
+    const accessToken = AuthService.getAccessToken();
+    const response = await axios.get(`/ai-render/status/${jobId}`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    if (response.status < 200 || response.status >= 300) {
+      throw new Error(`HTTP ${response.status} polling AI render status`);
+    }
+    return response.data as AiRenderJob;
+  },
+
+  /**
+   * Remaining credits. Free to call, and the only way to prove the key works
+   * without spending one — so the panel calls it on open and can say "not
+   * configured" or "out of credits" before the user waits on a render.
+   */
+  getAiBalance: async () => {
+    try {
+      const accessToken = AuthService.getAccessToken();
+      const response = await axios.get("/ai-render/balance", {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      return response.data as {
+        configured: boolean;
+        ok?: boolean;
+        balance?: number;
+        message?: string;
+      };
+    } catch (e) {
+      return { configured: false, ok: false, message: "Could not reach the AI render service." };
     }
   },
 

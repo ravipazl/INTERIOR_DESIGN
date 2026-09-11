@@ -34,6 +34,11 @@ export const grainDirections = [
   { _id: uuidv4(), name: "Vertical" },
 ];
 
+// Whether the full parts list was left open. Remembered while the page stays
+// open, so someone who works from the list is not made to reopen it on every
+// item. Starts closed: the default is the one-part card.
+let rememberedShowAllParts = false;
+
 function ObjectComponents({
   selectedModel,
   isDarkMode,
@@ -116,6 +121,16 @@ function ObjectComponents({
     };
   }, []);
 
+  // Card mode (the default): the panel shows only the part picked in 3D, as
+  // one card, with the full list behind "All parts". showAllParts = the old
+  // always-open list, unchanged. Declared before the auto-open effect below,
+  // which reads it in its dependency list.
+  const [showAllParts, setShowAllPartsState] = useState(rememberedShowAllParts);
+  const setShowAllParts = (v: boolean) => {
+    rememberedShowAllParts = v;
+    setShowAllPartsState(v);
+  };
+
   // Auto-open the first group ONCE per item, not every time the selection
   // becomes null. Previously closing a group (selection → null) instantly
   // re-opened the first one, so the Carcass group could never be closed.
@@ -127,12 +142,22 @@ function ObjectComponents({
     if (
       !autoOpenedGroupRef.current &&
       !selectedComponentGroup &&
-      groupedModelComponents.length > 0
+      groupedModelComponents.length > 0 &&
+      // Card mode never opens a part on its own: a card for "Mesh 0" that the
+      // user never clicked would look like a choice they made. It shows the
+      // "click a part" hint instead. The full list keeps the old behaviour.
+      (showAllParts || isMultiSelectMode)
     ) {
       autoOpenedGroupRef.current = true;
       setSelectedComponentGroup(groupedModelComponents[0]);
     }
-  }, [groupedModelComponents, selectedComponentGroup, selectedModel?._id]);
+  }, [
+    groupedModelComponents,
+    selectedComponentGroup,
+    selectedModel?._id,
+    showAllParts,
+    isMultiSelectMode,
+  ]);
 
   // Clear any per-mesh outline when this panel goes away (item deselected,
   // panel closed, or tab change). Without this the BoxHelper sticks around
@@ -1936,6 +1961,135 @@ function ObjectComponents({
     await getModelComponents(false);
   };
 
+  // ── Click-to-select parts ─────────────────────────────────────────────────
+  // The 3D view announces what a click picked ("pazl:part-pick" — see
+  // CLICK_SELECTS_PART in DragRoomItemsControl3D).
+  //   part  → open its row with the SAME handleNodeSelection a click on the row
+  //           runs (the outline effect near the top draws it) and open its
+  //           finish panel on Exterior.
+  //   whole → close the rows and the finish panels: the whole object has no
+  //           single finish. (No popup — it was removed as not needed; rotate
+  //           and delete are in the panel above.)
+  //
+  // Everything is read through refs because the listener is registered once,
+  // and because the click that FIRST selects an item lands before this panel
+  // has loaded its rows — the pick waits in pendingPickRef until they arrive.
+  const [quickFinish, setQuickFinish] = useState<{
+    type: string;
+    groupName: string;
+    n: number;
+  } | null>(null);
+  const pendingPickRef = useRef<any>(null);
+  const quickLatest = useRef<any>({});
+  quickLatest.current = {
+    model: selectedModel,
+    groups: groupedModelComponents,
+    selectedGroup: selectedComponentGroup,
+    open: handleNodeSelection,
+    multi: isMultiSelectMode,
+  };
+
+  const findGroupRow = (name: string) =>
+    Array.from(
+      document.querySelectorAll<HTMLElement>("[data-pz-group]")
+    ).find((r) => r.dataset.pzGroup === name) || null;
+
+  const applyPick = (pick: any) => {
+    const { groups, selectedGroup, open } = quickLatest.current;
+    // Nearest name first: the mesh that was hit, then its parents.
+    let group: any = null;
+    for (const n of pick.names || []) {
+      group = (groups || []).find((g: any) =>
+        (g?.components || []).some(
+          (c: any) => c?.meshName === n || c?.name === n
+        )
+      );
+      if (group) break;
+    }
+    // A pick outranks the one-time "open the first row" for this item.
+    autoOpenedGroupRef.current = true;
+    if (pick.mode === "part" && group) {
+      if (selectedGroup?.name !== group.name) open(group);
+      // One click on a part goes straight to its finish panel, on Exterior.
+      // Interior is on the switch at the top of that panel. Goes through the
+      // group's own "-- Exterior" row handler (quickFinish in ComponentsGroup),
+      // so the panel opens exactly as it does from the list.
+      setQuickFinish({
+        type: Finishing_Types.EXTERIOR,
+        groupName: group.name,
+        n: Date.now(),
+      });
+      setTimeout(() => {
+        findGroupRow(group.name)?.scrollIntoView({
+          block: "nearest",
+          behavior: "smooth",
+        });
+      }, 60);
+    } else {
+      if (selectedGroup) {
+        setSelectedComponentGroup(null);
+        setSelectedChildComponent(null);
+      }
+      // Cancel any "open Exterior" still pending. A double-click arrives as two
+      // clicks first; the second one queues the finish panel for the part, and
+      // left alone it re-opened the panel after this closed it — titled just
+      // ": Exterior", with no part selected.
+      setQuickFinish(null);
+      setShowObjectComponentsModal(false);
+      setShowCoreMaterialsModal(false);
+    }
+  };
+
+  const tryApplyPickRef = useRef<() => void>(() => {});
+  tryApplyPickRef.current = () => {
+    const pick = pendingPickRef.current;
+    if (!pick) return;
+    if (Date.now() - pick.t > 5000) {
+      pendingPickRef.current = null;
+      return;
+    }
+    const { model, groups, multi } = quickLatest.current;
+    if (multi) {
+      // Multi-select is building a selection, not editing one item.
+      pendingPickRef.current = null;
+      return;
+    }
+    // Wait until this panel shows the item that was clicked, rows loaded.
+    if (!model?._id || pick.itemId !== model._id || !groups?.length) return;
+    pendingPickRef.current = null;
+    if ((window as any).__pazlLastPartPick === pick) {
+      (window as any).__pazlLastPartPick = null;
+    }
+    applyPick(pick);
+  };
+
+  useEffect(() => {
+    const onPick = (e: any) => {
+      pendingPickRef.current = e?.detail || null;
+      tryApplyPickRef.current();
+    };
+    window.addEventListener("pazl:part-pick", onPick);
+    const last = (window as any).__pazlLastPartPick;
+    if (last && Date.now() - last.t < 5000) pendingPickRef.current = last;
+    tryApplyPickRef.current();
+    return () => window.removeEventListener("pazl:part-pick", onPick);
+  }, []);
+
+  useEffect(() => {
+    tryApplyPickRef.current();
+  }, [groupedModelComponents, selectedModel?._id]);
+
+  // The finish panel opens on every part click, so it gets a quick way out
+  // besides its ✕.
+  useEffect(() => {
+    if (!showObjectComponentsModal) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setShowObjectComponentsModal(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [showObjectComponentsModal]);
+
   return (
     <>
       {showObjectComponentsModal && (
@@ -1990,6 +2144,16 @@ function ObjectComponents({
           setSelectedChildComponent={setSelectedChildComponent}
           setSelectedComponentGroup={setSelectedComponentGroup}
           componentGroup={componentGroup}
+          // Exterior | Interior switch inside the panel: the same row handler a
+          // click on the group's "-- Exterior" / "-- Interior" line runs.
+          onSwitchFinishingType={(t: string) => {
+            const name = selectedComponentGroup?.name;
+            if (name) {
+              setQuickFinish({ type: t, groupName: name, n: Date.now() });
+            } else {
+              handleFinishingTypeSelection(t);
+            }
+          }}
         />
       )}
       {showHandleTypesModal && (
@@ -2061,6 +2225,9 @@ function ObjectComponents({
         onUngroupGroup={handleUngroupGroup}
         isMultiSelectMode={isMultiSelectMode}
         showLoader={showLoader}
+        quickFinish={quickFinish}
+        showAllParts={showAllParts}
+        onToggleAllParts={() => setShowAllParts(!showAllParts)}
       />
     </>
   );
