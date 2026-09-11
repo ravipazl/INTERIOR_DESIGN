@@ -83,7 +83,7 @@ export class Physical3DItem extends Mesh {
     this.__parametricGeometryUpdateEvent =
       this.__parametricGeometryUpdate.bind(this);
 
-    let txt = new TextureLoader().load("assets/rooms/wood_.jpg");
+    let txt = new TextureLoader().load("/assets/rooms/wood_.jpg");
     txt.repeat.set(Math.round(this.__itemModel.__scale.x), 1);
 
     /* Color Or Texture Mapping Model */
