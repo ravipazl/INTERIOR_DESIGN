@@ -118,7 +118,7 @@ const Home = () => {
                 }}
               >
                 {" "}
-                3 steps
+                4 steps
               </span>
             </h1>
           </Row>
@@ -127,32 +127,47 @@ const Home = () => {
             <img src={StepBar} alt="stepbar" />
           </Row>
           <Row style={{ width: '900px' }} className="d-flex flex-lg-row flex-column">
-            <Col className="step_flow mb-lg-0 mb-3">
-              <div className="position-relative">
-                <img src={StepCircle} alt="stepcircle" />
-                <p className="step_number">01</p>
-              </div>
-              <div>
-                <p className="step_text stepper-text-mobile">Select Room Type</p>
-              </div>
-            </Col>
-            <Col className="step_flow mb-lg-0 mb-3">
-              <div className="position-relative">
-                <img src={StepCircle} alt="stepcircle" />
-                <p className="step_number">02</p>
-              </div>
-              <div>
-                <p className="step_text stepper-text-mobile">Select Room Theme</p>
-              </div>
-            </Col>
-            <Col className="step_flow">
-              <div className="position-relative">
-                <img src={StepCircle} alt="stepcircle" />
-                <p className="step_number">03</p>
-              </div>
-              <div>
-                <p className="step_text stepper-text-mobile">Generate Image</p>
-              </div>
+            {/* These four mirror what the product actually does. They used to
+                read Select Room Type / Select Room Theme / Generate Image -
+                the AI inspiration path, which is hidden everywhere else now
+                (theme and generate came out of the client wizard, the toolbar
+                AI Inspiration button and "View AI Inspiration" are both gone).
+                This page was the last place still advertising it. */}
+            <Col className="step_flow mb-lg-0 mb-3">
+              <div className="position-relative">
+                <img src={StepCircle} alt="stepcircle" />
+                <p className="step_number">01</p>
+              </div>
+              <div>
+                <p className="step_text stepper-text-mobile">Draw floor plan</p>
+              </div>
+            </Col>
+            <Col className="step_flow mb-lg-0 mb-3">
+              <div className="position-relative">
+                <img src={StepCircle} alt="stepcircle" />
+                <p className="step_number">02</p>
+              </div>
+              <div>
+                <p className="step_text stepper-text-mobile">Drag and drop furniture</p>
+              </div>
+            </Col>
+            <Col className="step_flow mb-lg-0 mb-3">
+              <div className="position-relative">
+                <img src={StepCircle} alt="stepcircle" />
+                <p className="step_number">03</p>
+              </div>
+              <div>
+                <p className="step_text stepper-text-mobile">Render design</p>
+              </div>
+            </Col>
+            <Col className="step_flow">
+              <div className="position-relative">
+                <img src={StepCircle} alt="stepcircle" />
+                <p className="step_number">04</p>
+              </div>
+              <div>
+                <p className="step_text stepper-text-mobile">BOQ</p>
+              </div>
             </Col>
           </Row>
           <div className="dashboard_mobile_border mb-3"></div>

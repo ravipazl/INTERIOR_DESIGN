@@ -502,6 +502,49 @@ const FurnishMenu = ({
     setIsLoading(false);
   };
 
+  // ── Undo / Redo shortcuts on the 3D tab ──────────────────────────────────
+  //   Ctrl/Cmd + Z            undo
+  //   Ctrl/Cmd + Y            redo   (Ctrl/Cmd + Shift + Z too)
+  // The SAME handleUndo / handleRedo the ↶ ↷ toolbar buttons run. Only while
+  // this menu is the active tab — it stays mounted, hidden, on the floor-plan
+  // tab, which has its own shortcuts (EditorShortcuts2D) — so one press is one
+  // step. Ignored while typing in a field, and while a previous step is still
+  // running, so holding the keys cannot stack up overlapping undos.
+  const undoRedoRef = useRef({ handleUndo, handleRedo });
+  undoRedoRef.current = { handleUndo, handleRedo };
+  const undoBusyRef = useRef(false);
+  useEffect(() => {
+    if (!active) return;
+    const onKey = async (e: KeyboardEvent) => {
+      if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
+      const k = (e.key || "").toLowerCase();
+      const isUndo = k === "z" && !e.shiftKey;
+      const isRedo = k === "y" || (k === "z" && e.shiftKey);
+      if (!isUndo && !isRedo) return;
+      const t = e.target as HTMLElement | null;
+      const tag = t && t.tagName;
+      if (
+        tag === "INPUT" ||
+        tag === "TEXTAREA" ||
+        tag === "SELECT" ||
+        (t && t.isContentEditable)
+      ) {
+        return; // let the field undo its own text
+      }
+      e.preventDefault();
+      if (undoBusyRef.current) return;
+      undoBusyRef.current = true;
+      try {
+        if (isUndo) await undoRedoRef.current.handleUndo();
+        else await undoRedoRef.current.handleRedo(undefined);
+      } finally {
+        undoBusyRef.current = false;
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [active]);
+
   const handleCamera3dView = async (itemData: MenuItem) => {
     /* PERF-REMOVED */ // console.debug("furnisheMenu.tsx ~ handleCamera3dView ~ itemData", itemData);
     setMode(ACTION_MODES.CAM_3D_VIEW);

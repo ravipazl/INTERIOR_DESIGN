@@ -1,0 +1,1 @@
+{"indexes":[{"v":{"$numberInt":"2"},"key":{"_id":{"$numberInt":"1"}},"name":"_id_"}],"uuid":"f3995d54c5db4e26a8fc3817b78b2f86","collectionName":"finishings","type":"collection"}

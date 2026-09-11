@@ -154,6 +154,27 @@ const ENVIRONMENTS: { label: string; value: string; swatch: string }[] = [
 // up; "Interior" when you have not, and do not want the pulled-back dollhouse
 // the editor opens with. Which one is the DEFAULT is decided by looking at
 // where the camera actually is - see the openSignal effect.
+
+/**
+ * Style presets for the AI render.
+ *
+ * MyArchitectAI takes one free-text prompt; these are just prefixes so an
+ * architect does not have to invent prompt wording to get a usable result. The
+ * empty first entry means "describe it yourself" — the prompt box is still
+ * there underneath and both are sent joined together.
+ */
+const AI_STYLES: { value: string; label: string }[] = [
+  { value: "", label: "As-is" },
+  { value: "modern minimalist interior", label: "Modern" },
+  { value: "scandinavian interior, light wood, soft daylight", label: "Scandi" },
+  { value: "luxury contemporary interior, warm accent lighting", label: "Luxury" },
+  { value: "industrial interior, exposed concrete and metal", label: "Industrial" },
+  { value: "traditional indian interior, warm teak and brass", label: "Traditional" },
+];
+
+/** Output formats their API accepts. jpg is the smallest for a client email. */
+const AI_FORMATS = ["jpg", "png", "webp"];
+
 const FRAMINGS: {
   label: string;
   value: "interior" | "current" | "auto";
@@ -285,6 +306,26 @@ const RenderViewModal: React.FC<{
   const [sunTime, setSunTime] = useState(LIGHT_DEFAULTS.sunTime); // 0..100 (50 = noon)
   const [sunDir, setSunDir] = useState(LIGHT_DEFAULTS.sunDir); // degrees
   const [roomLights, setRoomLights] = useState(LIGHT_DEFAULTS.roomLights); // % of default
+  /**
+   * Which render engine the panel is driving.
+   *
+   * "blender" is everything that was here before and stays the default — the
+   * AI path is new and unproven on real projects, so it is opt-in rather than
+   * a replacement. Both write their result into the same status/imageUrl
+   * state, so the preview, the download button and the auto-save to render
+   * history below are shared and needed no changes.
+   */
+  const [mode, setMode] = useState<"blender" | "ai">("blender");
+  const [aiStyle, setAiStyle] = useState(AI_STYLES[0].value);
+  const [aiPrompt, setAiPrompt] = useState("");
+  const [aiFormat, setAiFormat] = useState(AI_FORMATS[0]);
+  /** null until the balance call answers; drives the "not configured" notice. */
+  const [aiInfo, setAiInfo] = useState<{
+    configured: boolean;
+    ok?: boolean;
+    balance?: number;
+    message?: string;
+  } | null>(null);
   const [showAdjust, setShowAdjust] = useState(false); // collapse the extra knobs
   const [showLight, setShowLight] = useState(false); // collapse the lighting knobs
   const dockTop = useDockTop();
@@ -299,8 +340,25 @@ const RenderViewModal: React.FC<{
     const inside = RenderService.isCameraInsideRoom();
     setCameraOutside(!inside);
     setFraming(inside ? "current" : "interior");
+    // Forget the last credit balance so it is asked for again. Without this
+    // the first answer stuck until a full page reload — a top-up in the
+    // MyArchitectAI portal still showed "0 credits" and a greyed-out button.
+    setAiInfo(null);
     setOpen(true);
   }, [openSignal]);
+
+  // In AI mode the render is a picture of whatever is on screen at the click,
+  // so the "camera is outside" notice has to follow the camera live. Checked
+  // only on open, it kept warning after the user had moved inside the room.
+  // A cheap bounding-box test once a second, and only while this tab is up.
+  // Framing is deliberately not touched here — that is the 3D render's choice.
+  useEffect(() => {
+    if (!open || mode !== "ai") return;
+    const check = () => setCameraOutside(!RenderService.isCameraInsideRoom());
+    check();
+    const t = setInterval(check, 1000);
+    return () => clearInterval(t);
+  }, [open, mode]);
 
   // Closed when the rail moves to 3D — the catalogue takes the same left slot,
   // so leaving this open would stack the two panels.
@@ -535,6 +593,97 @@ const RenderViewModal: React.FC<{
     []
   );
 
+  /**
+   * Ask the backend what the AI account has left.
+   *
+   * Free to call, and the only way to prove the key works without spending a
+   * credit — so the panel knows to say "not configured" or "key rejected"
+   * BEFORE the architect frames a shot and waits on a render that cannot run.
+   * Only fires when the AI tab is actually opened; a project that never uses
+   * the AI path never calls out.
+   */
+  useEffect(() => {
+    if (mode !== "ai" || aiInfo) return;
+    let alive = true;
+    RenderService.getAiBalance().then((info) => {
+      if (alive) setAiInfo(info);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [mode, aiInfo]);
+
+  /**
+   * AI render — sends a PICTURE of the current 3D view, not the model.
+   *
+   * Deliberately mirrors startRender's state handling so everything below the
+   * controls (progress bar, error box, preview, download, auto-save to the
+   * project's render history) works for both paths untouched.
+   */
+  const startAiRender = useCallback(async () => {
+    stopTimers();
+    setStatus("starting");
+    setError(null);
+    setImageUrl(null);
+    setVideoUrl(null);
+    setVidSave("");
+    setImgSave("");
+    setVideoError(null);
+    setVideoStatus("idle");
+    setProgress(null);
+    setQueuePos(null);
+    setElapsed(0);
+    setIsPreview(false);
+    elapsedTimer.current = setInterval(() => setElapsed((e) => e + 1), 1000);
+
+    // Style chip and free text are one prompt to their API; sending the chip
+    // first keeps the overall look leading and the specifics qualifying it.
+    const prompt = [aiStyle, aiPrompt.trim()].filter(Boolean).join(", ");
+
+    try {
+      const { jobId } = await RenderService.startAiRender({
+        prompt: prompt || undefined,
+        outputFormat: aiFormat,
+      });
+      setStatus("queued");
+      pollTimer.current = setInterval(async () => {
+        try {
+          const job = await RenderService.pollAiRenderStatus(jobId);
+          setProgress(job.progress ?? null);
+          if (job.stage === "done" && job.result?.imageUrl) {
+            setImageUrl(RenderService.resolveImageUrl(job.result.imageUrl));
+            setStatus("done");
+            // Credits just moved, so show the new figure rather than a stale one.
+            if (typeof job.result.balance === "number") {
+              setAiInfo((prev) => ({
+                configured: true,
+                ok: true,
+                ...(prev || {}),
+                balance: job.result?.balance,
+              }));
+            }
+            saveDraft("render", job.result.imageUrl, jobId, setImgSave);
+            stopTimers();
+          } else if (job.stage === "error") {
+            setError(job.error || "AI render failed");
+            setStatus("error");
+            stopTimers();
+          } else {
+            setStatus(job.stage === "rendering" ? "rendering" : "queued");
+          }
+        } catch (e: any) {
+          setError(e?.message || "Lost connection to the AI render job");
+          setStatus("error");
+          stopTimers();
+        }
+      }, POLL_MS);
+    } catch (e: any) {
+      setError(e?.message || "Could not start the AI render");
+      setStatus("error");
+      stopTimers();
+    }
+  }, [aiStyle, aiPrompt, aiFormat, stopTimers, saveDraft]);
+
   // preview = a fast, throwaway EEVEE pass at low quality to check the look
   // before committing to the ~20-minute Cycles render. Same scene, same
   // camera, same materials — only the engine and quality differ.
@@ -760,6 +909,13 @@ const RenderViewModal: React.FC<{
     `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 
   const busy = status === "starting" || status === "queued" || status === "rendering";
+  // The AI path can be unusable for two different reasons — no key at all,
+  // or a working key on an account with nothing left to spend. Both mean
+  // the button should not be pressable; the banners above say which it is.
+  const aiCannotRender =
+    aiInfo?.configured === false ||
+    aiInfo?.ok === false ||
+    aiInfo?.balance === 0;
   const videoBusy =
     videoStatus === "starting" ||
     videoStatus === "queued" ||
@@ -1520,6 +1676,237 @@ const RenderViewModal: React.FC<{
           </div>
         )}
 
+        {/* Engine. Blender renders the actual 3D model and takes minutes; the
+            AI path sends a picture of the current view and takes seconds, but
+            returns an image LIKE the room rather than a render OF the model.
+            Blender stays the default — this is offered beside it, not instead. */}
+        <div style={{ display: "flex", gap: 6, marginBottom: 12 }}>
+          {([
+            { v: "blender", label: "3D render", hint: "Renders the real model in Blender. Minutes." },
+            { v: "ai", label: "AI photo", hint: "Sends the current view to the AI service. Seconds." },
+          ] as const).map((m) => (
+            <button
+              key={m.v}
+              type="button"
+              disabled={busy}
+              title={m.hint}
+              onClick={() => setMode(m.v)}
+              style={{
+                flex: 1,
+                height: 34,
+                borderRadius: 6,
+                border:
+                  mode === m.v
+                    ? "1px solid var(--pz-accent, #5b3df5)"
+                    : "1px solid #d1d5db",
+                background: mode === m.v ? "rgba(91,61,245,0.08)" : "transparent",
+                color: mode === m.v ? "#4b30dc" : "#374151",
+                fontSize: 12.5,
+                fontWeight: mode === m.v ? 600 : 400,
+                cursor: busy ? "not-allowed" : "pointer",
+                opacity: busy ? 0.6 : 1,
+              }}
+            >
+              {m.label}
+            </button>
+          ))}
+        </div>
+
+        {mode === "ai" && (
+          <div style={{ marginBottom: 12 }}>
+            {/* What actually gets sent. Said plainly, because it is the one
+                thing that surprises people about this path: the AI never sees
+                the model, only the picture on screen right now. */}
+            <div
+              style={{
+                fontSize: 11.5,
+                color: "#374151",
+                background: "#f3f4f6",
+                borderRadius: 6,
+                padding: "7px 9px",
+                marginBottom: 10,
+              }}
+            >
+              This sends a picture of the view on screen right now. Frame the
+              room the way you want it photographed before you render.
+            </div>
+
+            {cameraOutside && (
+              <div
+                style={{
+                  fontSize: 11.5,
+                  color: "#92400e",
+                  background: "rgba(245,158,11,0.12)",
+                  border: "1px solid rgba(245,158,11,0.35)",
+                  borderRadius: 6,
+                  padding: "6px 9px",
+                  marginBottom: 10,
+                }}
+              >
+                Your camera is outside the room, so the AI will photograph the
+                plan as a box. Move inside the room first.
+              </div>
+            )}
+
+            {aiInfo && !aiInfo.configured && (
+              <div
+                style={{
+                  fontSize: 11.5,
+                  color: "#b91c1c",
+                  background: "#fef2f2",
+                  borderRadius: 6,
+                  padding: "6px 9px",
+                  marginBottom: 10,
+                }}
+              >
+                AI rendering is not set up yet. Add MYARCHITECT_API_KEY to the
+                backend .env and restart the backend.
+              </div>
+            )}
+            {aiInfo && aiInfo.configured && aiInfo.ok === false && (
+              <div
+                style={{
+                  fontSize: 11.5,
+                  color: "#b91c1c",
+                  background: "#fef2f2",
+                  borderRadius: 6,
+                  padding: "6px 9px",
+                  marginBottom: 10,
+                  wordBreak: "break-word",
+                }}
+              >
+                {aiInfo.message || "The AI render service is unavailable."}
+              </div>
+            )}
+            {/* Out of credits is a different problem from a rejected key — an
+                account top-up, not a config fix — and worth catching here,
+                because otherwise the render fails only after the architect has
+                framed the shot and pressed the button. */}
+            {aiInfo && aiInfo.ok && aiInfo.balance === 0 && (
+              <div
+                style={{
+                  fontSize: 11.5,
+                  color: "#92400e",
+                  background: "rgba(245,158,11,0.12)",
+                  border: "1px solid rgba(245,158,11,0.35)",
+                  borderRadius: 6,
+                  padding: "6px 9px",
+                  marginBottom: 10,
+                }}
+              >
+                The AI render account has no credits left. Top it up in the
+                MyArchitectAI portal to use this. The 3D render still works as
+                normal.
+              </div>
+            )}
+
+            <div style={{ fontSize: 12.5, color: "#374151", marginBottom: 6 }}>
+              Style
+            </div>
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 10 }}>
+              {AI_STYLES.map((st) => (
+                <button
+                  key={st.label}
+                  type="button"
+                  disabled={busy}
+                  onClick={() => setAiStyle(st.value)}
+                  style={{
+                    border:
+                      aiStyle === st.value
+                        ? "1px solid var(--pz-accent, #5b3df5)"
+                        : "1px solid #d1d5db",
+                    background:
+                      aiStyle === st.value ? "rgba(91,61,245,0.08)" : "transparent",
+                    color: aiStyle === st.value ? "#4b30dc" : "#374151",
+                    borderRadius: 6,
+                    padding: "5px 11px",
+                    fontSize: 12,
+                    fontWeight: aiStyle === st.value ? 600 : 400,
+                    cursor: busy ? "not-allowed" : "pointer",
+                    opacity: busy ? 0.6 : 1,
+                  }}
+                >
+                  {st.label}
+                </button>
+              ))}
+            </div>
+
+            <div style={{ fontSize: 12.5, color: "#374151", marginBottom: 6 }}>
+              Extra detail (optional)
+            </div>
+            <textarea
+              value={aiPrompt}
+              disabled={busy}
+              rows={2}
+              placeholder="e.g. evening lighting, marble floor, indoor plants"
+              onChange={(e) => setAiPrompt(e.target.value)}
+              style={{
+                width: "100%",
+                borderRadius: 6,
+                border: "1px solid #d1d5db",
+                padding: "7px 8px",
+                fontSize: 12.5,
+                resize: "vertical",
+                background: busy ? "#f3f4f6" : "#fff",
+                marginBottom: 10,
+              }}
+            />
+
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <select
+                value={aiFormat}
+                disabled={busy}
+                onChange={(e) => setAiFormat(e.target.value)}
+                style={{
+                  flex: 1,
+                  height: 36,
+                  borderRadius: 6,
+                  border: "1px solid #d1d5db",
+                  padding: "0 8px",
+                  fontSize: 13,
+                  background: busy ? "#f3f4f6" : "#fff",
+                }}
+              >
+                {AI_FORMATS.map((f) => (
+                  <option key={f} value={f}>
+                    {f.toUpperCase()}
+                  </option>
+                ))}
+              </select>
+              {typeof aiInfo?.balance === "number" && (
+                <div style={{ fontSize: 11.5, color: "#6b7280", whiteSpace: "nowrap" }}>
+                  {aiInfo.balance} credits left
+                </div>
+              )}
+            </div>
+
+            <button
+              type="button"
+              onClick={startAiRender}
+              disabled={busy || aiCannotRender}
+              title="Sends the current 3D view to the AI render service"
+              style={{
+                width: "100%",
+                height: 38,
+                marginTop: 10,
+                borderRadius: 6,
+                border: "none",
+                background:
+                  busy || aiCannotRender ? "#9ca3af" : "#111827",
+                color: "#fff",
+                fontSize: 13,
+                fontWeight: 600,
+                cursor:
+                  busy || aiCannotRender ? "not-allowed" : "pointer",
+              }}
+            >
+              {busy ? "Rendering…" : "✦ AI render this view"}
+            </button>
+          </div>
+        )}
+
+        {mode === "blender" && (
+          <>
         {/* Framing. This was a single "Auto-frame the whole room" checkbox and
             BOTH of its states put the camera OUTSIDE the room: unchecked sent
             the editor camera (the pulled-back dollhouse), checked framed the
@@ -2177,6 +2564,8 @@ const RenderViewModal: React.FC<{
             {busy ? "Rendering…" : "✦ Render"}
           </button>
         </div>
+        </>
+        )}
       </div>
       </div>
     </div>

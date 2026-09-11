@@ -821,7 +821,9 @@ BlueprintInterface.selectItem3DById = (id) => {
     // Select + highlight + show gizmo only. We intentionally do NOT move the
     // camera here — auto-zooming on every click is jarring. Camera framing is a
     // deliberate action (the Object/Room Focus buttons).
-    rp.__roomItemSelected({ type: EVENT_ITEM_SELECTED, item: phys });
+    // __user: picked from the items list — counts as the user's selection
+    // even straight after a reload (see Viewer3d.__roomItemSelected).
+    rp.__roomItemSelected({ type: EVENT_ITEM_SELECTED, item: phys, __user: true });
     return true;
   } catch (e) {
     console.error("selectItem3DById failed", e);

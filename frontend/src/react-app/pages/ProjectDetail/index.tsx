@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { Project } from "@pazl/entities/Project";
 import { ProjectsService } from "@pazl/services/projectsService";
 import Loader from "@pazl/components/Loader";
+import NavRail from "@pazl/components/NavRail";
 import "./index.css";
 import { ProjectStatuses } from "@pazl/pages/ProjectDashboard";
 import ShareProjectModal from "@pazl/components/ShareProjectModal";
@@ -313,7 +314,16 @@ const ProjectDetail = () => {
   }
 
   return (
-    <div className={`${isDarkMode ? "dark" : "light"}`}>
+    // The rail was missing here: NavRail is mounted per page and only
+    // DrawingComponent had it. That stranded users too - the account chip and
+    // Logout were REMOVED from AppHeader on the grounds that the rail carries
+    // them, so a page without a rail had no way to sign out at all.
+    //
+    // variant="app": the four steps are views INSIDE the 3D editor, so they
+    // render disabled here rather than pretending to work.
+    <div className={`pz-page-shell ${isDarkMode ? "dark" : "light"}`}>
+      <NavRail variant="app" />
+      <div className="pz-page-main">
       <Toast toast={toast} />
       {isLoading || !project ? (
         <Loader />
@@ -371,14 +381,14 @@ const ProjectDetail = () => {
                   >
                     content_copy
                   </span>
-                  <button
-                    className="ml-1.5 px-6 py-2 rounded border border-[#414063]"
-                    onClick={navigateToPazlInspire}
-                  >
-                    <p className="project-detail-button-text text-[#414063]">
-                      View AI Inspiration
-                    </p>
-                  </button>
+                  {/* "View AI Inspiration" stood here. Hidden with the rest of
+                      the AI styling path - the theme and generate steps came
+                      out of the client wizard, and the toolbar AI Inspiration
+                      button was hidden earlier for the same reason.
+
+                      navigateToPazlInspire is left in place: it is the only
+                      caller, but restoring the button is then a paste, and the
+                      Inspire app it routes to is still running. */}
                   {isAccessibleToEdit3dDesign ? (
                     <button
                       className="ml-1.5 px-6 py-2 rounded bg-[#414063]"
@@ -659,6 +669,7 @@ const ProjectDetail = () => {
         handleCloneProject={handleCloneProject}
         isDarkMode={isDarkMode}
       />
+      </div>
     </div>
   );
 };

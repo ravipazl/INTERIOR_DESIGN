@@ -126,9 +126,12 @@ const ProjectTracker: React.FC<ProjectTrackerProps> = ({
   // Per-project renamed stage (stored in its event's `title`), else the default.
   const labelForStage = (key: string, fallback: string) =>
     events.find((e) => e.stage === key)?.title || fallback;
-  // Stages the team removed for this project are hidden from the client too.
+  // Hidden either because the team removed it on THIS project, or because the
+  // stage is hidden by default for every project. Both feed the same render
+  // rule, so a stage the project is currently on still shows.
   const isHidden = (key: string) =>
-    events.find((e) => e.stage === key)?.status === "hidden";
+    events.find((e) => e.stage === key)?.status === "hidden" ||
+    !!TRACKER_STAGES.find((s) => s.key === key)?.hiddenByDefault;
   const dateForStage = (key: string): string => {
     const ev = events.find((e) => e.stage === key);
     if (!ev?.createdAt) return "";

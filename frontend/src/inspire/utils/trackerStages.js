@@ -4,7 +4,13 @@
 
 export const TRACKER_STAGES = [
   { key: "project_created", label: "Project started", phase: 1 },
-  { key: "quote_requested", label: "Quote requested", phase: 1 },
+  // hiddenByDefault: kept in the list so every INDEX below stays where it is
+  // - statusToStageIndex maps statuses to hard-coded positions in this array,
+  // so deleting an entry silently shifts every step after it. The trackers
+  // skip it at render instead, reusing the same rule as the per-project hide:
+  // hidden unless the project is currently ON it, so a project sitting at
+  // quotation_requested still has a step to point at.
+  { key: "quote_requested", label: "Quote requested", phase: 1, hiddenByDefault: true },
   { key: "design_in_progress", label: "Design in progress", phase: 1 },
   { key: "quote_sent", label: "Quote sent", phase: 1 },
   { key: "quote_accepted", label: "Quote approved", phase: 1 },

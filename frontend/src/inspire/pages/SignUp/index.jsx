@@ -23,6 +23,13 @@ const SignUp = () => {
   const [showEmailIdField, setShowEmailIdField] = useState(true);
   const [showPhoneNumField, setShowPhoneNumField] = useState(false);
   const [showOtpField, setShowOtpField] = useState(false);
+  // Collected here so the client's first project can be created WITH a name
+  // and address. Without them the projects list and the project header show
+  // "N/A" for every client, because the auto-created project only carries a
+  // title, a status and an owner id.
+  const [clientName, setClientName] = useState("");
+  const [address, setAddress] = useState("");
+  const [isNameValid, setIsNameValid] = useState(true);
   const [email, setEmail] = useState("");
   const [isEmailValid, setIsEmailValid] = useState(true);
   const [isPasswordValid, setIsPasswordValid] = useState(true);
@@ -78,10 +85,19 @@ const SignUp = () => {
   };
 
   const handleSignup = async () => {
+    // Name is required, address is not: a project with no name is a row you
+    // cannot identify in the list, whereas a missing address is just a blank
+    // field someone can fill in later.
+    if (!clientName.trim()) {
+      setIsNameValid(false);
+      return;
+    }
     setLoading(true);
     const response = await authService.signUp({
       email,
       password,
+      name: clientName.trim(),
+      address: address.trim(),
       permissions: USER_ROLES.USER,
     });
     setLoading(false);
@@ -189,6 +205,42 @@ const SignUp = () => {
                   User already exists.
                 </Form.Control.Feedback>
                 <Form>
+                  <Form.Group
+                    className="email_password_text_field mb-3"
+                    controlId="clientName"
+                  >
+                    <Form.Control
+                      size="sm"
+                      className="email_password_text"
+                      type="text"
+                      placeholder="Name"
+                      value={clientName}
+                      onChange={(e) => {
+                        setClientName(e.target.value);
+                        if (!isNameValid) setIsNameValid(true);
+                      }}
+                      isInvalid={!isNameValid}
+                    />
+                    <Form.Control.Feedback
+                      type="invalid"
+                      className="mb-3 authentication_error"
+                    >
+                      Please enter your name.
+                    </Form.Control.Feedback>
+                  </Form.Group>
+                  <Form.Group
+                    className="email_password_text_field mb-3"
+                    controlId="address"
+                  >
+                    <Form.Control
+                      size="sm"
+                      className="email_password_text"
+                      type="text"
+                      placeholder="Address (optional)"
+                      value={address}
+                      onChange={(e) => setAddress(e.target.value)}
+                    />
+                  </Form.Group>
                   <Form.Group
                     className="email_password_text_field mb-3"
                     controlId="emailId"

@@ -12,6 +12,13 @@ export interface TrackerStage {
   key: string;
   label: string;
   phase: 1 | 2;
+  /**
+   * Hidden from the tracker bar on EVERY project, rather than hidden on one by
+   * an admin. The stage still exists - it is still logged as a stage_event and
+   * still occupies its index here - it just is not drawn, unless the project is
+   * currently sitting on it.
+   */
+  hiddenByDefault?: boolean;
 }
 
 // The full milestone list shown to every client. Phase 1 steps auto-fill from
@@ -19,7 +26,11 @@ export interface TrackerStage {
 // advanced manually by the team with "Mark done".
 export const TRACKER_STAGES: TrackerStage[] = [
   { key: "project_created", label: "Project started", phase: 1 },
-  { key: "quote_requested", label: "Quote requested", phase: 1 },
+  // hiddenByDefault: the entry STAYS so every index below it stays put -
+  // statusToStageIndex maps statuses to hard-coded positions in this array.
+  // The tracker skips it at render, reusing the per-project hide rule: shown
+  // only while the project is actually on it.
+  { key: "quote_requested", label: "Quote requested", phase: 1, hiddenByDefault: true },
   { key: "design_in_progress", label: "Design in progress", phase: 1 },
   { key: "quote_sent", label: "Quote sent", phase: 1 },
   { key: "quote_accepted", label: "Quote approved", phase: 1 },

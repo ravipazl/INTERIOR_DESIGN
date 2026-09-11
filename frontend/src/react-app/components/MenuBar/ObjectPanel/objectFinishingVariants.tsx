@@ -3,6 +3,28 @@ import { Finishing } from "@pazl/entities/Finishing";
 import { capitalizeText } from "@pazl/utils/genericFunctions";
 import "./objectComponents.css";
 
+/**
+ * Each finish once. The finish catalog was imported twice (18 May 2026): every
+ * finish has an identical twin — same name, same style, same texture — with a
+ * different _id, so the picker showed "Wood 10002" twice.
+ *
+ * Display only. Saved finishes point at either copy and are looked up by _id
+ * in the FULL list elsewhere, so they are unaffected. The OLDER record
+ * (smaller _id) is the one shown, so new picks land on the copy a later
+ * database clean-up would keep. Order is preserved.
+ */
+const uniqueFinishings = (list: Finishing[]): Finishing[] => {
+  const keyOf = (f: any) =>
+    `${String(f?.name || "").trim().toLowerCase()}|${f?.texture?.fileUrl || ""}`;
+  const kept = new Map<string, Finishing>();
+  for (const f of list) {
+    const k = keyOf(f);
+    const prev = kept.get(k);
+    if (!prev || String(f?._id) < String(prev?._id)) kept.set(k, f);
+  }
+  return list.filter((f) => kept.get(keyOf(f)) === f);
+};
+
 interface propsType {
   finishings: Finishing[] | null;
   selectedStyle: Finishing | null;
@@ -26,12 +48,12 @@ const ObjectFinishingVariants = React.memo(
           (finishing: Finishing) => finishing.categoryId === selectedStyle?._id
         );
         if (list?.length) {
-          setFilteredFinishings(list);
+          setFilteredFinishings(uniqueFinishings(list));
         } else {
           setFilteredFinishings([]);
         }
       } else if (finishings?.length) {
-        setFilteredFinishings(finishings);
+        setFilteredFinishings(uniqueFinishings(finishings));
       }
     }, [selectedStyle, finishings]);
 

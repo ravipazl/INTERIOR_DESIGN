@@ -1,0 +1,1 @@
+{"indexes":[{"v":{"$numberInt":"2"},"key":{"_id":{"$numberInt":"1"}},"name":"_id_"}],"uuid":"972b2d7b680f499ba055ffb20cef0d45","collectionName":"core_material_pricing","type":"collection"}

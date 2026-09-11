@@ -47,6 +47,24 @@ import { SnapIndicator } from "../snap/SnapIndicator";
 const DRAG_FOLLOW = 0.8;
 
 /**
+ * Which click picks what on a 3D item.
+ *
+ *   true  - a click picks the PART under the mouse (a door, a drawer front) and
+ *           a double-click picks the whole object.
+ *   false - the reverse: a click picks the whole object, a double-click a part.
+ *
+ * Dragging always moves the whole object either way; this only decides what a
+ * click that did not move announces. The announcement is a window event
+ * ("pazl:part-pick") that the Components panel turns into an open row and the
+ * quick-action popup.
+ */
+export const CLICK_SELECTS_PART = true;
+
+// A press and release closer than this (px) is a click; anything further is a
+// drag, and a drag never picks a part.
+const CLICK_MOVE_TOLERANCE_PX = 5;
+
+/**
  * This is a custom implementation of the DragControls class
  * In this class the raycaster intersection will not check for children
  * This is supposed to work only for physicalroomitems because it creates
@@ -114,6 +132,7 @@ export class DragRoomItemsControl3D extends EventDispatcher {
     this.__releaseListenerEvent = this.__releaseListener.bind(this);
     this.__moveListenerEvent = this.__moveListener.bind(this);
     this.__hoverListenerEvent = this.__hoverListener.bind(this);
+    this.__dblClickListenerEvent = this.__dblClickListener.bind(this);
     this.activate();
   }
 
@@ -235,6 +254,7 @@ export class DragRoomItemsControl3D extends EventDispatcher {
     this.__timestamp = time;
     evt.preventDefault();
     evt = evt.changedTouches !== undefined ? evt.changedTouches[0] : evt;
+    this.__pressPoint = { x: evt.clientX, y: evt.clientY };
 
     this.__intersections.length = 0;
 
@@ -301,6 +321,66 @@ export class DragRoomItemsControl3D extends EventDispatcher {
     // //}
   }
 
+  /**
+   * Double-click on an item: the other half of CLICK_SELECTS_PART. The browser
+   * has already delivered two ordinary clicks by now (so in the default mode the
+   * part lit up for an instant); this upgrades the pick.
+   */
+  __dblClickListener(evt) {
+    try {
+      if (this.__transformGroup) return;
+      const visible = this.__draggableItems.filter((d) => d && d.visible);
+      this.__raycaster.setFromCamera(this.__mouse, this.__camera);
+      const hits = this.__raycaster.intersectObjects(visible, false);
+      if (!hits.length) return;
+      this.__emitPick(
+        hits[0].object,
+        CLICK_SELECTS_PART ? "whole" : "part",
+        evt.clientX,
+        evt.clientY
+      );
+    } catch (e) {
+      // never let a double-click break the scene
+    }
+  }
+
+  /**
+   * Tell the UI what a click picked.
+   *
+   * For a part, the ray is cast again INTO the item's loaded model (the item
+   * itself is hit as one box, which is why a click has always selected the whole
+   * thing). The names of the hit mesh and its parents are sent, nearest first;
+   * the Components panel matches them against each part's meshName (Mesh_0…N).
+   * No hit inside the model (still loading, one-piece model) falls back to the
+   * whole object.
+   *
+   * Also left on window.__pazlLastPartPick, because the click that FIRST
+   * selects an item arrives before the panel that listens for it has mounted.
+   */
+  __emitPick(item, mode, clientX, clientY) {
+    if (!item || this.__transformGroup) return;
+    const names = [];
+    if (mode === "part" && item.__loadedItem) {
+      this.__raycaster.setFromCamera(this.__mouse, this.__camera);
+      const hit = this.__raycaster
+        .intersectObject(item.__loadedItem, true)
+        .find((h) => h.object && h.object.isMesh && h.object.visible);
+      for (let o = hit && hit.object; o && o !== item; o = o.parent) {
+        if (o.name) names.push(o.name);
+      }
+    }
+    const detail = {
+      mode: mode === "part" && names.length ? "part" : "whole",
+      names,
+      itemId: item.__itemModel && item.__itemModel.__id,
+      clientX,
+      clientY,
+      t: Date.now(),
+    };
+    window.__pazlLastPartPick = detail;
+    window.dispatchEvent(new CustomEvent("pazl:part-pick", { detail }));
+  }
+
   __releaseListener(evt) {
     console.debug(
       "DragRoomItemsControl3D.js ~ __releaseListener ~ release the drag",
@@ -316,6 +396,29 @@ export class DragRoomItemsControl3D extends EventDispatcher {
     this.__releasetimestamp = time;
     evt.preventDefault();
     if (this.__selected) {
+      // Released where it was pressed: that was a click, not a drag. Announce
+      // which part of the item was clicked. Runs before the landing code below
+      // and changes nothing about it — a click never moved the item anyway.
+      try {
+        const pt =
+          evt.changedTouches !== undefined ? evt.changedTouches[0] : evt;
+        const p0 = this.__pressPoint;
+        if (
+          p0 &&
+          pt &&
+          Math.hypot(pt.clientX - p0.x, pt.clientY - p0.y) <
+            CLICK_MOVE_TOLERANCE_PX
+        ) {
+          this.__emitPick(
+            this.__selected,
+            CLICK_SELECTS_PART ? "part" : "whole",
+            pt.clientX,
+            pt.clientY
+          );
+        }
+      } catch (e) {
+        // The pick is a UI shortcut — it must never break a release.
+      }
       // Land EXACTLY on the last target: the smooth-move trail (above) may leave
       // the item a hair short of where the user aimed, so snap it precisely onto
       // the final target before any wall-cleanup runs.
@@ -1064,6 +1167,11 @@ export class DragRoomItemsControl3D extends EventDispatcher {
     );
     // this.__domElement.addEventListener('mouseleave', this.__releaseListenerEvent, false);//Not necessary
     this.__domElement.addEventListener(
+      "dblclick",
+      this.__dblClickListenerEvent,
+      false
+    );
+    this.__domElement.addEventListener(
       "touchend",
       this.__releaseListenerEvent,
       false
@@ -1106,6 +1214,11 @@ export class DragRoomItemsControl3D extends EventDispatcher {
       false
     );
     // this.__domElement.removeEventListener('mouseleave', this.__releaseListenerEvent, false);//Not necessary
+    this.__domElement.removeEventListener(
+      "dblclick",
+      this.__dblClickListenerEvent,
+      false
+    );
     this.__domElement.removeEventListener(
       "touchend",
       this.__releaseListenerEvent,

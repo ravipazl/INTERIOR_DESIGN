@@ -510,6 +510,16 @@ const ProjectDetail = () => {
   // neither should be given a client sidebar.
   const showClientRail =
     !isGuestUser && currentUser?.permissions === USER_ROLES.USER;
+  // Staff get the rail here too. They arrive from Projects, which HAS a rail,
+   // so landing on a project without one loses the navigation mid-flow - and
+  // with the account chip now living in the rail, it loses sign-out as well.
+  //
+  // variant="app", not "client": the client links are My rooms / Uploaded
+  // images / Project workspace, which describe a client's own single project.
+  //
+  // Guests are still excluded: a /share link has no account behind it, so a
+  // rail would show an empty avatar and a sign-out that signs nothing out.
+  const showStaffRail = !isGuestUser && !!currentUser && !showClientRail;
 
   const page = (
     <>
@@ -614,7 +624,12 @@ const ProjectDetail = () => {
               ?tab=... keeps opening any of them and nothing becomes unreachable
               for staff, for guests, or through a link. Only the strip's own
               buttons stop being drawn, and only for a signed-in client. */}
-          <Stack className={`px-0 ${showClientRail ? "pz-hide-tabstrip" : ""}`}>
+          {/* The strip was hidden for clients because their own rail carried
+              the same two destinations. They are on the architect rail now,
+              which does not, so the tabs come back - the same ones an
+              architect sees. Your Mood Book and All Images stay hidden for
+              everyone (tabClassName d-none on those two). */}
+          <Stack className="px-0">
             <Tabs
               activeKey={activeTab || selectedTabKey}
               onSelect={handleTabSelect}
@@ -623,7 +638,18 @@ const ProjectDetail = () => {
               className="custom-tabs custom-tabs_mobile"
               variant="underline"
             >
+              {/* "Your Mood Book" and "All Images" are hidden from the strip.
+                  tabClassName is react-bootstrap's supported hook - renderTab
+                  puts it on the tab BUTTON - and d-none carries !important, so
+                  it beats .nav-link's display:block. A plain HTML hidden
+                  attribute does not: .nav-link is a class selector and outranks
+                  the [hidden] user-agent rule.
+
+                  Hidden, not removed - the same call as the client tab strip.
+                  Both panes stay mounted, so ?tab=favorites and ?tab=history
+                  still open them and nothing already linked breaks. */}
               <Tab
+                tabClassName="d-none"
                 eventKey="favorites"
                 title="Your Mood Book"
                 className="pb-3 overflow-y-scroll h-100vh"
@@ -651,6 +677,7 @@ const ProjectDetail = () => {
                 )}
               </Tab>
               <Tab
+                tabClassName="d-none"
                 eventKey="history"
                 title="All Images"
                 className="pb-3 overflow-y-scroll h-100vh"
@@ -675,7 +702,12 @@ const ProjectDetail = () => {
                   />
                 )}
               </Tab>
+              {/* Hidden from the strip, like Your Mood Book and All Images.
+                  The pane stays MOUNTED, so ?tab=uploadedImages still opens it
+                  and nothing already linked to it breaks - which matters here,
+                  because setActiveTabBasedOnURL can still select this tab. */}
               <Tab
+                tabClassName="d-none"
                 eventKey="uploadedImages"
                 title="Uploaded Images"
                 className="pb-3 overflow-y-scroll overflow-x-hidden h-100vh"
@@ -863,11 +895,17 @@ const ProjectDetail = () => {
 
   // Wrapped only for a client, so staff and guests get this page exactly as
   // before — same markup, same styles, nothing shifted.
-  if (!showClientRail) return page;
+  // ONE rail for everyone signed in - clients included.
+  //
+  // Clients used to get variant="client" (My rooms / Uploaded images /
+  // Project workspace), which described the old upload-and-request-a-quote
+  // flow. They now work the way an architect does, so they get the same
+  // rail. Guests still get none: a /share link has no account behind it.
+  if (!showClientRail && !showStaffRail) return page;
 
   return (
     <div className="pz-app-shell">
-      <NavRail variant="client" clientHasProject={!!currentProject?._id} />
+      <NavRail variant="app" />
       <div className="pz-app-main">{page}</div>
     </div>
   );
