@@ -19,16 +19,11 @@ const MenuButton: React.FC<MenuTabProps> = ({
       itemData?.itemName === ACTION_MODES.ROOM_FOCUS) &&
     mode === ACTION_MODES.CAM_TOP_VIEW;
 
-  // handling ctrl z and cmd z undo
-  useEffect(() => {
-    const onKeyDown = (e: any) => {
-      if (e.code === "KeyZ" && e.key === "z") {
-        handleUndo2D();
-      }
-    };
-    document.addEventListener("keydown", onKeyDown);
-    return () => document.removeEventListener("keydown", onKeyDown);
-  }, []);
+  // (Removed) A keydown listener here called the FLOOR-PLAN undo on every
+  // "z" — plain Z too (it never checked Ctrl), inside text fields too, on the
+  // 3D tab too, and once per toolbar button, since every button added its own
+  // copy: one press undid about ten floor-plan steps. Ctrl/Cmd+Z is now handled
+  // once per tab — EditorShortcuts2D on the floor plan, furnishMenu on 3D.
 
   const handleUndo2D = () => {
     BlueprintInterface.actionsHistory2DManager.undo();

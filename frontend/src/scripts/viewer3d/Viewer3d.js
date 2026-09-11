@@ -178,6 +178,9 @@ export class Viewer3D extends Scene {
 
     this.__boundaryRegion3D = null;
     this.__currentItemSelected = null;
+    // true from a (re)load until the user selects something — see
+    // __roomItemSelected.
+    this.__holdAutoSelect = false;
     this.ctrlDown = false;
     this.__copiedItem = null;
 
@@ -1534,6 +1537,21 @@ export class Viewer3D extends Scene {
   }
 
   __roomItemSelected(evt) {
+    // After a (re)load every item selects ITSELF as its saved size / position /
+    // rotation is applied (Physical3DItem calls this from its update handler),
+    // so whichever loaded last stayed selected — a door came up showing its
+    // distance labels and Door Properties with nobody having clicked it.
+    // Until the user selects something, only a user's selection gets through:
+    // a click in 3D (sent by the drag controls), the items list, or adding an
+    // item from the catalog (flagged __user). The first one ends the hold.
+    if (this.__holdAutoSelect) {
+      const byUser = !!(
+        evt &&
+        (evt.__user || (this.dragcontrols && evt.target === this.dragcontrols))
+      );
+      if (!byUser) return;
+      this.__holdAutoSelect = false;
+    }
     this.__removeTransformControls3D();
     if (this.__currentItemSelected) {
       //this.__currentItemSelected = null;
@@ -1685,6 +1703,7 @@ export class Viewer3D extends Scene {
     this.__roomItemSelected({
       type: EVENT_ITEM_SELECTED,
       item: physicalRoomItem,
+      __user: true, // added from the catalog — select it even right after a reload
     });
   }
 
@@ -1883,6 +1902,21 @@ export class Viewer3D extends Scene {
   }
 
   addRoomItems(evt) {
+    // Items are about to be rebuilt from saved data and will select themselves
+    // as that data is applied. Hold those selections (see __roomItemSelected).
+    this.__holdAutoSelect = true;
+    // A rebuild — reload, Ctrl+Z / Ctrl+Y, the undo / redo buttons, a template
+    // — replaces every item with a new copy, so a selection made before it
+    // points at an item that no longer exists: its distance labels kept
+    // drawing and Door Properties stayed open. Clear it exactly the way a click
+    // on empty floor does, which also tells the panels to close.
+    if (this.__currentItemSelected) {
+      try {
+        this.__roomItemUnselected({ type: EVENT_NO_ITEM_SELECTED, item: null });
+      } catch (e) {
+        this.__currentItemSelected = null;
+      }
+    }
     for (var i = 0; i < this.__physicalRoomItems?.length; i++) {
       this.__physicalRoomItems[i]?.dispose();
       this.remove(this.__physicalRoomItems[i]);
