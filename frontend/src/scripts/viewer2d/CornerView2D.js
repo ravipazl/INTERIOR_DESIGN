@@ -2,7 +2,7 @@ import { BaseFloorplanViewElement2D } from "./BaseFloorplanViewElement2D.js";
 import { Dimensioning } from "../core/dimensioning.js";
 import { Vector2, EventDispatcher, CompressedPixelFormat } from "three";
 import { EVENT_MOVED, EVENT_DELETED, ACTION_EVENT_2D } from "../core/events.js";
-import { Point } from "pixi.js";
+import { Point, Circle } from "pixi.js";
 import {
   Configuration,
   snapTolerance,
@@ -26,6 +26,13 @@ export class CornerView2D extends BaseFloorplanViewElement2D {
 
     this.__corner = corner;
     this.pivot.x = this.pivot.y = 0.5;
+    // A full-size hit area, so a curve joint drawn tiny (see
+    // __drawHoveredOffState) is still as easy to hover and drag as any corner.
+    this.hitArea = new Circle(
+      0,
+      0,
+      (isMobile ? 2.5 : 1) * this.__options["corner-radius"]
+    );
 
     this.__cornerUpdateEvent = this.__updateWithModel.bind(this);
     this.__cornerDeletedEvent = this.__cornerDeleted.bind(this);
@@ -82,8 +89,65 @@ export class CornerView2D extends BaseFloorplanViewElement2D {
   }
   __drawHoveredOffState() {
     super.__drawHoveredOffState();
+    // A joint along a curve (Arc / Circle / Fillet build curves from short
+    // straight walls) gets a tiny dot, so the curve reads as one smooth wall
+    // instead of a string of beads. Real corners keep the full dot, and
+    // hovering or selecting any joint still draws it full size.
+    if (this.__isCurveJoint()) {
+      // nothing is drawn: the curve reads as one wall. The full-size hitArea
+      // still catches the mouse, and hover draws the normal dot.
+      this.clear();
+      return;
+    }
     let radius = this.__options["corner-radius"];
     this.__drawCornerState(radius, 0xcccccc, 0x000000);
+  }
+
+  // A joint along a curve (Arc / Circle / Fillet build curves from short
+  // straight walls):
+  //   inner   — two pieces of the same length bending less than 42°
+  //   tangent — where the curve runs smoothly into a straight wall: bends less
+  //             than 25° and the shorter wall is a curve piece
+  // Real corners — sharper bends, different lengths, 3+ walls — are neither.
+  __isCurveJoint() {
+    try {
+      return !!CornerView2D.jointAt(this.__corner);
+    } catch (e) {
+      return false;
+    }
+  }
+
+  static legsAt(c) {
+    if (!c) return null;
+    const walls = [...(c.wallStarts || []), ...(c.wallEnds || [])];
+    if (walls.length !== 2) return null;
+    const legs = walls.map((w) => {
+      const o = w.start === c ? w.end : w.start;
+      if (!o) return null;
+      const dx = o.x - c.x;
+      const dy = o.y - c.y;
+      const l = Math.hypot(dx, dy);
+      return l > 1e-6 ? { w, o, ux: dx / l, uy: dy / l, l } : null;
+    });
+    return legs[0] && legs[1] ? legs : null;
+  }
+
+  static isInnerJoint(c) {
+    const legs = CornerView2D.legsAt(c);
+    if (!legs) return false;
+    const [a, b] = legs;
+    if (Math.abs(a.l - b.l) > Math.max(1.5, 0.05 * Math.max(a.l, b.l))) return false;
+    return a.ux * b.ux + a.uy * b.uy < -0.743;
+  }
+
+  static jointAt(c) {
+    const legs = CornerView2D.legsAt(c);
+    if (!legs) return null;
+    if (CornerView2D.isInnerJoint(c)) return "inner";
+    const [a, b] = legs;
+    if (a.ux * b.ux + a.uy * b.uy >= -0.906) return null;
+    const short = a.l < b.l ? a : b;
+    return CornerView2D.isInnerJoint(short.o) ? "tangent" : null;
   }
 
   __updateWithModel() {

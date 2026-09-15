@@ -28,6 +28,28 @@ import { MENU_TABS } from ".";
 import templateList from "@pazl/utils/floorPlanTemplateList";
 import TemplateMenu from "./TemplateMenu/templateMenu";
 import Loader from "../Loader";
+import { createPortal } from "react-dom";
+
+// Coohom-style 2D drawing tools (scripts/viewer2d/DrawTools2D.js).
+const DRAW_TOOL_ITEMS = [
+  "arc",
+  "rectangle",
+  "circle",
+  "fillet",
+  "merge",
+  "split",
+  "trim",
+  "align",
+  "guides",
+];
+// Fillet corner types: value, label, name of the size, icon path (20×20).
+type FilletMode = "fillet" | "inner" | "rightangle" | "chamfer";
+const FILLET_TYPES: [FilletMode, string, string, string][] = [
+  ["fillet", "Fillet", "Radius", "M4 17V10A6 6 0 0 1 10 4H17"],
+  ["inner", "Inner fillet", "Radius", "M4 17V10A6 6 0 0 0 10 4H17"],
+  ["rightangle", "Inner right angle", "Size", "M4 17V10H10V4H17"],
+  ["chamfer", "Chamfer", "Length", "M4 17V10L10 4H17"],
+];
 import { HISTORY_TITLES } from "@pazl/services/ProjectManager";
 import ConfirmClearFloorplanModal from "./ConfirmClearFloorplanModal";
 import PropertiesPanel, { SelKind } from "./PropertiesPanel";
@@ -66,6 +88,17 @@ const FloorPlanMenu = ({
   const [showClearConfirmModal, setShowClearConfirmModal] = useState(false);
   const [isFloorPlanCleared, setIsFloorPlanCleared] = useState(false);
   const [savedTemplates, setSavedTemplates] = useState<any[]>([]);
+  // Tool options popover (Orthogonal / fillet radius / clear guides), shown
+  // under the active tool's button like Coohom's.
+  const [ortho, setOrtho] = useState(false);
+  const [filletMm, setFilletMm] = useState(500);
+  // Circle / Arc drawing method (the two options under their buttons).
+  const [circleMode, setCircleMode] = useState<"corner" | "radius">("corner");
+  const [arcMode, setArcMode] = useState<"radius" | "chord">("radius");
+  const [arcOrtho, setArcOrtho] = useState(false);
+  // Fillet corner type (the list under the Fillet button).
+  const [filletMode, setFilletMode] = useState<FilletMode>("fillet");
+  const [toolAnchor, setToolAnchor] = useState<DOMRect | null>(null);
 
   const handleUnitChange = async (value: string) => {
     console.debug("DEBUG: selected value for units", value);
@@ -138,7 +171,29 @@ const FloorPlanMenu = ({
         break;
       case "draw":
         setMode("draw");
+        setToolAnchor(
+          document.getElementById(itemData.id)?.getBoundingClientRect() || null
+        );
         handleDrawFreeShape();
+        break;
+      case "arc":
+      case "rectangle":
+      case "circle":
+      case "fillet":
+      case "merge":
+      case "split":
+      case "trim":
+      case "align":
+      case "guides":
+        setToolAnchor(
+          document.getElementById(itemData.id)?.getBoundingClientRect() || null
+        );
+        if (mode === itemData.itemName) {
+          // a second click on the active tool turns it off
+          (BlueprintInterface as any).exitDrawTool2D?.();
+        } else if ((BlueprintInterface as any).setDrawTool2D?.(itemData.itemName)) {
+          setMode(itemData.itemName);
+        }
         break;
       case "clear":
         onOpenClearConfirmModal();
@@ -172,6 +227,22 @@ const FloorPlanMenu = ({
         break;
     }
   };
+
+  // Keep the toolbar's lit button in step with the 2D tool: Esc (or anything
+  // else that ends a tool) turns the highlight off.
+  useEffect(() => {
+    const onTool = (e: any) => {
+      const tool = e?.detail?.tool || null;
+      setMode((m) => (tool ? tool : DRAW_TOOL_ITEMS.includes(m) ? "" : m));
+    };
+    window.addEventListener("pazl:draw-tool", onTool);
+    return () => window.removeEventListener("pazl:draw-tool", onTool);
+  }, []);
+
+  // Leaving the floor-plan tab ends any drawing tool.
+  useEffect(() => {
+    if (!active) (BlueprintInterface as any).exitDrawTool2D?.();
+  }, [active]);
 
   // Clear and Template moved to the Floor plan panel's "Draw room" section,
   // but their modals and state stay here. The panel is a sibling in the tree,
@@ -355,7 +426,12 @@ const FloorPlanMenu = ({
       <ToolbarPortal active={active}>
       <div className="flex items-center">
         {floorplanTabData.map((item: string) => {
-          if (item === "edit" || item === "settings") {
+          if (
+            item === "edit" ||
+            item === "draw_tools" ||
+            item === "modify_tools" ||
+            item === "settings"
+          ) {
             return (
               <div
                 key={item}
@@ -375,6 +451,201 @@ const FloorPlanMenu = ({
         })}
       </div>
       </ToolbarPortal>
+      {active &&
+      toolAnchor &&
+      ["draw", "guides", "fillet", "circle", "arc"].includes(mode)
+        ? createPortal(
+            <div
+              role="group"
+              aria-label="Tool options"
+              style={{
+                position: "fixed",
+                top: toolAnchor.bottom + 6,
+                left: Math.max(8, toolAnchor.left - 8),
+                zIndex: 1050,
+                background: "#fff",
+                borderRadius: 8,
+                boxShadow:
+                  "0 6px 20px rgba(20,24,51,0.14), 0 0 0 1px rgba(20,24,51,0.06)",
+                padding: "8px 12px",
+                display: "flex",
+                alignItems: "center",
+                gap: 12,
+                fontSize: 13,
+                color: "#333",
+              }}
+            >
+              {mode === "circle" || mode === "arc" ? (
+                <>
+                <div style={{ display: "flex", gap: 4 }}>
+                  {(mode === "circle"
+                    ? [
+                        ["corner", "circumscribed corner", "crop_square"],
+                        ["radius", "radius", "adjust"],
+                      ]
+                    : [
+                        ["radius", "Radius", "track_changes"],
+                        ["chord", "Chord height", "height"],
+                      ]
+                  ).map(([value, label, icon]) => {
+                    const on =
+                      (mode === "circle" ? circleMode : arcMode) === value;
+                    return (
+                      <button
+                        key={value}
+                        type="button"
+                        onClick={() => {
+                          if (mode === "circle") {
+                            setCircleMode(value as "corner" | "radius");
+                            (BlueprintInterface as any).setCircleMode2D?.(value);
+                          } else {
+                            setArcMode(value as "radius" | "chord");
+                            (BlueprintInterface as any).setArcMode2D?.(value);
+                          }
+                        }}
+                        style={{
+                          display: "flex",
+                          flexDirection: "column",
+                          alignItems: "center",
+                          gap: 2,
+                          padding: "4px 10px",
+                          borderRadius: 6,
+                          border: "none",
+                          background: on ? "rgba(30,136,229,0.10)" : "transparent",
+                          color: on ? "#1e88e5" : "#555",
+                          cursor: "pointer",
+                          fontSize: 12,
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        <span
+                          className="material-symbols-outlined"
+                          style={{ fontSize: 20, lineHeight: "20px" }}
+                        >
+                          {icon}
+                        </span>
+                        {label}
+                      </button>
+                    );
+                  })}
+                </div>
+                {mode === "arc" ? (
+                  <label
+                    style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer", whiteSpace: "nowrap" }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={arcOrtho}
+                      onChange={(e) => {
+                        setArcOrtho(e.target.checked);
+                        (BlueprintInterface as any).setArcOrthogonal2D?.(e.target.checked);
+                      }}
+                    />
+                    Orthogonal
+                  </label>
+                ) : null}
+                </>
+              ) : mode === "fillet" ? (
+                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                <div role="radiogroup" aria-label="Corner type" style={{ display: "flex", flexDirection: "column" }}>
+                  {FILLET_TYPES.map(([value, label, , icon]) => {
+                    const on = filletMode === value;
+                    return (
+                      <button
+                        key={value}
+                        type="button"
+                        role="radio"
+                        aria-checked={on}
+                        onClick={() => {
+                          setFilletMode(value);
+                          (BlueprintInterface as any).setFilletMode2D?.(value);
+                        }}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 8,
+                          padding: "5px 8px",
+                          borderRadius: 6,
+                          border: "none",
+                          background: on ? "rgba(30,136,229,0.10)" : "transparent",
+                          color: on ? "#1e88e5" : "#333",
+                          cursor: "pointer",
+                          fontSize: 13,
+                          whiteSpace: "nowrap",
+                          textAlign: "left",
+                        }}
+                      >
+                        <svg width="18" height="18" viewBox="0 0 20 20" aria-hidden="true">
+                          <path
+                            d={icon}
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="1.7"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        </svg>
+                        {label}
+                      </button>
+                    );
+                  })}
+                </div>
+                <label style={{ display: "flex", alignItems: "center", gap: 6, paddingLeft: 8 }}>
+                  {FILLET_TYPES.find((t) => t[0] === filletMode)?.[2] || "Radius"}
+                  <input
+                    type="number"
+                    min={10}
+                    step={10}
+                    value={filletMm}
+                    onChange={(e) => {
+                      const v = Number(e.target.value);
+                      setFilletMm(v);
+                      if (v > 0) (BlueprintInterface as any).setFilletRadius2D?.(v / 10);
+                    }}
+                    style={{
+                      width: 76,
+                      border: "1px solid #d1d5db",
+                      borderRadius: 4,
+                      padding: "2px 6px",
+                    }}
+                  />
+                  mm
+                </label>
+                </div>
+              ) : (
+                <label
+                  style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer" }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={ortho}
+                    onChange={(e) => {
+                      setOrtho(e.target.checked);
+                      (BlueprintInterface as any).setOrthogonal2D?.(e.target.checked);
+                    }}
+                  />
+                  Orthogonal
+                </label>
+              )}
+              {mode === "guides" ? (
+                <button
+                  type="button"
+                  onClick={() => (BlueprintInterface as any).clearGuides2D?.()}
+                  style={{
+                    border: "1px solid #d1d5db",
+                    background: "#fff",
+                    borderRadius: 4,
+                    padding: "2px 8px",
+                    cursor: "pointer",
+                  }}
+                >
+                  Clear guides
+                </button>
+              ) : null}
+            </div>,
+            document.body
+          )
+        : null}
       {/* Unified properties panel — one docked panel for whatever is selected. */}
       <PropertiesPanel
         kind={

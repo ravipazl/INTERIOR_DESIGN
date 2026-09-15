@@ -1113,6 +1113,33 @@ BlueprintInterface.snapshot2D = () => {
   }
 };
 
+// Coohom-style 2D drawing tools (scripts/viewer2d/DrawTools2D.js) — the
+// toolbar's Arc, Rectangle, Circle, Fillet, Merge, Split, Align and
+// Guides, plus the Orthogonal option (also honoured by Line).
+const __drawTools2D = () =>
+  BlueprintInterface?.blueprint3d?.floorplanner?.__drawTools || null;
+BlueprintInterface.setDrawTool2D = (tool) => {
+  try {
+    return !!__drawTools2D()?.activate(tool);
+  } catch (e) {
+    console.error("setDrawTool2D failed", e);
+    return false;
+  }
+};
+BlueprintInterface.setOrthogonal2D = (on) => __drawTools2D()?.setOrthogonal(on);
+BlueprintInterface.setFilletRadius2D = (cm) =>
+  __drawTools2D()?.setFilletRadiusCm(cm);
+BlueprintInterface.clearGuides2D = () => __drawTools2D()?.clearGuides();
+// Circle: "corner" (circumscribed corner) | "radius". Arc: "radius" | "chord".
+BlueprintInterface.setCircleMode2D = (mode) => __drawTools2D()?.setCircleMode(mode);
+BlueprintInterface.setArcMode2D = (mode) => __drawTools2D()?.setArcMode(mode);
+// Arc's own Orthogonal option (separate from Line / Guides).
+BlueprintInterface.setArcOrthogonal2D = (on) => __drawTools2D()?.setArcOrthogonal(on);
+// Fillet: "fillet" | "inner" (inner fillet) | "rightangle" (inner right angle) | "chamfer".
+BlueprintInterface.setFilletMode2D = (mode) => __drawTools2D()?.setFilletMode(mode);
+BlueprintInterface.exitDrawTool2D = () =>
+  BlueprintInterface?.blueprint3d?.floorplanner?.__exitToolMode?.();
+
 // The opening currently highlighted in the 2D view (set by Viewer2D).
 BlueprintInterface.getSelectedOpening2D = () =>
   BlueprintInterface?.blueprint3d?.floorplanner?.__selectedOpening || null;

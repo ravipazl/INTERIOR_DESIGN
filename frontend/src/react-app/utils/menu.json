@@ -4,24 +4,6 @@
     "name": "floor_plan",
     "items": [
       {
-        "id": "5e6d7090-fa24-46f0-8627-af395f39edbf",
-        "itemName": "select",
-        "itemType": "button",
-        "iconName": "gesture_select",
-        "value": null,
-        "classification": "edit",
-        "actionType": "EDIT_SELECT"
-      },
-      {
-        "id": "53810cd3-fa8e-4874-8dfb-4cd8dc7e0940",
-        "itemName": "draw",
-        "itemType": "button",
-        "iconName": "draw",
-        "value": null,
-        "classification": "edit",
-        "actionType": "EDIT_DRAW"
-      },
-      {
         "id": "b4458ddb-bbfe-4d70-9fd0-2ff7a84e54fb",
         "itemName": "undo",
         "itemType": "button",
@@ -47,6 +29,105 @@
         "value": null,
         "classification": "edit",
         "actionType": "EDIT_CLEAR"
+      },
+      {
+        "id": "5e6d7090-fa24-46f0-8627-af395f39edbf",
+        "itemName": "select",
+        "itemType": "button",
+        "iconName": "gesture_select",
+        "value": null,
+        "classification": "edit",
+        "actionType": "EDIT_SELECT"
+      },
+      {
+        "id": "53810cd3-fa8e-4874-8dfb-4cd8dc7e0940",
+        "itemName": "draw",
+        "itemType": "button",
+        "iconName": "draw",
+        "value": null,
+        "classification": "edit",
+        "actionType": "EDIT_DRAW"
+      },
+      {
+        "id": "7bf57396-db12-46b0-8a6c-4eeeba42e2db",
+        "itemName": "arc",
+        "itemType": "button",
+        "iconName": "line_curve",
+        "value": null,
+        "classification": "draw_tools",
+        "actionType": "DRAW_ARC"
+      },
+      {
+        "id": "42bf68f5-ed8d-4ed9-af7a-e2528053be8f",
+        "itemName": "rectangle",
+        "itemType": "button",
+        "iconName": "rectangle",
+        "value": null,
+        "classification": "draw_tools",
+        "actionType": "DRAW_RECTANGLE"
+      },
+      {
+        "id": "a6d42aff-3688-4649-b245-9d3549e0c00b",
+        "itemName": "circle",
+        "itemType": "button",
+        "iconName": "circle",
+        "value": null,
+        "classification": "draw_tools",
+        "actionType": "DRAW_CIRCLE"
+      },
+      {
+        "id": "1c328980-43de-470d-ac5b-2c17a16fed89",
+        "itemName": "fillet",
+        "itemType": "button",
+        "iconName": "rounded_corner",
+        "value": null,
+        "classification": "modify_tools",
+        "actionType": "DRAW_FILLET"
+      },
+      {
+        "id": "e102b930-78d7-4565-9bbb-f5f7d76a80d2",
+        "itemName": "merge",
+        "itemType": "button",
+        "iconName": "call_merge",
+        "value": null,
+        "classification": "modify_tools",
+        "actionType": "DRAW_MERGE"
+      },
+      {
+        "id": "7fb897f5-63bb-46e9-b457-0d674faf863a",
+        "itemName": "split",
+        "itemType": "button",
+        "iconName": "call_split",
+        "value": null,
+        "classification": "modify_tools",
+        "actionType": "DRAW_SPLIT"
+      },
+      {
+        "id": "3f1c8a52-9d47-4b6e-a1f0-6c2e8d5b7a31",
+        "itemName": "trim",
+        "itemType": "button",
+        "iconName": "content_cut",
+        "value": null,
+        "classification": "modify_tools",
+        "actionType": "DRAW_TRIM"
+      },
+      {
+        "id": "b36b50db-1534-4be8-a1dd-b0370bc9b1e7",
+        "itemName": "align",
+        "itemType": "button",
+        "iconName": "align_horizontal_center",
+        "value": null,
+        "classification": "modify_tools",
+        "actionType": "DRAW_ALIGN"
+      },
+      {
+        "id": "52b957e4-a405-4a8e-b2aa-b62c83d8b646",
+        "itemName": "guides",
+        "itemType": "button",
+        "iconName": "grid_guides",
+        "value": null,
+        "classification": "modify_tools",
+        "actionType": "DRAW_GUIDES"
       },
       {
         "id": "1e066ab9-1f51-4da5-b042-9b9672bd4533",

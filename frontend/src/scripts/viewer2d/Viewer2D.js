@@ -35,9 +35,12 @@ import { IS_TOUCH_DEVICE } from "../../DeviceInfo";
 import { CornerGroupTransform2D } from "./CornerGroupTransform2D";
 import Room from "../model/room";
 import { BoundaryView2D } from "./BoundaryView2D";
+import { DrawTools2D } from "./DrawTools2D";
+import { LineLengthBox2D } from "./LineLengthBox2D";
 import BlueprintInterface from "@pazl/blueprint-interface";
 
-export const floorplannerModes = { MOVE: 0, DRAW: 1, EDIT_ISLANDS: 2 };
+// TOOL: a drawing tool from DrawTools2D (Arc, Rectangle, Split, …) has the mouse.
+export const floorplannerModes = { MOVE: 0, DRAW: 1, EDIT_ISLANDS: 2, TOOL: 3 };
 
 class TemporaryWall extends Graphics {
   constructor() {
@@ -58,53 +61,73 @@ class TemporaryWall extends Graphics {
     return vector;
   }
 
+  // Coohom-style preview: thin green wall line, a dashed helper line along its
+  // direction through the start point (shows when it is exactly straight), a
+  // ring at each end. The length is shown in the editable box
+  // (LineLengthBox2D); touch devices, which cannot type into it, keep the text.
   update(corner, endPoint, startPoint) {
     this.clear();
     this.__textfield.visible = false;
+    const s = (this.parent && this.parent.scale && this.parent.scale.x) || 1;
     if (corner !== undefined && endPoint !== undefined) {
       let pxCornerCo = this.__toPixels(corner.location.clone());
       let pxEndPoint = this.__toPixels(endPoint.clone());
-      let vect = endPoint.clone().sub(corner.location);
-      let midPoint = pxEndPoint
-        .clone()
-        .sub(pxCornerCo)
-        .multiplyScalar(0.5)
-        .add(pxCornerCo);
+      const d = pxEndPoint.clone().sub(pxCornerCo);
+      const len = d.length();
+      if (len > 1e-6) {
+        const dir = d.clone().divideScalar(len);
+        const ext = 2000 / s;
+        const dash = 7 / s;
+        const gap = 6 / s;
+        this.lineStyle(1.2 / s, 0x20c997, 0.6);
+        for (let t = -ext; t < len + ext; t += dash + gap) {
+          const t2 = Math.min(t + dash, len + ext);
+          this.moveTo(pxCornerCo.x + dir.x * t, pxCornerCo.y + dir.y * t);
+          this.lineTo(pxCornerCo.x + dir.x * t2, pxCornerCo.y + dir.y * t2);
+        }
+      }
 
-      this.lineStyle(10, 0x008cba);
+      this.lineStyle(3 / s, 0x12b886, 1);
       this.moveTo(pxCornerCo.x, pxCornerCo.y);
       this.lineTo(pxEndPoint.x, pxEndPoint.y);
 
-      this.beginFill(0x008cba, 0.5);
-      this.drawCircle(pxEndPoint.x, pxEndPoint.y, 10);
+      this.lineStyle(2.5 / s, 0x12b886, 1);
+      this.beginFill(0xffffff, 1);
+      this.drawCircle(pxCornerCo.x, pxCornerCo.y, 5 / s);
+      this.endFill();
+      this.drawCircle(pxEndPoint.x, pxEndPoint.y, 8 / s);
 
-      this.__textfield.position.x = midPoint.x;
-      this.__textfield.position.y = midPoint.y;
-      if (
-        Configuration.getData().dimUnit === "mm" ||
-        Configuration.getData().dimUnit === "m"
-      ) {
-        //showing the labels in terms of meters even though the unit is mm
-        this.__textfield.text = Dimensioning.cmToMeasureUnit(
-          vect.length(),
-          1,
-          "m"
-        );
+      if (IS_TOUCH_DEVICE) {
+        let vect = endPoint.clone().sub(corner.location);
+        let midPoint = pxEndPoint
+          .clone()
+          .sub(pxCornerCo)
+          .multiplyScalar(0.5)
+          .add(pxCornerCo);
+        this.__textfield.position.x = midPoint.x;
+        this.__textfield.position.y = midPoint.y;
+        if (
+          Configuration.getData().dimUnit === "mm" ||
+          Configuration.getData().dimUnit === "m"
+        ) {
+          this.__textfield.text = Dimensioning.cmToMeasureUnit(vect.length(), 1, "m");
+        }
+        if (Configuration.getData().dimUnit === "feetAndInch") {
+          this.__textfield.text = Dimensioning.cmToMeasureUnit(
+            vect.length(),
+            1,
+            "feetAndInch"
+          );
+        }
+        this.__textfield.visible = true;
       }
-      if (Configuration.getData().dimUnit === "feetAndInch") {
-        this.__textfield.text = Dimensioning.cmToMeasureUnit(
-          vect.length(),
-          1,
-          "feetAndInch"
-        );
-      }
-      // console.log("textfield ", this.__textfield);
-      this.__textfield.visible = true;
     }
     if (startPoint !== undefined) {
       let pxStartCo = this.__toPixels(startPoint);
-      this.beginFill(0x008cba, 0.5);
-      this.drawCircle(pxStartCo.x, pxStartCo.y, 10);
+      this.lineStyle(2.5 / s, 0x12b886, 1);
+      this.beginFill(0xffffff, 0.9);
+      this.drawCircle(pxStartCo.x, pxStartCo.y, 6 / s);
+      this.endFill();
     }
   }
 }
@@ -329,6 +352,18 @@ export class Viewer2D extends Application {
     this._handleWindowResize();
 
     this.__center();
+
+    // Coohom-style drawing tools. Idle until one is chosen from the toolbar.
+    this.__drawTools = new DrawTools2D(this);
+
+    // Line tool's typed-length box (Coohom-style): type a length, Enter.
+    this.__lineCursor = null;
+    this.__lengthBox = new LineLengthBox2D(this, {
+      isDrawing: () =>
+        this.__mode === floorplannerModes.DRAW && !!this.__lastNode,
+      commit: (end) => this.__commitDrawPoint(end),
+      redraw: () => this.__refreshTempWall(),
+    });
   }
 
   __drawBoundary() {
@@ -362,6 +397,15 @@ export class Viewer2D extends Application {
   }
 
   switchMode(mode) {
+    // Any mode change (Esc, Select, Line, …) ends a drawing tool. TOOL itself
+    // is entered by the tool, which sets itself up right after this call.
+    if (mode !== floorplannerModes.TOOL && this.__drawTools) {
+      this.__drawTools.deactivate();
+    }
+    if (this.__lengthBox) {
+      this.__lengthBox.reset();
+      this.__lengthBox.hide();
+    }
     if (
       this.__mode === floorplannerModes.EDIT_ISLANDS &&
       mode !== floorplannerModes.EDIT_ISLANDS
@@ -412,8 +456,36 @@ export class Viewer2D extends Application {
         this.__floorplanContainer.plugins.resume("drag");
         this.__changeCursorMode();
         break;
+      case floorplannerModes.TOOL:
+        // Like DRAW — nothing underneath selectable or draggable, no panning —
+        // but without the Line tool's temporary wall.
+        this.__mode = floorplannerModes.TOOL;
+        this.__floorplanContainer.plugins.pause("drag");
+        for (let i = 0; i < this.__entities2D.length; i++) {
+          this.__entities2D[i].interactive = false;
+        }
+        this.__tempWall.visible = false;
+        this.__groupTransformer.visible = false;
+        this.__groupTransformer.selected = null;
+        this.__lastNode = null;
+        this.__changeCursorMode();
+        break;
       default:
         throw new Error("Unknown Viewer2D mode");
+    }
+  }
+
+  // For DrawTools2D: leave whatever mode we are in (ends a Line drawing,
+  // clears the selection), then take the mouse for the tool.
+  __enterToolMode() {
+    this.switchMode(floorplannerModes.MOVE);
+    this.switchMode(floorplannerModes.TOOL);
+  }
+
+  // Back to plain Select — ends whatever drawing tool is active.
+  __exitToolMode() {
+    if (this.__mode === floorplannerModes.TOOL) {
+      this.switchMode(floorplannerModes.MOVE);
     }
   }
 
@@ -435,7 +507,10 @@ export class Viewer2D extends Application {
 
   __changeCursorMode() {
     let cursor =
-      this.__mode === floorplannerModes.DRAW ? "crosshair" : "pointer";
+      this.__mode === floorplannerModes.DRAW ||
+      this.__mode === floorplannerModes.TOOL
+        ? "crosshair"
+        : "pointer";
     this.renderer.plugins.interaction.cursorStyles.crosshair = cursor;
     this.renderer.plugins.interaction.cursorStyles.default = cursor;
     this.renderer.plugins.interaction.setCursorMode(cursor);
@@ -462,45 +537,76 @@ export class Viewer2D extends Application {
           Configuration.getNumericValue(snapTolerance);
       }
 
+      // Orthogonal (toolbar option): straight lines only — horizontal or
+      // vertical from the previous point. Off by default.
+      if (this.__drawTools && this.__drawTools.orthogonal && this.__lastNode) {
+        cmCo = this.__drawTools.orthoFrom(this.__lastNode.location, cmCo);
+      }
+
+      // A length typed in the box: the wall ends at that length in the
+      // direction of the click — exactly where the preview shows it.
+      if (this.__lastNode && this.__lengthBox) {
+        cmCo = this.__lengthBox.effectiveEnd(this.__lastNode.location, cmCo);
+      }
+
       if (this.__floorplan.boundary) {
         if (!this.__floorplan.boundary.containsPoint(cmCo.x, cmCo.y)) {
           //return;
         }
       }
 
-      // This creates the corner already
-      let corner = this.__floorplan.newCorner(cmCo.x, cmCo.y);
+      this.__commitDrawPoint(cmCo);
+    }
+  }
 
-      // further create a newWall based on the newly inserted corners
-      // (one in the above line and the other in the previous mouse action
-      // of start drawing a new wall)
-      if (this.__lastNode != null) {
-        this.__floorplan.newWall(this.__lastNode, corner);
-        this.__floorplan.newWallsForIntersections(this.__lastNode, corner);
-        console.debug(this, "wall created");
+  // End the current wall at cmCo (cm). Shared by a mouse click and by Enter in
+  // the length box, so both create walls exactly the same way.
+  __commitDrawPoint(cmCo) {
+    if (this.__mode !== floorplannerModes.DRAW) return;
 
-        BlueprintInterface.actionsHistory2DManager.rise2DActionEvent(
-          ACTION_EVENT_2D,
-          corner
-        );
-        // this.__tempWall.visible = false;
-        // this.switchMode(floorplannerModes.MOVE);
-      }
-      if (corner.mergeWithIntersected() && this.__lastNode != null) {
-        this.__tempWall.visible = false;
-        this.__lastNode = null;
-        this.switchMode(floorplannerModes.MOVE);
-      }
+    // This creates the corner already
+    let corner = this.__floorplan.newCorner(cmCo.x, cmCo.y);
 
-      if (this.__lastNode === null && this.__mode === floorplannerModes.DRAW) {
-        this.__tempWall.visible = true;
-      }
+    // further create a newWall based on the newly inserted corners
+    // (one in the above line and the other in the previous mouse action
+    // of start drawing a new wall)
+    if (this.__lastNode != null) {
+      this.__floorplan.newWall(this.__lastNode, corner);
+      this.__floorplan.newWallsForIntersections(this.__lastNode, corner);
+      console.debug(this, "wall created");
 
-      if (IS_TOUCH_DEVICE && corner && this.__lastNode !== null) {
-        this.__tempWall.visible = false;
-        this.__lastNode = null;
+      BlueprintInterface.actionsHistory2DManager.rise2DActionEvent(
+        ACTION_EVENT_2D,
+        corner
+      );
+      // this.__tempWall.visible = false;
+      // this.switchMode(floorplannerModes.MOVE);
+    }
+    if (corner.mergeWithIntersected() && this.__lastNode != null) {
+      this.__tempWall.visible = false;
+      this.__lastNode = null;
+      this.switchMode(floorplannerModes.MOVE);
+    }
+
+    if (this.__lastNode === null && this.__mode === floorplannerModes.DRAW) {
+      this.__tempWall.visible = true;
+    }
+
+    if (IS_TOUCH_DEVICE && corner && this.__lastNode !== null) {
+      this.__tempWall.visible = false;
+      this.__lastNode = null;
+    } else {
+      this.__lastNode = corner;
+    }
+
+    // The next wall starts from here: clear the typed length and redraw the
+    // preview from the new corner to where the mouse is.
+    if (this.__lengthBox) {
+      this.__lengthBox.reset();
+      if (this.__mode === floorplannerModes.DRAW && this.__lastNode && this.__lineCursor) {
+        this.__refreshTempWall();
       } else {
-        this.__lastNode = corner;
+        this.__lengthBox.hide();
       }
     }
   }
@@ -520,11 +626,30 @@ export class Viewer2D extends Application {
           Math.floor(cmCo.y / Configuration.getNumericValue(snapTolerance)) *
           Configuration.getNumericValue(snapTolerance);
       }
+      if (this.__drawTools && this.__drawTools.orthogonal && this.__lastNode) {
+        cmCo = this.__drawTools.orthoFrom(this.__lastNode.location, cmCo);
+      }
+      this.__lineCursor = cmCo;
       if (this.__lastNode !== null) {
-        this.__tempWall.update(this.__lastNode, cmCo);
+        this.__refreshTempWall();
       } else {
         this.__tempWall.update(lastNode, undefined, cmCo);
+        if (this.__lengthBox) this.__lengthBox.hide();
       }
+    }
+  }
+
+  // Redraw the Line preview (and its length box) from the last corner toward
+  // the mouse — at the typed length when one has been typed.
+  __refreshTempWall() {
+    if (!this.__lastNode || !this.__lineCursor) return;
+    const from = this.__lastNode.location;
+    const end = this.__lengthBox
+      ? this.__lengthBox.effectiveEnd(from, this.__lineCursor)
+      : this.__lineCursor;
+    this.__tempWall.update(this.__lastNode, end);
+    if (this.__lengthBox && !IS_TOUCH_DEVICE) {
+      this.__lengthBox.show(from, end, this.__lineCursor);
     }
   }
 
@@ -537,6 +662,8 @@ export class Viewer2D extends Application {
   }
 
   __selectionMonitor(evt) {
+    // A drawing tool's clicks are its own — don't also select what's under them.
+    if (this.__mode === floorplannerModes.TOOL) return;
     this.__currentSelection = null;
     this.__groupTransformer.visible = false;
     this.__groupTransformer.selected = null;
@@ -633,6 +760,9 @@ export class Viewer2D extends Application {
     this.__tempWallHolder.scale.x = this.__tempWallHolder.scale.y = zoom;
 
     this.__grid2d.gridScale = this.__floorplanContainer.scale.x;
+    if (this.__mode === floorplannerModes.DRAW && this.__lastNode) {
+      this.__refreshTempWall();
+    }
   }
 
   __panned() {
@@ -658,6 +788,9 @@ export class Viewer2D extends Application {
 
     this.__floorplanContainer.x = this.__tempWallHolder.x = xValue;
     this.__floorplanContainer.y = this.__tempWallHolder.y = yValue;
+    if (this.__mode === floorplannerModes.DRAW && this.__lastNode) {
+      this.__refreshTempWall();
+    }
     // console.log('---------------------------------------------');
     // console.log('CURRENT ZOOM :: ', zoom);
     // console.log('TOP LEFT :: ', topleft);
@@ -1770,6 +1903,8 @@ export class Viewer2D extends Application {
   }
 
   dispose() {
+    if (this.__drawTools) this.__drawTools.deactivate();
+    if (this.__lengthBox) this.__lengthBox.destroy();
     this.__floorplanContainer.off("zoomed", this.__zoomedEvent);
     this.__floorplanContainer.off("moved", this.__pannedEvent);
     this.__floorplanContainer.off("clicked", this.__selectionMonitorEvent);
