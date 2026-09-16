@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { RenderService, AiRunBody } from "@pazl/services/RenderService";
 import { ProjectWorkspaceService, ProjectItem, resolveFileUrl } from "@pazl/services/ProjectWorkspaceService";
 import { AuthService } from "@pazl/services/authService";
-import { LIGHTING, EXTERIOR_LIGHTING, LANDSCAPE, PRICE, STRICT_WORDS, KEEP_WORDS } from "./options";
+import { LIGHTING, EXTERIOR_LIGHTING, LANDSCAPE, PRICE } from "./options";
 
 // Step 2 of the AI render: the render screen (MyArchitectAI session layout).
 //
@@ -207,11 +207,6 @@ const RenderStudio: React.FC<{
   // render tab
   const [sceneType, setSceneType] = useState<"interior" | "exterior">("interior");
   const [mode, setMode] = useState<"preserve" | "style">("preserve");
-  // How much the AI may change:
-  //   photoreal — the generative render (best looking, may invent details)
-  //   keep      — edit-by-prompt: only realism, nothing added or replaced
-  const [engine, setEngine] = useState<"photoreal" | "keep">("keep");
-  const [strict, setStrict] = useState(true);
   const [prompt, setPrompt] = useState("");
   const [promptOpen, setPromptOpen] = useState(false);
   const [autoBusy, setAutoBusy] = useState(false);
@@ -435,7 +430,7 @@ const RenderStudio: React.FC<{
       );
     }
     const words = sceneType === "interior" ? lighting.promptWords : landscape.promptWords;
-    const fullPrompt = [prompt.trim(), words, strict ? STRICT_WORDS : ""].filter(Boolean).join(", ");
+    const fullPrompt = [prompt.trim(), words].filter(Boolean).join(", ");
     const context = (
       sceneType === "interior"
         ? [lighting.id !== "none" ? lighting.label : ""]
@@ -443,21 +438,6 @@ const RenderStudio: React.FC<{
     )
       .filter(Boolean)
       .join(" · ");
-    // Keep my design: one edit pass over the same picture. It changes far less
-    // than the render call — nothing is repainted from scratch — so the room
-    // keeps its own cabinets, materials and (empty) worktop.
-    if (engine === "keep") {
-      const lightWords = sceneType === "interior" ? lighting.words || lighting.promptWords : extLight.words;
-      const keepPrompt = [KEEP_WORDS, prompt.trim(), lightWords, sceneType === "exterior" ? landscape.promptWords : ""]
-        .filter(Boolean)
-        .join(" ");
-      return start(
-        { op: "edit", ...sourceRef(), prompt: keepPrompt },
-        { op: "edit", keep: true, sceneType, prompt, context },
-        `Keep my design · ${sceneType === "interior" ? "Interior" : "Exterior"}${context ? ` · ${context}` : ""} — ${stamp()}`,
-        "Keeping your design"
-      );
-    }
     return start(
       {
         op: "render",
@@ -592,22 +572,15 @@ const RenderStudio: React.FC<{
         />
       </div>
       <div className="flex flex-col gap-2.5 rounded-2xl border border-gray-200 bg-white p-3">
-        <div className="text-[14px] font-semibold">Rendering</div>
+        <div className="text-[14px] font-semibold">Rendering mode</div>
 
         {/* Apply style is hidden: one mode, so this reads as a heading rather
             than a choice. The style-transfer code below and in the backend is
             untouched, so it can be shown again by restoring its card. */}
         <div className="rounded-xl border border-gray-200 p-3">
-          {/* Only the light-touch pass: it edits the captured view instead of
-              repainting it, so nothing is added. The generative "Photoreal"
-              render kept inventing a hob, an extractor hood and new materials
-              however strictly the prompt forbade it, so it is no longer
-              offered (the code path stays for a future option). */}
           <div>
-            <b className="text-[14px]">Keep my design</b>
-            <span className="mt-0.5 block text-[12.5px] leading-snug text-gray-500">
-              Adds realistic lighting, shadows and material texture, and keeps every item exactly as it is — nothing added, nothing replaced.
-            </span>
+            <b className="text-[14px]">Preserve existing textures</b>
+            <span className="mt-0.5 block text-[12.5px] leading-snug text-gray-500">Adds photorealism while keeping your colours and materials unchanged.</span>
           </div>
           {mode === "preserve" && (
             <div className="mt-3 space-y-3">
@@ -670,7 +643,7 @@ const RenderStudio: React.FC<{
       <div className="sticky bottom-0 bg-[#f6f6f8] pb-1 pt-1">
         {primary("Render", renderNow)}
         <div className="mt-1.5 text-center text-[12px] text-gray-500">
-          {engine === "keep" ? "About 5 s · changes as little as possible" : relight ? "About 1–1½ min (render + lighting)" : "About 15–30 s"}
+          {relight ? "About 1–1½ min (render + lighting)" : "About 15–30 s"}
         </div>
       </div>
     </>

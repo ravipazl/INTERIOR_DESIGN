@@ -1120,9 +1120,20 @@ function __ensureGhost(model, viewer) {
   if (!url || !BlueprintInterface.GLTFLoader) return;
 
   // Load into the cache only (no-op onLoad) — the real drop reuses it instantly.
+  // Warm the per-mesh component lookups at the same time, so the drop has
+  // nothing left to fetch (see warmModelCache below).
   __loadGltfCached(
     url,
-    () => {},
+    (gltf) => {
+      try {
+        let i = 0;
+        gltf?.scene?.traverse?.((o) => {
+          if (o.isMesh) ModelsService.getModelComponentTexture(`Mesh_${i++}`);
+        });
+      } catch (e) {
+        /* non-fatal */
+      }
+    },
     (err) => {
       console.warn("model preload failed (non-fatal) — ignoring", err);
     }
@@ -1140,7 +1151,21 @@ function warmModelCache(model) {
     if (!url || !BlueprintInterface.GLTFLoader) return;
     __loadGltfCached(
       url,
-      () => {},
+      (gltf) => {
+        // Also warm the per-mesh component lookups. Adding an item waits for
+        // one of these per mesh before it can be placed; they are cached by
+        // name ("Mesh_0", "Mesh_1", …) for the whole session, so fetching them
+        // now — while the user is still hovering or dragging — leaves the add
+        // itself with nothing to wait for.
+        try {
+          let i = 0;
+          gltf?.scene?.traverse?.((o) => {
+            if (o.isMesh) ModelsService.getModelComponentTexture(`Mesh_${i++}`);
+          });
+        } catch (e) {
+          /* non-fatal: the add path fetches them itself */
+        }
+      },
       (err) => console.warn("warmModelCache failed (non-fatal)", err)
     );
   } catch (e) {

@@ -290,8 +290,16 @@ const FurnishMenu = ({
   }, [navView]);
 
 
+  // These 3D listeners cannot be removed again (event-interface.js wraps the
+  // callback), so register them ONCE. Without this guard every re-run of the
+  // effect stacked another copy and every click did the work N times over.
+  const wiredRef = useRef(false);
+  /** furnishedModelId → the scale it was last measured at. */
+  const measuredRef = useRef<Map<string, string>>(new Map());
+
   useEffect(() => {
-    if (BlueprintInterface && BlueprintInterface.blueprint3d) {
+    if (BlueprintInterface && BlueprintInterface.blueprint3d && !wiredRef.current) {
+      wiredRef.current = true;
       handleWallClicked((evt: any) => {
         /* PERF-REMOVED */ // console.debug("furnishedMenu.tsx ~ handleWallClicked ~ event", evt);
         setShowWallPropertiesModal(true);
@@ -320,7 +328,12 @@ const FurnishMenu = ({
               itemModel.__id,
               evt.item.position,
               evt.item.scale,
-              evt.item.rotation
+              evt.item.rotation,
+              // The object that was just clicked. Measuring THIS one (instead
+              // of BlueprintInterface.selectedModels, which another listener
+              // sets a moment later) is what kept the panel showing the
+              // previously selected item's sizes.
+              evt.item
             );
             setShowObjectPanel(true);
             setShowDoorPropertiesModal(false);
@@ -388,34 +401,27 @@ const FurnishMenu = ({
     }
   }, [BlueprintInterface, BlueprintInterface.blueprint3d]);
 
-  const getSelectedModel = async (
-    furnishedModelId: string,
-    position?: Vector3,
-    scale?: Vector3,
-    rotation?: Vector3
-  ) => {
-    /* PERF-REMOVED console.debug: console.debug(
-      "furnishedMenu.tsx ~ getSelectedModel ~ furnishedModelId",
-      furnishedModelId
-    ); */
-    // Measure EVERY mesh of the loaded model and save its size to the matching
-    // component, so the BOQ can compute area. We traverse the FULL object graph
-    // (not just the scene's direct children): Sketchfab imports nest their meshes
-    // many levels deep under a single "Sketchfab_model" wrapper, so a one-level
-    // scan finds only the wrapper (not a mesh) and its name matches no component —
-    // which is why those items were never measured. Match components by mesh
-    // INDEX ("Mesh_N") — how the catalog seeds component names — because the raw
-    // mesh node names ("Sketchfab_model", "mesh_0", "Mesh_0.002") are unreliable.
-    for (const model of BlueprintInterface?.selectedModels || []) {
-      const meshes: any[] = [];
+  /**
+   * Measure every mesh of ONE object and save its size to the matching
+   * component, so the BOQ can compute area.
+   *
+   * Runs in the BACKGROUND, after the panel is already on screen: each mesh
+   * costs an IndexedDB read + write, and awaiting all of them before showing
+   * anything is what made clicking an item feel slow (and left the previous
+   * item's values on screen meanwhile).
+   */
+  const measureMeshes = async (object: any, furnishedModelId: string) => {
+    const meshes: any[] = [];
+    try {
+      object?.traverse?.((o: any) => {
+        if (o?.isMesh) meshes.push(o);
+      });
+    } catch (e) {
+      console.error("furnishMenu ~ measureMeshes ~ traverse failed", e);
+      return;
+    }
+    for (let i = 0; i < meshes.length; i++) {
       try {
-        model?.traverse?.((o: any) => {
-          if (o?.isMesh) meshes.push(o);
-        });
-      } catch (e) {
-        console.error("furnishMenu ~ getSelectedModel ~ traverse failed", e);
-      }
-      for (let i = 0; i < meshes.length; i++) {
         const box3 = new Box3().setFromObject(meshes[i]);
         const size = box3.getSize(new Vector3());
         const height = size.y;
@@ -435,8 +441,32 @@ const FurnishMenu = ({
             ...furnishedModelComponent,
           }).updateDimensions(height, width);
         }
+      } catch (e) {
+        console.error("furnishMenu ~ measureMeshes failed", e);
       }
     }
+  };
+
+  const getSelectedModel = async (
+    furnishedModelId: string,
+    position?: Vector3,
+    scale?: Vector3,
+    rotation?: Vector3,
+    /** The object just clicked/added; measured after the panel is shown. */
+    clickedObject?: any
+  ) => {
+    /* PERF-REMOVED console.debug: console.debug(
+      "furnishedMenu.tsx ~ getSelectedModel ~ furnishedModelId",
+      furnishedModelId
+    ); */
+    // Measure EVERY mesh of the loaded model and save its size to the matching
+    // component, so the BOQ can compute area. We traverse the FULL object graph
+    // (not just the scene's direct children): Sketchfab imports nest their meshes
+    // many levels deep under a single "Sketchfab_model" wrapper, so a one-level
+    // scan finds only the wrapper (not a mesh) and its name matches no component —
+    // which is why those items were never measured. Match components by mesh
+    // INDEX ("Mesh_N") — how the catalog seeds component names — because the raw
+    // mesh node names ("Sketchfab_model", "mesh_0", "Mesh_0.002") are unreliable.
     const furnishedModel =
       await BlueprintInterface.ProjectManagerService.getFurnishedModelById(
         furnishedModelId
@@ -454,6 +484,18 @@ const FurnishMenu = ({
     } else if (furnishedModel) {
       setSelectedModel(furnishedModel);
     }
+    // Panel is on screen; now measure without holding anything up — and only
+    // when it can have changed. Selecting fires on every move of a dragged
+    // item, and the sizes only differ when the item is scaled.
+    const sig = scale ? `${scale.x}|${scale.y}|${scale.z}` : "1";
+    if (measuredRef.current.get(furnishedModelId) === sig) return;
+    measuredRef.current.set(furnishedModelId, sig);
+    const objects = clickedObject
+      ? [clickedObject]
+      : (BlueprintInterface?.selectedModels as any[]) || [];
+    objects.forEach((o) => {
+      measureMeshes(o, furnishedModelId);
+    });
   };
 
   const handleSelect = async (itemData: MenuItem) => {

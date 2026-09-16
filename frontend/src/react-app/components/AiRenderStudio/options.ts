@@ -15,27 +15,11 @@ export const EYE_HEIGHTS = [
   { cm: 170, label: "Standing · 1.7 m" },
 ];
 
-/**
- * Words added to the prompt when nothing should change but the realism. The
- * render call is generative — it repaints the picture and happily invents a hob,
- * an extractor hood or a marble backsplash — and the API has no negative-prompt
- * field for it, so the only lever is the prompt itself.
- */
-export const STRICT_WORDS =
-  "Keep every existing object, cabinet, door, handle, appliance, material and colour exactly as in the image. Do not add, remove, move or replace anything — no new appliances, no hob, no extractor hood, no furniture, no decor, no plants. Change only lighting, shading and realism.";
-
-/** The instruction for the light-touch mode (edit-by-prompt). */
-export const KEEP_WORDS =
-  "Make this 3D view look like a real photograph of the same room: realistic lighting, soft shadows, real material texture. " +
-  STRICT_WORDS;
-
 export interface LightingOption {
   id: string;
   label: string;
   /** Material Symbols icon name. */
   icon: string;
-  /** Plain words for the prompt, used when no relight call is made. */
-  words?: string;
   /** /set-atmosphere interior lighting value — a paid relight step. */
   lighting?: string;
   /** /set-atmosphere exterior timeOfDay value — the same relight step. */
@@ -46,29 +30,29 @@ export interface LightingOption {
 
 export const LIGHTING: LightingOption[] = [
   { id: "none", label: "None", icon: "block" },
-  { id: "natural", label: "Natural daylight", icon: "light_mode", lighting: "midday_light", words: "soft natural daylight" },
+  { id: "natural", label: "Natural daylight", icon: "light_mode", lighting: "midday_light" },
   { id: "airy", label: "Bright and airy", icon: "window", promptWords: "bright and airy interior, soft even daylight" },
   // (Interior keeps "Bright and airy"; the exterior list has no prompt-only option.)
-  { id: "warm", label: "Warm ambient", icon: "table_lamp", lighting: "warm_lamps", words: "warm lamp lighting" },
-  { id: "cool", label: "Cool ambient", icon: "emoji_objects", lighting: "ambient_light", words: "cool ambient lighting" },
-  { id: "golden", label: "Golden hour", icon: "wb_twilight", lighting: "golden_light", words: "golden hour light" },
-  { id: "blue", label: "Blue hour", icon: "dark_mode", lighting: "blue_hour_light", words: "blue hour light" },
-  { id: "dimmed", label: "Dimmed mood", icon: "nightlight", lighting: "dimmed_mood", words: "dim moody lighting" },
+  { id: "warm", label: "Warm ambient", icon: "table_lamp", lighting: "warm_lamps" },
+  { id: "cool", label: "Cool ambient", icon: "emoji_objects", lighting: "ambient_light" },
+  { id: "golden", label: "Golden hour", icon: "wb_twilight", lighting: "golden_light" },
+  { id: "blue", label: "Blue hour", icon: "dark_mode", lighting: "blue_hour_light" },
+  { id: "dimmed", label: "Dimmed mood", icon: "nightlight", lighting: "dimmed_mood" },
 ];
 
 /** Exterior lighting: every option is a real API `timeOfDay` value. */
 export const EXTERIOR_LIGHTING: LightingOption[] = [
   { id: "none", label: "None", icon: "block" },
-  { id: "sunrise", label: "Sunrise", icon: "wb_sunny", timeOfDay: "early_morning", words: "sunrise light" },
-  { id: "midday", label: "Midday", icon: "light_mode", timeOfDay: "midday", words: "midday sun" },
-  { id: "overcast", label: "Overcast", icon: "cloud", timeOfDay: "overcast_day", words: "overcast daylight" },
-  { id: "golden", label: "Golden hour", icon: "wb_twilight", timeOfDay: "golden_hour", words: "golden hour light" },
-  { id: "dusk", label: "Dusk", icon: "brightness_3", timeOfDay: "sunset", words: "dusk light" },
-  { id: "blue", label: "Blue hour", icon: "dark_mode", timeOfDay: "blue_hour", words: "blue hour light" },
-  { id: "night", label: "Night", icon: "nightlight", timeOfDay: "night", words: "night, dark sky" },
-  { id: "starry", label: "Starry night", icon: "star", timeOfDay: "starry_night", words: "starry night sky" },
-  { id: "northern", label: "Northern lights", icon: "auto_awesome", timeOfDay: "northern_lights", words: "northern lights in the sky" },
-  { id: "southern", label: "Southern lights", icon: "auto_awesome", timeOfDay: "southern_lights", words: "southern lights in the sky" },
+  { id: "sunrise", label: "Sunrise", icon: "wb_sunny", timeOfDay: "early_morning" },
+  { id: "midday", label: "Midday", icon: "light_mode", timeOfDay: "midday" },
+  { id: "overcast", label: "Overcast", icon: "cloud", timeOfDay: "overcast_day" },
+  { id: "golden", label: "Golden hour", icon: "wb_twilight", timeOfDay: "golden_hour" },
+  { id: "dusk", label: "Dusk", icon: "brightness_3", timeOfDay: "sunset" },
+  { id: "blue", label: "Blue hour", icon: "dark_mode", timeOfDay: "blue_hour" },
+  { id: "night", label: "Night", icon: "nightlight", timeOfDay: "night" },
+  { id: "starry", label: "Starry night", icon: "star", timeOfDay: "starry_night" },
+  { id: "northern", label: "Northern lights", icon: "auto_awesome", timeOfDay: "northern_lights" },
+  { id: "southern", label: "Southern lights", icon: "auto_awesome", timeOfDay: "southern_lights" },
 ];
 
 /**
