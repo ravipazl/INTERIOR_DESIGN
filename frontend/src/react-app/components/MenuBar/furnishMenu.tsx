@@ -36,7 +36,7 @@ import UndoPanel from "../UndoPanel";
 import { HISTORY_TITLES } from "@pazl/services/ProjectManager";
 import ObjectCopiedModal from "../ObjectCopiedModal";
 import RoomPropertiesModal from "../RoomPropertiesModal";
-import RenderViewModal from "../RenderViewModal";
+import AiRenderStudio from "../AiRenderStudio";
 import AiInspirationButton from "../AiInspirationButton";
 import { FurnishedModel } from "@pazl/entities/FurnishedModel";
 import Loader from "../Loader";
@@ -281,9 +281,11 @@ const FurnishMenu = ({
   useEffect(() => {
     if (navView === "render") {
       setShowRoomPanel(false);
-    } else if (navView === "furnish") {
+    } else {
+      // Leaving Render for ANY page (3D, BOQ, floor plan…) closes the render
+      // flow — otherwise its camera-step buttons stayed on top of the new page.
       setRenderCloseSignal((n) => n + 1);
-      setShowRoomPanel(true);
+      if (navView === "furnish") setShowRoomPanel(true);
     }
   }, [navView]);
 
@@ -865,8 +867,10 @@ const FurnishMenu = ({
       {isLoading ? <Loader /> : null}
       {/* Snap engine toolbar — floating widget, Furnish mode only. */}
       <SnapControlPanel />
-      {/* Photorealistic render — floating button, opens the Render view. */}
-      <RenderViewModal
+      {/* AI render (MyArchitectAI): frame the camera, then the render screen.
+          Replaces the old RenderViewModal (Blender / AI pop-up); that component
+          is no longer mounted. */}
+      <AiRenderStudio
         openSignal={renderSignal}
         closeSignal={renderCloseSignal}
       />

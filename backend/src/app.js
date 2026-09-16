@@ -33,7 +33,14 @@ app.use(parseAuthentication())
 // registering here keeps both cases correct.
 app.configure(imageEditProxy)
 
-app.use(bodyParser())
+// AI render requests carry the captured view (and a style reference photo) as
+// base64 JSON, which passes the default 1 MB JSON limit easily. Only those
+// routes get the larger limit; every other route keeps the default.
+const defaultBody = bodyParser()
+const aiRenderBody = bodyParser({ jsonLimit: '12mb' })
+app.use((ctx, next) =>
+  ctx.path.startsWith('/ai-render') ? aiRenderBody(ctx, next) : defaultBody(ctx, next)
+)
 
 // Configure services and transports
 app.configure(rest())

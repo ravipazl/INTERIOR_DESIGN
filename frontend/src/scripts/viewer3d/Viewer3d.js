@@ -3799,6 +3799,221 @@ export class Viewer3D extends Scene {
       return null;
     }
   }
+
+  // ── AI render: camera framing ──────────────────────────────────────────────
+  //
+  // The render screen's first step. While framing:
+  //   - the lens stays LEVEL (polar angle pinned to 90°), so walls and cabinets
+  //     stay upright — a tilted lens makes verticals converge and reads as CG;
+  //   - the orbit target sits just ahead of the camera, so dragging turns the
+  //     view on the spot, like standing in the room and looking around;
+  //   - walkRenderCamera moves camera + target together (W/A/S/D in the UI).
+  // endRenderFraming puts the editor camera, lens and control limits back
+  // exactly as they were. Nothing here runs unless the render screen asks.
+
+  beginRenderFraming(view) {
+    const scope = this;
+    const c = scope.controls;
+    const cam = scope.camera;
+    if (!c || !cam || !cam.isPerspectiveCamera) return false;
+    if (!scope.__renderFraming) {
+      scope.__renderFraming = {
+        minPolar: c.minPolarAngle,
+        maxPolar: c.maxPolarAngle,
+        minDistance: c.minDistance,
+        zoom: cam.zoom,
+        fov: cam.fov,
+        position: cam.position.clone(),
+        target: c.target.clone(),
+      };
+    }
+    scope.__camTween = null;
+    c.minPolarAngle = Math.PI / 2;
+    c.maxPolarAngle = Math.PI / 2;
+    c.minDistance = 1;
+    cam.zoom = 1;
+    if (view && view.position && view.target) scope.applyRenderView(view);
+    else if (!scope.isCameraInsideRoom()) {
+      if (!scope.fixRenderCamera()) scope.__levelRenderCamera();
+    } else scope.__levelRenderCamera();
+    return true;
+  }
+
+  endRenderFraming() {
+    const scope = this;
+    const f = scope.__renderFraming;
+    if (!f) return;
+    scope.__renderFraming = null;
+    const c = scope.controls;
+    const cam = scope.camera;
+    if (c) {
+      c.minPolarAngle = f.minPolar;
+      c.maxPolarAngle = f.maxPolar;
+      c.minDistance = f.minDistance;
+    }
+    if (cam) {
+      cam.zoom = f.zoom;
+      cam.fov = f.fov;
+      cam.position.copy(f.position);
+      cam.updateProjectionMatrix();
+    }
+    if (c) {
+      c.target.copy(f.target);
+      c.update();
+    }
+    scope.needsUpdate = true;
+  }
+
+  /** Keep the camera where it is and aim it level, with the target just ahead. */
+  __levelRenderCamera() {
+    const cam = this.camera;
+    const c = this.controls;
+    const LOOK_CM = 30;
+    const dir = new Vector3(c.target.x - cam.position.x, 0, c.target.z - cam.position.z);
+    if (dir.lengthSq() < 1e-6) {
+      cam.getWorldDirection(dir);
+      dir.y = 0;
+    }
+    if (dir.lengthSq() < 1e-6) dir.set(0, 0, -1);
+    dir.normalize();
+    c.target.set(cam.position.x + dir.x * LOOK_CM, cam.position.y, cam.position.z + dir.z * LOOK_CM);
+    cam.updateProjectionMatrix();
+    c.update();
+    this.needsUpdate = true;
+  }
+
+  /** Inside the room at eye height, square on to the furniture wall. */
+  fixRenderCamera() {
+    const v = this.getInteriorCameraView && this.getInteriorCameraView();
+    if (!v) return false;
+    const M = 100; // m -> cm
+    this.camera.position.set(v.position[0] * M, v.position[1] * M, v.position[2] * M);
+    this.controls.target.set(v.target[0] * M, v.target[1] * M, v.target[2] * M);
+    this.__levelRenderCamera();
+    return true;
+  }
+
+  /** { position:[x,y,z], target:[x,y,z], fov } in cm — for saved views. */
+  getRenderView() {
+    const p = this.camera.position;
+    const t = this.controls.target;
+    return { position: [p.x, p.y, p.z], target: [t.x, t.y, t.z], fov: this.camera.fov };
+  }
+
+  applyRenderView(view) {
+    if (!view || !view.position || !view.target) return;
+    this.camera.position.set(view.position[0], view.position[1], view.position[2]);
+    this.controls.target.set(view.target[0], view.target[1], view.target[2]);
+    if (Number.isFinite(view.fov)) this.camera.fov = view.fov;
+    this.__levelRenderCamera();
+  }
+
+  /** Walk: forward / right / up in cm, relative to where the camera faces. */
+  walkRenderCamera(forward = 0, right = 0, up = 0) {
+    const cam = this.camera;
+    const c = this.controls;
+    const dir = new Vector3(c.target.x - cam.position.x, 0, c.target.z - cam.position.z);
+    if (dir.lengthSq() < 1e-6) dir.set(0, 0, -1);
+    dir.normalize();
+    const side = new Vector3(-dir.z, 0, dir.x);
+    const move = dir.multiplyScalar(forward).add(side.multiplyScalar(right));
+    const y = Math.min(Math.max(cam.position.y + up, 20), 5000);
+    move.y = y - cam.position.y;
+    cam.position.add(move);
+    c.target.add(move);
+    c.update();
+    this.needsUpdate = true;
+  }
+
+  setRenderEyeHeight(cm) {
+    const y = Math.min(Math.max(Number(cm) || 150, 20), 5000);
+    this.camera.position.y = y;
+    this.controls.target.y = y;
+    this.controls.update();
+    this.needsUpdate = true;
+  }
+
+  /** Lens in full-frame mm (24 mm frame height): 16 mm wide … 50 mm normal. */
+  setRenderLens(mm) {
+    const f = Math.min(Math.max(Number(mm) || 24, 10), 85);
+    this.camera.fov = (2 * Math.atan(12 / f) * 180) / Math.PI;
+    this.camera.zoom = 1;
+    this.camera.updateProjectionMatrix();
+    this.needsUpdate = true;
+  }
+
+  getRenderLens() {
+    const fov = (this.camera && this.camera.fov) || 45;
+    return 12 / Math.tan((fov * Math.PI) / 360);
+  }
+
+  /** What the framing step's checks show. */
+  getRenderCameraState() {
+    const cam = this.camera;
+    const c = this.controls;
+    if (!cam || !c) return null;
+    const box = this.__largestRoomBox();
+    const inside = this.isCameraInsideRoom();
+    const p = cam.position;
+    const wallGap =
+      box && inside ? Math.min(p.x - box.minX, box.maxX - p.x, p.z - box.minZ, box.maxZ - p.z) : null;
+    return {
+      hasRoom: !!box,
+      inside,
+      level: Math.abs(c.target.y - p.y) < 1,
+      nearWall: wallGap !== null && wallGap < 35,
+      heightCm: p.y,
+      lensMm: this.getRenderLens(),
+    };
+  }
+
+  /**
+   * A clean JPEG of part of the view, for the AI render: `region` is in CSS px
+   * from the canvas's top-left (the framing overlay's frame). Selection boxes,
+   * hover outlines, snap lines and the grid are hidden for the capture only —
+   * they are all Line objects. Door/window measure boxes are HTML, never in
+   * the canvas. Transparent pixels (the CSS sky) become a light sky colour, not
+   * JPEG black.
+   */
+  captureRegionAsDataUrl(region, maxEdge = 1536, quality = 0.9) {
+    const scope = this;
+    const src = scope.renderer && scope.renderer.domElement;
+    if (!src || !src.width || !src.height) return null;
+    const hidden = [];
+    try {
+      scope.traverse((o) => {
+        if (o.visible && (o.isLine || o.isLineSegments || o.isLineLoop)) {
+          hidden.push(o);
+          o.visible = false;
+        }
+      });
+      const rect = src.getBoundingClientRect();
+      const sx = src.width / (rect.width || src.width);
+      const sy = src.height / (rect.height || src.height);
+      const r = region || { x: 0, y: 0, width: rect.width, height: rect.height };
+      const px = Math.max(0, Math.round(r.x * sx));
+      const py = Math.max(0, Math.round(r.y * sy));
+      const pw = Math.max(1, Math.min(src.width - px, Math.round(r.width * sx)));
+      const ph = Math.max(1, Math.min(src.height - py, Math.round(r.height * sy)));
+      scope.renderer.render(scope, scope.camera);
+      const scale = Math.min(1, maxEdge / Math.max(pw, ph));
+      const out = document.createElement('canvas');
+      out.width = Math.max(1, Math.round(pw * scale));
+      out.height = Math.max(1, Math.round(ph * scale));
+      const ctx = out.getContext('2d');
+      if (!ctx) return null;
+      ctx.fillStyle = '#dfe8ef';
+      ctx.fillRect(0, 0, out.width, out.height);
+      ctx.drawImage(src, px, py, pw, ph, 0, 0, out.width, out.height);
+      return out.toDataURL('image/jpeg', quality);
+    } catch (e) {
+      console.warn('captureRegionAsDataUrl failed (non-fatal)', e);
+      return null;
+    } finally {
+      hidden.forEach((o) => (o.visible = true));
+      scope.needsUpdate = true;
+    }
+  }
   forceRender() {
     let scope = this;
     scope.renderer.render(scope, scope.camera);
