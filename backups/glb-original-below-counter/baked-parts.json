@@ -1,0 +1,263 @@
+{
+  "ba32c95b-bcf6-404e-b282-71776989cb38_BC1.glb": {
+    "modelId": "6a0aeafa413f5b7b973c76fe",
+    "name": "BC1",
+    "shutters": [
+      8
+    ],
+    "handles": [
+      7
+    ]
+  },
+  "b9aeb0c6-32e7-49b7-86b4-71c4f80fed4f_BC_Unit_Storage_A01.glb": {
+    "modelId": "6a0aeafa413f5b7b973c76ff",
+    "name": "BC Unit_Storage A01",
+    "shutters": [
+      13
+    ],
+    "handles": [
+      12
+    ]
+  },
+  "fe7d07c7-caaa-46c9-b23e-e7ed3793b765_BC_Unit_Storage_A02.glb": {
+    "modelId": "6a0aeafa413f5b7b973c7700",
+    "name": "BC Unit_Storage A02",
+    "shutters": [
+      14
+    ],
+    "handles": [
+      15
+    ]
+  },
+  "b21cf255-c324-46c3-b92f-1d7517edc0a6_BC_Unit_Storage_B01.glb": {
+    "modelId": "6a0aeafa413f5b7b973c7701",
+    "name": "BC Unit_Storage B01",
+    "shutters": [
+      14,
+      15,
+      16
+    ],
+    "handles": [
+      17,
+      18,
+      19
+    ]
+  },
+  "cc913f18-935f-4a73-80c6-e25177b51231_BC_Unit_Storage_B02.glb": {
+    "modelId": "6a0aeafa413f5b7b973c7702",
+    "name": "BC Unit_Storage B02",
+    "shutters": [
+      13,
+      14
+    ],
+    "handles": [
+      15,
+      16
+    ]
+  },
+  "fdcd5c5b-419a-4b5b-b48f-f0d4e55f1bad_BC_Unit_Storage_B03.glb": {
+    "modelId": "6a0aeafa413f5b7b973c7703",
+    "name": "BC Unit_Storage B03",
+    "shutters": [
+      14,
+      15
+    ],
+    "handles": [
+      16,
+      17
+    ]
+  },
+  "490e2acb-fc0d-46fe-b67d-be32a6fbb10d_BC_Unit_Storage_B04.glb": {
+    "modelId": "6a0aeafa413f5b7b973c7704",
+    "name": "BC Unit_Storage B04",
+    "shutters": [
+      13,
+      14
+    ],
+    "handles": [
+      15,
+      16
+    ]
+  },
+  "33d9e0ac-1877-4184-a74a-c690952672f1_BC_Unit_Storage_B05.glb": {
+    "modelId": "6a0aeafa413f5b7b973c7705",
+    "name": "BC Unit_Storage B05",
+    "shutters": [
+      14,
+      15,
+      16
+    ],
+    "handles": [
+      17,
+      18,
+      19
+    ]
+  },
+  "27fec1b0-7b5d-4216-9bb5-81459776dcf4_BC_Unit_Storage_C01.glb": {
+    "modelId": "6a0aeafa413f5b7b973c7706",
+    "name": "BC Unit_Storage C01",
+    "shutters": [
+      6
+    ],
+    "handles": [
+      4
+    ]
+  },
+  "9d4bf5a7-a8ed-4308-ad3e-bf1a4a0e53d5_BC_Unit_Storage_D01.glb": {
+    "modelId": "6a0aeafa413f5b7b973c7707",
+    "name": "BC Unit_Storage D01",
+    "shutters": [
+      1
+    ],
+    "handles": [
+      13
+    ]
+  },
+  "28bfda61-d35b-4ce1-a3ec-63d118d33ac7_BC_Unit_Storage_F01.glb": {
+    "modelId": "6a0aeafa413f5b7b973c7708",
+    "name": "BC Unit_Storage F01",
+    "shutters": [
+      6
+    ],
+    "handles": [
+      0
+    ]
+  },
+  "d638b3cb-e18d-4be6-940b-d9665a8d8e1e_BC_Unit_Storage_F02.glb": {
+    "modelId": "6a0aeafa413f5b7b973c7709",
+    "name": "BC Unit_Storage F02",
+    "shutters": [
+      5,
+      6
+    ],
+    "handles": [
+      3,
+      4
+    ]
+  },
+  "15d77333-4bad-48ca-9181-a40ba2d68356_Base_unit_600x600_left_opening_shutter_-_handle_unwraped.glb": {
+    "modelId": "6a7ace652ca3a11a536c60b7",
+    "name": "Base unit 600x600 left opening shutter - handle unwraped",
+    "shutters": [
+      4
+    ],
+    "handles": [
+      5
+    ]
+  },
+  "371d8a37-46d0-4d32-b5c2-1860c04d219a_Base_unit_600x825_left_opening_shutter_unwrap.glb": {
+    "modelId": "6a7d7ac889d22377967274a2",
+    "name": "Base unit 600x825 left opening shutter unwrap",
+    "shutters": [
+      2
+    ],
+    "handles": [
+      3
+    ]
+  },
+  "e1fb4d10-227a-4d7a-9c54-8d0fa6bc2b2f_Corner_unit_600x600x825_handle_unwrap.glb": {
+    "modelId": "6a7ec0e84bacb0778d859b14",
+    "name": "Corner unit 600x600x825 handle unwrap",
+    "shutters": [],
+    "handles": [
+      3,
+      4
+    ]
+  },
+  "e016d745-5775-4e3e-866f-025061f10206_Base_unit_600x825_2_drawer_system_-_handle_unwrap.glb": {
+    "modelId": "6a7ec1184bacb0778d859b1a",
+    "name": "Base unit 600x825 2 drawer system - handle unwrap",
+    "shutters": [
+      2
+    ],
+    "handles": [
+      3,
+      4
+    ]
+  },
+  "cff1c8c9-fd59-4c2c-bead-a387bb90eb62_Base_unit_600x825_left_3_drawer_system_-_handle_unwrap.glb": {
+    "modelId": "6a7ec1324bacb0778d859b20",
+    "name": "Base unit 600x825 3 drawer system - handle unwrap",
+    "shutters": [
+      1
+    ],
+    "handles": [
+      3,
+      4,
+      5
+    ]
+  },
+  "b6aa937a-73f0-4c13-8d21-5e6481accf2e_Oil_pullout_250x825_handle_unwrap.glb": {
+    "modelId": "6a7ec3274bacb0778d859b27",
+    "name": "Oil pullout 250x825 handle unwrap",
+    "shutters": [
+      2
+    ],
+    "handles": [
+      3
+    ]
+  },
+  "74ec1bd1-bd85-4b99-892e-4aaa491ad9a5_Base_unit_600x825_3_drawer_system_-_handle_unwrap.glb": {
+    "modelId": "6a8ed662ed3f5b8aabeb4e5a",
+    "name": "Base unit 600x825 3 drawer system - handle unwrap",
+    "shutters": [
+      1
+    ],
+    "handles": [
+      3,
+      4,
+      5
+    ]
+  },
+  "37e96d8d-d5b7-40f8-9267-77fe4f0ff978_Base_unit_600x825_2_drawer_system_-_handle_unwrap_1_.glb": {
+    "modelId": "6a8ed662ed3f5b8aabeb4e62",
+    "name": "Base unit 600x825 2 drawer system - handle unwrap (1)",
+    "shutters": [
+      2
+    ],
+    "handles": [
+      3,
+      4
+    ]
+  },
+  "b4d4f7d5-7ea8-4ad6-b857-18f23fc5f72c_Base_unit_600x825_left_opening_shutter_-_handle_unwrap.glb": {
+    "modelId": "6a8ed663ed3f5b8aabeb4e69",
+    "name": "Base unit 600x825 left opening shutter - handle unwrap",
+    "shutters": [
+      2
+    ],
+    "handles": [
+      3
+    ]
+  },
+  "3bb1b870-61dc-4ee5-80c8-a1ec89169910_Oil_pullout_250x825_handle_unwrap_1_.glb": {
+    "modelId": "6a8ed663ed3f5b8aabeb4e6f",
+    "name": "Oil pullout 250x825 handle unwrap (1)",
+    "shutters": [
+      2
+    ],
+    "handles": [
+      3
+    ]
+  },
+  "a3593526-59d5-4741-ba68-528050701712_Corner_unit_600x600x825_handle_unwrap_1_.glb": {
+    "modelId": "6a8ed663ed3f5b8aabeb4e75",
+    "name": "Corner unit 600x600x825 handle unwrap (1)",
+    "shutters": [],
+    "handles": [
+      3,
+      4
+    ]
+  },
+  "923f3ce3-dd26-4c97-95e5-0cd77f86613f_Base_unit_900x825_sink_-_handle_unwrap_.glb": {
+    "modelId": "6a8ed676ed3f5b8aabeb4e7c",
+    "name": "Base unit 900x825 sink - handle unwrap",
+    "shutters": [
+      3
+    ],
+    "handles": [
+      5,
+      6
+    ]
+  }
+}

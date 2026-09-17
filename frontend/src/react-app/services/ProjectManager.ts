@@ -61,7 +61,7 @@ export class ProjectManager {
   // so two concurrent createFurnishedModelComponents calls (e.g. a React
   // double-render firing the panel self-heal twice) don't both insert a
   // full set of rows and produce duplicates.
-  private __fmcCreationInFlight: Set<string> = new Set();
+  private __fmcCreationInFlight: Map<string, Promise<void>> = new Map();
 
   constructor(props: ProjectManagerProps) {
     this.project = props?.project ?? {};
@@ -97,7 +97,20 @@ export class ProjectManager {
     });
     if (model && furnishedModelId && roomId && projectId) {
       const floorPlanId = this.floorPlan ? this.floorPlan._id : uuidv4();
-      await this.createFurnishedModelComponents(model._id, furnishedModelId);
+      // Parts and record START TOGETHER. The record is registered at once (so
+      // the Properties panel opens straight away) while the part rows are being
+      // built in parallel — they no longer wait for the record + scene saves.
+      // The Components section shows its loader until the parts are in, then
+      // the re-select below fills it.
+      const partsReady = this.createFurnishedModelComponents(
+        model._id,
+        furnishedModelId
+      ).catch((e) =>
+        console.error(
+          "ProjectManager ~ createSceneElements ~ creating parts failed",
+          e
+        )
+      );
       await this.createFurnishedModel(
         furnishedModelId,
         model,
@@ -106,8 +119,11 @@ export class ProjectManager {
         roomId,
         roomName,
         floorPlanId,
-        rotation
+        rotation,
+        false
       );
+      await partsReady;
+      this.reselectPlacedItem(furnishedModelId);
 
       // PERSIST THE SCENE NOW.
       //
@@ -453,7 +469,9 @@ export class ProjectManager {
     roomId: string,
     roomName: string,
     floorPlanId: string,
-    rotation?: any[]
+    rotation?: any[],
+    /** false when the caller re-selects later (after the parts are created). */
+    reselect = true
   ) {
     // DRAG-DROP-AND-STAY (Coohom method): save the item's REAL placed position
     // so it reloads EXACTLY where it was dropped — not a placeholder. The item
@@ -518,19 +536,49 @@ export class ProjectManager {
         ? HISTORY_TITLES.WALL_ITEM_ADDED
         : HISTORY_TITLES.FLOOR_ITEM_ADDED;
     await this.updateFloorPlan(title);
-    await BlueprintInterface.blueprint3d?.roomplanner?.__roomItemSelected({
-      type: EVENT_ITEM_SELECTED,
-      item: BlueprintInterface.selectedModels[
-        BlueprintInterface.selectedModels.length - 1
-      ],
-    });
+    if (reselect) this.reselectPlacedItem(furnishedModelId);
+  }
+
+  /**
+   * Re-select THE ITEM WITH THIS ID (not the last entry of selectedModels,
+   * which can still be the previously selected item) so the Properties panel
+   * refreshes with its saved record and parts. Only while it is still the
+   * selected item — never steal the selection if the user clicked elsewhere.
+   */
+  reselectPlacedItem(furnishedModelId: string) {
+    const roomplanner: any = BlueprintInterface.blueprint3d?.roomplanner;
+    const added = roomplanner?.__physicalRoomItems?.find(
+      (p: any) =>
+        p?.itemModel?.__id === furnishedModelId ||
+        p?.__itemModel?.__id === furnishedModelId
+    );
+    const current = roomplanner?.__currentItemSelected;
+    if (added && (!current || current === added)) {
+      roomplanner.__roomItemSelected({
+        type: EVENT_ITEM_SELECTED,
+        item: added,
+      });
+    }
   }
 
   async createFurnishedModelComponents(
     modelId: string,
     furnishedModelId: string
   ) {
-    // Idempotency guard 1 — already created. If this placement already has
+    // Idempotency guard 1 — concurrent call. If a call for this same placement
+    // is mid-flight, WAIT for it instead of inserting a second set, so this
+    // caller (e.g. the panel opening while the add is still creating parts)
+    // returns with the full set in memory rather than an empty/partial one.
+    const inFlight = this.__fmcCreationInFlight.get(furnishedModelId);
+    if (inFlight) {
+      console.debug(
+        `ProjectManager.ts ~ createFurnishedModelComponents ~ placement ` +
+          `${furnishedModelId} creation already in flight — waiting for it`
+      );
+      await inFlight;
+      return;
+    }
+    // Idempotency guard 2 — already created. If this placement already has
     // component rows in memory, do nothing. Prevents the panel self-heal
     // from appending a second/third set on every re-render.
     const alreadyHave =
@@ -542,21 +590,18 @@ export class ProjectManager {
       );
       return;
     }
-    // Idempotency guard 2 — concurrent call. If another call for this same
-    // placement is mid-flight, bail so they don't both insert.
-    if (this.__fmcCreationInFlight.has(furnishedModelId)) {
-      console.debug(
-        `ProjectManager.ts ~ createFurnishedModelComponents ~ placement ` +
-          `${furnishedModelId} creation already in flight — skipping`
-      );
-      return;
-    }
-    this.__fmcCreationInFlight.add(furnishedModelId);
-    try {
-      await this.__createFurnishedModelComponentsImpl(modelId, furnishedModelId);
-    } finally {
-      this.__fmcCreationInFlight.delete(furnishedModelId);
-    }
+    const creation = (async () => {
+      try {
+        await this.__createFurnishedModelComponentsImpl(
+          modelId,
+          furnishedModelId
+        );
+      } finally {
+        this.__fmcCreationInFlight.delete(furnishedModelId);
+      }
+    })();
+    this.__fmcCreationInFlight.set(furnishedModelId, creation);
+    await creation;
   }
 
   private async __createFurnishedModelComponentsImpl(
@@ -564,7 +609,7 @@ export class ProjectManager {
     furnishedModelId: string
   ) {
     const modelComponentsResponse =
-      await ModelsService.getModelComponentsByModelId(modelId);
+      await ModelsService.getModelComponentsByModelIdCached(modelId);
     console.debug(
       "ProjectManager.ts ~ createFurnishedModelComponents ~ modelComponentsResponse",
       modelComponentsResponse
@@ -587,7 +632,11 @@ export class ProjectManager {
       );
       const allFinishings =
         await TexturesService.getFinishingsFromLocalStorage();
-      await Promise.all(
+      // Each callback builds its row and adds it to memory synchronously, then
+      // saves it. The rows are what the Components panel shows, so this does
+      // NOT wait for the saves (one local-DB write per part) — they finish in
+      // the background and are unchanged.
+      const pendingSaves = Promise.all(
         modelComponents.map(async (modelComponent: ModelComponent) => {
           const externalFinishFinishingId = modelComponent?.modelDefaultValues
             ?.length
@@ -729,6 +778,22 @@ export class ProjectManager {
           await furnishedModelComponent.save();
         })
       );
+      pendingSaves
+        .catch((e) =>
+          console.error(
+            "ProjectManager.ts ~ createFurnishedModelComponents ~ saving parts failed",
+            e
+          )
+        )
+        // New item + its parts are saved locally: send them to the server now
+        // rather than on the next timed sync.
+        .then(() => {
+          try {
+            window.dispatchEvent(new Event("pazl:sync-now"));
+          } catch (_) {
+            /* the timed sync still picks them up */
+          }
+        });
     }
   }
 
@@ -864,6 +929,30 @@ export class ProjectManager {
       return true;
     }
     return true;
+  }
+
+  /**
+   * The record for an item that IS in the 3D scene but missing from memory —
+   * e.g. switched off by an out-of-order floor-plan save, so it was never
+   * loaded. Fetch it, make it active again (it is in the scene), and keep it.
+   * Only call this for an item actually present in the scene.
+   */
+  async ensureFurnishedModelLoaded(
+    id: string
+  ): Promise<FurnishedModel | undefined> {
+    const existing = this.getFurnishedModelById(id);
+    if (existing) return existing;
+    const fetched = await FurnishedModelsService.getFurnishedModelById(id);
+    if (!fetched) return undefined;
+    if (!fetched.isActive) {
+      fetched.isActive = true;
+      await fetched.update(); // update() always writes isActive: true
+    }
+    // Another caller may have added it while we were fetching.
+    const again = this.getFurnishedModelById(id);
+    if (again) return again;
+    this.furnishedModels = [...(this.furnishedModels || []), fetched];
+    return fetched;
   }
 
   getFurnishedModelById(id: string): FurnishedModel | undefined {

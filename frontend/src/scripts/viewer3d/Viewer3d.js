@@ -1776,7 +1776,23 @@ export class Viewer3D extends Scene {
       );
       evt.item.__itemModel.meshmap = meshmap;
       console.debug("Viewer3d.js ~ __itemUpdate ~ texture", colors.texture);
+      // Picking the finish that is already baked into this part's GLB → put
+      // the file's own material back instead of repainting it.
+      let bakedPart = null;
       if (colors.texture != "") {
+        evt.item.traverse((o) => {
+          if (
+            o.isMesh &&
+            o.name == colors.name &&
+            Physical3DItem.isBakedFinish(o, colors.texture)
+          ) {
+            bakedPart = o;
+          }
+        });
+      }
+      if (bakedPart) {
+        bakedPart.material = bakedPart.__origMaterial;
+      } else if (colors.texture != "") {
         let txt = new TextureLoader().load(colors.texture);
         console.debug("Viewer3d.js ~ __itemUpdate ~ txt", txt);
         let size = colors.size;

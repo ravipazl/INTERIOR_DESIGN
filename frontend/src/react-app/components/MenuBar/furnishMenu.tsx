@@ -296,6 +296,8 @@ const FurnishMenu = ({
   const wiredRef = useRef(false);
   /** furnishedModelId → the scale it was last measured at. */
   const measuredRef = useRef<Map<string, string>>(new Map());
+  /** Bumped on every selection; an older, still-waiting selection gives up. */
+  const selectSeqRef = useRef(0);
 
   useEffect(() => {
     if (BlueprintInterface && BlueprintInterface.blueprint3d && !wiredRef.current) {
@@ -467,10 +469,42 @@ const FurnishMenu = ({
     // which is why those items were never measured. Match components by mesh
     // INDEX ("Mesh_N") — how the catalog seeds component names — because the raw
     // mesh node names ("Sketchfab_model", "mesh_0", "Mesh_0.002") are unreliable.
-    const furnishedModel =
-      await BlueprintInterface.ProjectManagerService.getFurnishedModelById(
-        furnishedModelId
-      );
+    const seq = ++selectSeqRef.current;
+    const pm = BlueprintInterface.ProjectManagerService;
+    let furnishedModel = pm.getFurnishedModelById(furnishedModelId);
+    if (!furnishedModel) {
+      // A just-added item is selected in 3D a moment BEFORE its record is
+      // registered (that happens right after, in the same add). Yield once —
+      // usually that is enough and the panel opens with no gap.
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      if (seq !== selectSeqRef.current) return;
+      furnishedModel = pm.getFurnishedModelById(furnishedModelId);
+    }
+    if (!furnishedModel) {
+      // Still missing: clear the panel so the previously selected item's
+      // details are not left on screen, then wait for the record. A newer
+      // selection cancels this wait.
+      setSelectedModel(undefined);
+      for (let i = 0; !furnishedModel && i < 50; i++) {
+        await new Promise((resolve) => setTimeout(resolve, 100));
+        if (seq !== selectSeqRef.current) return;
+        furnishedModel = pm.getFurnishedModelById(furnishedModelId);
+        // Still missing after ~1.5 s: it is not being created right now, so
+        // the record exists only on the server (e.g. switched off by an
+        // out-of-order save). Load it — the item is in the scene.
+        if (!furnishedModel && i === 14) {
+          try {
+            furnishedModel = await pm.ensureFurnishedModelLoaded(
+              furnishedModelId
+            );
+          } catch (e) {
+            console.error("furnishMenu ~ ensureFurnishedModelLoaded failed", e);
+          }
+          if (seq !== selectSeqRef.current) return;
+        }
+      }
+    }
+    if (seq !== selectSeqRef.current) return;
     /* PERF-REMOVED console.debug: console.debug(
       "furnishedMenu.tsx ~ getSelectedModel ~ furnishedModel",
       furnishedModel

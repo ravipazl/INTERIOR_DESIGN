@@ -12,6 +12,15 @@ import { AuthService } from "./authService";
 // single multi-mesh model fires.
 const __componentTextureCache = new Map<string, Promise<string | null>>();
 
+// Part list per model, fetched ahead of time (card hover / drag start) so adding
+// the item does not wait on the server. Short-lived, so a part list or default
+// finish edited in the catalogue is picked up again within a couple of minutes.
+const MODEL_COMPONENTS_TTL_MS = 2 * 60 * 1000;
+const __modelComponentsCache = new Map<
+  string,
+  { at: number; promise: Promise<any> }
+>();
+
 /** One trimmed search hit — the same shape from Sketchfab and Poly Haven. */
 export interface SketchfabSearchResult {
   uid: string;
@@ -522,6 +531,24 @@ export const ModelsService = {
       );
       return null;
     }
+  },
+
+  /**
+   * getModelComponentsByModelId, but shared: a fetch started by prefetch (or a
+   * recent one) is reused instead of asking the server again. Failed/empty
+   * results are not kept, so the next call retries.
+   */
+  getModelComponentsByModelIdCached: (modelId: string): Promise<any> => {
+    const hit = __modelComponentsCache.get(modelId);
+    if (hit && Date.now() - hit.at < MODEL_COMPONENTS_TTL_MS) return hit.promise;
+    const promise = ModelsService.getModelComponentsByModelId(modelId).then(
+      (res: any) => {
+        if (!res?.data?.length) __modelComponentsCache.delete(modelId);
+        return res;
+      }
+    );
+    __modelComponentsCache.set(modelId, { at: Date.now(), promise });
+    return promise;
   },
 
   getModelComponentsById: async (id: string) => {
