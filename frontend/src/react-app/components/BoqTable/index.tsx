@@ -13,6 +13,7 @@ import { ProjectsService } from "@pazl/services/projectsService";
 import { FurnishedModelsService } from "@pazl/services/furnishedModelsService";
 import { RatesService } from "@pazl/services/RatesService";
 import { ProjectWorkspaceService } from "@pazl/services/ProjectWorkspaceService";
+import { SyncService } from "@pazl/services/syncService";
 import {
   Autocomplete,
   TextField,
@@ -755,6 +756,14 @@ const BoqTable: React.FC<BoqTableProps> = ({
       }
 
       if (floorPlanId) {
+        // The BOQ is built on the server from the synced data. Send any change
+        // still waiting in the browser first (a material applied a moment ago),
+        // so the bill includes it. A failed sync must not block the BOQ.
+        try {
+          await SyncService.syncToDB();
+        } catch (e) {
+          console.warn("BoqTable ~ sync before BOQ failed", e);
+        }
         const response = await FloorPlanService.generateBOQ(floorPlanId);
         if (response?.length) {
           const formattedRows = await Promise.all(

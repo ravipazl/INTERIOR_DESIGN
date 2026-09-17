@@ -778,22 +778,14 @@ export class ProjectManager {
           await furnishedModelComponent.save();
         })
       );
-      pendingSaves
-        .catch((e) =>
-          console.error(
-            "ProjectManager.ts ~ createFurnishedModelComponents ~ saving parts failed",
-            e
-          )
+      // (Each local save asks for a server sync straight away — see
+      // LocalDBManager.requestSyncSoon — so the new parts reach it promptly.)
+      pendingSaves.catch((e) =>
+        console.error(
+          "ProjectManager.ts ~ createFurnishedModelComponents ~ saving parts failed",
+          e
         )
-        // New item + its parts are saved locally: send them to the server now
-        // rather than on the next timed sync.
-        .then(() => {
-          try {
-            window.dispatchEvent(new Event("pazl:sync-now"));
-          } catch (_) {
-            /* the timed sync still picks them up */
-          }
-        });
+      );
     }
   }
 
@@ -964,6 +956,35 @@ export class ProjectManager {
     return this.furnishedModels.find(
       (furnishedModel) => furnishedModel._id === id
     );
+  }
+
+  /**
+   * Save a part's measured size (cm in → mm stored, as BOQ area expects).
+   * Updates the IN-MEMORY row as well as the local DB: every later edit of the
+   * part (finish, brand, core…) saves from the in-memory row, so updating only
+   * the DB let the next edit write the old 1×1 back — and the BOQ priced ₹0.
+   * Returns false when the part does not exist (yet); unchanged sizes are not
+   * written again.
+   */
+  async updateFurnishedModelComponentSize(
+    componentId: string,
+    heightCm: number,
+    widthCm: number
+  ): Promise<boolean> {
+    const existing = this.getFurnishedModelComponentById(componentId);
+    if (!existing || !heightCm || !widthCm) return false;
+    const height = (heightCm * 10).toFixed(2);
+    const width = (widthCm * 10).toFixed(2);
+    if (existing.height === height && existing.width === width) return true;
+    this.furnishedModelComponents = this.furnishedModelComponents.map((comp) =>
+      comp._id === componentId ? ({ ...comp, height, width } as any) : comp
+    );
+    await new FurnishedModelComponent({
+      ...(existing as any),
+      height,
+      width,
+    }).update();
+    return true;
   }
 
   getFurnishedModelComponentById(

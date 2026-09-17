@@ -42,7 +42,6 @@ import { FurnishedModel } from "@pazl/entities/FurnishedModel";
 import Loader from "../Loader";
 import ShortcutsModal from "./Shorcuts";
 import { Physical3DItem } from "@pazl/main/viewer3d/Physical3DItem";
-import { FurnishedModelComponent } from "@pazl/entities/FurnishedModelComponent";
 import UploadModelModal from "@pazl/components/UploadModelModal";
 import GenerateFromPhotoModal from "@pazl/components/GenerateFromPhotoModal";
 import ModelSearchModal from "@pazl/components/ModelSearchModal";
@@ -411,16 +410,23 @@ const FurnishMenu = ({
    * costs an IndexedDB read + write, and awaiting all of them before showing
    * anything is what made clicking an item feel slow (and left the previous
    * item's values on screen meanwhile).
+   *
+   * Returns how many parts were measured — 0 when the item's part rows do not
+   * exist yet (a just-added item), so the caller can measure again later.
    */
-  const measureMeshes = async (object: any, furnishedModelId: string) => {
+  const measureMeshes = async (
+    object: any,
+    furnishedModelId: string
+  ): Promise<number> => {
     const meshes: any[] = [];
+    let measured = 0;
     try {
       object?.traverse?.((o: any) => {
         if (o?.isMesh) meshes.push(o);
       });
     } catch (e) {
       console.error("furnishMenu ~ measureMeshes ~ traverse failed", e);
-      return;
+      return 0;
     }
     for (let i = 0; i < meshes.length; i++) {
       try {
@@ -438,15 +444,21 @@ const FurnishMenu = ({
             compName,
             furnishedModelId
           );
-        if (furnishedModelComponent) {
-          await new FurnishedModelComponent({
-            ...furnishedModelComponent,
-          }).updateDimensions(height, width);
+        if (
+          furnishedModelComponent &&
+          (await BlueprintInterface.ProjectManagerService.updateFurnishedModelComponentSize(
+            furnishedModelComponent._id,
+            height,
+            width
+          ))
+        ) {
+          measured++;
         }
       } catch (e) {
         console.error("furnishMenu ~ measureMeshes failed", e);
       }
     }
+    return measured;
   };
 
   const getSelectedModel = async (
@@ -523,13 +535,25 @@ const FurnishMenu = ({
     // item, and the sizes only differ when the item is scaled.
     const sig = scale ? `${scale.x}|${scale.y}|${scale.z}` : "1";
     if (measuredRef.current.get(furnishedModelId) === sig) return;
+    // Mark now so the rapid re-selects of a drag don't start parallel runs…
     measuredRef.current.set(furnishedModelId, sig);
     const objects = clickedObject
       ? [clickedObject]
       : (BlueprintInterface?.selectedModels as any[]) || [];
-    objects.forEach((o) => {
-      measureMeshes(o, furnishedModelId);
-    });
+    Promise.all(objects.map((o) => measureMeshes(o, furnishedModelId))).then(
+      (counts) => {
+        // …but un-mark when nothing could be measured: a just-added item's
+        // parts (or its model) are not there yet. Marking it anyway left its
+        // parts at the 1×1 placeholder for the session — BOQ area 0, ₹0. The
+        // re-select that follows part creation then measures it for real.
+        if (
+          !counts.some((n) => n > 0) &&
+          measuredRef.current.get(furnishedModelId) === sig
+        ) {
+          measuredRef.current.delete(furnishedModelId);
+        }
+      }
+    );
   };
 
   const handleSelect = async (itemData: MenuItem) => {
