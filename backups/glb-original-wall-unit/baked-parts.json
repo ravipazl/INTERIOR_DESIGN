@@ -1,0 +1,33 @@
+{
+  "4286c76a-345b-4345-be10-6e5df91c8953_Wall_unit_450x600_glass_left_handle_unwrap.glb": {
+    "modelId": "6a82da1beadc9b9b82ecd35e",
+    "name": "Wall unit 450x600 glass left handle unwrap",
+    "shutters": [
+      2
+    ],
+    "handles": [
+      3
+    ]
+  },
+  "384bad55-104d-4eeb-bf4a-06bfa20a988e_Wall_unit_900x600_left_handle_unwrap.glb": {
+    "modelId": "6a8ed4c3ed3f5b8aabeb4e51",
+    "name": "Wall unit 900x600 left handle unwrap",
+    "shutters": [
+      1
+    ],
+    "handles": [
+      2,
+      3
+    ]
+  },
+  "978436df-a69c-43fe-8d76-cf05a62cd883_Wall_unit_450x600_left_handle_unwrap_.glb": {
+    "modelId": "6a8ed4c3ed3f5b8aabeb4e56",
+    "name": "Wall unit 450x600 left handle unwrap",
+    "shutters": [
+      1
+    ],
+    "handles": [
+      2
+    ]
+  }
+}

@@ -1,24 +1,28 @@
-// Bake shutter + handle wood INTO the Below Counter Storage GLBs (same as the
+// Bake shutter + handle wood INTO every GLB of a catalogue category (same as the
 // tall units): shutter / drawer fronts → Wood 10002, handles → Wood 10012.
 //
-//   node scripts/bake-below-counter-wood.mjs --dry-run   check only, write nothing
-//   node scripts/bake-below-counter-wood.mjs             bake (originals backed up once)
-//   node scripts/bake-below-counter-wood.mjs --restore   put the originals back
+//   node scripts/bake-category-wood.mjs --category "Wall Unit" --dry-run
+//   node scripts/bake-category-wood.mjs --category "Wall Unit"
+//   node scripts/bake-category-wood.mjs --category "Wall Unit" --restore
+//   (--category defaults to "Below Counter Storage")
 //
 // Every run bakes from the ORIGINAL backup, never from an already-baked file.
 // Writes a manifest (model file → part numbers) that
 // record-baked-finish.mjs uses to record the finish for the panel and BOQ.
 //
 // How parts are found:
-//   • "BC …" units name their parts in the file ("Shutter", "Drawer 2 Shutter",
-//     "Shelf Handle", …) → matched by name.
-//   • "Base unit / Oil pullout / Corner" units have unnamed parts → by shape:
+//   • Files that name their parts ("Shutter", "Drawer 2 Shutter", "Shelf
+//     Handle", …) → matched by name.
+//   • Files with unnamed parts → by shape:
+//       handle  = small bar: thinnest side ≤ 12 mm, longest side ≤ 120 mm;
 //       shutter = front board: ≤ 25 mm deep, ≥ 200 mm wide, ≥ 500 mm high,
-//                 the frontmost such board (one board covers all drawers);
-//       handle  = small bar: thinnest side ≤ 12 mm, longest side ≤ 120 mm.
-//     Corner units have no separate door board → handles only.
-// Skipped: "Base unit 600x600 left opening shutter - handle colour" — the file
-// already carries its own colours/textures.
+//                 the frontmost such board (one board covers all drawers).
+//                 "Front" is the side the handles are on — some files face −Z.
+//     A unit with no separate door board (corner units) → handles only.
+//   • A part that already has its own look (a texture, a coloured or named
+//     material such as glass) is never recoloured.
+// Skipped whole: models whose name matches SKIP_NAMES — the file already
+// carries its own colours/textures.
 
 import fs from 'fs'
 import path from 'path'
@@ -36,33 +40,54 @@ import {
 } from './lib/glb-wood-bake.mjs'
 
 const __dirname = path.dirname(url.fileURLToPath(import.meta.url))
-const BACKUP_DIR = path.resolve(__dirname, '../../backups/glb-original-below-counter')
-const MANIFEST = path.join(BACKUP_DIR, 'baked-parts.json')
-const CATEGORY_NAME = 'Below Counter Storage'
-const SKIP_NAMES = [/handle colour/i]
-
 const args = process.argv.slice(2)
 const DRY = args.includes('--dry-run')
 const RESTORE = args.includes('--restore')
+const CATEGORY_NAME =
+  args.indexOf('--category') !== -1 ? args[args.indexOf('--category') + 1] : 'Below Counter Storage'
+// Existing backup folder names are kept so --restore still finds them.
+const BACKUP_FOLDERS = { 'Below Counter Storage': 'glb-original-below-counter' }
+const BACKUP_DIR = path.resolve(
+  __dirname,
+  '../../backups',
+  BACKUP_FOLDERS[CATEGORY_NAME] ||
+    `glb-original-${CATEGORY_NAME.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`
+)
+const MANIFEST = path.join(BACKUP_DIR, 'baked-parts.json')
+const SKIP_NAMES = [/handle colour/i]
+
+/** A part whose material already gives it its own look (texture, colour, glass…). */
+function hasOwnLook(row) {
+  const mat = row.prim.getMaterial()
+  if (!mat) return false
+  const white = mat.getBaseColorFactor().slice(0, 3).every((v) => v > 0.98)
+  const plainName = /^(default material)?$/i.test(mat.getName() || '')
+  return !!mat.getBaseColorTexture() || !white || !plainName
+}
 
 function detectByName(rows) {
-  const shutters = rows.filter((r) => /shutter/i.test(r.name)).map((r) => r.index)
-  const handles = rows.filter((r) => /handle/i.test(r.name)).map((r) => r.index)
+  const plain = rows.filter((r) => !hasOwnLook(r))
+  const shutters = plain.filter((r) => /shutter/i.test(r.name)).map((r) => r.index)
+  const handles = plain.filter((r) => /handle/i.test(r.name)).map((r) => r.index)
   return { shutters, handles }
 }
 
 function detectByShape(rows) {
-  const boards = rows.filter((r) => r.size[2] <= 25 && r.size[0] >= 200 && r.size[1] >= 500)
-  const frontZ = Math.max(...boards.map((r) => r.centre[2]))
+  const plain = rows.filter((r) => !hasOwnLook(r))
+  const handleRows = plain.filter((r) => {
+    const s = [...r.size].sort((a, b) => a - b)
+    return s[0] <= 12 && s[2] <= 120
+  })
+  // Front = the side the handles sit on (+Z for most files, −Z for some).
+  const avgHandleZ = handleRows.reduce((t, r) => t + r.centre[2], 0) / (handleRows.length || 1)
+  const front = avgHandleZ < 0 ? -1 : 1
+  const boards = plain.filter((r) => r.size[2] <= 25 && r.size[0] >= 200 && r.size[1] >= 500)
+  const frontZ = Math.max(...boards.map((r) => front * r.centre[2]))
   // The frontmost board(s). A back panel is also thin but sits at the back.
-  const shutters = boards.filter((r) => r.centre[2] >= frontZ - 5 && r.centre[2] > 0).map((r) => r.index)
-  const handles = rows
-    .filter((r) => {
-      const s = [...r.size].sort((a, b) => a - b)
-      return s[0] <= 12 && s[2] <= 120
-    })
+  const shutters = boards
+    .filter((r) => front * r.centre[2] >= frontZ - 5 && front * r.centre[2] > 0)
     .map((r) => r.index)
-  return { shutters, handles }
+  return { shutters, handles: handleRows.map((r) => r.index) }
 }
 
 async function main() {

@@ -1,0 +1,15 @@
+{
+  "collection": "models",
+  "before": {
+    "_id": "6a8ed4c3ed3f5b8aabeb4e56",
+    "dimensions": [
+      600,
+      900,
+      325
+    ],
+    "standardWidth": [
+      900
+    ],
+    "updatedAt": "2026-08-26T11:59:30.455Z"
+  }
+}
