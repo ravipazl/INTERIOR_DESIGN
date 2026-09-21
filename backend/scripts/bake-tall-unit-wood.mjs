@@ -15,21 +15,20 @@
 //   shutter = tall thin panel (> 1.5 m high, ≤ 25 mm thick) at the FRONT
 //   handle  = the smallest part
 // A file is skipped (left untouched) if its shape does not match that pattern.
+// A file that is ALREADY baked (e.g. copied from another machine) is left as it
+// is and never saved as an "original".
+// Folders come from lib/env.mjs (the backend .env: GLB_STORAGE_DIR, …).
 
+import { GLB_DIR, WOOD_DIR, BACKUP_ROOT } from './lib/env.mjs'
 import { NodeIO } from '@gltf-transform/core'
 import { createRequire } from 'module'
 import fs from 'fs'
 import path from 'path'
-import url from 'url'
 
 const require = createRequire(import.meta.url)
 const sharp = require('sharp')
 
-const __dirname = path.dirname(url.fileURLToPath(import.meta.url))
-const FRONTEND_PUBLIC = path.resolve(__dirname, '../../frontend/public')
-const GLB_DIR = path.join(FRONTEND_PUBLIC, 'assets/models/glb')
-const WOOD_DIR = path.join(FRONTEND_PUBLIC, 'assets/rooms/textures/library/wooden_grains')
-const BACKUP_DIR = path.resolve(__dirname, '../../backups/glb-original-tall-units')
+const BACKUP_DIR = path.join(BACKUP_ROOT, 'glb-original-tall-units')
 
 // The 10 plain-white tall units (Left door 400–600, Right door 400–600).
 // Kitchen Tall Unit 500×2100 is NOT listed — it already has its own colours.
@@ -257,8 +256,26 @@ async function bakeOne(file, images) {
   if (!fs.existsSync(live) && !fs.existsSync(backup)) {
     return { file, status: 'MISSING' }
   }
-  if (!DRY && !fs.existsSync(backup)) {
-    fs.copyFileSync(live, backup)
+  if (!fs.existsSync(backup)) {
+    // No original kept yet: make sure the live file IS an original.
+    const current = await io.read(live)
+    const currentNodes = meshNodesInOrder(current)
+    const partWith = (label) =>
+      currentNodes.findIndex((n) =>
+        n.getMesh().listPrimitives().some((p) => p.getMaterial()?.getExtras()?.bakedFinish === label)
+      )
+    const shutterAt = partWith(PARTS.shutter.label)
+    const handleAt = partWith(PARTS.handle.label)
+    if (shutterAt !== -1 || handleAt !== -1) {
+      return {
+        file,
+        status: 'ALREADY BAKED (left as it is)',
+        ...(shutterAt !== -1 && handleAt !== -1
+          ? { shutter: `Mesh_${shutterAt}`, handle: `Mesh_${handleAt}` }
+          : {})
+      }
+    }
+    if (!DRY) fs.copyFileSync(live, backup)
   }
   // Always bake from the untouched original.
   const source = fs.existsSync(backup) ? backup : live

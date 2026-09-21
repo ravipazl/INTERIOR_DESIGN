@@ -36,6 +36,21 @@ export const furnishedModelSchema = {
     // Exclude this object from installation (e.g. a lamp needs no installation).
     // When true, its area × installation rate is NOT charged. Default = included.
     installationExcluded: { type: 'boolean' },
+    // BOQ line overrides set from the BOQ page (the design is not touched):
+    //   boqExcluded — line removed from the BOQ (restorable there)
+    //   boqQty      — quantity; unset = 1
+    //   boqRate     — rate per unit; unset (null) = the calculated price
+    //   boqDescription — free-text description for the line; "" = none
+    //   boqSqftRate — rate per sq.ft for area-priced lines; null = calculated
+    //   boqWidthFt / boqHeightFt — one unit's width / height in feet used by the
+    //     BOQ (e.g. a site measurement); null = the size from the 3D design
+    boqExcluded: { type: 'boolean' },
+    boqQty: { type: 'number' },
+    boqRate: { type: ['number', 'null'] },
+    boqSqftRate: { type: ['number', 'null'] },
+    boqWidthFt: { type: ['number', 'null'] },
+    boqHeightFt: { type: ['number', 'null'] },
+    boqDescription: { type: 'string', maxLength: 2000 },
     // Per-object hardware lines (from the Hardware master, or a one-off "Other").
     // line total = qty × unitPrice; summed into the object's BOQ price.
     hardwareItems: {

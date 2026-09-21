@@ -159,3 +159,12 @@ backend/image-service/model-cache/
 # tied to the exact interpreter version — never useful in the repo.
 __pycache__/
 *.py[cod]
+
+# --- Cabinet finish scripts (backend/scripts/production) ---
+# Written on each machine when the scripts run (that machine's model ids,
+# folders and undo files) - never shared through git, so a later git pull on
+# the live server is not blocked by them.
+backups/**/baked-parts*.json
+backups/baked-finish-*.json
+backups/tall-unit-finish-*.json
+backups/cabinet-finishes-run-*.json

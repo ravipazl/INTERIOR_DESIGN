@@ -158,7 +158,9 @@
   "e1fb4d10-227a-4d7a-9c54-8d0fa6bc2b2f_Corner_unit_600x600x825_handle_unwrap.glb": {
     "modelId": "6a7ec0e84bacb0778d859b14",
     "name": "Corner unit 600x600x825 handle unwrap",
-    "shutters": [],
+    "shutters": [
+      1
+    ],
     "handles": [
       3,
       4
@@ -243,7 +245,9 @@
   "a3593526-59d5-4741-ba68-528050701712_Corner_unit_600x600x825_handle_unwrap_1_.glb": {
     "modelId": "6a8ed663ed3f5b8aabeb4e75",
     "name": "Corner unit 600x600x825 handle unwrap (1)",
-    "shutters": [],
+    "shutters": [
+      1
+    ],
     "handles": [
       3,
       4

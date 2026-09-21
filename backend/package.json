@@ -44,6 +44,8 @@
     "thumbnails:generate": "node scripts/generate-thumbnails.js",
     "thumbnails:categories": "node scripts/set-category-thumbnails.js",
     "models:deletable": "node scripts/flag-models-deletable.js",
+    "cabinet-finishes:check": "node scripts/production/apply-cabinet-finishes.mjs",
+    "cabinet-finishes:apply": "node scripts/production/apply-cabinet-finishes.mjs --apply",
     "mocha": "cross-env NODE_ENV=test mocha test/ --recursive --exit",
     "test": "npm run mocha",
     "bundle:client": "npm pack --pack-destination ./public"

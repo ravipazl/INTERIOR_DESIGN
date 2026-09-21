@@ -46,7 +46,7 @@ import UploadModelModal from "@pazl/components/UploadModelModal";
 import GenerateFromPhotoModal from "@pazl/components/GenerateFromPhotoModal";
 import ModelSearchModal from "@pazl/components/ModelSearchModal";
 import SnapControlPanel from "../SnapControlPanel";
-import { EVENT_ITEM_SELECTED } from "@pazl/main/core/events";
+import { EVENT_ITEM_SELECTED, EVENT_ITEM_LOADED } from "@pazl/main/core/events";
 
 interface FurnishMenuProps {
   furnishTabData: string[];
@@ -411,8 +411,9 @@ const FurnishMenu = ({
    * anything is what made clicking an item feel slow (and left the previous
    * item's values on screen meanwhile).
    *
-   * Returns how many parts were measured — 0 when the item's part rows do not
-   * exist yet (a just-added item), so the caller can measure again later.
+   * Returns how many parts were measured — 0 when the item's model has not
+   * finished loading or its part rows do not exist yet (a just-added item), so
+   * the caller can measure again later.
    */
   const measureMeshes = async (
     object: any,
@@ -420,8 +421,15 @@ const FurnishMenu = ({
   ): Promise<number> => {
     const meshes: any[] = [];
     let measured = 0;
+    // Only the item's LOADED MODEL. The item object itself is also a mesh (its
+    // invisible pick box) and carries helper meshes (the arrow marker); walking
+    // the whole item measured those before the model loaded — saved as Mesh_0
+    // 15×10 mm etc. — and the item was then treated as measured, leaving its
+    // real parts at 1×1 (BOQ rate ₹1.44).
+    const model = object?.__loadedItem;
+    if (!model) return 0;
     try {
-      object?.traverse?.((o: any) => {
+      model.traverse?.((o: any) => {
         if (o?.isMesh) meshes.push(o);
       });
     } catch (e) {
@@ -551,6 +559,19 @@ const FurnishMenu = ({
           measuredRef.current.get(furnishedModelId) === sig
         ) {
           measuredRef.current.delete(furnishedModelId);
+          // Selected before its 3D model finished loading: measure as soon as
+          // it has, instead of waiting for another click.
+          objects
+            .filter((o: any) => o && !o.__loadedItem && o.addEventListener)
+            .forEach((o: any) => {
+              const onLoaded = () => {
+                o.removeEventListener(EVENT_ITEM_LOADED, onLoaded);
+                measureMeshes(o, furnishedModelId).then((n) => {
+                  if (n > 0) measuredRef.current.set(furnishedModelId, sig);
+                });
+              };
+              o.addEventListener(EVENT_ITEM_LOADED, onLoaded);
+            });
         }
       }
     );

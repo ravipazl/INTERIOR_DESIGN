@@ -13,15 +13,15 @@
 //   node scripts/record-tall-unit-finish.mjs             apply (writes a backup)
 //   node scripts/record-tall-unit-finish.mjs --restore <backup.json>
 
+import { BACKUP_ROOT } from './lib/env.mjs'
 import { MongoClient } from 'mongodb'
 import { v4 as uuidv4 } from 'uuid'
 import config from 'config'
 import fs from 'fs'
 import path from 'path'
-import url from 'url'
 
-const __dirname = path.dirname(url.fileURLToPath(import.meta.url))
-const BACKUP_DIR = path.resolve(__dirname, '../../backups')
+// Database and backup folder come from lib/env.mjs (the backend .env).
+const BACKUP_DIR = BACKUP_ROOT
 
 const GLB_FILES = [
   'd785e120-6c7e-4634-a163-c93a88f87e7b_Tall_unit_Left_door_opening_handles_450_x_2080.glb',

@@ -334,7 +334,8 @@ export class FurnishedModelComponent extends LocalDBManager {
       selectedInternalFinishingBrandId
     );
     if (selectedInternalFinishingBrandId) {
-      this.externalFinishBrandId = selectedInternalFinishingBrandId;
+      // Interior brand — was wrongly written to the exterior brand field.
+      this.internalFinishBrandId = selectedInternalFinishingBrandId;
       await this.update();
     }
   }

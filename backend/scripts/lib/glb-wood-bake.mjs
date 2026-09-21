@@ -11,16 +11,15 @@ import { NodeIO } from '@gltf-transform/core'
 import { ALL_EXTENSIONS } from '@gltf-transform/extensions'
 import { createRequire } from 'module'
 import path from 'path'
-import url from 'url'
+import { GLB_DIR, WOOD_DIR, BACKUP_ROOT } from './env.mjs'
 
 const require = createRequire(import.meta.url)
 const sharp = require('sharp')
 const draco3d = require('draco3d')
 
-const __dirname = path.dirname(url.fileURLToPath(import.meta.url))
-export const FRONTEND_PUBLIC = path.resolve(__dirname, '../../../frontend/public')
-export const GLB_DIR = path.join(FRONTEND_PUBLIC, 'assets/models/glb')
-const WOOD_DIR = path.join(FRONTEND_PUBLIC, 'assets/rooms/textures/library/wooden_grains')
+// Folders come from lib/env.mjs (GLB_STORAGE_DIR etc.), so the same scripts run
+// on a local PC and on the live server.
+export { GLB_DIR, WOOD_DIR, BACKUP_ROOT }
 
 export const WOOD = {
   shutter: {
@@ -98,6 +97,22 @@ export function partRows(doc) {
   }
   doc.getRoot().listScenes().forEach((s) => s.listChildren().forEach(walk))
   return rows
+}
+
+/**
+ * Parts that already carry a baked wood finish (a file baked earlier, e.g.
+ * copied from another machine): { shutters, handles } row indices, or null when
+ * the file has no baked finish. Such a file must not be treated as an original.
+ */
+export function bakedParts(doc) {
+  const rows = partRows(doc)
+  const pick = (label) =>
+    rows
+      .filter((r) => r.prim.getMaterial()?.getExtras()?.bakedFinish === label)
+      .map((r) => r.index)
+  const shutters = pick(WOOD.shutter.label)
+  const handles = pick(WOOD.handle.label)
+  return shutters.length || handles.length ? { shutters, handles } : null
 }
 
 export function signature(doc) {

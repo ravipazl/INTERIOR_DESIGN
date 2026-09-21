@@ -11,16 +11,16 @@
 // 2. furnished_model_components: placed items get it on those parts, ONLY where
 //    the part has no finish yet (a finish someone chose is kept).
 // Every change is written to a backup file first.
+// Database and backup folder come from lib/env.mjs (the backend .env).
 
-import { MongoClient } from 'mongodb'
+import { BACKUP_ROOT } from './lib/env.mjs'
+import { MongoClient, ObjectId } from 'mongodb'
 import { v4 as uuidv4 } from 'uuid'
 import config from 'config'
 import fs from 'fs'
 import path from 'path'
-import url from 'url'
 
-const __dirname = path.dirname(url.fileURLToPath(import.meta.url))
-const BACKUP_DIR = path.resolve(__dirname, '../../backups')
+const BACKUP_DIR = BACKUP_ROOT
 
 const FINISH = {
   shutters: { finish: 'Wood 10002', fileUrl: '/assets/rooms/textures/library/wooden_grains/10002.jpg' },
@@ -74,6 +74,13 @@ async function main() {
 
     for (const entry of Object.values(manifest)) {
       const { modelId } = entry
+      // A manifest made on another machine has that machine's model ids.
+      const ids = /^[a-f0-9]{24}$/i.test(modelId) ? [modelId, new ObjectId(modelId)] : [modelId]
+      const model = await db.collection('models').findOne({ _id: { $in: ids } }, { projection: { name: 1 } })
+      if (!model) {
+        skipped.push(`${entry.name}: model id ${modelId} is not in this database (manifest from another machine?)`)
+        continue
+      }
       totals.models++
       const catalogueParts = await db.collection('model_components').find({ modelId }).toArray()
       const placements = await db.collection('furnished_models').find({ modelId }).project({ _id: 1 }).toArray()

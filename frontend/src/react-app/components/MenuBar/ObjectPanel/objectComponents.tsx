@@ -769,13 +769,15 @@ function ObjectComponents({
         );
     };
 
+    // Show the choice first, then save — the dropdown must not sit on the old
+    // value while the save runs.
     if (selectedChildComponent) {
-      await save(selectedChildComponent);
       setSelectedChildComponent({
         ...selectedChildComponent,
         [idField]: brandId,
         [objField]: brand,
       });
+      await save(selectedChildComponent);
       return;
     }
     if (selectedComponentGroup?.components?.length) {
@@ -784,7 +786,7 @@ function ObjectComponents({
         [idField]: brandId,
         [objField]: brand,
       }));
-      for (const c of selectedComponentGroup.components) await save(c);
+      const toSave = selectedComponentGroup.components;
       setSelectedComponentGroup({
         name: selectedComponentGroup.name,
         components: list,
@@ -796,6 +798,7 @@ function ObjectComponents({
             : g
         )
       );
+      for (const c of toSave) await save(c);
     }
   };
 
@@ -1918,6 +1921,7 @@ function ObjectComponents({
                 })()
               : finishingBrandsMaster
           }
+          allFinishingBrands={finishingBrandsMaster}
           finishingsList={finishingsList}
           handleSelectedGrainDirection={handleSelectedGrainDirection}
           handleFinishingTextureSelection={handleFinishingTextureSelection}
