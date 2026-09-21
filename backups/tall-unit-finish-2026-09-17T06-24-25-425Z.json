@@ -1,0 +1,37 @@
+{
+  "createdAt": "2026-09-17T06:24:25.425Z",
+  "insertedDefaultIds": [
+    "92d91766-62c8-4739-b3a2-465bd587c9d3",
+    "f8da4fcf-6acb-4642-bafe-0ef1437ef0dc"
+  ],
+  "removedDefaults": [
+    {
+      "_id": "c8adcd0a-d34b-4a63-a60b-f2d20322496a",
+      "modelId": "6a50ae991f9a3dab7cf77eb6",
+      "modelName": "Mesh_5",
+      "propertyName": "externalFinishFinishingId",
+      "propertyValue": "6a0ae3ad80c7795ec04c121a",
+      "createdAt": "2026-09-17T05:50:39.062Z"
+    },
+    {
+      "_id": "9866f663-cc12-44ae-b303-3e7c373df063",
+      "modelId": "6a50ae991f9a3dab7cf77eb6",
+      "modelName": "Mesh_6",
+      "propertyName": "externalFinishFinishingId",
+      "propertyValue": "6a0ae3ad80c7795ec04c1220",
+      "createdAt": "2026-09-17T05:50:39.062Z"
+    }
+  ],
+  "components": [
+    {
+      "_id": "4e184def-a0f2-4b9e-acef-bf0c0f9a2035",
+      "externalFinishFinishingId": "",
+      "updatedAt": "2026-09-16T13:03:16.347Z"
+    },
+    {
+      "_id": "82b26c62-1332-4e73-85c6-16670b46c71e",
+      "externalFinishFinishingId": "",
+      "updatedAt": "2026-09-16T13:03:17.058Z"
+    }
+  ]
+}

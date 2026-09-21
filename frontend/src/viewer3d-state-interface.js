@@ -105,15 +105,17 @@ function handleAddItemsToScene(
           gltf.scene.traverse((o) => {
             if (o.isMesh) meshes.push(o);
           });
+          // A new item keeps its GLB's own materials: no texture is looked up
+          // (the old lookup matched part NAMES across every model, so a part
+          // could get another item's texture). Finishes the user picks later
+          // fill the meshmap in.
           await Promise.all(
             meshes.map(async (mesh, i) => {
               const meshName = `Mesh_${i}`;
               mesh.name = meshName;
-              const texture =
-                await ModelsService.getModelComponentTexture(meshName);
               meshmap.push({
                 name: meshName,
-                texture: texture ? `${texture}` : "",
+                texture: "",
                 color: "",
                 shininess: 10,
                 size: [],
@@ -1127,6 +1129,19 @@ function __ensureGhost(model, viewer) {
       console.warn("model preload failed (non-fatal) — ignoring", err);
     }
   );
+  __prefetchModelComponents(item);
+}
+
+// Fetch the model's part list ahead of time, so adding the item does not wait
+// on the server before the parts can be created (see ProjectManager).
+function __prefetchModelComponents(item) {
+  try {
+    if (item && item._id) {
+      ModelsService.getModelComponentsByModelIdCached(item._id).catch(() => {});
+    }
+  } catch (e) {
+    /* non-fatal — the add path fetches it itself */
+  }
 }
 
 // Pre-warm the GLB cache for a catalog model — call it on card hover / when the
@@ -1143,6 +1158,7 @@ function warmModelCache(model) {
       () => {},
       (err) => console.warn("warmModelCache failed (non-fatal)", err)
     );
+    __prefetchModelComponents(item);
   } catch (e) {
     /* non-fatal */
   }

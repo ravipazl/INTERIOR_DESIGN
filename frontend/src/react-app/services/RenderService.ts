@@ -104,12 +104,41 @@ export const MATERIAL_TYPES: { label: string; value: string }[] = [
 ];
 
 /** An AI render job. Same shape as RenderJob plus what the credit call returns. */
+/** One MyArchitectAI tool run through our backend (/ai-render/run). */
+export interface AiRunBody {
+  op: "render" | "style" | "upscale" | "edit" | "animate";
+  /** A fresh capture (data:image/jpeg;base64,…) … */
+  image?: string;
+  /** … or a render already on our server (/uploads/renders/…). */
+  sourceUrl?: string;
+  sceneType?: "interior" | "exterior";
+  prompt?: string;
+  negativePrompt?: string;
+  lighting?: string;
+  timeOfDay?: string;
+  season?: string;
+  weather?: string;
+  referenceImage?: string;
+  strength?: number;
+  targetResolution?: "4k" | "8k";
+  outputFormat?: string;
+  endFrameUrl?: string;
+}
+
 export interface AiRenderJob {
   id: string;
+  op?: string;
   stage: "queued" | "rendering" | "done" | "error";
+  /** The step in progress, e.g. "Setting the lighting". */
+  step?: string | null;
   progress: number | null;
   result: {
+    kind?: "image" | "video";
     imageUrl: string;
+    videoUrl?: string;
+    mimeType?: string;
+    /** The view the result was made from, for before/after. */
+    sourceUrl?: string | null;
     /** Credits left after this render — shown in the panel. */
     balance?: number;
     /** What this render cost. 0 means the job failed and was refunded. */
@@ -232,6 +261,30 @@ export const RenderService = {
    * without spending one — so the panel calls it on open and can say "not
    * configured" or "out of credits" before the user waits on a render.
    */
+  /** Start any MyArchitectAI tool; poll with pollAiRenderStatus. */
+  runAi: async (body: AiRunBody) => {
+    const response = await axios.post("/ai-render/run", body, {
+      headers: { Authorization: `Bearer ${AuthService.getAccessToken()}` },
+    });
+    if (response.status < 200 || response.status >= 300) {
+      throw new Error(
+        response.data?.message || response.data?.error || `HTTP ${response.status}`
+      );
+    }
+    return response.data as { jobId: string; status: string };
+  },
+
+  /** Describe the view as a detailed prompt ($0.01). */
+  autoPrompt: async (src: { image?: string; sourceUrl?: string }) => {
+    const response = await axios.post("/ai-render/auto-prompt", src, {
+      headers: { Authorization: `Bearer ${AuthService.getAccessToken()}` },
+    });
+    if (response.status < 200 || response.status >= 300) {
+      throw new Error(response.data?.message || `HTTP ${response.status}`);
+    }
+    return response.data as { prompt: string; balance?: number; cost?: number };
+  },
+
   getAiBalance: async () => {
     try {
       const accessToken = AuthService.getAccessToken();

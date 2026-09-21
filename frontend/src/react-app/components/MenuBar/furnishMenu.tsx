@@ -36,18 +36,17 @@ import UndoPanel from "../UndoPanel";
 import { HISTORY_TITLES } from "@pazl/services/ProjectManager";
 import ObjectCopiedModal from "../ObjectCopiedModal";
 import RoomPropertiesModal from "../RoomPropertiesModal";
-import RenderViewModal from "../RenderViewModal";
+import AiRenderStudio from "../AiRenderStudio";
 import AiInspirationButton from "../AiInspirationButton";
 import { FurnishedModel } from "@pazl/entities/FurnishedModel";
 import Loader from "../Loader";
 import ShortcutsModal from "./Shorcuts";
 import { Physical3DItem } from "@pazl/main/viewer3d/Physical3DItem";
-import { FurnishedModelComponent } from "@pazl/entities/FurnishedModelComponent";
 import UploadModelModal from "@pazl/components/UploadModelModal";
 import GenerateFromPhotoModal from "@pazl/components/GenerateFromPhotoModal";
 import ModelSearchModal from "@pazl/components/ModelSearchModal";
 import SnapControlPanel from "../SnapControlPanel";
-import { EVENT_ITEM_SELECTED } from "@pazl/main/core/events";
+import { EVENT_ITEM_SELECTED, EVENT_ITEM_LOADED } from "@pazl/main/core/events";
 
 interface FurnishMenuProps {
   furnishTabData: string[];
@@ -281,15 +280,27 @@ const FurnishMenu = ({
   useEffect(() => {
     if (navView === "render") {
       setShowRoomPanel(false);
-    } else if (navView === "furnish") {
+    } else {
+      // Leaving Render for ANY page (3D, BOQ, floor plan…) closes the render
+      // flow — otherwise its camera-step buttons stayed on top of the new page.
       setRenderCloseSignal((n) => n + 1);
-      setShowRoomPanel(true);
+      if (navView === "furnish") setShowRoomPanel(true);
     }
   }, [navView]);
 
 
+  // These 3D listeners cannot be removed again (event-interface.js wraps the
+  // callback), so register them ONCE. Without this guard every re-run of the
+  // effect stacked another copy and every click did the work N times over.
+  const wiredRef = useRef(false);
+  /** furnishedModelId → the scale it was last measured at. */
+  const measuredRef = useRef<Map<string, string>>(new Map());
+  /** Bumped on every selection; an older, still-waiting selection gives up. */
+  const selectSeqRef = useRef(0);
+
   useEffect(() => {
-    if (BlueprintInterface && BlueprintInterface.blueprint3d) {
+    if (BlueprintInterface && BlueprintInterface.blueprint3d && !wiredRef.current) {
+      wiredRef.current = true;
       handleWallClicked((evt: any) => {
         /* PERF-REMOVED */ // console.debug("furnishedMenu.tsx ~ handleWallClicked ~ event", evt);
         setShowWallPropertiesModal(true);
@@ -318,7 +329,12 @@ const FurnishMenu = ({
               itemModel.__id,
               evt.item.position,
               evt.item.scale,
-              evt.item.rotation
+              evt.item.rotation,
+              // The object that was just clicked. Measuring THIS one (instead
+              // of BlueprintInterface.selectedModels, which another listener
+              // sets a moment later) is what kept the panel showing the
+              // previously selected item's sizes.
+              evt.item
             );
             setShowObjectPanel(true);
             setShowDoorPropertiesModal(false);
@@ -386,34 +402,42 @@ const FurnishMenu = ({
     }
   }, [BlueprintInterface, BlueprintInterface.blueprint3d]);
 
-  const getSelectedModel = async (
-    furnishedModelId: string,
-    position?: Vector3,
-    scale?: Vector3,
-    rotation?: Vector3
-  ) => {
-    /* PERF-REMOVED console.debug: console.debug(
-      "furnishedMenu.tsx ~ getSelectedModel ~ furnishedModelId",
-      furnishedModelId
-    ); */
-    // Measure EVERY mesh of the loaded model and save its size to the matching
-    // component, so the BOQ can compute area. We traverse the FULL object graph
-    // (not just the scene's direct children): Sketchfab imports nest their meshes
-    // many levels deep under a single "Sketchfab_model" wrapper, so a one-level
-    // scan finds only the wrapper (not a mesh) and its name matches no component —
-    // which is why those items were never measured. Match components by mesh
-    // INDEX ("Mesh_N") — how the catalog seeds component names — because the raw
-    // mesh node names ("Sketchfab_model", "mesh_0", "Mesh_0.002") are unreliable.
-    for (const model of BlueprintInterface?.selectedModels || []) {
-      const meshes: any[] = [];
+  /**
+   * Measure every mesh of ONE object and save its size to the matching
+   * component, so the BOQ can compute area.
+   *
+   * Runs in the BACKGROUND, after the panel is already on screen: each mesh
+   * costs an IndexedDB read + write, and awaiting all of them before showing
+   * anything is what made clicking an item feel slow (and left the previous
+   * item's values on screen meanwhile).
+   *
+   * Returns how many parts were measured — 0 when the item's model has not
+   * finished loading or its part rows do not exist yet (a just-added item), so
+   * the caller can measure again later.
+   */
+  const measureMeshes = async (
+    object: any,
+    furnishedModelId: string
+  ): Promise<number> => {
+    const meshes: any[] = [];
+    let measured = 0;
+    // Only the item's LOADED MODEL. The item object itself is also a mesh (its
+    // invisible pick box) and carries helper meshes (the arrow marker); walking
+    // the whole item measured those before the model loaded — saved as Mesh_0
+    // 15×10 mm etc. — and the item was then treated as measured, leaving its
+    // real parts at 1×1 (BOQ rate ₹1.44).
+    const model = object?.__loadedItem;
+    if (!model) return 0;
+    try {
+      model.traverse?.((o: any) => {
+        if (o?.isMesh) meshes.push(o);
+      });
+    } catch (e) {
+      console.error("furnishMenu ~ measureMeshes ~ traverse failed", e);
+      return 0;
+    }
+    for (let i = 0; i < meshes.length; i++) {
       try {
-        model?.traverse?.((o: any) => {
-          if (o?.isMesh) meshes.push(o);
-        });
-      } catch (e) {
-        console.error("furnishMenu ~ getSelectedModel ~ traverse failed", e);
-      }
-      for (let i = 0; i < meshes.length; i++) {
         const box3 = new Box3().setFromObject(meshes[i]);
         const size = box3.getSize(new Vector3());
         const height = size.y;
@@ -428,17 +452,79 @@ const FurnishMenu = ({
             compName,
             furnishedModelId
           );
-        if (furnishedModelComponent) {
-          await new FurnishedModelComponent({
-            ...furnishedModelComponent,
-          }).updateDimensions(height, width);
+        if (
+          furnishedModelComponent &&
+          (await BlueprintInterface.ProjectManagerService.updateFurnishedModelComponentSize(
+            furnishedModelComponent._id,
+            height,
+            width
+          ))
+        ) {
+          measured++;
+        }
+      } catch (e) {
+        console.error("furnishMenu ~ measureMeshes failed", e);
+      }
+    }
+    return measured;
+  };
+
+  const getSelectedModel = async (
+    furnishedModelId: string,
+    position?: Vector3,
+    scale?: Vector3,
+    rotation?: Vector3,
+    /** The object just clicked/added; measured after the panel is shown. */
+    clickedObject?: any
+  ) => {
+    /* PERF-REMOVED console.debug: console.debug(
+      "furnishedMenu.tsx ~ getSelectedModel ~ furnishedModelId",
+      furnishedModelId
+    ); */
+    // Measure EVERY mesh of the loaded model and save its size to the matching
+    // component, so the BOQ can compute area. We traverse the FULL object graph
+    // (not just the scene's direct children): Sketchfab imports nest their meshes
+    // many levels deep under a single "Sketchfab_model" wrapper, so a one-level
+    // scan finds only the wrapper (not a mesh) and its name matches no component —
+    // which is why those items were never measured. Match components by mesh
+    // INDEX ("Mesh_N") — how the catalog seeds component names — because the raw
+    // mesh node names ("Sketchfab_model", "mesh_0", "Mesh_0.002") are unreliable.
+    const seq = ++selectSeqRef.current;
+    const pm = BlueprintInterface.ProjectManagerService;
+    let furnishedModel = pm.getFurnishedModelById(furnishedModelId);
+    if (!furnishedModel) {
+      // A just-added item is selected in 3D a moment BEFORE its record is
+      // registered (that happens right after, in the same add). Yield once —
+      // usually that is enough and the panel opens with no gap.
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      if (seq !== selectSeqRef.current) return;
+      furnishedModel = pm.getFurnishedModelById(furnishedModelId);
+    }
+    if (!furnishedModel) {
+      // Still missing: clear the panel so the previously selected item's
+      // details are not left on screen, then wait for the record. A newer
+      // selection cancels this wait.
+      setSelectedModel(undefined);
+      for (let i = 0; !furnishedModel && i < 50; i++) {
+        await new Promise((resolve) => setTimeout(resolve, 100));
+        if (seq !== selectSeqRef.current) return;
+        furnishedModel = pm.getFurnishedModelById(furnishedModelId);
+        // Still missing after ~1.5 s: it is not being created right now, so
+        // the record exists only on the server (e.g. switched off by an
+        // out-of-order save). Load it — the item is in the scene.
+        if (!furnishedModel && i === 14) {
+          try {
+            furnishedModel = await pm.ensureFurnishedModelLoaded(
+              furnishedModelId
+            );
+          } catch (e) {
+            console.error("furnishMenu ~ ensureFurnishedModelLoaded failed", e);
+          }
+          if (seq !== selectSeqRef.current) return;
         }
       }
     }
-    const furnishedModel =
-      await BlueprintInterface.ProjectManagerService.getFurnishedModelById(
-        furnishedModelId
-      );
+    if (seq !== selectSeqRef.current) return;
     /* PERF-REMOVED console.debug: console.debug(
       "furnishedMenu.tsx ~ getSelectedModel ~ furnishedModel",
       furnishedModel
@@ -452,6 +538,43 @@ const FurnishMenu = ({
     } else if (furnishedModel) {
       setSelectedModel(furnishedModel);
     }
+    // Panel is on screen; now measure without holding anything up — and only
+    // when it can have changed. Selecting fires on every move of a dragged
+    // item, and the sizes only differ when the item is scaled.
+    const sig = scale ? `${scale.x}|${scale.y}|${scale.z}` : "1";
+    if (measuredRef.current.get(furnishedModelId) === sig) return;
+    // Mark now so the rapid re-selects of a drag don't start parallel runs…
+    measuredRef.current.set(furnishedModelId, sig);
+    const objects = clickedObject
+      ? [clickedObject]
+      : (BlueprintInterface?.selectedModels as any[]) || [];
+    Promise.all(objects.map((o) => measureMeshes(o, furnishedModelId))).then(
+      (counts) => {
+        // …but un-mark when nothing could be measured: a just-added item's
+        // parts (or its model) are not there yet. Marking it anyway left its
+        // parts at the 1×1 placeholder for the session — BOQ area 0, ₹0. The
+        // re-select that follows part creation then measures it for real.
+        if (
+          !counts.some((n) => n > 0) &&
+          measuredRef.current.get(furnishedModelId) === sig
+        ) {
+          measuredRef.current.delete(furnishedModelId);
+          // Selected before its 3D model finished loading: measure as soon as
+          // it has, instead of waiting for another click.
+          objects
+            .filter((o: any) => o && !o.__loadedItem && o.addEventListener)
+            .forEach((o: any) => {
+              const onLoaded = () => {
+                o.removeEventListener(EVENT_ITEM_LOADED, onLoaded);
+                measureMeshes(o, furnishedModelId).then((n) => {
+                  if (n > 0) measuredRef.current.set(furnishedModelId, sig);
+                });
+              };
+              o.addEventListener(EVENT_ITEM_LOADED, onLoaded);
+            });
+        }
+      }
+    );
   };
 
   const handleSelect = async (itemData: MenuItem) => {
@@ -865,8 +988,10 @@ const FurnishMenu = ({
       {isLoading ? <Loader /> : null}
       {/* Snap engine toolbar — floating widget, Furnish mode only. */}
       <SnapControlPanel />
-      {/* Photorealistic render — floating button, opens the Render view. */}
-      <RenderViewModal
+      {/* AI render (MyArchitectAI): frame the camera, then the render screen.
+          Replaces the old RenderViewModal (Blender / AI pop-up); that component
+          is no longer mounted. */}
+      <AiRenderStudio
         openSignal={renderSignal}
         closeSignal={renderCloseSignal}
       />

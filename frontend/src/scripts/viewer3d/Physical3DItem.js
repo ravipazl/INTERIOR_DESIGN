@@ -475,17 +475,27 @@ export class Physical3DItem extends Mesh {
   }
 
   /**
-   * Repaint the given meshes back to the item's DEFAULT colour (strip any applied
-   * finish texture). Used by "Ungroup" to also reset the combine colour. Matches
-   * meshes by name OR traversal index, since a live mesh name may not line up 1:1
-   * with the stored meshName (Mesh_0…N, component order).
+   * True when `textureUrl` is the finish already baked into this mesh's GLB
+   * material (a baked GLB marks it in the material extras → userData, e.g.
+   * scripts/bake-tall-unit-wood.mjs). Compared by path, ignoring host/query.
+   */
+  static isBakedFinish(mesh, textureUrl) {
+    const baked = mesh?.__origMaterial?.userData?.bakedTexture;
+    if (!baked || !textureUrl) return false;
+    const clean = (u) => String(u).split(/[?#]/)[0].replace(/^https?:\/\/[^/]+/, "");
+    return clean(baked) === clean(textureUrl);
+  }
+
+  /**
+   * Put the given meshes back to their ORIGINAL look — the material that came in
+   * the GLB (no applied finish, no default colour). Matches meshes by name OR
+   * traversal index, since a live mesh name may not line up 1:1 with the stored
+   * meshName (Mesh_0…N, component order).
    */
   resetMeshesToDefault(meshNames) {
     try {
       const wanted = new Set((meshNames || []).map((x) => String(x)));
       if (!wanted.size || !this.__loadedItem) return;
-      const WOOD = 0xc9a063;
-      const def = this.__defaultColorHex || WOOD;
       const meshes = [];
       this.__loadedItem.traverse((o) => {
         if (o.isMesh) meshes.push(o);
@@ -495,13 +505,8 @@ export class Physical3DItem extends Mesh {
         const key = /^Mesh_\d+$/.test(nm) ? nm : "Mesh_" + i;
         if (!wanted.has(nm) && !wanted.has(key) && !wanted.has("Mesh_" + i))
           return;
-        const mats = Array.isArray(o.material) ? o.material : [o.material];
-        mats.forEach((m) => {
-          if (!m) return;
-          if (m.map) m.map = null; // drop the finish texture
-          if (m.color) m.color.setHex(def);
-          m.needsUpdate = true;
-        });
+        const orig = o.__origMaterial;
+        if (orig) o.material = orig;
       });
     } catch (e) {
       /* cosmetic — never break ungroup */
@@ -1433,6 +1438,12 @@ export class Physical3DItem extends Mesh {
       if (o.isMesh) {
         let obj = mtl.find((m) => m.name === o.name);
         if (obj) {
+          // The finish is already baked into this part's GLB material → keep
+          // the file's own material: no texture download, no repaint.
+          if (Physical3DItem.isBakedFinish(o, obj.texture)) {
+            o.material = o.__origMaterial;
+            return;
+          }
           if (obj.texture != "") {
             let txt = new TextureLoader().load(obj.texture);
             let size = obj.size;
@@ -1515,6 +1526,11 @@ export class Physical3DItem extends Mesh {
         // Keep the GLB's ORIGINAL part name before overwriting it — the auto
         // default-colour step uses it to spot special parts (e.g. a TV screen).
         o.userData.__origName = o.name || "";
+        // Keep the GLB's OWN material so a part can be put back to its original
+        // colour/texture (finishes replace o.material, they never mutate it).
+        // A plain property, NOT userData: three.js JSON-copies userData on
+        // clone/export, which must never serialise a material.
+        o.__origMaterial = o.material;
         o.name = `Mesh_${__meshIndex++}`;
       }
     });
@@ -1597,131 +1613,13 @@ export class Physical3DItem extends Mesh {
     this.__initializeChildItem();
     this.initColor(this.__loadedItem, "", this.__itemModel.meshmap);
 
-    // AUTO DEFAULT COLOUR: any mesh that came in with NO texture and a plain
-    // light-grey/white ("clay") material — i.e. a model with no baseColor — gets
-    // a warm wood tone so it never shows as grey. Meshes that already carry a
-    // texture OR a real (non-neutral) colour are left untouched, so designed
-    // furniture (sofas, chairs, tables) keeps its own look. Runs on every load,
-    // so it stays consistent after a reload. Guarded — never breaks loading.
-    try {
-      // ITEM-WISE default colour: pick the colour from WHAT the item is (name /
-      // type), so a grey model looks right for its kind — wood for cabinets /
-      // tables / beds, grey fabric for sofas, beige for chairs, warm metal for
-      // lights. Only grey/untextured meshes are painted, so items that already
-      // carry their own colour/texture are left untouched.
-      const WOOD = 0xc9a063; // brown wood
-      const FABRIC_SOFA = 0xe6dbbf; // warm cream/beige (matches Solid 21054)
-      const FABRIC_CHAIR = 0xe6dbbf; // warm cream/beige (matches Solid 21054)
-      const METAL_LIGHT = 0xb08d57; // warm brass / metal
-      const meta = (this.__itemModel && this.__itemModel.metadata) || {};
-      const nameStr = `${meta.itemName || ""} ${meta.itemType || ""} ${
-        meta.description || ""
-      }`.toLowerCase();
-      // Decide the item kind + its default colour. Order matters: check the
-      // more specific fabric/metal kinds before falling back to wood.
-      let kind = "wood";
-      let defaultColor = WOOD;
-      const isTv = /\btv\b|television|monitor/.test(nameStr);
-      if (/\bsofa\b|couch|settee|loveseat/.test(nameStr)) {
-        kind = "fabric";
-        defaultColor = FABRIC_SOFA;
-      } else if (/\bchair\b|stool|armchair|recliner|bench/.test(nameStr)) {
-        kind = "fabric";
-        defaultColor = FABRIC_CHAIR;
-      } else if (
-        /\blight\b|lamp|chandelier|pendant|sconce|lantern/.test(nameStr)
-      ) {
-        kind = "metal";
-        defaultColor = METAL_LIGHT;
-      } else {
-        // cabinet, wardrobe, tall unit, storage, table, shelf, door, bed, cot…
-        // (a TV falls here too: its STAND gets wood; the SCREEN is set black
-        // per-mesh below.)
-        kind = "wood";
-        defaultColor = WOOD;
-      }
-
-      // TV SCREEN detection. Reliable path = the MATERIAL name (e.g. this model
-      // names it "TV_sreen_material" even though the mesh names are empty). Also
-      // check the original mesh name, and a SHAPE fallback (thin upright panel in
-      // the upper half). The screen gets a dark GLASS colour; the stand/frame get
-      // wood. Note "sreen" (a common misspelling) is matched too.
-      const SCREEN_RE = /s(?:c)?reen|display|monitor|\blcd\b|\bled\b|glass/i;
-      const GLASS = 0x1c242b; // dark reflective glass (TV screen, off)
-      if (isTv) {
-        try {
-          this.__loadedItem.updateMatrixWorld(true);
-          const itemBox = new Box3().setFromObject(this.__loadedItem);
-          const itemCenter = itemBox.getCenter(new Vector3());
-          const itemSize = itemBox.getSize(new Vector3());
-          this.__loadedItem.traverse((o) => {
-            if (!o || !o.isMesh) return;
-            const s = new Box3().setFromObject(o).getSize(new Vector3());
-            const cen = new Box3().setFromObject(o).getCenter(new Vector3());
-            const dims = [s.x, s.y, s.z].sort((a, z) => a - z);
-            const thin = dims[0] < dims[2] * 0.25; // flat one way = panel
-            const big = dims[1] * dims[2] > itemSize.x * itemSize.y * 0.1;
-            const upper = cen.y >= itemCenter.y; // upper half = the screen
-            if (thin && big && upper) o.userData.__isScreenShape = true;
-          });
-        } catch (e) {
-          /* shape fallback is best-effort */
-        }
-      }
-
-      let __anyGreyPainted = false;
-      this.__loadedItem.traverse((o) => {
-        if (!o || !o.isMesh || !o.material) return;
-        const origName = (o.userData && o.userData.__origName) || "";
-        const mats = Array.isArray(o.material) ? o.material : [o.material];
-        mats.forEach((m) => {
-          if (!m || !m.color) return;
-          const matName = (m.name || "").toLowerCase();
-          const isScreen =
-            isTv &&
-            (SCREEN_RE.test(matName) ||
-              SCREEN_RE.test(origName) ||
-              (o.userData && o.userData.__isScreenShape));
-          if (isScreen) {
-            // Dark glass screen — glossy so it reads like real glass, not paint.
-            m.color.setHex(GLASS);
-            if ("roughness" in m) m.roughness = 0.08;
-            if ("metalness" in m) m.metalness = 0.2;
-            m.needsUpdate = true;
-            __anyGreyPainted = true;
-            return;
-          }
-          if (m.map) return; // textured non-screen part → already designed
-          const c = m.color;
-          // "Neutral" = a greyscale material (no real hue): light grey, white,
-          // dark grey OR near-black — all "unfinished / placeholder" colours, so
-          // they get the item-wise default. A material with a real COLOUR (a
-          // hue) is NOT neutral, so it's left untouched. Option A: dark/black
-          // placeholder models are recoloured too, not only light-grey ones.
-          const neutral =
-            Math.abs(c.r - c.g) < 0.07 && Math.abs(c.g - c.b) < 0.07;
-          if (neutral) {
-            m.color.setHex(defaultColor);
-            m.needsUpdate = true;
-            __anyGreyPainted = true;
-          }
-        });
-      });
-      // Remember what kind we defaulted to. The Components panel (React) reads
-      // this to write the RIGHT default finish per item type — a Wood finish for
-      // wood items, a fabric/solid finish for sofas & chairs, a contemporary /
-      // metal finish for lights — so the Components swatch + BOQ match the item.
-      this.__autoDefaultKind = __anyGreyPainted ? kind : null;
-      // Remember the exact default colour so a later "reset finish" (used by
-      // Ungroup) can repaint the mesh back to it.
-      this.__defaultColorHex = defaultColor;
-      // Flag every auto-coloured item so the Components panel applies its
-      // item-appropriate default finish (kind above). Items that came in with
-      // their own colour/texture leave this false and are left untouched.
-      this.__autoDefaultColored = __anyGreyPainted;
-    } catch (e) {
-      /* cosmetic only — never break loading */
-    }
+    // NO AUTO DEFAULT COLOUR: every part keeps the colour/texture that is in
+    // its own GLB. Nothing is repainted (no wood/cream/brass/screen defaults);
+    // a finish only changes a part when the user picks one. The flags stay
+    // defined (false/null) for code that still reads them.
+    this.__autoDefaultKind = null;
+    this.__defaultColorHex = null;
+    this.__autoDefaultColored = false;
 
     this.dispatchEvent({ type: EVENT_ITEM_LOADED });
   }

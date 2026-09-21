@@ -99,6 +99,47 @@ export class GenerateBoqServiceService {
       const handlesLegsPrice = 0
       const items = []
 
+      // "Type · Brand" of each item's exterior finishes for the BOQ's
+      // Description / Material column — e.g. "Laminates · Greenlam". Type is the
+      // PARENT of the finish's style category (Wood Grain → Laminates), as the
+      // finish picker shows it. Looked up once per id for the whole BOQ.
+      const lookupCache = new Map()
+      const lookup = (collection, id) => {
+        if (!id) return Promise.resolve(null)
+        const key = `${collection}:${id}`
+        if (!lookupCache.has(key)) {
+          lookupCache.set(
+            key,
+            db
+              .collection(collection)
+              .findOne({ _id: id })
+              .catch(() => null)
+          )
+        }
+        return lookupCache.get(key)
+      }
+      // One label per type, its brands listed once: ["Laminates · Merino, Greenlam"].
+      const finishLabelsFor = async (componentsList) => {
+        const brandsByType = new Map() // type → brand names (insertion order)
+        for (const comp of componentsList || []) {
+          const finishing = await lookup('finishings', comp?.externalFinishFinishingId)
+          if (!finishing) continue
+          const style = await lookup('finishing_categories', finishing.categoryId)
+          const parent = style?.parentCategoryId
+            ? await lookup('finishing_categories', style.parentCategoryId)
+            : null
+          const type = parent?.name || style?.name || ''
+          if (!type) continue
+          if (!brandsByType.has(type)) brandsByType.set(type, [])
+          const brand = (await lookup('finishing_brands', comp?.externalFinishBrandId))?.name
+          const brands = brandsByType.get(type)
+          if (brand && !brands.includes(brand)) brands.push(brand)
+        }
+        return [...brandsByType].map(([type, brands]) =>
+          brands.length ? `${type} · ${brands.join(', ')}` : type
+        )
+      }
+
       await Promise.all(
         modelsToPrice.map(async (furnishedModel) => {
           const compsResp = await this.app
@@ -401,15 +442,43 @@ export class GenerateBoqServiceService {
               mergedParts.push({ ...p, count: 1 })
             }
           }
+          const finishLabels = await finishLabelsFor(furnishedModelComponents)
+          let categoryName = ''
+          if (catalogModel?.categoryId) {
+            const cid = catalogModel.categoryId
+            let category = await lookup('categories', cid)
+            if (!category && typeof cid === 'string' && /^[a-f0-9]{24}$/i.test(cid)) {
+              category = await lookup('categories', new ObjectId(cid))
+            }
+            categoryName = category?.name || ''
+          }
           items.push({
             model: { ...updatingModelResponse, model: catalogModel },
             components,
+            finishLabels,
             parts: mergedParts,
             otherCosts,
             otherCostsTotal,
             hardwareItems,
             hardwareTotal,
             installationExcluded: !!furnishedModel.installationExcluded,
+            boqExcluded: !!furnishedModel.boqExcluded,
+            boqQty: Number(furnishedModel.boqQty) > 0 ? Number(furnishedModel.boqQty) : 1,
+            boqRate:
+              furnishedModel.boqRate === null || furnishedModel.boqRate === undefined
+                ? null
+                : Number(furnishedModel.boqRate),
+            boqDescription:
+              typeof furnishedModel.boqDescription === 'string' ? furnishedModel.boqDescription : '',
+            boqSqftRate:
+              furnishedModel.boqSqftRate === null || furnishedModel.boqSqftRate === undefined
+                ? null
+                : Number(furnishedModel.boqSqftRate),
+            boqWidthFt: Number(furnishedModel.boqWidthFt) > 0 ? Number(furnishedModel.boqWidthFt) : null,
+            boqHeightFt: Number(furnishedModel.boqHeightFt) > 0 ? Number(furnishedModel.boqHeightFt) : null,
+            // Catalog category (e.g. "Below Counter Storage") — the BOQ page uses it
+            // with the item name to price cabinets per sq.ft and loose items per no.
+            categoryName: categoryName || '',
             boqFlags: { defaultedCount, noRateCount }
           })
         })

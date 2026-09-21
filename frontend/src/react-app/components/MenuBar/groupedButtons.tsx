@@ -16,8 +16,8 @@ import { MenuItem, MenuGroupedButtonProps } from "@pazl/helpers/Types";
  * is duplicated in the panel.
  */
 const MOVED_TO_PANEL = [
-  // Floor plan panel -> "Draw room"
-  "clear",
+  // Floor plan panel -> "Draw room". (Clear is back on the toolbar too, beside
+  // Undo / Redo, to match the Coohom drawing toolbar; the panel keeps its own.)
   "templates",
   "units",
   // 3D model panel -> "Add model"

@@ -7,6 +7,58 @@ import BlueprintInterface from "@pazl/blueprint-interface";
 import { TERipple } from "tw-elements-react";
 import { ACTION_MODES } from "./furnishMenu";
 
+// The name shown UNDER every toolbar icon (Coohom-style), on the 2D and the
+// 3D toolbar alike. Anything not listed falls back to the item name.
+const TOOLBAR_LABELS: Record<string, string> = {
+  select: "Select",
+  draw: "Line",
+  undo: "Undo",
+  redo: "Redo",
+  clear: "Clear",
+  arc: "Arc",
+  rectangle: "Rectangle",
+  circle: "Circle",
+  fillet: "Fillet",
+  merge: "Merge",
+  split: "Split",
+  trim: "Trim",
+  align: "Align",
+  guides: "Guides",
+  import: "Import",
+  export: "Export",
+  snap: "Snap",
+  multiSelect: "Select",
+  top_view: "Top",
+  "3d_view": "3D",
+  zoom_in: "Zoom in",
+  zoom_out: "Zoom out",
+  snapshot: "Snapshot",
+  shortcuts: "Shortcuts",
+  object: "Object",
+  room: "Room",
+  gltf: "Export",
+};
+
+// Buttons that had words instead of an icon get one, now that the word is
+// shown underneath anyway.
+const FALLBACK_ICONS: Record<string, string> = {
+  object: "filter_center_focus",
+  room: "fit_screen",
+};
+
+// 2D drawing tools (scripts/viewer2d/DrawTools2D.js): lit while active.
+const DRAW_TOOL_ITEMS = [
+  "arc",
+  "rectangle",
+  "circle",
+  "fillet",
+  "merge",
+  "split",
+  "trim",
+  "align",
+  "guides",
+];
+
 const MenuButton: React.FC<MenuTabProps> = ({
   itemData,
   handleMenuItemClick,
@@ -38,6 +90,9 @@ const MenuButton: React.FC<MenuTabProps> = ({
       return true;
     }
     if (mode === "draw" && itemData.itemName === "draw") {
+      return true;
+    }
+    if (DRAW_TOOL_ITEMS.includes(itemData.itemName) && mode === itemData.itemName) {
       return true;
     }
     if (itemData.iconName === "toggle_on") {
@@ -101,7 +156,7 @@ const MenuButton: React.FC<MenuTabProps> = ({
                 ? { backgroundColor: "var(--pz-accent-soft)" }
                 : { backgroundColor: "transparent" }
             }
-            className={`w-11 h-11 rounded flex items-center justify-center transition-colors ${
+            className={`min-w-[44px] h-[46px] px-1 rounded flex flex-col items-center justify-center gap-0.5 transition-colors ${
               isDisabled ? "" : "hover:bg-[color:var(--pz-panel-hover)]"
             } ${
               handleTabItemActive(mode, itemData)
@@ -114,8 +169,9 @@ const MenuButton: React.FC<MenuTabProps> = ({
             disabled={isDisabled}
           >
             <span
+              style={{ fontSize: 22, lineHeight: "22px" }}
               className={`material-symbols-outlined ${
-                itemData.iconName
+                itemData.iconName || FALLBACK_ICONS[itemData.itemName]
                   ? "font-extralight dark:text-[#ffffff]"
                   : "h-6 font-semibold text-xs font-['Inter'] dark:text-[#ffffff]"
               }
@@ -128,12 +184,13 @@ const MenuButton: React.FC<MenuTabProps> = ({
                   } 
                   `}
             >
-              {itemData.iconName
-                ? itemData.iconName
-                : convertToTitleCase(itemData.itemName)}
+              {itemData.iconName ||
+                FALLBACK_ICONS[itemData.itemName] ||
+                convertToTitleCase(itemData.itemName)}
             </span>
             <p
-              className={`hidden menu-button-text dark:text-[#ffffff] ${
+              style={{ fontSize: 10.5, lineHeight: "12px", margin: 0, whiteSpace: "nowrap" }}
+              className={`menu-button-text dark:text-[#ffffff] ${
                 isDisabled
                   ? "text-[#cccccc]"
                   : handleTabItemActive(mode, itemData)
@@ -141,9 +198,9 @@ const MenuButton: React.FC<MenuTabProps> = ({
                   : ""
               } `}
             >
-              {handleTabItemName(itemData)
-                ? handleTabItemName(itemData)
-                : convertToTitleCase(itemData.itemName)}
+              {TOOLBAR_LABELS[itemData.itemName] ||
+                handleTabItemName(itemData) ||
+                convertToTitleCase(itemData.itemName)}
             </p>
           </button>
         </TERipple>

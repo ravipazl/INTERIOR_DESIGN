@@ -70,7 +70,6 @@ function ObjectComponents({
   const [finishingCategories, setFinishingCategories] = useState<any[]>([]);
   const [finishingsList, setFinishingsList] = useState<Finishing[]>([]);
   // Cabinets whose default finish has already been auto-applied (once each).
-  const autoFinishAppliedRef = useRef<Set<string>>(new Set());
   const [isEdgeBandPropAvailable, setIsEdgeBandPropAvailable] = useState(false);
   const [isEdgeBandExpanded, setIsEdgeBandExpanded] = useState(false);
   const [coreMaterialBrands, setCoreMaterialBrands] = useState<any[]>([]);
@@ -240,156 +239,9 @@ function ObjectComponents({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [finishingsList]);
 
-  // AUTO DEFAULT FINISH (full): when an item that loaded GREY (auto-coloured
-  // wood in 3D) has NO exterior finish on any part, apply a default wood finish
-  // to ALL its parts — writing the finish RECORD via the SAME call the manual
-  // picker uses. This makes the default show in the Properties Exterior swatch
-  // AND the BOQ (not just the 3D mesh). Applies to ANY grey item (matching the
-  // 3D paint), not just cabinets. Guarded: grey-only, once per model, never
-  // overrides an existing finish, fully try/caught.
-  useEffect(() => {
-    (async () => {
-      try {
-        const model: any = selectedModel;
-        if (!model || !finishingsList.length || !groupedModelComponents.length)
-          return;
-        // Wait for the priced-brand data too, so the default finish AND its
-        // default brand are applied together (never a finish with an empty
-        // brand because the brand list hadn't loaded yet).
-        if (!coatingRates.length || !finishingBrandsMaster.length) return;
-        const id = model?._id;
-        if (!id || autoFinishAppliedRef.current.has(id)) return;
-        // Only items the 3D layer auto-coloured grey→wood. Physical3DItem sets
-        // __autoDefaultColored on the placed item when it painted a grey mesh.
-        // Items that came in with their own colour/texture (sofa, chair, ...)
-        // leave the flag false and are skipped — so their Components stay as-is,
-        // exactly like their 3D look. Cabinet names kept as a safe fallback for
-        // any item whose 3D flag isn't reachable yet.
-        const placed: any = (BlueprintInterface as any)?.selectedModels?.find(
-          (m: any) => m?.itemModel?.id === id
-        );
-        const nm = String(model?.model?.name || model?.name || "").toLowerCase();
-        const isCabinet =
-          /\bbc\b|below counter|tall unit|wardrobe|cabinet|storage/.test(nm);
-        const isGreyAutoColored = placed?.__autoDefaultColored === true;
-        if (!isGreyAutoColored && !isCabinet) return;
-        // Skip if ANY part already has an exterior finish (don't override).
-        const hasFinish = groupedModelComponents.some((g: any) =>
-          (g?.components || []).some((c: any) => c?.externalFinishFinishingId)
-        );
-        if (hasFinish) {
-          autoFinishAppliedRef.current.add(id);
-          return;
-        }
-        // ITEM-WISE default finish: pick the finishing that matches the item's
-        // kind (set by the 3D layer). The catalog names finishings by style
-        // prefix — Wood…, Solid…, Pattern…, Contemporary…. For sofas & chairs we
-        // PREFER a specific warm-cream colour (Solid 21054) so upholstery looks
-        // like a real fabric sofa (matches the reference), not a random first
-        // colour; wood items → Wood Grain; lights → Contemporary (modern/metal).
-        // Shows the right material in Components + 3D + BOQ, per item type.
-        const kind: string =
-          placed?.__autoDefaultKind || (isCabinet ? "wood" : "wood");
-        // Preferred EXACT default material per kind (chosen to look good by
-        // default). Falls back to the style prefix if that exact one is missing.
-        const KIND_PREFERRED: Record<string, RegExp> = {
-          fabric: /^solid\s*21054$/i, // warm cream/beige — sofas & chairs
-        };
-        const KIND_PREFIX: Record<string, RegExp> = {
-          wood: /^wood/i,
-          fabric: /^solid/i,
-          metal: /^contemporary/i,
-        };
-        const preferred = KIND_PREFERRED[kind];
-        const prefix = KIND_PREFIX[kind] || /^wood/i;
-        const withTex = (f: any) => f?.texture?.fileUrl;
-        const finishing: any =
-          (preferred &&
-            finishingsList.find(
-              (f: any) => preferred.test(String(f?.name || "").trim()) && withTex(f)
-            )) ||
-          finishingsList.find((f: any) => prefix.test(f?.name || "") && withTex(f)) ||
-          // fall back to wood, then to any textured finishing.
-          finishingsList.find((f: any) => /^wood/i.test(f?.name || "") && withTex(f)) ||
-          finishingsList.find((f: any) => withTex(f));
-        if (!finishing) return;
-        const allComps = groupedModelComponents.flatMap(
-          (g: any) => g?.components || []
-        );
-        if (!allComps.length) return;
-        autoFinishAppliedRef.current.add(id);
-        // Write the finish record + paint + persist (same as the manual picker).
-        await BlueprintInterface.ProjectManagerService.onFurnishModelComponentsExtFinishChange(
-          allComps,
-          finishing
-        );
-        // DEFAULT BRAND: also pick the FIRST brand so the Brand dropdown isn't
-        // left on "Select…". Prefer a brand PRICED for this finish's
-        // category (same rule the Brand dropdown uses, so the BOQ prices it);
-        // fall back to the first priced brand overall. The user can still
-        // change it afterwards — this only fills the empty default.
-        const finishCatId = (finishing as any)?.finishingCategoryId;
-        const defBrandId =
-          (coatingRates.find(
-            (r: any) =>
-              r.finishingCategoryId === finishCatId && r.finishingBrandId
-          )?.finishingBrandId ||
-            coatingRates.find((r: any) => r.finishingBrandId)
-              ?.finishingBrandId) ??
-          null;
-        const defBrand = defBrandId
-          ? (finishingBrandsMaster || []).find(
-              (b: any) => b._id === defBrandId
-            )
-          : null;
-        if (defBrandId) {
-          for (const c of allComps) {
-            try {
-              await BlueprintInterface.ProjectManagerService.onFurnisheModelComponentExtBrandChange(
-                c,
-                defBrandId
-              );
-            } catch (be) {
-              console.warn("[auto-finish] brand set failed", be);
-            }
-          }
-        }
-        // Reflect finish + brand in the panel so both swatches show the default.
-        const withFinish = (g: any) => ({
-          ...g,
-          externalFinishFinishingId: finishing._id,
-          externalFinishFinishing: finishing,
-          ...(defBrandId
-            ? { externalFinishBrandId: defBrandId, externalFinishBrand: defBrand }
-            : {}),
-          components: (g?.components || []).map((c: any) => ({
-            ...c,
-            externalFinishFinishingId: finishing._id,
-            externalFinishFinishing: finishing,
-            ...(defBrandId
-              ? {
-                  externalFinishBrandId: defBrandId,
-                  externalFinishBrand: defBrand,
-                }
-              : {}),
-          })),
-        });
-        setGroupedModelComponents((prev: any[]) => prev.map(withFinish));
-        // ALSO refresh the currently-open group — the Exterior swatch reads
-        // from `selectedComponentGroup`, not the full list.
-        setSelectedComponentGroup((prev: any) => (prev ? withFinish(prev) : prev));
-      } catch (e) {
-        console.warn("[auto-finish] failed", e);
-      }
-    })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    groupedModelComponents,
-    finishingsList,
-    selectedModel,
-    coatingRates,
-    finishingBrandsMaster,
-  ]);
+  // No automatic default finish: selecting an item never writes a finish or
+  // brand on its parts. Each part keeps the look of its own 3D file until the
+  // user picks a finish.
 
   useEffect(() => {
     const handleFinishing = async (finishing: Finishing) => {
@@ -917,13 +769,15 @@ function ObjectComponents({
         );
     };
 
+    // Show the choice first, then save — the dropdown must not sit on the old
+    // value while the save runs.
     if (selectedChildComponent) {
-      await save(selectedChildComponent);
       setSelectedChildComponent({
         ...selectedChildComponent,
         [idField]: brandId,
         [objField]: brand,
       });
+      await save(selectedChildComponent);
       return;
     }
     if (selectedComponentGroup?.components?.length) {
@@ -932,7 +786,7 @@ function ObjectComponents({
         [idField]: brandId,
         [objField]: brand,
       }));
-      for (const c of selectedComponentGroup.components) await save(c);
+      const toSave = selectedComponentGroup.components;
       setSelectedComponentGroup({
         name: selectedComponentGroup.name,
         components: list,
@@ -944,6 +798,7 @@ function ObjectComponents({
             : g
         )
       );
+      for (const c of toSave) await save(c);
     }
   };
 
@@ -1821,8 +1676,8 @@ function ObjectComponents({
   };
 
   // Remove ONE mesh from a combined group: give it back its own mesh name so it
-  // splits out into its own row again, AND reset its colour to the item default
-  // — same logic as Ungroup, applied to just this one mesh.
+  // splits out into its own row again. Its finish is left as it is — no default
+  // finish is applied.
   const handleRemoveFromGroup = async (comp: any) => {
     if (!comp?._id) return;
     const standalone =
@@ -1831,91 +1686,24 @@ function ObjectComponents({
     try {
       const pm: any = (BlueprintInterface as any)?.ProjectManagerService;
       await pm?.updateFurnishedModelComponentName?.(comp._id, standalone);
-      // Reset the combine colour on this mesh (same as Ungroup): re-apply the
-      // item's default finish so the 3D AND the panel show the default.
-      const defFin = computeDefaultFinishing();
-      if (defFin) {
-        await pm?.onFurnishModelComponentsExtFinishChange?.([comp], defFin);
-      } else {
-        try {
-          const item =
-            (BlueprintInterface as any)?.selectedModels?.[0] || selectedModel;
-          if (comp.meshName)
-            (item as any)?.resetMeshesToDefault?.([String(comp.meshName)]);
-        } catch (e) {
-          /* visual repaint is best-effort */
-        }
-      }
       await getModelComponents(isMultiSelectMode);
     } catch (e) {
       console.error("objectComponents.tsx ~ handleRemoveFromGroup failed", e);
     }
   };
 
-  // Pick the item's DEFAULT finishing (wood grain, etc.) the same way the
-  // auto-finish effect does — so ungroup can RESET to that default finish (shown
-  // in both the 3D view AND the Components panel), not blank it out.
-  const computeDefaultFinishing = (): any => {
-    const id = selectedModel?._id;
-    const placed: any = (BlueprintInterface as any)?.selectedModels?.find(
-      (m: any) => m?.itemModel?.id === id
-    );
-    const kind: string = placed?.__autoDefaultKind || "wood";
-    const KIND_PREFERRED: Record<string, RegExp> = {
-      fabric: /^solid\s*21054$/i,
-    };
-    const KIND_PREFIX: Record<string, RegExp> = {
-      wood: /^wood/i,
-      fabric: /^solid/i,
-      metal: /^contemporary/i,
-    };
-    const preferred = KIND_PREFERRED[kind];
-    const prefix = KIND_PREFIX[kind] || /^wood/i;
-    const withTex = (f: any) => f?.texture?.fileUrl;
-    return (
-      (preferred &&
-        finishingsList.find(
-          (f: any) =>
-            preferred.test(String(f?.name || "").trim()) && withTex(f)
-        )) ||
-      finishingsList.find((f: any) => prefix.test(f?.name || "") && withTex(f)) ||
-      finishingsList.find(
-        (f: any) => /^wood/i.test(f?.name || "") && withTex(f)
-      ) ||
-      finishingsList.find((f: any) => withTex(f))
-    );
-  };
-
-  // Ungroup an ENTIRE group: rename every part back to its own mesh name AND
-  // reset the combine colour to the item's DEFAULT finish — so 3D and the
-  // Components panel both show the default wood finish (not an empty swatch).
+  // Ungroup an ENTIRE group: rename every part back to its own mesh name. Each
+  // part keeps its current finish — no default finish is applied.
   const handleUngroupGroup = async (group: any) => {
     const comps = group?.components || [];
     if (!comps.length) return;
     try {
       const pm: any = (BlueprintInterface as any)?.ProjectManagerService;
-      const meshNames: string[] = [];
       for (const c of comps) {
         const standalone =
           (c.meshName && String(c.meshName).trim()) ||
           `Mesh ${String(c._id).slice(-4)}`;
         await pm?.updateFurnishedModelComponentName?.(c._id, standalone);
-        if (c.meshName) meshNames.push(String(c.meshName));
-      }
-      // Re-apply the DEFAULT finish (wood) so the panel shows it too — this both
-      // paints the 3D and writes the finish record. Fall back to a flat default
-      // repaint only if no default finishing exists.
-      const defFin = computeDefaultFinishing();
-      if (defFin) {
-        await pm?.onFurnishModelComponentsExtFinishChange?.(comps, defFin);
-      } else {
-        try {
-          const item =
-            (BlueprintInterface as any)?.selectedModels?.[0] || selectedModel;
-          (item as any)?.resetMeshesToDefault?.(meshNames);
-        } catch (e) {
-          /* visual repaint is best-effort */
-        }
       }
       await getModelComponents(isMultiSelectMode);
     } catch (e) {
@@ -2133,6 +1921,7 @@ function ObjectComponents({
                 })()
               : finishingBrandsMaster
           }
+          allFinishingBrands={finishingBrandsMaster}
           finishingsList={finishingsList}
           handleSelectedGrainDirection={handleSelectedGrainDirection}
           handleFinishingTextureSelection={handleFinishingTextureSelection}

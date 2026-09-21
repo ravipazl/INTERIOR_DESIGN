@@ -245,6 +245,8 @@ function ObjectProperties({
     onHideObjectPanel();
   };
 
+  // Every placement type (floor, wall-mounted, in-wall) rotates the same way:
+  // the item turns around its vertical axis, saved on the placed record.
   const onRotationChange = async (mode: ROTATION_MODES, angle?: number) => {
     await BlueprintInterface.ProjectManagerService.onFurnishedModelRotationChange(
       selectedModel._id,
@@ -1230,9 +1232,9 @@ function ObjectProperties({
                       </div>
                     );
                   })()}
-                  {modelObject.type != MODEL_TYPES.WALL_UNIT &&
-                  modelObject.type != MODEL_TYPES.IN_WALL_UNIT &&
-                  modelObject.type != MODEL_TYPES.IN_WALL_FLOOR_UNIT ? (
+                  {/* Shown for every placement type — wall-mounted and in-wall
+                      items rotate exactly like floor items. */}
+                  {modelObject ? (
                     <div className="flex flex-col max-w-sm mb-2">
                       <h6 className="text-xs font-semibold leading-tight text-primary dark:text-neutral-200">
                         Rotate

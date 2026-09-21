@@ -22,6 +22,9 @@ const ObjectFinishingsModal = ({
   handleSelectedStyle,
   handleSelectedBrand,
   finishingBrands,
+  // Optional: every brand (the dropdown list is only the priced ones), used to
+  // name a saved brand that is not in that list.
+  allFinishingBrands,
   finishingsList,
   handleSelectedGrainDirection,
   handleFinishingTextureSelection,
@@ -55,12 +58,37 @@ const ObjectFinishingsModal = ({
   const internalFinishGrainDirection =
     selectedChildComponent?.internalFinishGrainDirection ??
     selectedComponentGroup?.components[0]?.internalFinishGrainDirection;
-  const externalFinishBrand =
-    selectedChildComponent?.externalFinishBrand ??
-    selectedComponentGroup?.components[0]?.externalFinishBrand;
-  const internalFinishBrand =
-    selectedChildComponent?.internalFinishBrand ??
-    selectedComponentGroup?.components[0]?.internalFinishBrand;
+  // The saved brand of the part: its id is what is stored (the brand object is
+  // not always attached, e.g. after the part is picked in 3D), so read the id.
+  const brandIdOf = (c: any, side: "external" | "internal") =>
+    c?.[`${side}FinishBrandId`] || c?.[`${side}FinishBrand`]?._id || "";
+  const externalFinishBrandId =
+    brandIdOf(selectedChildComponent, "external") ||
+    brandIdOf(selectedComponentGroup?.components?.[0], "external");
+  const internalFinishBrandId =
+    brandIdOf(selectedChildComponent, "internal") ||
+    brandIdOf(selectedComponentGroup?.components?.[0], "internal");
+  const selectedBrandId =
+    selectedFinishingType === "exterior"
+      ? externalFinishBrandId
+      : internalFinishBrandId;
+  // The list shows brands priced for the style; keep the saved brand in it
+  // even when it is not, so the dropdown can still show it.
+  const brandOptions: FinishingBrand[] = (() => {
+    const list: FinishingBrand[] = finishingBrands || [];
+    if (!selectedBrandId || list.some((b) => b._id === selectedBrandId))
+      return list;
+    const saved =
+      (allFinishingBrands || []).find((b: any) => b._id === selectedBrandId) ||
+      [selectedChildComponent, selectedComponentGroup?.components?.[0]]
+        .map((c: any) =>
+          selectedFinishingType === "exterior"
+            ? c?.externalFinishBrand
+            : c?.internalFinishBrand
+        )
+        .find((b: any) => b?._id === selectedBrandId);
+    return saved ? [...list, saved] : list;
+  })();
 
   const onHideObjectProperties = () => {
     setShowObjectComponentsModal(false);
@@ -265,16 +293,12 @@ const ObjectFinishingsModal = ({
                           </h6>
                           <select
                             id="dropdown"
-                            value={
-                              (selectedFinishingType === "exterior"
-                                ? externalFinishBrand?._id
-                                : internalFinishBrand?._id) || ""
-                            }
+                            value={selectedBrandId}
                             onChange={handleSelectedBrand}
                             className="type-pattern-dropdown bg-[#F9F9FA] border-0 w-full h-[28px]"
                           >
                             <option value="">Select…</option>
-                            {finishingBrands?.map((brand: FinishingBrand) => (
+                            {brandOptions.map((brand: FinishingBrand) => (
                               <option key={brand._id} value={brand._id}>
                                 {brand.name}
                               </option>

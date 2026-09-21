@@ -37,8 +37,13 @@ const App = () => {
   useEffect(() => {
     setLastSavedTime(new Date().toLocaleTimeString());
     let intervalId = setInterval(syncLocalToDB, timeIntervalToSyncLocalDBToDB);
+    // Save straight away when something asks for it (e.g. an item was just
+    // added) instead of waiting for the next tick.
+    const onSyncNow = () => syncLocalToDB();
+    window.addEventListener("pazl:sync-now", onSyncNow);
     return () => {
       clearInterval(intervalId);
+      window.removeEventListener("pazl:sync-now", onSyncNow);
     };
   }, []);
 

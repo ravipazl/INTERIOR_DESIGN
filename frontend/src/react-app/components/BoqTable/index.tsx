@@ -13,23 +13,22 @@ import { ProjectsService } from "@pazl/services/projectsService";
 import { FurnishedModelsService } from "@pazl/services/furnishedModelsService";
 import { RatesService } from "@pazl/services/RatesService";
 import { ProjectWorkspaceService } from "@pazl/services/ProjectWorkspaceService";
-import {
-  Autocomplete,
-  TextField,
-  Box,
-  Collapse,
-  IconButton,
-  Paper,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Typography,
-} from "@mui/material";
+import { SyncService } from "@pazl/services/syncService";
+import { Autocomplete } from "@mui/material";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
+import KitchenOutlined from "@mui/icons-material/KitchenOutlined";
+import WeekendOutlined from "@mui/icons-material/WeekendOutlined";
+import BedOutlined from "@mui/icons-material/BedOutlined";
+import BathtubOutlined from "@mui/icons-material/BathtubOutlined";
+import TableRestaurantOutlined from "@mui/icons-material/TableRestaurantOutlined";
+import DeskOutlined from "@mui/icons-material/DeskOutlined";
+import HomeOutlined from "@mui/icons-material/HomeOutlined";
+import EditOutlined from "@mui/icons-material/EditOutlined";
+import DeleteOutline from "@mui/icons-material/DeleteOutline";
+import RestoreOutlined from "@mui/icons-material/RestoreOutlined";
+import CheckOutlined from "@mui/icons-material/CheckOutlined";
+import CloseOutlined from "@mui/icons-material/CloseOutlined";
 
 interface TableRowType {
   total_price: string;
@@ -51,6 +50,26 @@ interface TableRowType {
   furnishedModelId?: string;
   area?: number;
   installationExcluded?: boolean;
+  /** Calculated price per unit (parts + hardware + other costs). */
+  basePrice?: number;
+  /** BOQ line overrides (saved on the placed item; the design is untouched). */
+  boqQty?: number;
+  boqRate?: number | null;
+  boqExcluded?: boolean;
+  /** Free-text description written on the BOQ page ("" = none). */
+  boqDescription?: string;
+  /** Edited rate per sq.ft (area-priced lines); null = calculated. */
+  boqSqftRate?: number | null;
+  categoryName?: string;
+  /** One unit's size in mm (from the item's [H, W, D]). */
+  widthMm?: number;
+  heightMm?: number;
+  /** One unit's width / height in ft set on the BOQ page; null = 3D size. */
+  boqWidthFt?: number | null;
+  boqHeightFt?: number | null;
+  unit?: string;
+  material?: string;
+  dims?: string;
   items?: {
     item_name: string;
     item_description: string;
@@ -98,6 +117,197 @@ const TRANSPORT_PACKING_PCT = 0.003;
 const rupee = (n: number) =>
   n ? `₹${Math.round(n).toLocaleString("en-IN")}` : "—";
 
+// ── BOQ line maths ──────────────────────────────────────────────────────────
+// Each placed item is a unit. Identical units (same item, size and material in
+// a room) show as ONE line, e.g. 4 Tall Units → Qty 4. Cabinets are priced by
+// the area of their front: Width (unit width × qty) × Height = Area,
+// Area × Rate per sq.ft = Amount. Loose items (decor, lamps…) stay per no.
+// Removed lines are not counted anywhere.
+const SQFT_ITEM =
+  /\b(tall|wall|base)\s*units?\b|below\s*counter|pull\s*-?\s*out|\bloft|wardrobe|drawer\s*unit|sink\s*unit|corner\s*unit|crockery|vanity/i;
+const round2 = (n: number) => Number((Number(n) || 0).toFixed(2));
+const mmToFt = (mm?: number) => round2((Number(mm) || 0) / 304.8);
+// One unit's width / height in ft: the size set on the BOQ page, else the
+// size from the 3D design (rounded to 0.01 ft, as shown).
+const hasSize = (v: any) => v !== null && v !== undefined && Number(v) > 0;
+const unitWidthFt = (it: TableRowType) =>
+  hasSize(it.boqWidthFt) ? Number(it.boqWidthFt) : mmToFt(it.widthMm);
+const unitHeightFt = (it: TableRowType) =>
+  hasSize(it.boqHeightFt) ? Number(it.boqHeightFt) : mmToFt(it.heightMm);
+// Installation area of one unit = its BOQ area (Width × Height); an item with
+// no size keeps the area it was loaded with (the sum of its parts).
+const unitArea = (it: TableRowType) =>
+  unitWidthFt(it) > 0 && unitHeightFt(it) > 0
+    ? round2(unitWidthFt(it) * unitHeightFt(it))
+    : Number(it.area) || 0;
+// Quantity of one placed unit (1 unless changed on the BOQ page).
+const lineQty = (it: TableRowType) =>
+  Number(it.boqQty) > 0 ? Number(it.boqQty) : 1;
+// Hardware + other costs of one unit (added on top of the line amount).
+const unitExtras = (it: TableRowType) =>
+  round2(
+    (it.hardwareItems || []).reduce(
+      (s, r) => s + (Number(r?.qty) || 0) * (Number(r?.unitPrice) || 0),
+      0
+    ) +
+      (it.otherCosts || []).reduce((s, r) => s + (Number(r?.amount) || 0), 0)
+  );
+// Per-no rate of one unit WITHOUT its hardware / other costs: the edited
+// rate, else the calculated price (which includes them) minus them.
+const unitCoreRate = (it: TableRowType) =>
+  it.boqRate === null || it.boqRate === undefined
+    ? Math.max(0, (Number(it.basePrice) || 0) - unitExtras(it))
+    : Number(it.boqRate) || 0;
+
+interface BoqLine {
+  /** First unit's id — identifies the line for editing / expanding. */
+  id: string;
+  ids: string[];
+  units: TableRowType[];
+  lead: TableRowType;
+  excluded: boolean;
+  bySqft: boolean;
+  qty: number;
+  /** One unit's width and the line's height, in feet. */
+  unitWidth: number;
+  height: number;
+  overallWidth: number;
+  /** Width / height set on the BOQ page (not the 3D size). */
+  widthEdited: boolean;
+  heightEdited: boolean;
+  /** Sq.ft (area-priced lines only). */
+  area: number;
+  /** ₹ per sq.ft, or ₹ per no for loose items. */
+  rate: number;
+  rateEdited: boolean;
+  /** Hardware + other costs of all units, included in the amount. */
+  extras: number;
+  /** Area × rate (or qty × rate) + extras. */
+  amount: number;
+  description: string;
+}
+
+const lineFromUnits = (units: TableRowType[]): BoqLine => {
+  const lead = units[0];
+  const qty = round2(units.reduce((q, u) => q + lineQty(u), 0));
+  // Unrounded unit width, so Width = unit width × qty adds up exactly
+  // (10 ft over 3 units stays 10, not 9.99).
+  const unitWidthRaw = unitWidthFt(lead);
+  const unitWidth = round2(unitWidthRaw);
+  const height = round2(Math.max(...units.map(unitHeightFt)));
+  const widthEdited = units.some((u) => hasSize(u.boqWidthFt));
+  const heightEdited = units.some((u) => hasSize(u.boqHeightFt));
+  // Calculated amount = what each unit costs today (without hardware / other
+  // costs) × its quantity. Hardware and other costs are added on top.
+  const calculated = units.reduce((t, u) => t + lineQty(u) * unitCoreRate(u), 0);
+  const extras = round2(units.reduce((t, u) => t + lineQty(u) * unitExtras(u), 0));
+  const bySqft =
+    SQFT_ITEM.test(`${lead.categoryName || ""} ${lead.item_name || ""}`) &&
+    unitWidth > 0 &&
+    height > 0;
+  let overallWidth = 0;
+  let area = 0;
+  let rate: number;
+  let rateEdited: boolean;
+  let amount: number;
+  if (bySqft) {
+    overallWidth = round2(unitWidthRaw * qty);
+    area = round2(overallWidth * height);
+    const set = units.find(
+      (u) => u.boqSqftRate !== null && u.boqSqftRate !== undefined
+    );
+    rateEdited = !!set;
+    // Default rate per sq.ft comes from the calculated price, so the amount
+    // matches what the item costs until someone changes the rate.
+    rate = set
+      ? Number(set.boqSqftRate) || 0
+      : area > 0
+      ? round2(calculated / area)
+      : 0;
+    amount = round2(area * rate + extras);
+  } else {
+    rateEdited = units.some(
+      (u) => u.boqRate !== null && u.boqRate !== undefined
+    );
+    rate = qty > 0 ? round2(calculated / qty) : 0;
+    amount = round2(calculated + extras);
+  }
+  return {
+    id: lead.furnishedModelId || "",
+    ids: units.map((u) => u.furnishedModelId || "").filter(Boolean),
+    units,
+    lead,
+    excluded: !!lead.boqExcluded,
+    bySqft,
+    qty,
+    unitWidth,
+    height,
+    overallWidth,
+    widthEdited,
+    heightEdited,
+    area,
+    rate,
+    rateEdited,
+    extras,
+    amount,
+    description: units.find((u) => u.boqDescription)?.boqDescription || "",
+  };
+};
+
+// Merge a room's units into lines (first-seen order).
+const buildLines = (items: TableRowType[]): BoqLine[] => {
+  const byKey = new Map<string, TableRowType[]>();
+  for (const it of items) {
+    const key = [
+      it.item_name,
+      Math.round(Number(it.widthMm) || 0),
+      Math.round(Number(it.heightMm) || 0),
+      it.boqWidthFt ?? "",
+      it.boqHeightFt ?? "",
+      it.material || "",
+      it.boqExcluded ? 1 : 0,
+    ].join("|");
+    const list = byKey.get(key);
+    if (list) list.push(it);
+    else byKey.set(key, [it]);
+  }
+  return Array.from(byKey.values()).map(lineFromUnits);
+};
+
+const groupAmount = (g: GroupedDataRow) =>
+  round2(
+    buildLines(g.items).reduce((t, l) => t + (l.excluded ? 0 : l.amount), 0)
+  );
+// Numbers inside the table: grouped, no currency sign (the header says ₹).
+const plain = (n: number) =>
+  (Number(n) || 0).toLocaleString("en-IN", { maximumFractionDigits: 2 });
+const formatQty = (n: number) =>
+  Number.isInteger(n) ? String(n) : (Number(n) || 0).toFixed(2);
+
+// "W × H" in feet from the item's [H, W, D] millimetres.
+const toFeet = (mm: number) => {
+  const ft = (Number(mm) || 0) / 304.8;
+  return ft >= 10 || Number.isInteger(Number(ft.toFixed(1)))
+    ? String(Math.round(ft * 10) / 10)
+    : ft.toFixed(1);
+};
+const dimsInFeet = (dimensions: number[]) =>
+  Array.isArray(dimensions) && dimensions.length >= 2
+    ? `${toFeet(dimensions[1])} ft (W) × ${toFeet(dimensions[0])} ft (H)`
+    : "";
+
+// Room section icon from the room's name (falls back to a house).
+const roomIconFor = (name: string) => {
+  const n = String(name || "").toLowerCase();
+  if (/kitchen|pantry|utility/.test(n)) return KitchenOutlined;
+  if (/bed/.test(n)) return BedOutlined;
+  if (/bath|toilet|wash|powder/.test(n)) return BathtubOutlined;
+  if (/dining/.test(n)) return TableRestaurantOutlined;
+  if (/study|office|work/.test(n)) return DeskOutlined;
+  if (/living|lounge|family|hall/.test(n)) return WeekendOutlined;
+  return HomeOutlined;
+};
+
 // Money with exactly 2 decimals (avoids floating-point tails like
 // ₹17760.489999999998). e.g. money(17760.489999) -> "₹17,760.49".
 const money = (n: number) =>
@@ -106,469 +316,341 @@ const money = (n: number) =>
     maximumFractionDigits: 2,
   })}`;
 
-// Per-part cost breakdown shown under each cabinet: area × (board + interior +
-// exterior). Unexposed parts show "skip" for exterior (Option A). Hardware
-// parts (handles/legs) show only their flat line price.
-const PartsBreakdown: React.FC<{ parts: any[]; extraHardware?: number }> = ({
-  parts,
-  extraHardware = 0,
-}) => {
-  if (!parts?.length) return null;
-  const boardTotal = parts.reduce((s, p) => s + (p.boardCost || 0), 0);
-  const finishTotal = parts.reduce(
-    (s, p) => s + (p.interiorCost || 0) + (p.exteriorCost || 0),
-    0
-  );
-  // Hardware = part-level hardware (handles/legs) PLUS the manually-added
-  // hardware lines below, so this summary matches the "Hardware ₹…" total in the
-  // editor instead of showing "—" while hardware exists.
-  const hardwareTotal =
-    parts.reduce((s, p) => s + (p.isHardware ? p.lineTotal || 0 : 0), 0) +
-    (Number(extraHardware) || 0);
-  const th: React.CSSProperties = {
-    padding: "6px 8px",
-    textAlign: "left",
-    textTransform: "uppercase",
-    letterSpacing: ".6px",
-    fontSize: 10,
-    color: "#9a9aa2",
-  };
-  const td: React.CSSProperties = {
-    padding: "6px 8px",
-    borderTop: "1px solid #e2e2e0",
-    color: "#66666e",
-  };
-  const r: React.CSSProperties = {
-    ...td,
-    textAlign: "right",
-    fontVariantNumeric: "tabular-nums",
-  };
-  // Total on top, the per-sqft rate (rate × area = total) as a muted sub-line.
-  const rateSub: React.CSSProperties = { fontSize: 9.5, color: "#9a9aa2" };
-  const costCell = (cost: number, rate: number) => (
-    <>
-      {rupee(cost)}
-      {rate > 0 ? <div style={rateSub}>@ {rupee(rate)}/ft²</div> : null}
-    </>
-  );
-  return (
-    <div style={{ margin: "10px 0 8px", overflowX: "auto" }}>
-      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, borderTop: "1px solid #e2e2e0" }}>
-        <thead>
-          <tr style={{ textAlign: "left" }}>
-            <th style={th}>Part</th>
-            <th style={{ ...th, textAlign: "right" }}>Area ft²</th>
-            <th style={{ ...th, textAlign: "right" }}>Board</th>
-            <th style={{ ...th, textAlign: "right" }}>Interior</th>
-            <th style={{ ...th, textAlign: "right" }}>Exterior</th>
-            <th style={{ ...th, textAlign: "right" }}>Line</th>
-          </tr>
-        </thead>
-        <tbody>
-          {parts.map((p, i) => (
-            <tr key={i}>
-              <td style={{ ...td, color: "#17171b", fontWeight: 600 }}>
-                {capitalizeText(p.name)}
-                {!p.isHardware && !p.exposed ? (
-                  <span style={{ fontSize: 10, color: "#993c1d", marginLeft: 4 }}>· unexposed</span>
-                ) : null}
-              </td>
-              <td style={r}>{p.isHardware ? "—" : p.area}</td>
-              <td style={r}>
-                {p.isHardware ? "—" : costCell(p.boardCost, p.boardRate)}
-              </td>
-              <td style={r}>
-                {p.isHardware ? "—" : costCell(p.interiorCost, p.interiorRate)}
-              </td>
-              <td style={r}>
-                {p.isHardware ? "—" : !p.exposed ? (
-                  <span style={{ color: "#993c1d" }}>skip</span>
-                ) : (
-                  costCell(p.exteriorCost, p.exteriorRate)
-                )}
-              </td>
-              <td style={{ ...r, fontWeight: 500 }}>{rupee(p.lineTotal)}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "flex-end",
-          gap: 10,
-          marginTop: 8,
-        }}
-      >
-        <div
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 8,
-            background: "#f7f7f9",
-            border: "1px solid #ececef",
-            borderRadius: 999,
-            padding: "5px 14px",
-            fontSize: 11,
-            color: "#6b7280",
-          }}
-        >
-          {[
-            ["Board", boardTotal],
-            ["Finish", finishTotal],
-            ["Hardware", hardwareTotal],
-          ].map(([label, val], i) => (
-            <React.Fragment key={label as string}>
-              {i > 0 ? (
-                <span style={{ color: "#d6d6db" }}>|</span>
-              ) : null}
-              <span>
-                {label}{" "}
-                <b style={{ color: "#111827", fontWeight: 600 }}>
-                  {rupee(val as number)}
-                </b>
-              </span>
-            </React.Fragment>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
+// ── Hardware & Other Costs (per placed unit) ─────────────────────────────────
+// Both are added ON TOP of the line amount (Area × Rate + Hardware + Other
+// Costs). Each change is saved to the unit; once the save succeeds the new rows
+// and the change in their total are reported up, so the BOQ totals update
+// without regenerating the BOQ.
+type HardwareRow = {
+  name: string;
+  unitPrice: number;
+  qty: number;
+  fromMaster?: boolean;
 };
+type CostRow = { label: string; amount: number };
+type ExtrasSaved<T> = (furnishedModelId: string, rows: T[], delta: number) => void;
 
-// Per-object manual "other costs" (hardware, handles, edge-banding, …). Rows are
-// label + amount; edits persist to the object and the delta is reported up so the
-// grand total stays in sync without a full BOQ regeneration.
+const sumHardwareRows = (rows: any[]) =>
+  round2(
+    (rows || []).reduce(
+      (s, r) => s + (Number(r?.qty) || 0) * (Number(r?.unitPrice) || 0),
+      0
+    )
+  );
+const sumCostRows = (rows: any[]) =>
+  round2((rows || []).reduce((s, r) => s + (Number(r?.amount) || 0), 0));
+
 const OtherCostsEditor: React.FC<{
   furnishedModelId?: string;
-  initialRows: { label: string; amount: number }[];
-  onChange: (furnishedModelId: string, delta: number) => void;
-}> = ({ furnishedModelId, initialRows, onChange }) => {
-  const sum = (rs: { amount: any }[]) =>
-    (rs || []).reduce((s, r) => s + (Number(r.amount) || 0), 0);
-  const [rows, setRows] = useState<{ label: string; amount: any }[]>(
+  initialRows: CostRow[];
+  onSaved: ExtrasSaved<CostRow>;
+}> = ({ furnishedModelId, initialRows, onSaved }) => {
+  const [rows, setRowsState] = useState<{ label: string; amount: any }[]>(
     initialRows?.length ? initialRows : []
   );
-  // Last-saved subtotal, so we can report just the delta and skip no-op blurs.
-  const committed = useRef<number>(sum(initialRows));
+  // Latest rows (read by saves) and the last saved rows, so unchanged blurs
+  // don't save again. Saves run one at a time.
+  const rowsRef = useRef(rows);
+  const setRows = (next: { label: string; amount: any }[]) => {
+    rowsRef.current = next;
+    setRowsState(next);
+  };
+  const saved = useRef<CostRow[]>(initialRows || []);
+  const queue = useRef<Promise<void>>(Promise.resolve());
+  const persist = () => {
+    queue.current = queue.current.then(save).catch(() => undefined);
+  };
 
-  const persist = async (next: { label: string; amount: any }[]) => {
+  const save = async () => {
     if (!furnishedModelId) return;
-    const clean = next
+    const clean: CostRow[] = rowsRef.current
       .filter((r) => (r.label || "").trim() !== "" || Number(r.amount))
       .map((r) => ({
-        label: (r.label || "").trim(),
-        amount: Number(r.amount) || 0,
+        label: (r.label || "").trim() || "Other cost",
+        amount: round2(Number(r.amount) || 0),
       }));
-    const newSub = sum(clean);
-    if (newSub === committed.current) return; // nothing changed → no work
-    await FurnishedModelsService.updateOtherCosts(furnishedModelId, clean);
-    // Update totals in place (no BOQ regeneration / page reload).
-    onChange(furnishedModelId, newSub - committed.current);
-    committed.current = newSub;
+    if (JSON.stringify(clean) === JSON.stringify(saved.current)) return;
+    const ok = await FurnishedModelsService.updateOtherCosts(
+      furnishedModelId,
+      clean
+    );
+    if (!ok) {
+      alert("Other costs could not be saved. Please try again.");
+      return;
+    }
+    onSaved(
+      furnishedModelId,
+      clean,
+      round2(sumCostRows(clean) - sumCostRows(saved.current))
+    );
+    saved.current = clean;
   };
 
-  const subtotal = sum(rows);
-  const inputStyle: React.CSSProperties = {
-    border: "1px solid #e5e7eb",
-    borderRadius: 4,
-    padding: "2px 6px",
-    fontSize: 12,
-  };
-
+  const subtotal = sumCostRows(rows);
   return (
-    <div style={{ margin: "2px 0 14px", fontSize: 12 }}>
-      <div style={{ color: "#6b7280", fontWeight: 600, marginBottom: 4 }}>
-        Other Costs
-      </div>
-      {rows.map((row, i) => (
-        <div
-          key={i}
-          style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 4 }}
-        >
-          <input
-            style={{ ...inputStyle, flex: "1 1 auto" }}
-            placeholder="Label (e.g. Hardware)"
-            value={row.label}
-            onChange={(e) =>
-              setRows(rows.map((r, idx) => (idx === i ? { ...r, label: e.target.value } : r)))
-            }
-            onBlur={() => persist(rows)}
-          />
-          <span style={{ color: "#6b7280" }}>₹</span>
-          <input
-            style={{ ...inputStyle, width: 90, textAlign: "right" }}
-            type="number"
-            placeholder="0"
-            value={row.amount}
-            onChange={(e) =>
-              setRows(rows.map((r, idx) => (idx === i ? { ...r, amount: e.target.value } : r)))
-            }
-            onBlur={() => persist(rows)}
-          />
-          <button
-            type="button"
-            title="Remove"
-            onClick={() => {
-              const next = rows.filter((_, idx) => idx !== i);
-              setRows(next);
-              persist(next);
-            }}
-            style={{ color: "#993c1d", border: "none", background: "none", cursor: "pointer" }}
-          >
-            ✕
-          </button>
-        </div>
-      ))}
-      <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4 }}>
-        <button
-          type="button"
-          onClick={() => setRows([...rows, { label: "", amount: "" }])}
-          style={{
-            color: "#5b3df5",
-            border: "1px dashed #5b3df5",
-            borderRadius: 4,
-            padding: "2px 10px",
-            background: "none",
-            cursor: "pointer",
-          }}
-        >
-          + Add cost
-        </button>
+    <div className="bq-extras">
+      <div className="bq-extras-head">
+        <span>Other Costs</span>
         {subtotal ? (
-          <span style={{ color: "#6b7280" }}>
-            Other <b style={{ color: "#111827" }}>{rupee(subtotal)}</b>
+          <span className="bq-extras-total">
+            Total <b>{money(subtotal)}</b>
           </span>
         ) : null}
       </div>
+      {rows.length ? (
+        <div className="bq-xrow bq-xlabels">
+          <span className="bq-xspan">Label</span>
+          <span className="r">Amount (₹)</span>
+          <span />
+        </div>
+      ) : null}
+      {rows.map((row, i) => (
+        <div key={i} className="bq-xrow">
+          <input
+            className="bq-xinput bq-xspan"
+            placeholder="e.g. Edge banding"
+            aria-label="Cost label"
+            value={row.label}
+            onChange={(e) =>
+              setRows(
+                rows.map((r, idx) =>
+                  idx === i ? { ...r, label: e.target.value } : r
+                )
+              )
+            }
+            onBlur={() => persist()}
+          />
+          <input
+            className="bq-xinput r"
+            type="number"
+            min={0}
+            step="0.01"
+            placeholder="0"
+            aria-label="Cost amount"
+            value={row.amount}
+            onChange={(e) =>
+              setRows(
+                rows.map((r, idx) =>
+                  idx === i ? { ...r, amount: e.target.value } : r
+                )
+              )
+            }
+            onBlur={() => persist()}
+          />
+          <button
+            type="button"
+            className="bq-xdel"
+            title="Remove cost"
+            aria-label="Remove cost"
+            onClick={() => {
+              const next = rows.filter((_, idx) => idx !== i);
+              setRows(next);
+              persist();
+            }}
+          >
+            <CloseOutlined style={{ fontSize: 14 }} />
+          </button>
+        </div>
+      ))}
+      <button
+        type="button"
+        className="bq-xadd"
+        onClick={() => setRows([...rows, { label: "", amount: "" }])}
+      >
+        + Add cost
+      </button>
     </div>
   );
 };
 
-// Per-object hardware lines. Pick from the Hardware master (name + unit price
-// fixed from master) or "Other" (type a one-off name + unit price — NOT saved to
-// the master). qty × unitPrice = line total; edits persist to the object and the
-// delta is reported up so totals stay in sync without a BOQ regeneration.
+// Hardware lines: pick an item from the Hardware master (its price fills in)
+// or type any name; the price and quantity can always be typed.
+// Line total = price × qty.
 const HardwareEditor: React.FC<{
   furnishedModelId?: string;
-  initialRows: {
-    name: string;
-    unitPrice: number;
-    qty: number;
-    fromMaster?: boolean;
-  }[];
+  initialRows: HardwareRow[];
   master: { _id: string; name: string; price: number }[];
-  onChange: (furnishedModelId: string, delta: number) => void;
-  onSubtotal?: (furnishedModelId: string, subtotal: number) => void;
-}> = ({ furnishedModelId, initialRows, master, onChange, onSubtotal }) => {
-  const lineTotal = (r: any) =>
-    (Number(r.qty) || 0) * (Number(r.unitPrice) || 0);
-  const sum = (rs: any[]) => (rs || []).reduce((s, r) => s + lineTotal(r), 0);
-  const [rows, setRows] = useState<any[]>(
-    (initialRows?.length ? initialRows : []).map((r) => ({
-      ...r,
-      // Re-derive the "custom (Other…)" flag on load — it isn't persisted. A row
-      // that has a NAME but is NOT from the hardware master is a custom entry, so
-      // mark it __other so its name shows again (instead of an empty search box).
-      __other: !r.fromMaster && !!String(r.name || "").trim(),
-    }))
+  onSaved: ExtrasSaved<HardwareRow>;
+}> = ({ furnishedModelId, initialRows, master, onSaved }) => {
+  const [rows, setRowsState] = useState<any[]>(
+    initialRows?.length ? initialRows.map((r) => ({ ...r })) : []
   );
-  const committed = useRef<number>(sum(initialRows));
+  const rowsRef = useRef(rows);
+  const setRows = (next: any[]) => {
+    rowsRef.current = next;
+    setRowsState(next);
+  };
+  const saved = useRef<HardwareRow[]>(initialRows || []);
+  const queue = useRef<Promise<void>>(Promise.resolve());
+  const persist = () => {
+    queue.current = queue.current.then(save).catch(() => undefined);
+  };
 
-  const persist = async (next: any[]) => {
+  const save = async () => {
     if (!furnishedModelId) return;
-    const clean = next
-      .filter((r) => (r.name || "").trim() !== "")
+    const clean: HardwareRow[] = rowsRef.current
+      .filter(
+        (r) => (r.name || "").trim() !== "" || Number(r.unitPrice) > 0
+      )
       .map((r) => ({
-        name: (r.name || "").trim(),
-        unitPrice: Number(r.unitPrice) || 0,
-        qty: Number(r.qty) || 0,
+        name: (r.name || "").trim() || "Hardware",
+        unitPrice: round2(Number(r.unitPrice) || 0),
+        qty: Number(r.qty) > 0 ? round2(Number(r.qty)) : 0,
         fromMaster: !!r.fromMaster,
       }));
-    const newSub = sum(clean);
-    if (newSub === committed.current) return;
-    await FurnishedModelsService.updateHardwareItems(furnishedModelId, clean);
-    onChange(furnishedModelId, newSub - committed.current);
-    committed.current = newSub;
-    // Report the live subtotal so the top summary's "Hardware ₹…" stays in sync.
-    onSubtotal?.(furnishedModelId, newSub);
+    if (JSON.stringify(clean) === JSON.stringify(saved.current)) return;
+    const ok = await FurnishedModelsService.updateHardwareItems(
+      furnishedModelId,
+      clean
+    );
+    if (!ok) {
+      alert("Hardware could not be saved. Please try again.");
+      return;
+    }
+    onSaved(
+      furnishedModelId,
+      clean,
+      round2(sumHardwareRows(clean) - sumHardwareRows(saved.current))
+    );
+    saved.current = clean;
   };
 
   const setRow = (i: number, patch: any) =>
-    setRows(rows.map((r, idx) => (idx === i ? { ...r, ...patch } : r)));
+    setRows(
+      rowsRef.current.map((r, idx) => (idx === i ? { ...r, ...patch } : r))
+    );
 
-  const inputStyle: React.CSSProperties = {
-    border: "1px solid #e5e7eb",
-    borderRadius: 4,
-    padding: "2px 6px",
-    fontSize: 12,
-  };
-  // Searchable options: master hardware + an "Other…" sentinel.
-  const OTHER_OPT: any = {
-    _id: "__other__",
-    name: "Other…",
-    price: 0,
-    __isOther: true,
-  };
-  const hwOptions = [...(master || []), OTHER_OPT];
-
+  const subtotal = sumHardwareRows(rows);
   return (
-    <div style={{ margin: "2px 0 14px", fontSize: 12 }}>
-      <div style={{ color: "#6b7280", fontWeight: 600, marginBottom: 4 }}>
-        Hardware
+    <div className="bq-extras">
+      <div className="bq-extras-head">
+        <span>Hardware</span>
+        {subtotal ? (
+          <span className="bq-extras-total">
+            Total <b>{money(subtotal)}</b>
+          </span>
+        ) : null}
       </div>
-      {rows.map((row, i) => {
-        const acValue = row.fromMaster
-          ? master.find((m) => m.name === row.name) ?? null
-          : row.__other
-          ? OTHER_OPT
-          : null;
-        return (
-          <div
-            key={i}
-            style={{
-              display: "flex",
-              gap: 8,
-              alignItems: "center",
-              marginBottom: 4,
+      {rows.length ? (
+        <div className="bq-xrow bq-xlabels">
+          <span>Item</span>
+          <span className="r">Price (₹)</span>
+          <span className="r">Qty</span>
+          <span className="r">Total (₹)</span>
+          <span />
+        </div>
+      ) : null}
+      {rows.map((row, i) => (
+        <div key={i} className="bq-xrow">
+          <Autocomplete
+            freeSolo
+            size="small"
+            disablePortal
+            options={master || []}
+            value={row.name || null}
+            inputValue={row.name || ""}
+            getOptionLabel={(o: any) =>
+              typeof o === "string" ? o : o?.name || ""
+            }
+            isOptionEqualToValue={(o: any, v: any) =>
+              typeof v === "string" ? o?.name === v : o?._id === v?._id
+            }
+            renderOption={(props, o: any) => (
+              <li {...props} key={o._id}>
+                <span style={{ flex: 1 }}>{o.name}</span>
+                <span style={{ color: "#6b7280", marginLeft: 12 }}>
+                  ₹{o.price}
+                </span>
+              </li>
+            )}
+            onInputChange={(_e, value, reason) => {
+              if (reason === "input" || reason === "clear") {
+                setRow(i, { name: value, fromMaster: false });
+              }
+            }}
+            onChange={(_e, val: any) => {
+              if (val && typeof val === "object") {
+                // Picked from the master: its name and price fill in; the
+                // price stays editable.
+                const next = rows.map((r, idx) =>
+                  idx === i
+                    ? {
+                        ...r,
+                        name: val.name,
+                        unitPrice: val.price,
+                        fromMaster: true,
+                      }
+                    : r
+                );
+                setRows(next);
+                persist();
+              }
+            }}
+            onBlur={() => persist()}
+            renderInput={(params) => (
+              <div ref={params.InputProps.ref}>
+                <input
+                  {...params.inputProps}
+                  className="bq-xinput"
+                  placeholder="Search or type hardware…"
+                  aria-label="Hardware item"
+                />
+              </div>
+            )}
+            sx={{ minWidth: 0 }}
+          />
+          <input
+            className="bq-xinput r"
+            type="number"
+            min={0}
+            step="0.01"
+            placeholder="0"
+            aria-label="Hardware price"
+            value={row.unitPrice ?? ""}
+            onChange={(e) => setRow(i, { unitPrice: e.target.value })}
+            onBlur={() => persist()}
+          />
+          <input
+            className="bq-xinput r"
+            type="number"
+            min={0}
+            step="1"
+            placeholder="1"
+            aria-label="Hardware quantity"
+            value={row.qty ?? ""}
+            onChange={(e) => setRow(i, { qty: e.target.value })}
+            onBlur={() => persist()}
+          />
+          <span className="r bq-xtotal">
+            {plain((Number(row.qty) || 0) * (Number(row.unitPrice) || 0))}
+          </span>
+          <button
+            type="button"
+            className="bq-xdel"
+            title="Remove hardware"
+            aria-label="Remove hardware"
+            onClick={() => {
+              const next = rows.filter((_, idx) => idx !== i);
+              setRows(next);
+              persist();
             }}
           >
-            <Autocomplete
-              size="small"
-              disablePortal
-              options={hwOptions}
-              value={acValue}
-              getOptionLabel={(o: any) =>
-                o?.__isOther ? "Other…" : `${o?.name} (₹${o?.price})`
-              }
-              isOptionEqualToValue={(o: any, v: any) => o._id === v._id}
-              onChange={(_e, val: any) => {
-                let next;
-                if (val && val.__isOther) {
-                  next = rows.map((r, idx) =>
-                    idx === i
-                      ? { ...r, __other: true, fromMaster: false, name: "", unitPrice: 0 }
-                      : r
-                  );
-                } else if (val) {
-                  next = rows.map((r, idx) =>
-                    idx === i
-                      ? {
-                          ...r,
-                          __other: false,
-                          fromMaster: true,
-                          name: val.name,
-                          unitPrice: val.price,
-                        }
-                      : r
-                  );
-                } else {
-                  next = rows.map((r, idx) =>
-                    idx === i
-                      ? { ...r, __other: false, fromMaster: false, name: "", unitPrice: 0 }
-                      : r
-                  );
-                }
-                setRows(next);
-                persist(next);
-              }}
-              renderInput={(params) => (
-                <TextField
-                  {...params}
-                  variant="standard"
-                  placeholder="Search hardware…"
-                />
-              )}
-              sx={{ flex: "1 1 auto", minWidth: 160 }}
-            />
-            {row.__other ? (
-              <input
-                style={{ ...inputStyle, width: 120 }}
-                placeholder="Name"
-                value={row.name}
-                onChange={(e) => setRow(i, { name: e.target.value })}
-                onBlur={() => persist(rows)}
-              />
-            ) : null}
-            <span style={{ color: "#6b7280" }}>₹</span>
-            {row.__other ? (
-              <input
-                style={{ ...inputStyle, width: 70, textAlign: "right" }}
-                type="number"
-                placeholder="0"
-                value={row.unitPrice || ""}
-                onChange={(e) =>
-                  setRow(i, { unitPrice: Number(e.target.value) })
-                }
-                onBlur={() => persist(rows)}
-              />
-            ) : (
-              <span style={{ width: 70, textAlign: "right" }}>
-                {row.unitPrice}
-              </span>
-            )}
-            <span style={{ color: "#6b7280" }}>×</span>
-            <input
-              style={{ ...inputStyle, width: 50, textAlign: "right" }}
-              type="number"
-              min={0}
-              value={row.qty ?? ""}
-              placeholder="0"
-              onChange={(e) => setRow(i, { qty: Number(e.target.value) })}
-              onBlur={() => persist(rows)}
-            />
-            <span style={{ width: 70, textAlign: "right", color: "#111827" }}>
-              {rupee(lineTotal(row))}
-            </span>
-            <button
-              type="button"
-              title="Remove"
-              onClick={() => {
-                const next = rows.filter((_, idx) => idx !== i);
-                setRows(next);
-                persist(next);
-              }}
-              style={{
-                color: "#993c1d",
-                border: "none",
-                background: "none",
-                cursor: "pointer",
-              }}
-            >
-              ✕
-            </button>
-          </div>
-        );
-      })}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          marginTop: 4,
-        }}
+            <CloseOutlined style={{ fontSize: 14 }} />
+          </button>
+        </div>
+      ))}
+      <button
+        type="button"
+        className="bq-xadd"
+        onClick={() =>
+          setRows([
+            ...rows,
+            { name: "", unitPrice: "", qty: 1, fromMaster: false },
+          ])
+        }
       >
-        <button
-          type="button"
-          onClick={() =>
-            setRows([
-              ...rows,
-              { name: "", unitPrice: 0, qty: 1, fromMaster: false, __other: false },
-            ])
-          }
-          style={{
-            color: "#5b3df5",
-            border: "1px dashed #5b3df5",
-            borderRadius: 4,
-            padding: "2px 10px",
-            background: "none",
-            cursor: "pointer",
-          }}
-        >
-          + Add hardware
-        </button>
-        {/* Bottom "Hardware ₹…" subtotal removed — it now shows in the top
-            Board/Finish/Hardware summary pill, so it was redundant here. */}
-      </div>
+        + Add hardware
+      </button>
     </div>
   );
 };
@@ -603,7 +685,11 @@ const BoqTable: React.FC<BoqTableProps> = ({
         (s, g) =>
           s +
           (g.items || []).reduce(
-            (a, it) => a + (it.installationExcluded ? 0 : Number(it.area) || 0),
+            (a, it) =>
+              a +
+              (it.installationExcluded || it.boqExcluded
+                ? 0
+                : unitArea(it) * lineQty(it)),
             0
           ),
         0
@@ -634,35 +720,178 @@ const BoqTable: React.FC<BoqTableProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [totalPrice, installationCost]);
 
-  // Apply an Other-Cost change in place (no BOQ regeneration / page reload):
-  // bump the object's line price and the room's group total; the Gross/Net
-  // recompute via the effect above off the new totalPrice.
-  // Live manual-hardware subtotal per object, so the top Board/Finish/Hardware
-  // summary reflects hardware edits immediately (falls back to the saved
-  // hardwareItems on first render).
-  const [hardwareByModel, setHardwareByModel] = useState<
-    Record<string, number>
-  >({});
-  const sumHardware = (rows: any[]) =>
-    (rows || []).reduce(
-      (s, r) => s + (Number(r?.qty) || 0) * (Number(r?.unitPrice) || 0),
-      0
-    );
+  // A saved Hardware / Other Costs change, applied in place (no BOQ
+  // regeneration): the unit keeps the new rows, and its calculated price (which
+  // includes them, as the server builds it) moves by the change. The line adds
+  // them on top of Area × Rate; the totals follow from groupedData.
+  const applyExtrasSaved =
+    (kind: "hardwareItems" | "otherCosts") =>
+    (furnishedModelId: string, rows: any[], delta: number) =>
+      setGroupedData((prev) =>
+        prev.map((group) => ({
+          ...group,
+          items: group.items.map((it) => {
+            if (it.furnishedModelId !== furnishedModelId) return it;
+            const np = round2((Number(it.basePrice) || 0) + delta);
+            return {
+              ...it,
+              [kind]: rows,
+              basePrice: np,
+              total_price: `₹${np}`,
+              unit_price: `₹${np}`,
+            };
+          }),
+        }))
+      );
+  const onHardwareSaved = applyExtrasSaved("hardwareItems");
+  const onOtherCostsSaved = applyExtrasSaved("otherCosts");
 
-  const applyOtherCostChange = (furnishedModelId: string, delta: number) => {
-    if (!delta) return;
+  // Items total = every line still in the BOQ, quantity × rate. Derived from
+  // groupedData so edits, removals and cost changes all flow into the totals.
+  useEffect(() => {
+    setTotalPrice(
+      Number(
+        groupedData.reduce((t, g) => t + groupAmount(g), 0).toFixed(2)
+      )
+    );
+  }, [groupedData]);
+
+  // ── Room-wise view state ────────────────────────────────────────────────
+  // Rooms are open unless collapsed; forceExpand opens everything and hides
+  // the action column while a PDF is captured.
+  const [collapsedRooms, setCollapsedRooms] = useState<string[]>([]);
+  const [expandedItems, setExpandedItems] = useState<string[]>([]);
+  const [forceExpand, setForceExpand] = useState(false);
+  const [editing, setEditing] = useState<{
+    id: string;
+    qty: string;
+    rate: string;
+    /** Line width / height in ft as typed; w0 / h0 = what the boxes opened with. */
+    width: string;
+    height: string;
+    w0: string;
+    h0: string;
+  } | null>(null);
+  // Description being added/edited in place (one line at a time).
+  const [descEdit, setDescEdit] = useState<{ id: string; text: string } | null>(
+    null
+  );
+  const [descSaving, setDescSaving] = useState<string | null>(null);
+
+  const toggleRoom = (room: string) =>
+    setCollapsedRooms((prev) =>
+      prev.includes(room) ? prev.filter((r) => r !== room) : [...prev, room]
+    );
+  const toggleItem = (id: string) => {
+    if (!id) return;
+    setExpandedItems((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
+  };
+
+  // Apply a change to the given units in place (one BOQ line = its units).
+  const patchUnits = (ids: string[], patch: Partial<TableRowType>) =>
     setGroupedData((prev) =>
       prev.map((group) => ({
         ...group,
-        items: group.items.map((it) => {
-          if (it.furnishedModelId !== furnishedModelId) return it;
-          const cur = parseFloat((it.total_price || "₹0").slice(1)) || 0;
-          const np = Number((cur + delta).toFixed(2));
-          return { ...it, total_price: `₹${np}`, unit_price: `₹${np}` };
-        }),
+        items: group.items.map((it) =>
+          ids.includes(it.furnishedModelId || "") ? { ...it, ...patch } : it
+        ),
       }))
     );
-    setTotalPrice((prev) => Number((prev + delta).toFixed(2)));
+  const saveUnits = async (ids: string[], patch: any) =>
+    (
+      await Promise.all(
+        ids.map((id) => FurnishedModelsService.updateBoqLine(id, patch))
+      )
+    ).every(Boolean);
+
+  // Remove a line from the BOQ (or restore it). The items stay in the design.
+  const setBoqExcluded = (line: BoqLine, excluded: boolean) => {
+    if (!line.ids.length) return;
+    patchUnits(line.ids, { boqExcluded: excluded });
+    if (editing?.id === line.id) setEditing(null);
+    if (descEdit?.id === line.id) setDescEdit(null);
+    saveUnits(line.ids, { boqExcluded: excluded });
+  };
+
+  // Save the edited quantity and rate. The quantity is shared evenly by the
+  // line's units (4 units, Qty 6 → 1.5 each) so the line adds up to it. The
+  // rate is per sq.ft on area-priced lines, per no otherwise; empty = back to
+  // the calculated rate.
+  // The change the edit boxes make to each unit of a line. Width is typed for
+  // the whole line (e.g. 8 ft for 4 units) and kept per unit (2 ft), so a
+  // later Qty change still scales it. A box left as it opened keeps the saved
+  // value; an emptied Width / Height goes back to the 3D size. When the size
+  // changes, the rate per sq.ft stays as shown, so the amount follows the area.
+  const editPatch = (line: BoqLine, e: NonNullable<typeof editing>) => {
+    const qty = Number(e.qty);
+    const lineQtyNew = qty > 0 ? round2(qty) : line.units.length;
+    const boqQty = Number((lineQtyNew / line.units.length).toFixed(4));
+    const rateText = String(e.rate).trim();
+    const rate = Number(rateText);
+    let newRate: number | null =
+      rateText === "" || !(rate >= 0) ? null : round2(rate);
+    if (!line.bySqft) return { boqQty, boqRate: newRate };
+    const patch: Partial<TableRowType> = { boqQty };
+    const sizeOf = (text: string) => {
+      const t = String(text).trim();
+      if (t === "") return null;
+      const n = Number(t);
+      return n > 0 ? n : undefined; // undefined = invalid → keep as it was
+    };
+    let sizeChanged = false;
+    if (String(e.width).trim() !== e.w0) {
+      const w = sizeOf(e.width);
+      if (w !== undefined) {
+        patch.boqWidthFt = w === null ? null : Number((w / lineQtyNew).toFixed(4));
+        sizeChanged = true;
+      }
+    }
+    if (String(e.height).trim() !== e.h0) {
+      const h = sizeOf(e.height);
+      if (h !== undefined) {
+        patch.boqHeightFt = h === null ? null : Number(h.toFixed(4));
+        sizeChanged = true;
+      }
+    }
+    if (sizeChanged && newRate === null) newRate = line.rate;
+    patch.boqSqftRate = newRate;
+    return patch;
+  };
+
+  const saveEdit = (line: BoqLine) => {
+    if (!editing || !line.ids.length) return;
+    const patch = editPatch(line, editing);
+    patchUnits(line.ids, patch);
+    setEditing(null);
+    saveUnits(line.ids, patch);
+  };
+
+  // Add / update / delete a line's description (kept on each of its units).
+  // An empty text deletes it; the previous text comes back if the server
+  // rejects the change.
+  const saveDescription = async (line: BoqLine, text: string) => {
+    if (!line.ids.length) return;
+    const next = text.trim();
+    const prev = line.description;
+    setDescEdit(null);
+    if (next === prev && line.units.every((u) => (u.boqDescription || "") === next))
+      return;
+    patchUnits(line.ids, { boqDescription: next });
+    setDescSaving(line.id);
+    const ok = await saveUnits(line.ids, { boqDescription: next });
+    setDescSaving((s) => (s === line.id ? null : s));
+    if (!ok) {
+      patchUnits(line.ids, { boqDescription: prev });
+      alert("The description could not be saved. Please try again.");
+    }
+  };
+
+  const deleteDescription = (line: BoqLine) => {
+    if (!line.description) return;
+    if (!window.confirm("Delete this description?")) return;
+    saveDescription(line, "");
   };
 
   // Toggle an object in/out of installation. Flips the flag in place (which
@@ -695,17 +924,12 @@ const BoqTable: React.FC<BoqTableProps> = ({
     filename: `pazl-boq-${Date.now()}.pdf`,
   });
   const [rowsTable, setRowsTable] = useState<{ room: any }[]>([]);
-  const [expandedRoom, setExpandedRoom] = useState<string | null>(null);
-  const [expandedRooms, setExpandedRooms] = useState<string[]>([]);
   // When true, the BOQ renders the CLIENT format for the outgoing PDF: line items
   // still show, but the internal per-item breakdown (parts, hardware, other costs,
   // install toggle) is hidden so the PDF matches the clean quote the client sees —
   // not the elaborate editing view. Toggled only while getBoqPdfBlob rasterises.
   const [clientPdfMode, setClientPdfMode] = useState(false);
-
-  const handleExpand = (roomName: string) => {
-    setExpandedRoom((prevRoom) => (prevRoom === roomName ? null : roomName));
-  };
+  const hideActions = clientPdfMode || forceExpand;
 
   useEffect(() => {
     getTableData();
@@ -755,6 +979,14 @@ const BoqTable: React.FC<BoqTableProps> = ({
       }
 
       if (floorPlanId) {
+        // The BOQ is built on the server from the synced data. Send any change
+        // still waiting in the browser first (a material applied a moment ago),
+        // so the bill includes it. A failed sync must not block the BOQ.
+        try {
+          await SyncService.syncToDB();
+        } catch (e) {
+          console.warn("BoqTable ~ sync before BOQ failed", e);
+        }
         const response = await FloorPlanService.generateBOQ(floorPlanId);
         if (response?.length) {
           const formattedRows = await Promise.all(
@@ -868,11 +1100,50 @@ const BoqTable: React.FC<BoqTableProps> = ({
                 otherCosts: item.otherCosts || [],
                 hardwareItems: item.hardwareItems || [],
                 furnishedModelId: item.model?._id,
-                area: (item.parts || []).reduce(
-                  (a: number, p: any) => a + (Number(p?.area) || 0),
-                  0
-                ),
+                // Installation area of one unit = its BOQ area, Width × Height
+                // (the same front area the Sq.ft rate uses). Only an item with
+                // no size falls back to the sum of its part areas.
+                area:
+                  mmToFt(item.model?.dimensions?.[1]) > 0 &&
+                  mmToFt(item.model?.dimensions?.[0]) > 0
+                    ? round2(
+                        mmToFt(item.model?.dimensions?.[1]) *
+                          mmToFt(item.model?.dimensions?.[0])
+                      )
+                    : round2(
+                        (item.parts || []).reduce(
+                          (a: number, p: any) => a + (Number(p?.area) || 0),
+                          0
+                        )
+                      ),
                 installationExcluded: !!item.installationExcluded,
+                basePrice: Number(item.model?.price) || 0,
+                boqQty: Number(item.boqQty) > 0 ? Number(item.boqQty) : 1,
+                boqRate:
+                  item.boqRate === null || item.boqRate === undefined
+                    ? null
+                    : Number(item.boqRate),
+                boqExcluded: !!item.boqExcluded,
+                boqDescription:
+                  typeof item.boqDescription === "string"
+                    ? item.boqDescription
+                    : "",
+                boqSqftRate:
+                  item.boqSqftRate === null || item.boqSqftRate === undefined
+                    ? null
+                    : Number(item.boqSqftRate),
+                categoryName: item.categoryName || "",
+                boqWidthFt:
+                  Number(item.boqWidthFt) > 0 ? Number(item.boqWidthFt) : null,
+                boqHeightFt:
+                  Number(item.boqHeightFt) > 0 ? Number(item.boqHeightFt) : null,
+                heightMm: Number(item.model?.dimensions?.[0]) || 0,
+                widthMm: Number(item.model?.dimensions?.[1]) || 0,
+                unit: "Nos",
+                // "Type · Brand" of the chosen finishes, e.g. "Laminates ·
+                // Greenlam" — built on the server (generate_boq finishLabels).
+                material: (item.finishLabels || []).join("; "),
+                dims: dimsInFeet(item.model?.dimensions),
               };
             })
           );
@@ -892,14 +1163,10 @@ const BoqTable: React.FC<BoqTableProps> = ({
             []
           );
 
+          // The items total (quantity × rate of every line still in the BOQ)
+          // follows from groupedData — see the effect next to applyExtrasSaved.
           setGroupedData(groupedByRoom);
-          // Calculate total price, GST, and gross total price
-          const totalPrice = response.reduce(
-            (sum: number, item: any) => sum + (Number(item.model?.price) || 0),
-            0
-          );
           setRowsTable(formattedRows);
-          setTotalPrice(totalPrice);
           // Installation (area × rate, per included object) is derived from
           // groupedData; Gross/Net recompute via the [totalPrice, installationCost]
           // effect.
@@ -980,7 +1247,7 @@ const BoqTable: React.FC<BoqTableProps> = ({
       // Render the CLIENT format (line items only, no internal breakdown) and
       // expand every room so all items show, then wait a beat for the re-render.
       setClientPdfMode(true);
-      setExpandedRoom("all");
+      setForceExpand(true);
       await new Promise((resolve) => setTimeout(resolve, 1000));
       // LOW resolution + JPEG on purpose: this runs INSIDE the 3D editor tab,
       // which already holds the WebGL scene in memory. Rasterising a long BOQ at
@@ -1000,6 +1267,7 @@ const BoqTable: React.FC<BoqTableProps> = ({
     } finally {
       // Restore the editing view (the PDF is already captured by now).
       setClientPdfMode(false);
+      setForceExpand(false);
     }
   }, [targetRef]);
 
@@ -1008,7 +1276,10 @@ const BoqTable: React.FC<BoqTableProps> = ({
   }, [registerPdfGetter, getBoqPdfBlob]);
 
   const handleExportAsPDF = async () => {
-    setExpandedRoom("all");
+    // Every room open and no edit buttons in the PDF; back to normal right after
+    // the page is captured.
+    setEditing(null);
+    setForceExpand(true);
     await new Promise((resolve) => setTimeout(resolve, 1000));
     const pdfOptions: any = {
       resolution: Resolution.MEDIUM,
@@ -1018,10 +1289,15 @@ const BoqTable: React.FC<BoqTableProps> = ({
     };
     // Build the PDF (don't just open it) so we can BOTH download it for the user
     // AND archive it into the project Workspace as a "Quote" document.
-    const pdf: any = await generatePDF(targetRef, {
-      ...pdfOptions,
-      method: "build",
-    });
+    let pdf: any;
+    try {
+      pdf = await generatePDF(targetRef, {
+        ...pdfOptions,
+        method: "build",
+      });
+    } finally {
+      setForceExpand(false);
+    }
     const name = `Quote-${quoteNumber || "BOQ"}.pdf`;
     try {
       pdf.save(name);
@@ -1171,256 +1447,539 @@ const BoqTable: React.FC<BoqTableProps> = ({
               </div>
             </div>
 
-            <div className="bg-white m-4 text-surface shadow-secondary-1 dark:bg-surface-dark dark:text-white rounded gsw-table-wrap">
-              <TableContainer component={Paper}>
-                <Table aria-label="collapsible table">
-                  <TableHead className="tableHead">
-                    <TableRow>
-                      <TableCell sx={{ width: "10%" }} align="center">
-                        Room
-                      </TableCell>
-                      <TableCell sx={{ width: "30%" }} align="center">
-                        Item
-                      </TableCell>
-                      <TableCell sx={{ width: "10%" }} align="center">
-                        Unit Price
-                      </TableCell>
-                      <TableCell sx={{ width: "5%" }} align="center">
-                        Qty
-                      </TableCell>
-                      <TableCell sx={{ width: "10%" }} align="center">
-                        Total Price
-                      </TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {groupedData.map((group, index) => (
-                      <React.Fragment key={index}>
-                        <TableRow>
-                          <TableCell
-                            colSpan={5}
-                            style={{
-                              padding: "12px 8px",
-                              borderBottom: "2px solid #17171b",
-                            }}
-                          >
-                            <div
-                              className="gsw-roomhead"
-                              style={{ cursor: "pointer" }}
-                              onClick={() => handleExpand(group.room)}
-                            >
-                              {clientPdfMode ? null : expandedRoom ===
-                                group.room ? (
-                                <KeyboardArrowUpIcon
-                                  style={{ color: "#66666e", fontSize: 20 }}
-                                />
-                              ) : (
-                                <KeyboardArrowDownIcon
-                                  style={{ color: "#66666e", fontSize: 20 }}
-                                />
+            <div className="bq-rooms">
+              {(() => {
+                let serial = 0;
+                const colCount = hideActions ? 11 : 12;
+                return groupedData.map((group, index) => {
+                  const allLines = buildLines(group.items);
+                  const lines = allLines.filter((l) => !l.excluded);
+                  const removed = allLines.filter((l) => l.excluded);
+                  const roomArea = round2(
+                    lines.reduce((a, l) => a + (l.bySqft ? l.area : 0), 0)
+                  );
+                  const open =
+                    forceExpand || !collapsedRooms.includes(group.room);
+                  const RoomIcon = roomIconFor(group.room);
+                  return (
+                    <div className="bq-room" key={index}>
+                      <div
+                        className="bq-room-head"
+                        onClick={() => toggleRoom(group.room)}
+                      >
+                        <div className="bq-room-title">
+                          <span className="bq-room-icon">
+                            <RoomIcon style={{ fontSize: 18 }} />
+                          </span>
+                          <span>{group.room || "Room"}</span>
+                        </div>
+                        <div className="bq-room-stats">
+                          <span>Items: {lines.length}</span>
+                          <span className="bq-sep">|</span>
+                          <span>
+                            Qty:{" "}
+                            {formatQty(
+                              round2(lines.reduce((q, l) => q + l.qty, 0))
+                            )}
+                          </span>
+                          {roomArea > 0 ? (
+                            <>
+                              <span className="bq-sep">|</span>
+                              <span>Area: {plain(roomArea)} sq.ft</span>
+                            </>
+                          ) : null}
+                          <span className="bq-sep">|</span>
+                          <span>
+                            Amount: <b>{money(groupAmount(group))}</b>
+                          </span>
+                          {forceExpand ? null : open ? (
+                            <KeyboardArrowUpIcon style={{ fontSize: 18 }} />
+                          ) : (
+                            <KeyboardArrowDownIcon style={{ fontSize: 18 }} />
+                          )}
+                        </div>
+                      </div>
+                      {open ? (
+                        <table className="bq-table">
+                          <thead>
+                            <tr>
+                              <th style={{ width: "4%" }}>S.No</th>
+                              <th style={{ width: "15%" }}>Item</th>
+                              <th style={{ width: "14%" }}>Description</th>
+                              <th style={{ width: "11%" }}>Material</th>
+                              <th className="r" style={{ width: "5%" }}>Qty</th>
+                              <th style={{ width: "5%" }}>Unit</th>
+                              <th className="r" style={{ width: "8%" }}>Width (ft)</th>
+                              <th className="r" style={{ width: "7%" }}>Height (ft)</th>
+                              <th className="r" style={{ width: "7%" }}>Area (Sq.ft)</th>
+                              <th className="r" style={{ width: "8%" }}>Rate / Sq.ft (₹)</th>
+                              <th className="r" style={{ width: "9%" }}>Amount (₹)</th>
+                              {hideActions ? null : (
+                                <th className="c" style={{ width: "7%" }}>Action</th>
                               )}
-                              <span className="gsw-roomno">
-                                {String(index + 1).padStart(2, "0")}
-                              </span>
-                              <span className="gsw-roomname">{group.room}</span>
-                              <span className="gsw-roomrule" />
-                              <span className="gsw-roomtotal">
-                                {money(
-                                  group.items.reduce(
-                                    (t, it) =>
-                                      t +
-                                      (parseFloat(
-                                        (it.total_price || "₹0").slice(1)
-                                      ) || 0),
-                                    0
-                                  )
-                                )}
-                              </span>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                        <TableRow>
-                          <TableCell colSpan={5}>
-                            <Collapse
-                              in={
-                                expandedRoom === group.room ||
-                                expandedRoom === "all"
-                              }
-                              timeout="auto"
-                              unmountOnExit
-                            >
-                              <Box sx={{ margin: 1 }}>
-                                {group.items.map((item, itemIndex) => (
-                                  <React.Fragment key={itemIndex}>
-                                    <div className="gsw-item-head">
-                                      <div className="gsw-item-main">
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {lines.map((line) => {
+                              serial += 1;
+                              const item = line.lead;
+                              const id = line.id;
+                              const isEditing = editing?.id === id;
+                              // While editing, Width × Height → Area → Amount
+                              // follow the boxes as they are typed.
+                              const shown =
+                                isEditing && editing
+                                  ? lineFromUnits(
+                                      line.units.map((u) => ({
+                                        ...u,
+                                        ...editPatch(line, editing),
+                                      }))
+                                    )
+                                  : line;
+                              const isDescEditing = descEdit?.id === id;
+                              const isOpen =
+                                !clientPdfMode && expandedItems.includes(id);
+                              // Installation, hardware and other costs per unit
+                              // (the per-part cost table is not shown).
+                              const hasDetails = line.ids.length > 0;
+                              return (
+                                <React.Fragment key={id || serial}>
+                                  <tr
+                                    className={
+                                      "bq-line" + (isOpen ? " open" : "")
+                                    }
+                                    onClick={() =>
+                                      !clientPdfMode &&
+                                      !isEditing &&
+                                      !isDescEditing &&
+                                      toggleItem(id)
+                                    }
+                                  >
+                                    <td>{serial}</td>
+                                    <td>
+                                      <div className="bq-item">
                                         {item.thumbnail ? (
                                           <img
-                                            className="gsw-item-thumb"
+                                            className="bq-thumb"
                                             src={item.thumbnail}
-                                            alt={item.item_name}
+                                            alt=""
                                             onError={(e) => {
                                               (
                                                 e.currentTarget as HTMLImageElement
-                                              ).style.display = "none";
+                                              ).style.visibility = "hidden";
                                             }}
                                           />
-                                        ) : null}
-                                        <div className="gsw-item-info">
-                                          <div
-                                            className="gsw-item-name"
-                                            dangerouslySetInnerHTML={{
-                                              __html: item.item_description,
-                                            }}
-                                          />
-                                          {item.flag ? (
-                                            <div
-                                              className={
-                                                "gsw-item-flag" +
-                                                (item.flag.startsWith("⚠")
-                                                  ? " warn"
-                                                  : "")
-                                              }
-                                            >
+                                        ) : (
+                                          <span className="bq-thumb" />
+                                        )}
+                                        <div>
+                                          <div className="bq-item-name">
+                                            {item.item_name}
+                                          </div>
+                                          {line.unitWidth > 0 && line.height > 0 ? (
+                                            <div className="bq-sub">
+                                              {line.bySqft ? "Each unit: " : "Size: "}
+                                              {line.unitWidth} ft (W) × {line.height} ft (H)
+                                            </div>
+                                          ) : null}
+                                          {/* The "default material on N panel(s)" note is
+                                              not shown. Only a missing rate (a part
+                                              priced ₹0) is flagged, on screen only. */}
+                                          {item.flag?.startsWith("⚠") && !hideActions ? (
+                                            <div className="bq-flag warn">
                                               {item.flag}
                                             </div>
                                           ) : null}
                                         </div>
                                       </div>
-                                      <div className="gsw-item-nums">
-                                        <div>
-                                          <span className="gsw-nl">Unit</span>
-                                          <span className="gsw-nv">
-                                            {money(
-                                              parseFloat(
-                                                (item.unit_price || "₹0").slice(1)
-                                              ) || 0
-                                            )}
-                                          </span>
-                                        </div>
-                                        <div>
-                                          <span className="gsw-nl">Qty</span>
-                                          <span className="gsw-nv">
-                                            {item.quantity}
-                                          </span>
-                                        </div>
-                                        <div>
-                                          <span className="gsw-nl">Total</span>
-                                          <span className="gsw-nv strong">
-                                            {money(
-                                              parseFloat(
-                                                (item.total_price || "₹0").slice(
-                                                  1
-                                                )
-                                              ) || 0
-                                            )}
-                                          </span>
-                                        </div>
-                                      </div>
-                                    </div>
-                                    {!clientPdfMode && item.parts?.length ? (
-                                      <div className="gsw-item-break">
-                                          <PartsBreakdown
-                                            parts={item.parts}
-                                            extraHardware={
-                                              hardwareByModel[
-                                                item.furnishedModelId
-                                              ] ??
-                                              sumHardware(item.hardwareItems)
+                                    </td>
+                                    <td
+                                      className="bq-desc"
+                                      onClick={(e) =>
+                                        !hideActions && e.stopPropagation()
+                                      }
+                                    >
+                                      {isDescEditing && !hideActions ? (
+                                        <div className="bq-desc-edit">
+                                          <textarea
+                                            className="bq-textarea"
+                                            rows={3}
+                                            maxLength={2000}
+                                            autoFocus
+                                            placeholder="e.g. 18mm BWP plywood carcass, soft-close hinges"
+                                            aria-label={`Description for ${item.item_name}`}
+                                            value={descEdit.text}
+                                            onChange={(e) =>
+                                              setDescEdit({
+                                                id,
+                                                text: e.target.value,
+                                              })
                                             }
-                                          />
-                                          {/* Per-object installation toggle */}
-                                          <div
-                                            style={{
-                                              display: "flex",
-                                              alignItems: "center",
-                                              gap: 8,
-                                              fontSize: 12,
-                                              margin: "2px 0 12px",
-                                            }}
-                                          >
-                                            <input
-                                              type="checkbox"
-                                              checked={!item.installationExcluded}
-                                              onChange={() =>
-                                                toggleInstallation(
-                                                  item.furnishedModelId,
-                                                  item.installationExcluded
-                                                )
+                                            onKeyDown={(e) => {
+                                              if (e.key === "Escape") {
+                                                setDescEdit(null);
+                                              } else if (
+                                                e.key === "Enter" &&
+                                                (e.ctrlKey || e.metaKey)
+                                              ) {
+                                                e.preventDefault();
+                                                saveDescription(line, descEdit.text);
                                               }
-                                            />
-                                            <span
-                                              style={{
-                                                fontWeight: 600,
-                                                color: "#6b7280",
-                                              }}
+                                            }}
+                                          />
+                                          <span className="bq-desc-btns">
+                                            <button
+                                              type="button"
+                                              className="bq-btn primary"
+                                              onClick={() =>
+                                                saveDescription(line, descEdit.text)
+                                              }
                                             >
-                                              Installation
-                                            </span>
-                                            <span
-                                              style={{
-                                                color: item.installationExcluded
-                                                  ? "#9ca3af"
-                                                  : "#111827",
-                                              }}
+                                              Save
+                                            </button>
+                                            <button
+                                              type="button"
+                                              className="bq-btn"
+                                              onClick={() => setDescEdit(null)}
                                             >
-                                              {item.installationExcluded
-                                                ? "excluded"
-                                                : `${item.area ?? 0} ft² @ ₹${installationRate}/ft² = ${rupee(
-                                                    (Number(item.area) || 0) *
-                                                      installationRate
-                                                  )}`}
+                                              Cancel
+                                            </button>
+                                          </span>
+                                        </div>
+                                      ) : line.description ? (
+                                        <div className="bq-desc-view">
+                                          <span className="bq-desc-text">
+                                            {line.description}
+                                          </span>
+                                          {hideActions ? null : (
+                                            <span className="bq-actions bq-desc-actions">
+                                              <button
+                                                type="button"
+                                                title="Edit description"
+                                                aria-label="Edit description"
+                                                disabled={descSaving === id}
+                                                onClick={() =>
+                                                  setDescEdit({
+                                                    id,
+                                                    text: line.description,
+                                                  })
+                                                }
+                                              >
+                                                <EditOutlined style={{ fontSize: 14 }} />
+                                              </button>
+                                              <button
+                                                type="button"
+                                                title="Delete description"
+                                                aria-label="Delete description"
+                                                disabled={descSaving === id}
+                                                onClick={() => deleteDescription(line)}
+                                              >
+                                                <DeleteOutline style={{ fontSize: 14 }} />
+                                              </button>
                                             </span>
+                                          )}
+                                        </div>
+                                      ) : hideActions ? (
+                                        "—"
+                                      ) : (
+                                        <button
+                                          type="button"
+                                          className="bq-link bq-add-desc"
+                                          onClick={() => setDescEdit({ id, text: "" })}
+                                        >
+                                          + Add description
+                                        </button>
+                                      )}
+                                    </td>
+                                    <td>{item.material || "—"}</td>
+                                    <td className="r">
+                                      {isEditing ? (
+                                        <input
+                                          className="bq-input"
+                                          type="number"
+                                          min="0.01"
+                                          step="1"
+                                          aria-label="Quantity"
+                                          value={editing.qty}
+                                          onClick={(e) => e.stopPropagation()}
+                                          onChange={(e) =>
+                                            setEditing({ ...editing, qty: e.target.value })
+                                          }
+                                        />
+                                      ) : (
+                                        formatQty(line.qty)
+                                      )}
+                                    </td>
+                                    <td>{line.bySqft ? "Sq.ft" : "Nos"}</td>
+                                    <td className="r">
+                                      {!line.bySqft ? (
+                                        "—"
+                                      ) : isEditing ? (
+                                        <input
+                                          className="bq-input"
+                                          type="number"
+                                          min="0.01"
+                                          step="0.01"
+                                          aria-label="Width in feet"
+                                          title="Width of the whole line in ft. Empty = the 3D size."
+                                          placeholder={String(round2(mmToFt(item.widthMm) * shown.qty))}
+                                          value={editing.width}
+                                          onClick={(e) => e.stopPropagation()}
+                                          onChange={(e) =>
+                                            setEditing({ ...editing, width: e.target.value })
+                                          }
+                                        />
+                                      ) : (
+                                        <>
+                                          {plain(line.overallWidth)}
+                                          {line.qty !== 1 ? (
+                                            <div className="bq-sub">
+                                              {line.unitWidth} × {formatQty(line.qty)}
+                                            </div>
+                                          ) : null}
+                                        </>
+                                      )}
+                                    </td>
+                                    <td className="r">
+                                      {!line.bySqft ? (
+                                        "—"
+                                      ) : isEditing ? (
+                                        <input
+                                          className="bq-input"
+                                          type="number"
+                                          min="0.01"
+                                          step="0.01"
+                                          aria-label="Height in feet"
+                                          title="Height in ft. Empty = the 3D size."
+                                          placeholder={String(mmToFt(item.heightMm))}
+                                          value={editing.height}
+                                          onClick={(e) => e.stopPropagation()}
+                                          onChange={(e) =>
+                                            setEditing({ ...editing, height: e.target.value })
+                                          }
+                                        />
+                                      ) : (
+                                        plain(line.height)
+                                      )}
+                                    </td>
+                                    <td className="r">
+                                      {shown.bySqft ? (
+                                        <b className="bq-area">{plain(shown.area)}</b>
+                                      ) : (
+                                        "—"
+                                      )}
+                                    </td>
+                                    <td className="r">
+                                      {isEditing ? (
+                                        <input
+                                          className="bq-input"
+                                          type="number"
+                                          min="0"
+                                          step="0.01"
+                                          aria-label={
+                                            line.bySqft ? "Rate per sq.ft" : "Rate per no"
+                                          }
+                                          placeholder={String(line.rate || 0)}
+                                          value={editing.rate}
+                                          onClick={(e) => e.stopPropagation()}
+                                          onChange={(e) =>
+                                            setEditing({ ...editing, rate: e.target.value })
+                                          }
+                                        />
+                                      ) : (
+                                        <>
+                                          {plain(line.rate)}
+                                          <div className="bq-sub">
+                                            {line.bySqft ? "per sq.ft" : "per no"}
                                           </div>
-                                          <HardwareEditor
-                                            furnishedModelId={
-                                              item.furnishedModelId
-                                            }
-                                            initialRows={
-                                              item.hardwareItems || []
-                                            }
-                                            master={hardwareMaster}
-                                            onChange={applyOtherCostChange}
-                                            onSubtotal={(id, sub) =>
-                                              setHardwareByModel((m) => ({
-                                                ...m,
-                                                [id]: sub,
-                                              }))
-                                            }
-                                          />
-                                          <OtherCostsEditor
-                                            furnishedModelId={
-                                              item.furnishedModelId
-                                            }
-                                            initialRows={item.otherCosts || []}
-                                            onChange={applyOtherCostChange}
-                                          />
-                                      </div>
-                                    ) : null}
-                                  </React.Fragment>
-                                ))}
-                                <div className="gsw-room-total">
-                                  <span>Total</span>
-                                  <span>
-                                    {money(
-                                      group.items.reduce(
-                                        (total, item) =>
-                                          total +
-                                          parseFloat(item.total_price.slice(1)),
-                                        0
-                                      )
+                                        </>
+                                      )}
+                                    </td>
+                                    <td className="r bq-amount">
+                                      {plain(shown.amount)}
+                                      {shown.extras > 0 ? (
+                                        <div className="bq-sub">
+                                          incl. ₹{plain(shown.extras)} hardware / other
+                                        </div>
+                                      ) : null}
+                                    </td>
+                                    {hideActions ? null : (
+                                      <td className="c">
+                                        {isEditing ? (
+                                          <span className="bq-actions">
+                                            <button
+                                              type="button"
+                                              title="Save"
+                                              aria-label="Save"
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                saveEdit(line);
+                                              }}
+                                            >
+                                              <CheckOutlined style={{ fontSize: 16 }} />
+                                            </button>
+                                            <button
+                                              type="button"
+                                              title="Cancel"
+                                              aria-label="Cancel"
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                setEditing(null);
+                                              }}
+                                            >
+                                              <CloseOutlined style={{ fontSize: 16 }} />
+                                            </button>
+                                          </span>
+                                        ) : (
+                                          <span className="bq-actions">
+                                            <button
+                                              type="button"
+                                              title={
+                                                line.bySqft
+                                                  ? "Edit quantity, width, height and rate per sq.ft"
+                                                  : "Edit quantity and rate"
+                                              }
+                                              aria-label="Edit quantity and rate"
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                const w0 = line.bySqft
+                                                  ? String(line.overallWidth)
+                                                  : "";
+                                                const h0 = line.bySqft
+                                                  ? String(line.height)
+                                                  : "";
+                                                setEditing({
+                                                  id,
+                                                  qty: String(line.qty),
+                                                  rate: line.rateEdited
+                                                    ? String(line.rate)
+                                                    : "",
+                                                  width: w0,
+                                                  height: h0,
+                                                  w0,
+                                                  h0,
+                                                });
+                                              }}
+                                            >
+                                              <EditOutlined style={{ fontSize: 16 }} />
+                                            </button>
+                                            <button
+                                              type="button"
+                                              title="Remove from BOQ"
+                                              aria-label="Remove from BOQ"
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                setBoqExcluded(line, true);
+                                              }}
+                                            >
+                                              <DeleteOutline style={{ fontSize: 16 }} />
+                                            </button>
+                                          </span>
+                                        )}
+                                      </td>
                                     )}
-                                  </span>
-                                </div>
-                              </Box>
-                            </Collapse>
-                          </TableCell>
-                        </TableRow>
-                      </React.Fragment>
-                    ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
+                                  </tr>
+                                  {isOpen && hasDetails ? (
+                                    <tr className="bq-detail">
+                                      <td colSpan={colCount}>
+                                        {line.units.map((unit, ui) => (
+                                          <div
+                                            key={unit.furnishedModelId || ui}
+                                            className="bq-unit"
+                                          >
+                                            {line.units.length > 1 ? (
+                                              <div className="bq-unit-head">
+                                                Unit {ui + 1} of {line.units.length}
+                                              </div>
+                                            ) : null}
+                                            <div className="bq-install">
+                                              <input
+                                                type="checkbox"
+                                                checked={!unit.installationExcluded}
+                                                onChange={() =>
+                                                  toggleInstallation(
+                                                    unit.furnishedModelId,
+                                                    unit.installationExcluded
+                                                  )
+                                                }
+                                              />
+                                              <span className="bq-install-label">
+                                                Installation
+                                              </span>
+                                              <span
+                                                style={{
+                                                  color: unit.installationExcluded
+                                                    ? "#9ca3af"
+                                                    : "#111827",
+                                                }}
+                                              >
+                                                {unit.installationExcluded
+                                                  ? "excluded"
+                                                  : `${plain(unitArea(unit))} ft² × ${formatQty(
+                                                      lineQty(unit)
+                                                    )} @ ₹${installationRate}/ft² = ${rupee(
+                                                      unitArea(unit) *
+                                                        lineQty(unit) *
+                                                        installationRate
+                                                    )}`}
+                                              </span>
+                                            </div>
+                                            <HardwareEditor
+                                              furnishedModelId={unit.furnishedModelId}
+                                              initialRows={unit.hardwareItems || []}
+                                              master={hardwareMaster}
+                                              onSaved={onHardwareSaved}
+                                            />
+                                            <OtherCostsEditor
+                                              furnishedModelId={unit.furnishedModelId}
+                                              initialRows={unit.otherCosts || []}
+                                              onSaved={onOtherCostsSaved}
+                                            />
+                                          </div>
+                                        ))}
+                                      </td>
+                                    </tr>
+                                  ) : null}
+                                </React.Fragment>
+                              );
+                            })}
+                            {!hideActions && removed.length ? (
+                              <tr className="bq-removed">
+                                <td colSpan={colCount}>
+                                  Removed from BOQ:{" "}
+                                  {removed.map((l, i) => (
+                                    <span key={l.id || i}>
+                                      {i > 0 ? " · " : ""}
+                                      {l.lead.item_name}
+                                      {l.qty !== 1 ? ` × ${formatQty(l.qty)}` : ""}{" "}
+                                      <button
+                                        type="button"
+                                        className="bq-link"
+                                        onClick={() => setBoqExcluded(l, false)}
+                                      >
+                                        <RestoreOutlined style={{ fontSize: 14 }} /> Restore
+                                      </button>
+                                    </span>
+                                  ))}
+                                </td>
+                              </tr>
+                            ) : null}
+                            <tr className="bq-room-total">
+                              <td colSpan={8}>{group.room || "Room"} Total</td>
+                              <td className="r">
+                                {roomArea > 0 ? plain(roomArea) : ""}
+                              </td>
+                              <td />
+                              <td className="r">{money(groupAmount(group))}</td>
+                              {hideActions ? null : <td />}
+                            </tr>
+                          </tbody>
+                        </table>
+                      ) : null}
+                    </div>
+                  );
+                });
+              })()}
             </div>
             <div className="gsw-totals">
               <div className="gsw-breakdown">

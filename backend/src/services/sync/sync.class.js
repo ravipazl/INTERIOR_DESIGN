@@ -65,15 +65,43 @@ const cleanComponentData = (item) => {
 // = gone everywhere" regardless of HOW it was removed (delete, floor-plan reset,
 // a dropped local-first delete, …), so orphans can't linger in the 3D space or
 // the BOQ. Uses the raw collection (string _ids, bulk updateMany).
+// Grace period for a just-created model. A sync batch is applied in parallel,
+// so a floor-plan save whose scene was captured BEFORE an item was added can
+// land AFTER that item's record — and would switch the brand-new item off.
+const NEW_MODEL_GRACE_MS = 2 * 60 * 1000
+
 const reconcileFloorPlanModels = async (app, floorPlanId, sceneStr) => {
   if (!floorPlanId || !sceneStr) return
   try {
     const parsed = JSON.parse(sceneStr)
     const dbids = (parsed?.items || []).map((it) => it?.dbid).filter(Boolean)
     const db = await app.get('mongodbClient')
+    const now = new Date()
+    // The scene is the truth BOTH ways: a model the saved scene still shows is
+    // active. This heals an item that an out-of-order save switched off (it
+    // stayed in 3D but vanished from the Properties panel and the BOQ).
+    if (dbids.length) {
+      const back = await db.collection('furnished_models').updateMany(
+        { floorPlanId, isActive: false, _id: { $in: dbids } },
+        { $set: { isActive: true, updatedAt: now.toISOString() } }
+      )
+      if (back.modifiedCount) {
+        console.log(
+          `[SYNC] reconciled floorplan ${floorPlanId}: re-activated ${back.modifiedCount} model(s) present in the scene`
+        )
+      }
+    }
+    const graceCutoff = new Date(now.getTime() - NEW_MODEL_GRACE_MS).toISOString()
     const res = await db.collection('furnished_models').updateMany(
-      { floorPlanId, isActive: true, _id: { $nin: dbids } },
-      { $set: { isActive: false, updatedAt: new Date().toISOString() } }
+      {
+        floorPlanId,
+        isActive: true,
+        _id: { $nin: dbids },
+        // Never switch off a model created moments ago (see NEW_MODEL_GRACE_MS);
+        // a later save that really lacks it still removes it after the grace.
+        $or: [{ createdAt: { $lt: graceCutoff } }, { createdAt: { $exists: false } }]
+      },
+      { $set: { isActive: false, updatedAt: now.toISOString() } }
     )
     if (res.modifiedCount) {
       console.log(

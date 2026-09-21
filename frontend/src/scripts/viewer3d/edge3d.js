@@ -326,8 +326,14 @@ export class Edge3D extends EventDispatcher {
         // }
 
         // sides
-        this.planes.push(this.buildSideFillter(this.edge.interiorStart(), this.edge.exteriorStart(), extStartCorner.elevation, this.sideColor));
-        this.planes.push(this.buildSideFillter(this.edge.interiorEnd(), this.edge.exteriorEnd(), extEndCorner.elevation, this.sideColor));
+        // Where the wall runs on into the next piece of a curve, its end cap
+        // would sit inside the joint and show as a bright vertical seam.
+        if (!this.__curveNeighbour(extStartCorner)) {
+            this.planes.push(this.buildSideFillter(this.edge.interiorStart(), this.edge.exteriorStart(), extStartCorner.elevation, this.sideColor));
+        }
+        if (!this.__curveNeighbour(extEndCorner)) {
+            this.planes.push(this.buildSideFillter(this.edge.interiorEnd(), this.edge.exteriorEnd(), extEndCorner.elevation, this.sideColor));
+        }
         //		this.planes.push(this.buildSideFillter(this.edge.interiorStart(), this.edge.exteriorStart(), this.wall.startElevation, this.sideColor));
         //		this.planes.push(this.buildSideFillter(this.edge.interiorEnd(), this.edge.exteriorEnd(), extEndCorner.endElevation, this.sideColor));
     }
@@ -391,6 +397,14 @@ export class Edge3D extends EventDispatcher {
         geometry.faceVertexUvs[1] = geometry.faceVertexUvs[0];
         geometry.computeFaceNormals();
         geometry.computeVertexNormals();
+        // Curves (Arc / Circle / Fillet) are short straight walls. Bend the
+        // lighting at an end that runs on into the next piece, so light flows
+        // round the curve instead of shading every piece as its own flat panel.
+        try {
+            this.__smoothCurveNormals(geometry, v1, v2);
+        } catch (e) {
+            /* cosmetic — never break a wall */
+        }
 
         function vertexToUv(vertex) {
             let x = Utils.distance(new Vector2(v1.x, v1.z), new Vector2(vertex.x, vertex.z)) / totalDistance;
@@ -407,6 +421,90 @@ export class Edge3D extends EventDispatcher {
         mesh.castShadow = true;
         mesh.name = 'wall';
         return mesh;
+    }
+
+    // The other wall at a joint along a curve — the same rule as the 2D view
+    // (CornerView2D.jointAt). null for a real corner.
+    __curveNeighbour(corner) {
+        const j = this.__curveJoint(corner);
+        return j ? j.other : null;
+    }
+
+    // How this wall's lighting meets the neighbour at a curve joint:
+    //   avg   — inside the curve: both pieces bend to the average
+    //   own   — this is the straight wall the curve runs into: it stays flat
+    //   other — this is the curve's end piece: it takes the straight wall's
+    //           direction, so the curve flows into the wall without a seam
+    __curveJoint(corner) {
+        if (!corner || !this.wall) return null;
+        const legs = (c) => {
+            const walls = [...(c.wallStarts || []), ...(c.wallEnds || [])];
+            if (walls.length !== 2) return null;
+            const out = walls.map((w) => {
+                const o = w.start === c ? w.end : w.start;
+                if (!o) return null;
+                const dx = o.x - c.x;
+                const dy = o.y - c.y;
+                const l = Math.hypot(dx, dy);
+                return l > 1e-6 ? { w, o, ux: dx / l, uy: dy / l, l } : null;
+            });
+            return out[0] && out[1] ? out : null;
+        };
+        const inner = (c) => {
+            const lg = legs(c);
+            if (!lg) return false;
+            const [a, b] = lg;
+            if (Math.abs(a.l - b.l) > Math.max(1.5, 0.05 * Math.max(a.l, b.l))) return false;
+            return a.ux * b.ux + a.uy * b.uy < -0.743;
+        };
+        const lg = legs(corner);
+        if (!lg || (lg[0].w !== this.wall && lg[1].w !== this.wall)) return null;
+        const other = lg[0].w === this.wall ? lg[1].w : lg[0].w;
+        if (inner(corner)) return { other, mode: "avg" };
+        const [a, b] = lg;
+        if (a.ux * b.ux + a.uy * b.uy >= -0.906) return null;
+        const short = a.l < b.l ? a : b;
+        if (!inner(short.o)) return null;
+        return { other, mode: short.w === this.wall ? "other" : "own" };
+    }
+
+    // Vertex normals that blend, along the wall, from the average with the
+    // neighbour at its start to the average with the neighbour at its end.
+    __smoothCurveNormals(geometry, v1, v2) {
+        const startJoint = this.__curveJoint(this.edge.getStart());
+        const endJoint = this.__curveJoint(this.edge.getEnd());
+        if (!startJoint && !endJoint) return;
+        const ref = geometry.faces[0] && geometry.faces[0].normal;
+        if (!ref) return;
+        const axis = new Vector3(v2.x - v1.x, 0, v2.z - v1.z);
+        const len = axis.length();
+        if (len < 1e-6) return;
+        axis.divideScalar(len);
+        // a wall's horizontal normal, on the side this panel faces
+        const flat = (wall) => {
+            const dx = wall.end.x - wall.start.x;
+            const dz = wall.end.y - wall.start.y;
+            const l = Math.hypot(dx, dz) || 1;
+            const n = new Vector3(-dz / l, 0, dx / l);
+            if (n.dot(ref) < 0) n.negate();
+            return n;
+        };
+        const own = flat(this.wall);
+        const at = (j) => {
+            if (!j || j.mode === "own") return own;
+            if (j.mode === "other") return flat(j.other);
+            return own.clone().add(flat(j.other)).normalize();
+        };
+        const nStart = at(startJoint);
+        const nEnd = at(endJoint);
+        geometry.faces.forEach((face) => {
+            [face.a, face.b, face.c].forEach((index, i) => {
+                const v = geometry.vertices[index];
+                const t = Math.max(0, Math.min(1, ((v.x - v1.x) * axis.x + (v.z - v1.z) * axis.z) / len));
+                face.vertexNormals[i] = nStart.clone().lerp(nEnd, t).normalize();
+            });
+        });
+        geometry.normalsNeedUpdate = true;
     }
 
     buildSideFillter(p1, p2, height, color) {

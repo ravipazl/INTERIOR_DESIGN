@@ -35,6 +35,27 @@ export const localDBObjectStoresList = [
   `pazl-3d-models-furnished-model-component`,
 ];
 
+/**
+ * Ask for a server sync shortly after any local save (a finish, brand, size,
+ * part or floor-plan change), instead of waiting for the 5 s timer — so the
+ * BOQ, which is built on the server, has the change when it is opened.
+ * Debounced: the many writes of one action (e.g. every part of an item) go out
+ * as one sync. app.tsx listens for "pazl:sync-now"; SyncService sends only
+ * what changed and never runs two syncs at once.
+ */
+let syncSoonTimer: ReturnType<typeof setTimeout> | null = null;
+const requestSyncSoon = () => {
+  try {
+    if (syncSoonTimer) clearTimeout(syncSoonTimer);
+    syncSoonTimer = setTimeout(() => {
+      syncSoonTimer = null;
+      window.dispatchEvent(new Event("pazl:sync-now"));
+    }, 400);
+  } catch (_) {
+    /* the timed sync still sends it */
+  }
+};
+
 export class LocalDBManager {
   private dbName = "pazl-3d-models-db";
   private dbVersion = 4;
@@ -141,6 +162,7 @@ export class LocalDBManager {
       console.debug("LocalDBManager.ts ~ saveToLocalDB ~ request", request);
       request.onsuccess = () => {
         console.debug("LocalDBManager.ts ~ saveToLocalDB ~ request.onsuccess");
+        requestSyncSoon();
         resolve(request.result);
       };
       request.onerror = (event: any) => {
@@ -177,6 +199,7 @@ export class LocalDBManager {
         console.debug(
           "LocalDBManager.ts ~ updateToLocalDB ~ request.onsuccess"
         );
+        requestSyncSoon();
         resolve(request.result);
       };
       request.onerror = (event: any) => {

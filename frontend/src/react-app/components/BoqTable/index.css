@@ -238,3 +238,86 @@
   .gsw-totals { grid-template-columns: 1fr; }
   .gsw-meta, .gsw-r { text-align: left; justify-content: flex-start; }
 }
+
+/* ── Room-wise BOQ (room sections, one row per item) ─────────────────────── */
+.bq-rooms { margin: 16px; display: flex; flex-direction: column; gap: 14px; }
+.bq-room { background: #fff; border: 1px solid #e6e8f0; border-radius: 10px; overflow: hidden; }
+.bq-room-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 14px; cursor: pointer; flex-wrap: wrap; }
+.bq-room-title { display: flex; align-items: center; gap: 10px; font-weight: 600; font-size: 14px; color: #17171b; }
+.bq-room-icon { width: 30px; height: 30px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; background: #f1eefb; color: #414063; }
+.bq-room-stats { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #66666e; font-variant-numeric: tabular-nums; }
+.bq-room-stats b { color: #17171b; font-weight: 600; }
+.bq-sep { color: #d6d6db; }
+.bq-table { width: 100%; border-collapse: collapse; table-layout: fixed; font-size: 12px; font-family: Inter, Arial, sans-serif; }
+.bq-table th { background: #f3f5fb; color: #414063; font-weight: 600; text-align: left; padding: 8px 10px; border-top: 1px solid #e6e8f0; border-bottom: 1px solid #e6e8f0; }
+.bq-table td { padding: 8px 10px; border-bottom: 1px solid #eef0f5; color: #414063; vertical-align: middle; overflow-wrap: anywhere; }
+.bq-table .r { text-align: right; font-variant-numeric: tabular-nums; }
+.bq-table .c { text-align: center; }
+.bq-line { cursor: pointer; }
+.bq-line:hover td, .bq-line.open td { background: #fafbff; }
+.bq-item { display: flex; align-items: center; gap: 10px; }
+.bq-thumb { width: 34px; height: 34px; flex: 0 0 34px; border-radius: 6px; object-fit: cover; background: #f3f3f5; border: 1px solid #ececef; display: inline-block; }
+.bq-item-name { color: #17171b; font-weight: 500; }
+.bq-flag { font-size: 10.5px; color: #8a6d1f; margin-top: 2px; }
+.bq-flag.warn { color: #b42318; }
+.bq-sub { font-size: 10px; color: #9a9aa2; }
+.bq-amount { color: #17171b; font-weight: 600; }
+.bq-actions { display: inline-flex; gap: 4px; }
+.bq-actions button { border: 0; background: transparent; color: #66666e; padding: 3px; border-radius: 4px; cursor: pointer; line-height: 0; }
+.bq-actions button:hover { background: #eef0f5; color: #17171b; }
+.bq-actions button:focus-visible, .bq-link:focus-visible { outline: 2px solid #414063; outline-offset: 1px; }
+.bq-input { width: 100%; max-width: 96px; text-align: right; border: 1px solid #d6d8e0; border-radius: 4px; padding: 3px 6px; font-size: 12px; }
+.bq-detail td { background: #fbfbfd; padding: 4px 16px 12px; }
+.bq-install { display: flex; align-items: center; gap: 8px; font-size: 12px; margin: 2px 0 12px; }
+.bq-install-label { font-weight: 600; color: #6b7280; }
+.bq-removed td { font-size: 11.5px; color: #9a9aa2; background: #fcfcfd; }
+.bq-link { border: 0; background: transparent; color: #414063; cursor: pointer; font-size: 11.5px; padding: 0 2px; display: inline-flex; align-items: center; gap: 2px; text-decoration: underline; }
+.bq-room-total td { background: #f3f5fb; color: #17171b; font-weight: 600; border-bottom: 0; }
+.bq-desc { cursor: default; }
+.bq-desc-view { display: flex; align-items: flex-start; gap: 4px; }
+.bq-desc-text { flex: 1; min-width: 0; white-space: pre-wrap; overflow-wrap: anywhere; color: #3a3a42; }
+.bq-desc-actions { flex: none; opacity: 0.55; }
+.bq-line:hover .bq-desc-actions, .bq-desc-actions:focus-within { opacity: 1; }
+.bq-actions button:disabled { cursor: default; opacity: 0.4; }
+.bq-add-desc { text-decoration: none; color: #6a6a8e; }
+.bq-add-desc:hover { text-decoration: underline; color: #414063; }
+.bq-desc-edit { display: flex; flex-direction: column; gap: 6px; }
+.bq-textarea { width: 100%; min-height: 56px; resize: vertical; border: 1px solid #d6d8e0; border-radius: 4px; padding: 5px 7px; font: inherit; font-size: 12px; line-height: 1.4; color: #17171b; background: #fff; }
+.bq-textarea:focus { outline: 2px solid #414063; outline-offset: 0; border-color: #414063; }
+.bq-desc-btns { display: flex; gap: 6px; }
+.bq-btn { border: 1px solid #d6d8e0; background: #fff; color: #3a3a42; border-radius: 4px; padding: 3px 10px; font-size: 11.5px; cursor: pointer; }
+.bq-btn:hover { background: #eef0f5; }
+.bq-btn.primary { background: #414063; border-color: #414063; color: #fff; }
+.bq-btn.primary:hover { background: #33324f; }
+.bq-btn:focus-visible { outline: 2px solid #414063; outline-offset: 1px; }
+.bq-area { color: #17171b; font-weight: 600; }
+.bq-unit + .bq-unit { border-top: 1px dashed #e2e2e8; margin-top: 6px; padding-top: 6px; }
+.bq-unit-head { font-size: 11px; font-weight: 600; color: #414063; letter-spacing: .3px; margin-top: 6px; }
+/* Hardware & Other Costs under an opened BOQ line */
+.bq-extras { margin: 4px 0 14px; font-size: 12px; max-width: 640px; }
+/* Heading total ends where the Total / Amount values end (above the ✕ column). */
+.bq-extras-head { display: flex; justify-content: space-between; align-items: baseline; color: #6b7280; font-weight: 600; margin-bottom: 6px; padding-right: 42px; }
+.bq-xlabels span.r { padding-right: 8px; }
+.bq-extras-total { font-weight: 400; }
+.bq-extras-total b { color: #17171b; font-weight: 600; font-variant-numeric: tabular-nums; }
+/* One grid for both sections: Item | Price | Qty | Total | ✕. An Other Costs
+   label spans Item–Qty, so its Amount lines up under the Hardware Total. */
+.bq-xrow { display: grid; grid-template-columns: minmax(0, 1fr) 96px 64px 110px 26px; align-items: center; gap: 8px; margin-bottom: 6px; }
+.bq-xspan { grid-column: 1 / 4; }
+.bq-xlabels { margin-bottom: 2px; font-size: 10px; letter-spacing: .5px; text-transform: uppercase; color: #9a9aa2; }
+.bq-xrow .r { text-align: right; }
+.bq-xinput { box-sizing: border-box; width: 100%; min-width: 0; height: 28px; border: 1px solid #d6d8e0; border-radius: 4px; padding: 4px 8px; font: inherit; font-size: 12px; line-height: 18px; color: #17171b; background: #fff; }
+.bq-xinput::placeholder { color: #9a9aa2; }
+.bq-xrow .bq-xtotal { padding-right: 8px; }
+.bq-xinput.r { text-align: right; font-variant-numeric: tabular-nums; }
+.bq-xinput:focus { outline: 2px solid #414063; outline-offset: 0; border-color: #414063; }
+.bq-xtotal { color: #17171b; font-weight: 600; font-variant-numeric: tabular-nums; }
+.bq-xdel { border: 0; background: transparent; color: #993c1d; border-radius: 4px; padding: 3px; line-height: 0; cursor: pointer; }
+.bq-xdel:hover { background: #fbeee9; }
+.bq-xadd { border: 1px dashed #5b3df5; background: none; color: #5b3df5; border-radius: 4px; padding: 3px 10px; font-size: 12px; cursor: pointer; }
+.bq-xadd:hover { background: #f4f1ff; }
+.bq-xdel:focus-visible, .bq-xadd:focus-visible { outline: 2px solid #414063; outline-offset: 1px; }
+@media (max-width: 760px) {
+  .bq-rooms { margin: 16px 0; overflow-x: auto; }
+  .bq-table { min-width: 980px; }
+}

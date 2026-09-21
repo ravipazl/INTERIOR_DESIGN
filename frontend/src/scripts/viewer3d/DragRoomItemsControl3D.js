@@ -80,6 +80,17 @@ export class DragRoomItemsControl3D extends EventDispatcher {
     this.__surfaceHoverMaterial = new LineBasicMaterial({ color: 0x00e5ff });
     this.__hoveredSurface = null;
     this.__surfaceOutline = null;
+    // Part hover (see __setPartHoverHighlight): drawn over the model, so the
+    // outline of a thin part (a handle) is never hidden by its own faces.
+    this.__partHoverMaterial = new LineBasicMaterial({
+      color: 0x00e5ff,
+      depthTest: false,
+      transparent: true,
+    });
+    this.__hoveredPart = null;
+    this.__partOutline = null;
+    /** geometry uuid → its outline edges, so a part's edges are built once. */
+    this.__partEdgesCache = new Map();
     this.__camera = camera;
     this.__domElement = domElement;
     this.__enabled = true;
@@ -160,6 +171,79 @@ export class DragRoomItemsControl3D extends EventDispatcher {
     }
   }
 
+  /**
+   * The PART (mesh) of `phys` under the cursor — the very rule a click uses to
+   * pick a part (__emitPick), so what lights up on hover is what a click picks.
+   * Null while the model is still loading or when nothing inside it is hit.
+   */
+  __partUnderCursor(phys) {
+    if (!phys || !phys.__loadedItem) return null;
+    const hit = this.__raycaster
+      .intersectObject(phys.__loadedItem, true)
+      .find((h) => h.object && h.object.isMesh && h.object.visible);
+    return hit ? hit.object : null;
+  }
+
+  /**
+   * Outline ONE part of an item (its real edges, like the wall/floor hover) so
+   * the user sees exactly which part a click will select. Rebuilt only when the
+   * part under the cursor changes; otherwise just kept on the part (it may move).
+   * Pass null to clear.
+   */
+  __setPartHoverHighlight(mesh) {
+    try {
+      if (mesh === this.__hoveredPart) {
+        if (this.__partOutline && mesh) {
+          mesh.updateWorldMatrix(true, false);
+          this.__partOutline.matrix.copy(mesh.matrixWorld);
+        }
+        return;
+      }
+      this.__clearPartHover();
+      if (!mesh || !mesh.geometry) return;
+      let root = mesh;
+      while (root.parent) root = root.parent;
+      let edges = this.__partEdgesCache.get(mesh.geometry.uuid);
+      if (!edges) {
+        // 20°: box edges and real creases only, not every facet of a curved part.
+        edges = new EdgesGeometry(mesh.geometry, 20);
+        this.__partEdgesCache.set(mesh.geometry.uuid, edges);
+      }
+      mesh.updateWorldMatrix(true, false);
+      const outline = new LineSegments(edges, this.__partHoverMaterial);
+      outline.matrixAutoUpdate = false;
+      outline.matrix.copy(mesh.matrixWorld);
+      outline.renderOrder = 9999;
+      outline.raycast = () => {}; // never hit by picking
+      root.add(outline);
+      this.__partOutline = outline;
+      this.__hoveredPart = mesh;
+      this.__requestRender();
+    } catch (e) {
+      // Hover highlight is cosmetic — never let it break interaction.
+    }
+  }
+
+  __clearPartHover() {
+    try {
+      if (this.__partOutline && this.__partOutline.parent) {
+        this.__partOutline.parent.remove(this.__partOutline);
+        this.__requestRender();
+      }
+    } catch (e) {
+      // cosmetic
+    }
+    // The edges geometry stays cached for the next hover of the same part.
+    this.__partOutline = null;
+    this.__hoveredPart = null;
+  }
+
+  __requestRender() {
+    const bp = BlueprintInterface && BlueprintInterface.blueprint3d;
+    const v = bp && (bp.roomplanner || bp.viewer3d);
+    if (v) v.needsUpdate = true;
+  }
+
   // The VISIBLE wall/floor meshes (correct shape) — NOT the giant invisible
   // click-planes. Walls: each Edge3D.planes; floors: each Floor3D.floorPlane.
   __getSurfaceMeshes() {
@@ -238,6 +322,9 @@ export class DragRoomItemsControl3D extends EventDispatcher {
       type: EVENT_MOVED_DRAG,
       event: evt,
     });
+    // A press may start a drag, which moves the whole item: drop the part
+    // outline so it isn't left floating where the part used to be.
+    this.__setPartHoverHighlight(null);
     this.__allowDragging = true;
     let rect = this.__domElement.getBoundingClientRect();
     this.__intialModelMovementParams = {
@@ -886,7 +973,17 @@ export class DragRoomItemsControl3D extends EventDispatcher {
         this.__hovered = object;
         this.__domElement.style.cursor = "pointer";
         this.dispatchEvent({ type: EVENT_ITEM_HOVERON, item: this.__hovered });
-        this.__setHoverHighlight(object); // cyan hover outline
+      }
+      // Hover shows the PART a click would pick. Only when there is no part to
+      // show (model still loading, nothing hit inside it) does the whole item
+      // get the cyan outline instead.
+      const part = CLICK_SELECTS_PART ? this.__partUnderCursor(object) : null;
+      if (part) {
+        if (this.__hoveredPhysical) this.__setHoverHighlight(null);
+        this.__setPartHoverHighlight(part);
+      } else {
+        this.__setPartHoverHighlight(null);
+        if (this.__hoveredPhysical !== object) this.__setHoverHighlight(object); // cyan hover outline
       }
       // An item is under the cursor → it takes priority over walls/floors.
       this.__clearSurfaceHover();
@@ -897,6 +994,7 @@ export class DragRoomItemsControl3D extends EventDispatcher {
         this.__hovered = null;
         this.__setHoverHighlight(null); // clear hover outline
       }
+      this.__setPartHoverHighlight(null);
       // No item under the cursor → check the VISIBLE walls / floors for hover.
       this.__setSurfaceHoverHighlight();
     }
@@ -1186,6 +1284,9 @@ export class DragRoomItemsControl3D extends EventDispatcher {
       this.__moveFrame = null;
     }
     this.__pendingMove = null;
+    this.__clearPartHover();
+    this.__partEdgesCache.forEach((edges) => edges.dispose());
+    this.__partEdgesCache.clear();
     this.__domElement.removeEventListener(
       "mousedown",
       this.__pressListenerEvent,

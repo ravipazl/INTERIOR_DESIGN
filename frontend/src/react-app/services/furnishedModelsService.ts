@@ -107,6 +107,37 @@ export const FurnishedModelsService = {
     }
   },
 
+  /**
+   * Save a BOQ line override for one placed item — removed from the BOQ,
+   * quantity, or rate (null = back to the calculated price). BOQ page only;
+   * the design itself is not changed.
+   */
+  updateBoqLine: async (
+    furnishedModelId: string,
+    patch: {
+      boqExcluded?: boolean;
+      boqQty?: number;
+      boqRate?: number | null;
+      boqSqftRate?: number | null;
+      boqWidthFt?: number | null;
+      boqHeightFt?: number | null;
+      boqDescription?: string;
+    }
+  ): Promise<boolean> => {
+    try {
+      const accessToken = AuthService.getAccessToken();
+      const response = await axios.patch(
+        `/furnishedmodels/${furnishedModelId}`,
+        patch,
+        { headers: { Authorization: `Bearer ${accessToken}` } }
+      );
+      return response?.status >= 200 && response?.status < 300;
+    } catch (e) {
+      console.error("FurnishedModelsService.updateBoqLine", e);
+      return false;
+    }
+  },
+
   getFurnishedModelsByProjectIdAndFloorPlanId: async (
     projectId: string,
     floorPlanId: string

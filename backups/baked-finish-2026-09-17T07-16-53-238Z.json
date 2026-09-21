@@ -1,0 +1,45 @@
+{
+  "createdAt": "2026-09-17T07:16:53.238Z",
+  "manifest": "../backups/glb-original-wall-unit/baked-parts.json",
+  "insertedDefaultIds": [
+    "63d75755-7e4d-4f7c-a322-3aef1684e7e3",
+    "2af33a24-4b2b-43b9-8559-589cba6f6587",
+    "85049372-93f4-45bb-991f-7699c8ae5a12",
+    "748edc57-8784-4ef9-96a9-8be7d1d98147",
+    "23c8879a-734d-4bd1-ab0a-d26fcfcb6b97",
+    "ec83ba0e-2d1c-476d-88c2-fc122377d5b7",
+    "a4e2a47d-714b-45f3-a0d7-1597eb29e9bb"
+  ],
+  "components": [
+    {
+      "_id": "1ca1e43b-61ce-4ca1-ae0d-c3bd83495020",
+      "externalFinishFinishingId": "",
+      "updatedAt": "2026-09-16T11:50:06.598Z"
+    },
+    {
+      "_id": "d41ca945-701e-44de-bf5d-7864e929302a",
+      "externalFinishFinishingId": "",
+      "updatedAt": "2026-09-16T11:50:06.657Z"
+    },
+    {
+      "_id": "883a97f6-4692-4707-8fcf-a80945cb79e1",
+      "externalFinishFinishingId": "",
+      "updatedAt": "2026-09-16T11:50:06.786Z"
+    },
+    {
+      "_id": "b3dca50a-5dda-4c35-b203-9d1829b01c36",
+      "externalFinishFinishingId": "",
+      "updatedAt": "2026-09-16T11:50:06.825Z"
+    },
+    {
+      "_id": "4630e2cd-145d-40e9-9025-39c400e3838c",
+      "externalFinishFinishingId": "",
+      "updatedAt": "2026-09-16T11:50:06.750Z"
+    },
+    {
+      "_id": "7b79f2f3-3e38-41fb-9bff-aadddade05e8",
+      "externalFinishFinishingId": "",
+      "updatedAt": "2026-09-16T11:50:06.784Z"
+    }
+  ]
+}
