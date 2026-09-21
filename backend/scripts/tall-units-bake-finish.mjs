@@ -6,9 +6,9 @@
 // Safe to re-run: the ORIGINAL file is copied to BACKUP_DIR once, and every run
 // bakes from that original — never from an already-baked file.
 //
-//   node scripts/bake-tall-unit-wood.mjs            bake
-//   node scripts/bake-tall-unit-wood.mjs --dry-run  check only, write nothing
-//   node scripts/bake-tall-unit-wood.mjs --restore  put the originals back
+//   node scripts/tall-units-bake-finish.mjs            bake
+//   node scripts/tall-units-bake-finish.mjs --dry-run  check only, write nothing
+//   node scripts/tall-units-bake-finish.mjs --restore  put the originals back
 //
 // Parts are found by SHAPE, not by name: inside these files the node names are
 // out of order (file "Mesh_4" is the app's Mesh_5), so names are unreliable.

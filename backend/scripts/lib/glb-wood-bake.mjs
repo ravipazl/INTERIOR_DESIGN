@@ -1,7 +1,7 @@
 // Shared steps for baking a wood finish INTO a cabinet GLB, so the item loads
 // already coloured and the app never applies a texture at load time.
 //
-// The same approach as scripts/bake-tall-unit-wood.mjs (verified there in
+// The same approach as scripts/tall-units-bake-finish.mjs (verified there in
 // three.js 0.118): world-scale box UVs, one material per finish marked with
 // `extras.bakedTexture` (the app compares it with the saved finish and skips the
 // repaint), and every mesh wrapped in its own empty group so the app's part

@@ -1,5 +1,5 @@
 // Record the finish that is BAKED into the tall unit GLBs (see
-// bake-tall-unit-wood.mjs) so the Components panel and the BOQ show it:
+// tall-units-bake-finish.mjs) so the Components panel and the BOQ show it:
 //
 //   Mesh_5 (shutter) → Wood 10002      Mesh_6 (handle) → Wood 10012
 //
@@ -9,9 +9,9 @@
 //
 // The 3D view does not repaint these parts: the finish is already in the file.
 //
-//   node scripts/record-tall-unit-finish.mjs --dry-run   show what would change
-//   node scripts/record-tall-unit-finish.mjs             apply (writes a backup)
-//   node scripts/record-tall-unit-finish.mjs --restore <backup.json>
+//   node scripts/tall-units-record-finish.mjs --dry-run   show what would change
+//   node scripts/tall-units-record-finish.mjs             apply (writes a backup)
+//   node scripts/tall-units-record-finish.mjs --restore <backup.json>
 
 import { BACKUP_ROOT } from './lib/env.mjs'
 import { MongoClient } from 'mongodb'
@@ -23,7 +23,7 @@ import path from 'path'
 // Database and backup folder come from lib/env.mjs (the backend .env).
 const BACKUP_DIR = BACKUP_ROOT
 
-// The models: the ones bake-tall-unit-wood.mjs baked on THIS machine (its list
+// The models: the ones tall-units-bake-finish.mjs baked on THIS machine (its list
 // baked-parts.last-run.json), else every model of the "Tall Units" category —
 // file names differ between machines, so they are never hard-coded.
 const CATEGORY_NAME = 'Tall Units'
