@@ -5,7 +5,7 @@ development PC:
 
 | Units | Shutter / door | Handles |
 |---|---|---|
-| Tall Units (10 models) | Wood 10002 | Wood 10012 |
+| Tall Units (every model of the "Tall Units" category) | Wood 10002 | Wood 10012 |
 | Below Counter Storage (Base units, Corner Units, Oil pull-outs, BC units) | Wood 10002 | Wood 10012 |
 | Wall Units (the glass unit: its door frame only) | Wood 10002 | Wood 10012 |
 
@@ -92,7 +92,7 @@ The steps can also be run one at a time; each takes `--dry-run`:
 
 | Script | Does |
 |---|---|
-| `scripts/bake-tall-unit-wood.mjs` | Bakes the 10 Tall Units. |
+| `scripts/bake-tall-unit-wood.mjs` | Bakes the Tall Units: every model of the "Tall Units" category in this machine's database. File names are not fixed, so it works on any machine. |
 | `scripts/bake-category-wood.mjs --category "Below Counter Storage"` | Bakes the Below Counter units, including the Corner Units. `--only "Corner unit"` limits it to matching models. |
 | `scripts/bake-category-wood.mjs --category "Wall Unit"` | Bakes the Wall Units. |
 | `scripts/record-tall-unit-finish.mjs` | Records the Tall Unit finish. |

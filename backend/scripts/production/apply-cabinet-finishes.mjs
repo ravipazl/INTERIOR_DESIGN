@@ -164,7 +164,16 @@ async function preflight() {
       ok(`category "${c.name}": ${models.length} models, ${present.length} GLB files present`)
     }
     const tall = await db.collection('categories').findOne({ name: 'Tall Units' })
-    tall ? ok('category "Tall Units" found') : line('   ! category "Tall Units" not found — the tall units are matched by file name')
+    if (!tall) bad('category "Tall Units" is missing in the database')
+    else {
+      const models = await db
+        .collection('models')
+        .find({ categoryId: { $in: [String(tall._id), tall._id] } })
+        .project({ modelFileUrl: 1 })
+        .toArray()
+      const present = models.filter((m) => fs.existsSync(path.join(GLB_DIR, String(m.modelFileUrl || '').split('/').pop())))
+      ok(`category "Tall Units": ${models.length} models, ${present.length} GLB files present`)
+    }
   } catch (e) {
     bad(`database not reachable: ${maskUrl(mongoUrl)} — ${e.message}`)
   } finally {
@@ -238,11 +247,12 @@ async function main() {
     })
 
   line(' • Tall Units')
-  const tallOut = await run('bake-tall-unit-wood.mjs', dry)
-  collect(tallOut)
-  for (const j of jsonLines(tallOut)) {
-    if (j.shutter && j.handle) {
-      expected.push({ name: j.file, file: j.file, shutters: [Number(j.shutter.slice(5))], handles: [Number(j.handle.slice(5))] })
+  collect(await run('bake-tall-unit-wood.mjs', dry))
+  // The tall units found in this machine's "Tall Units" category.
+  const tallList = path.join(BACKUP_ROOT, TALL_FOLDER, APPLY ? 'baked-parts.last-run.json' : 'baked-parts.dry-run.json')
+  if (fs.existsSync(tallList)) {
+    for (const [file, e] of Object.entries(JSON.parse(fs.readFileSync(tallList, 'utf8')))) {
+      expected.push({ name: e.name, file, shutters: e.shutters, handles: e.handles })
     }
   }
 

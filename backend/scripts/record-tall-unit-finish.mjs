@@ -23,18 +23,11 @@ import path from 'path'
 // Database and backup folder come from lib/env.mjs (the backend .env).
 const BACKUP_DIR = BACKUP_ROOT
 
-const GLB_FILES = [
-  'd785e120-6c7e-4634-a163-c93a88f87e7b_Tall_unit_Left_door_opening_handles_450_x_2080.glb',
-  '25134b76-7a72-4aab-b900-a597fab04674_Tall_unit_Left_door_opening_handles_400_x_2080.glb',
-  'c9b6076f-cd14-40b1-bed6-af35f48d2a8e_Tall_unit_Left_door_opening_handles_600_x_2080.glb',
-  '3fabea4f-f22f-49f5-bd36-cd520c2e01f6_Tall_unit_Left_door_opening_handles_550_x_2080.glb',
-  'f2a03977-9ecb-40e5-aeda-4ae26a595737_Tall_unit_Left_door_opening_handles_500_x_2080.glb',
-  '540300b0-3686-4070-a114-c31dcca9328a_Tall_Unit_with_Right_Opening_Door_600_X_2080_Blender_.glb',
-  '9562394c-0c6d-45d3-86a0-fbcf8337703a_Tall_Unit_with_Right_Opening_Door_550_X_2080_Blender_.glb',
-  '15ec27ff-d12a-4b1b-9e47-b79b4db15f26_Tall_Unit_with_Right_Opening_Door_450_X_2080_Blender_.glb',
-  '89274663-1187-4a51-acbd-cf2f57cd107a_Tall_Unit_with_Right_Opening_Door_400_X_2080_Blender_.glb',
-  'dca56126-bc40-48d0-81d8-a2231946d70b_Tall_Unit_with_Right_Opening_Door_500_X_2080_Blender_.glb'
-]
+// The models: the ones bake-tall-unit-wood.mjs baked on THIS machine (its list
+// baked-parts.last-run.json), else every model of the "Tall Units" category —
+// file names differ between machines, so they are never hard-coded.
+const CATEGORY_NAME = 'Tall Units'
+const BAKED_LIST = path.join(BACKUP_ROOT, 'glb-original-tall-units', 'baked-parts.last-run.json')
 
 // Part → finish. `type: 'wall'` is the variant the cabinet finish picker uses.
 // A default is keyed by the catalogue part's NAME, which is usually "Mesh_5" —
@@ -89,14 +82,24 @@ async function main() {
       part.finishingId = String(f._id)
     }
 
-    const models = await db
-      .collection('models')
-      .find({ modelFileUrl: { $in: GLB_FILES.map((g) => `/assets/models/glb/${g}`) } })
-      .project({ name: 1 })
-      .toArray()
-    if (models.length !== GLB_FILES.length) {
-      throw new Error(`expected ${GLB_FILES.length} models, found ${models.length}`)
+    let models
+    const baked = fs.existsSync(BAKED_LIST) ? Object.keys(JSON.parse(fs.readFileSync(BAKED_LIST, 'utf8'))) : []
+    if (baked.length) {
+      models = await db
+        .collection('models')
+        .find({ modelFileUrl: { $in: baked.map((g) => `/assets/models/glb/${g}`) } })
+        .project({ name: 1 })
+        .toArray()
+    } else {
+      const cat = await db.collection('categories').findOne({ name: CATEGORY_NAME })
+      if (!cat) throw new Error(`category "${CATEGORY_NAME}" not found`)
+      models = await db
+        .collection('models')
+        .find({ categoryId: { $in: [String(cat._id), cat._id] } })
+        .project({ name: 1 })
+        .toArray()
     }
+    if (!models.length) console.log(`no tall unit models found (category "${CATEGORY_NAME}")`)
     const modelIds = models.map((m) => String(m._id))
     const now = new Date().toISOString()
     const backup = { createdAt: now, insertedDefaultIds: [], removedDefaults: [], components: [] }
