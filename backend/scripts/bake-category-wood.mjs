@@ -36,6 +36,7 @@ import fs from 'fs'
 import path from 'path'
 import { MongoClient } from 'mongodb'
 import config from 'config'
+import { groupOf, findCategory, modelsOf } from './lib/categories.mjs'
 import {
   GLB_DIR,
   BACKUP_ROOT,
@@ -53,14 +54,17 @@ const DRY = args.includes('--dry-run')
 const RESTORE = args.includes('--restore')
 const argValue = (flag) => (args.indexOf(flag) !== -1 ? args[args.indexOf(flag) + 1] : null)
 const ONLY = argValue('--only')
-const CATEGORY_NAME =
+// --category takes a name or a group key (below | wall | tall). A known name is
+// looked up with the group's other names too (lib/categories.mjs): "Wall Unit"
+// finds "Above Counter Storage" on the live server.
+const CATEGORY_ARG =
   args.indexOf('--category') !== -1 ? args[args.indexOf('--category') + 1] : 'Below Counter Storage'
-// Existing backup folder names are kept so --restore still finds them.
-const BACKUP_FOLDERS = { 'Below Counter Storage': 'glb-original-below-counter' }
+const GROUP = groupOf(CATEGORY_ARG)
+// Backup folder per GROUP, not per name, so the same units back up to the same
+// folder on every machine and --restore still finds them (existing names kept).
 const BACKUP_DIR = path.join(
   BACKUP_ROOT,
-  BACKUP_FOLDERS[CATEGORY_NAME] ||
-    `glb-original-${CATEGORY_NAME.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`
+  GROUP ? GROUP.backupFolder : `glb-original-${CATEGORY_ARG.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`
 )
 const MANIFEST = path.join(BACKUP_DIR, 'baked-parts.json')
 const LAST_RUN = path.join(BACKUP_DIR, 'baked-parts.last-run.json')
@@ -125,14 +129,9 @@ async function main() {
   let models
   try {
     const db = client.db()
-    const cat = await db.collection('categories').findOne({ name: CATEGORY_NAME })
-    if (!cat) throw new Error(`category "${CATEGORY_NAME}" not found`)
-    models = await db
-      .collection('models')
-      // categoryId is stored as a string here; accept an ObjectId too.
-      .find({ categoryId: { $in: [String(cat._id), cat._id] } })
-      .project({ name: 1, modelFileUrl: 1 })
-      .toArray()
+    const { cat, name } = await findCategory(db, CATEGORY_ARG)
+    console.log(`category "${name}"`)
+    models = await modelsOf(db, cat, { name: 1, modelFileUrl: 1 })
     if (ONLY) models = models.filter((m) => m.name.toLowerCase().includes(ONLY.toLowerCase()))
   } finally {
     await client.close()

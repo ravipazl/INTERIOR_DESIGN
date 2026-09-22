@@ -13,6 +13,11 @@ module.exports = (env) => {
       path: path.join(__dirname, "build"), // the bundle output path
       filename: "bundle.js", // the name of the bundle
       publicPath: "/",
+      // Empty build/ before each build. The numbered chunks (599.bundle.js …)
+      // otherwise pile up and a browser holding an old bundle.js can load a
+      // stale chunk. build/ only holds the bundle + a fresh copy of public/
+      // (CopyPlugin below), and uploads are stored in public/, so nothing is lost.
+      clean: true,
     },
     cache: true, // to improve the build speed.
     plugins: [
