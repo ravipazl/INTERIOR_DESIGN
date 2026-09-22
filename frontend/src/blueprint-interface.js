@@ -9,6 +9,8 @@ import * as lshape_room_json from "@pazl/rooms/Lshape.json";
 import { STORAGE_KEY } from "@pazl/main/core/constants.js";
 import { cornerTolerance } from "@pazl/main/core/configuration.js";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
+// Retry uploaded models from the server when the website has no copy (404).
+import "./scripts/helpers/modelUrlFallback";
 import { BoxHelper, Color, Vector2, Box3, Vector3 } from "three";
 import ActionsHistory2DManager from "@pazl/utils/2dActionsHistoryManager.js";
 import GlobalCustomEvent from "@pazl/events/global-custom-event-interface.js";

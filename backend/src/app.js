@@ -14,6 +14,7 @@ import { authentication } from './authentication.js'
 import { services } from './services/index.js'
 import { channels } from './channels.js'
 import { imageEditProxy } from './image-edit-proxy.js'
+import { modelFiles } from './model-files.js'
 
 const app = koa(feathers())
 
@@ -23,6 +24,8 @@ app.configure(configuration(configurationValidator))
 // Set up Koa middleware
 app.use(cors())
 app.use(serveStatic(app.get('public')))
+// Uploaded models/thumbnails, from the folders the uploads write to.
+app.configure(modelFiles)
 app.use(errorHandler())
 app.use(parseAuthentication())
 

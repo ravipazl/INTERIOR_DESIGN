@@ -359,12 +359,19 @@ function handleAddItemsToScene(
           currentUnitItem?.modelFileUrl,
           err
         );
+        // A download failure arrives as the request's ProgressEvent, not an
+        // Error — say what actually went wrong instead of "could not be parsed".
+        const status = err?.target?.status;
+        const reason =
+          status === 404
+            ? "The model file was not found on the server. Upload the model again, or ask the admin to check the server's model folder."
+            : status
+            ? `The server could not send the model file (HTTP ${status}).`
+            : err?.message
+            ? `The GLB file could not be read by the 3D engine.\n\nDetails: ${err.message}`
+            : "The model file could not be downloaded. Check your connection and try again.";
         // eslint-disable-next-line no-alert
-        alert(
-          `Failed to load "${currentUnitItem?.name}".\n\nThe GLB file could not be parsed by the 3D engine (Three.js v0.118).\n\nDetails: ${
-            err?.message || err
-          }`
-        );
+        alert(`Failed to load "${currentUnitItem?.name}".\n\n${reason}`);
       }
     );
   }
