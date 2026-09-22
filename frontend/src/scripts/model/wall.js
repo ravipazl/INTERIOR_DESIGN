@@ -622,6 +622,11 @@ export class Wall extends EventDispatcher {
 
     corner.attachStart(this);
     this.start = corner;
+    // The id is "startCornerId,endCornerId" and a saved plan rebuilds it from the
+    // corners. Keep it in step when a corner changes (a wall split at a
+    // T-junction does this), or doors/windows on this wall save the OLD id and
+    // can't find their wall after a reload.
+    this.id = this.getUuid();
     this.addCornerMoveListener(this.start);
     this.fireMoved();
   }
@@ -632,6 +637,7 @@ export class Wall extends EventDispatcher {
 
     corner.attachEnd(this);
     this.end = corner;
+    this.id = this.getUuid(); // see setStart
     this.addCornerMoveListener(this.end, true);
     this.fireMoved();
   }

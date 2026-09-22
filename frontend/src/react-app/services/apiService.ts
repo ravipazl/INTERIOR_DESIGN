@@ -14,7 +14,9 @@ _axios.interceptors.response.use(
     return response;
   },
   function (error) {
-    if (error.response.status === 401 || error.response.status === 403) {
+    // No response at all (network error / timeout): keep the original error so
+    // the caller can tell the user what happened, instead of crashing here.
+    if (error?.response?.status === 401 || error?.response?.status === 403) {
       localStorage.clear();
     }
     return Promise.reject(error);
