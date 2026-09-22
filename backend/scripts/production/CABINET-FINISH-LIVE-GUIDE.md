@@ -5,9 +5,21 @@ development PC:
 
 | Units | Shutter / door | Handles |
 |---|---|---|
-| Tall Units (every model of the "Tall Units" category) | Wood 10002 | Wood 10012 |
+| Tall Units (every model of the tall-unit category) | Wood 10002 | Wood 10012 |
 | Below Counter Storage (Base units, Corner Units, Oil pull-outs, BC units) | Wood 10002 | Wood 10012 |
 | Wall Units (the glass unit: its door frame only) | Wood 10002 | Wood 10012 |
+
+The categories are found by any of their known names, so the same scripts work
+on the dev PC and the live server (`scripts/lib/categories.mjs`):
+
+| Group | Names tried, in order | Override in `backend/.env` |
+|---|---|---|
+| Tall Units | "Tall Units", "Tall Unit" | `TALL_UNITS_CATEGORY` |
+| Below Counter Storage | "Below Counter Storage" | `BELOW_COUNTER_CATEGORY` |
+| Wall Units | "Wall Unit", "Wall Units", "Above Counter Storage" | `WALL_UNITS_CATEGORY` |
+
+An override, when set, is the only name used. The check prints which category
+each group resolved to.
 
 The colour is **baked into the 3D (GLB) files**, and the finish is **recorded in
 the database**, so the 3D view, the Components panel and the BOQ all show it.
@@ -83,6 +95,7 @@ The script stops **before changing anything** when a check fails:
 | `3D model folder not found` / `not writable` | Set `GLB_STORAGE_DIR` in the backend `.env`, or give the user running the script write access to that folder. |
 | `wood image … not found` | Set `WOOD_TEXTURE_DIR` to the folder holding `10002.jpg` and `10012.jpg`. |
 | `database not reachable` | Check `MONGODB_URL`. |
+| `category not found — tried …` | The message lists the categories in the database. Set the matching override (e.g. `TALL_UNITS_CATEGORY="Tall Unit"`) in the backend `.env`. |
 | `finish "Wood 10002" is missing` | The live database has no such finish. Import the finishes first. |
 | `package … is not installed` | Run `npm install` in `backend/`. |
 
@@ -92,8 +105,8 @@ The steps can also be run one at a time; each takes `--dry-run`:
 
 | Script | Does |
 |---|---|
-| `scripts/tall-units-bake-finish.mjs` | Bakes the Tall Units: every model of the "Tall Units" category in this machine's database. File names are not fixed, so it works on any machine. |
-| `scripts/bake-category-wood.mjs --category "Below Counter Storage"` | Bakes the Below Counter units, including the Corner Units. `--only "Corner unit"` limits it to matching models. |
-| `scripts/bake-category-wood.mjs --category "Wall Unit"` | Bakes the Wall Units. |
+| `scripts/tall-units-bake-finish.mjs` | Bakes the Tall Units: every model of the tall-unit category in this machine's database. File and category names are not fixed, so it works on any machine. |
+| `scripts/bake-category-wood.mjs --category below` | Bakes the Below Counter units, including the Corner Units. `--only "Corner unit"` limits it to matching models. |
+| `scripts/bake-category-wood.mjs --category wall` | Bakes the Wall Units ("Wall Unit" or "Above Counter Storage"). A category name works too. |
 | `scripts/tall-units-record-finish.mjs` | Records the Tall Unit finish. |
 | `scripts/record-baked-finish.mjs --manifest <backups/…/baked-parts.last-run.json>` | Records the finish for a category run. |

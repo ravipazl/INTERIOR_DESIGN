@@ -19,15 +19,17 @@ import { v4 as uuidv4 } from 'uuid'
 import config from 'config'
 import fs from 'fs'
 import path from 'path'
+import { CABINET_GROUPS, findCategory, modelsOf } from './lib/categories.mjs'
 
 // Database and backup folder come from lib/env.mjs (the backend .env).
 const BACKUP_DIR = BACKUP_ROOT
 
 // The models: the ones tall-units-bake-finish.mjs baked on THIS machine (its list
-// baked-parts.last-run.json), else every model of the "Tall Units" category —
-// file names differ between machines, so they are never hard-coded.
-const CATEGORY_NAME = 'Tall Units'
-const BAKED_LIST = path.join(BACKUP_ROOT, 'glb-original-tall-units', 'baked-parts.last-run.json')
+// baked-parts.last-run.json), else every model of the tall-unit category
+// ("Tall Units" / "Tall Unit" / TALL_UNITS_CATEGORY — see lib/categories.mjs).
+// File names and category names differ between machines, so neither is
+// hard-coded.
+const BAKED_LIST = path.join(BACKUP_ROOT, CABINET_GROUPS.tall.backupFolder, 'baked-parts.last-run.json')
 
 // Part → finish. `type: 'wall'` is the variant the cabinet finish picker uses.
 // A default is keyed by the catalogue part's NAME, which is usually "Mesh_5" —
@@ -83,6 +85,7 @@ async function main() {
     }
 
     let models
+    let categoryName = CABINET_GROUPS.tall.label
     const baked = fs.existsSync(BAKED_LIST) ? Object.keys(JSON.parse(fs.readFileSync(BAKED_LIST, 'utf8'))) : []
     if (baked.length) {
       models = await db
@@ -91,15 +94,11 @@ async function main() {
         .project({ name: 1 })
         .toArray()
     } else {
-      const cat = await db.collection('categories').findOne({ name: CATEGORY_NAME })
-      if (!cat) throw new Error(`category "${CATEGORY_NAME}" not found`)
-      models = await db
-        .collection('models')
-        .find({ categoryId: { $in: [String(cat._id), cat._id] } })
-        .project({ name: 1 })
-        .toArray()
+      const { cat, name } = await findCategory(db, 'tall')
+      categoryName = name
+      models = await modelsOf(db, cat, { name: 1 })
     }
-    if (!models.length) console.log(`no tall unit models found (category "${CATEGORY_NAME}")`)
+    if (!models.length) console.log(`no tall unit models found (category "${categoryName}")`)
     const modelIds = models.map((m) => String(m._id))
     const now = new Date().toISOString()
     const backup = { createdAt: now, insertedDefaultIds: [], removedDefaults: [], components: [] }

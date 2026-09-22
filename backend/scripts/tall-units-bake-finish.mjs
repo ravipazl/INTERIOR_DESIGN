@@ -17,8 +17,9 @@
 // A file is skipped (left untouched) if its shape does not match that pattern.
 // A file that is ALREADY baked (e.g. copied from another machine) is left as it
 // is and never saved as an "original".
-// Which files: every model in the catalogue category "Tall Units", looked up in
-// THIS machine's database — file names differ between machines (they start
+// Which files: every model in the tall-unit category ("Tall Units" on the dev
+// PC, "Tall Unit" on the live server, or TALL_UNITS_CATEGORY — see
+// lib/categories.mjs), looked up in THIS machine's database — file names differ between machines (they start
 // with an id made at upload), so they are never hard-coded. A model whose file
 // already has its own colours / textures is skipped.
 // Writes baked-parts.last-run.json (baked-parts.dry-run.json for --dry-run):
@@ -29,6 +30,7 @@ import { GLB_DIR, WOOD_DIR, BACKUP_ROOT } from './lib/env.mjs'
 import { MongoClient } from 'mongodb'
 import config from 'config'
 import { createIO } from './lib/glb-wood-bake.mjs'
+import { CABINET_GROUPS, findCategory, modelsOf } from './lib/categories.mjs'
 import { createRequire } from 'module'
 import fs from 'fs'
 import path from 'path'
@@ -36,24 +38,23 @@ import path from 'path'
 const require = createRequire(import.meta.url)
 const sharp = require('sharp')
 
-const BACKUP_DIR = path.join(BACKUP_ROOT, 'glb-original-tall-units')
-const CATEGORY_NAME = 'Tall Units'
+// The folder name stays "tall-units" whatever the category is called, so
+// --restore always finds the originals.
+const BACKUP_DIR = path.join(BACKUP_ROOT, CABINET_GROUPS.tall.backupFolder)
 const LAST_RUN = path.join(BACKUP_DIR, 'baked-parts.last-run.json')
 const DRY_RUN_LIST = path.join(BACKUP_DIR, 'baked-parts.dry-run.json')
+// The category's name on this machine ("Tall Units" / "Tall Unit" / the
+// TALL_UNITS_CATEGORY override), filled in by tallUnitModels().
+let categoryName = CABINET_GROUPS.tall.label
 
-/** The models of the "Tall Units" category: [{ modelId, name, file }]. */
+/** The models of the tall-unit category: [{ modelId, name, file }]. */
 async function tallUnitModels() {
   const client = await MongoClient.connect(process.env.MONGODB_URL || config.get('mongodb'))
   try {
     const db = client.db()
-    const cat = await db.collection('categories').findOne({ name: CATEGORY_NAME })
-    if (!cat) throw new Error(`category "${CATEGORY_NAME}" not found`)
-    const models = await db
-      .collection('models')
-      // categoryId is stored as a string here; accept an ObjectId too.
-      .find({ categoryId: { $in: [String(cat._id), cat._id] } })
-      .project({ name: 1, modelFileUrl: 1 })
-      .toArray()
+    const { cat, name } = await findCategory(db, 'tall')
+    categoryName = name
+    const models = await modelsOf(db, cat, { name: 1, modelFileUrl: 1 })
     return models
       .map((m) => ({
         modelId: String(m._id),
@@ -392,7 +393,7 @@ async function main() {
     return
   }
   const models = await tallUnitModels()
-  console.log(`category "${CATEGORY_NAME}": ${models.length} model(s)`)
+  console.log(`category "${categoryName}": ${models.length} model(s)`)
   fs.mkdirSync(BACKUP_DIR, { recursive: true })
   const images = {
     shutter: await loadImage(PARTS.shutter),

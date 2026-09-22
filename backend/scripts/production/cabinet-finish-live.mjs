@@ -23,6 +23,7 @@
 // on a placed item is never replaced.
 
 import { GLB_DIR, WOOD_DIR, BACKUP_ROOT, BACKEND_DIR } from '../lib/env.mjs'
+import { CABINET_GROUPS, findCategory, modelsOf } from '../lib/categories.mjs'
 import { spawn } from 'child_process'
 import fs from 'fs'
 import path from 'path'
@@ -32,11 +33,15 @@ const APPLY = args.includes('--apply')
 const RESTORE_LOG = args.indexOf('--restore') !== -1 ? args[args.indexOf('--restore') + 1] : null
 const SCRIPTS = path.join(BACKEND_DIR, 'scripts')
 
-const CATEGORIES = [
-  { name: 'Below Counter Storage', folder: 'glb-original-below-counter' },
-  { name: 'Wall Unit', folder: 'glb-original-wall-unit' }
-]
-const TALL_FOLDER = 'glb-original-tall-units'
+// Category NAMES differ between machines ("Wall Unit" here is "Above Counter
+// Storage" on the live server, "Tall Units" is "Tall Unit"), so the scripts are
+// given the group KEY and look the name up themselves (lib/categories.mjs).
+const CATEGORIES = ['below', 'wall'].map((key) => ({
+  key,
+  name: CABINET_GROUPS[key].label,
+  folder: CABINET_GROUPS[key].backupFolder
+}))
+const TALL_FOLDER = CABINET_GROUPS.tall.backupFolder
 const FINISHES = [
   { name: 'Wood 10002', image: '10002.jpg', fileUrl: '/assets/rooms/textures/library/wooden_grains/10002.jpg' },
   { name: 'Wood 10012', image: '10012.jpg', fileUrl: '/assets/rooms/textures/library/wooden_grains/10012.jpg' }
@@ -149,30 +154,17 @@ async function preflight() {
       else if (row.texture?.fileUrl !== f.fileUrl) bad(`finish "${f.name}" uses ${row.texture?.fileUrl}, expected ${f.fileUrl}`)
       else ok(`finish "${f.name}" found`)
     }
-    for (const c of CATEGORIES) {
-      const cat = await db.collection('categories').findOne({ name: c.name })
-      if (!cat) {
-        bad(`category "${c.name}" is missing in the database`)
+    for (const key of ['tall', ...CATEGORIES.map((c) => c.key)]) {
+      let found
+      try {
+        found = await findCategory(db, key)
+      } catch (e) {
+        bad(`${CABINET_GROUPS[key].label}: ${e.message}`)
         continue
       }
-      const models = await db
-        .collection('models')
-        .find({ categoryId: { $in: [String(cat._id), cat._id] } })
-        .project({ modelFileUrl: 1 })
-        .toArray()
+      const models = await modelsOf(db, found.cat, { modelFileUrl: 1 })
       const present = models.filter((m) => fs.existsSync(path.join(GLB_DIR, String(m.modelFileUrl || '').split('/').pop())))
-      ok(`category "${c.name}": ${models.length} models, ${present.length} GLB files present`)
-    }
-    const tall = await db.collection('categories').findOne({ name: 'Tall Units' })
-    if (!tall) bad('category "Tall Units" is missing in the database')
-    else {
-      const models = await db
-        .collection('models')
-        .find({ categoryId: { $in: [String(tall._id), tall._id] } })
-        .project({ modelFileUrl: 1 })
-        .toArray()
-      const present = models.filter((m) => fs.existsSync(path.join(GLB_DIR, String(m.modelFileUrl || '').split('/').pop())))
-      ok(`category "Tall Units": ${models.length} models, ${present.length} GLB files present`)
+      ok(`${CABINET_GROUPS[key].label} → category "${found.name}": ${models.length} models, ${present.length} GLB files present`)
     }
   } catch (e) {
     bad(`database not reachable: ${maskUrl(mongoUrl)} — ${e.message}`)
@@ -215,7 +207,7 @@ async function restore(logFile) {
   const log = JSON.parse(fs.readFileSync(logFile, 'utf8'))
   title('Restore original GLB files')
   await run('tall-units-bake-finish.mjs', ['--restore'])
-  for (const c of CATEGORIES) await run('bake-category-wood.mjs', ['--category', c.name, '--restore'])
+  for (const c of CATEGORIES) await run('bake-category-wood.mjs', ['--category', c.key, '--restore'])
   title('Undo recorded finishes')
   if (log.recordBackups?.tall) await run('tall-units-record-finish.mjs', ['--restore', log.recordBackups.tall])
   for (const f of log.recordBackups?.categories || []) await run('record-baked-finish.mjs', ['--restore', f])
@@ -259,7 +251,7 @@ async function main() {
   const lists = []
   for (const c of CATEGORIES) {
     line(` • ${c.name}`)
-    collect(await run('bake-category-wood.mjs', ['--category', c.name, ...dry]))
+    collect(await run('bake-category-wood.mjs', ['--category', c.key, ...dry]))
     const list = path.join(BACKUP_ROOT, c.folder, APPLY ? 'baked-parts.last-run.json' : 'baked-parts.dry-run.json')
     lists.push(list)
     if (fs.existsSync(list)) {
