@@ -9,8 +9,7 @@
 //   • Server     → `.env` exists (gitignored, real secrets) → it is loaded.
 //                  Works on a bare `pm2 resurrect` after reboot WITHOUT relying
 //                  on NODE_ENV being injected by pm2 (.env itself sets NODE_ENV).
-//   • Local dev  → no `.env` → nothing loaded → app uses config/default.json.
-//   • Resolved relative to THIS file, so cwd does not matter.
+
 import dotenv from "dotenv";
 import fs from "fs";
 import path from "path";
