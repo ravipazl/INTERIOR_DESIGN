@@ -172,26 +172,55 @@ export class Item extends EventDispatcher {
     );
     if (this.__metadata.wall) {
       let walls = this.__model.floorplan.walls;
-      for (let i = 0; i < walls.length; i++) {
-        let wall = walls[i];
-        if (wall.id === this.__metadata.wall) {
-          let wallEdge =
-            this.__metadata.wallSide === "front"
-              ? wall.frontEdge
-              : wall.backEdge;
-          let wallSurfacePoint = this.__metadata.wallSurfacePoint;
+      let found = walls.find((w) => w.id === this.__metadata.wall) || null;
+      // Saved against a wall id that no longer exists — a plan whose wall was
+      // split (T-junction) after this door/window was placed kept the old id.
+      // Attach it to the wall it actually sits on instead of leaving it loose
+      // (loose = no rotation, no cut in the wall, floating in 3D).
+      if (!found) found = this.__nearestWallTo(this.__metadata.wallSurfacePoint);
+      if (found) {
+        let wall = found;
+        let wallEdge =
+          this.__metadata.wallSide === "front"
+            ? wall.frontEdge || wall.backEdge
+            : wall.backEdge || wall.frontEdge;
+        let wallSurfacePoint = this.__metadata.wallSurfacePoint;
 
-          this.__currentWallSnapPoint = new Vector3(
-            wallSurfacePoint[0],
-            wallSurfacePoint[1],
-            wallSurfacePoint[2]
-          );
-          this.__addToAWall(wall, wallEdge);
-          break;
-        }
+        this.__currentWallSnapPoint = new Vector3(
+          wallSurfacePoint[0],
+          wallSurfacePoint[1],
+          wallSurfacePoint[2]
+        );
+        if (wallEdge) this.__addToAWall(wall, wallEdge);
       }
     }
     this.__combinedRotation = this.__combineRotations();
+  }
+
+  /**
+   * The wall whose centreline is nearest to a saved wall point [x, y, z] (cm),
+   * or null when none is within reach. A door/window point lies on the wall
+   * face, i.e. about half a wall thickness from the centreline.
+   */
+  __nearestWallTo(p) {
+    if (!Array.isArray(p) || p.length < 3) return null;
+    const MAX_CM = 40;
+    let best = null;
+    let bestD = Infinity;
+    (this.__model.floorplan.walls || []).forEach((w) => {
+      if (!w || !w.start || !w.end) return;
+      const ax = w.start.x, ay = w.start.y;
+      const dx = w.end.x - ax, dy = w.end.y - ay;
+      const len2 = dx * dx + dy * dy;
+      if (!len2) return;
+      const t = Math.max(0, Math.min(1, ((p[0] - ax) * dx + (p[2] - ay) * dy) / len2));
+      const d = Math.hypot(p[0] - (ax + t * dx), p[2] - (ay + t * dy));
+      if (d < bestD) {
+        bestD = d;
+        best = w;
+      }
+    });
+    return bestD <= MAX_CM ? best : null;
   }
 
   getCorners(xDim, yDim, position) {

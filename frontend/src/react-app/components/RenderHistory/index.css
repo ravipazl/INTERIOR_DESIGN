@@ -1,0 +1,46 @@
+/* Renders & videos — same card language as the BOQ room cards above it. */
+.rv-section { margin: 16px; background: #fff; border: 1px solid #e6e8f0; border-radius: 10px; padding: 14px 16px; }
+.rv-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; }
+.rv-title { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.rv-title-icon { width: 30px; height: 30px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; background: #f1eefb; color: #414063; }
+.rv-title h2 { font-size: 14px; font-weight: 600; color: #17171b; margin: 0; }
+.rv-hint { font-size: 12px; color: #6b7280; margin: 4px 0 0 40px; }
+.rv-btn { display: inline-flex; align-items: center; gap: 6px; border: 1px solid #d6d8e0; background: #fff; color: #414063; border-radius: 6px; padding: 6px 12px; font-size: 13px; cursor: pointer; }
+.rv-btn:hover { background: #f4f5f9; }
+.rv-btn:disabled { cursor: default; opacity: 0.6; }
+.rv-btn.primary { background: #414063; border-color: #414063; color: #fff; }
+.rv-btn.primary:hover { background: #33324f; }
+.rv-btn.primary:disabled { background: #9ca3af; border-color: #9ca3af; opacity: 1; }
+.rv-btn:focus-visible, .rv-card:focus-visible { outline: 2px solid #414063; outline-offset: 2px; }
+.rv-group { font-size: 13px; font-weight: 600; color: #17171b; margin: 16px 0 8px; }
+.rv-group span { color: #9a9aa2; font-weight: 400; }
+.rv-empty { font-size: 12.5px; color: #9a9aa2; margin: 2px 0; }
+.rv-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 12px; max-height: 470px; overflow-y: auto; padding: 2px 4px 2px 2px; }
+.rv-card { position: relative; background: #fff; border: 1px solid #e6e8f0; border-radius: 10px; overflow: hidden; cursor: pointer; transition: border-color .15s, box-shadow .15s; }
+.rv-card:hover { border-color: #c9cbe0; }
+.rv-card.selected { border-color: #414063; box-shadow: 0 0 0 1px #414063; }
+.rv-thumb { position: relative; height: 128px; background: #f3f4f6; }
+.rv-thumb img, .rv-thumb video { width: 100%; height: 128px; object-fit: cover; display: block; }
+.rv-thumb video { background: #11131a; }
+.rv-unavailable { height: 128px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: #9aa0ab; font-size: 12px; border-bottom: 1px dashed #d1d5db; }
+.rv-check { position: absolute; top: 8px; left: 8px; width: 18px; height: 18px; accent-color: #414063; cursor: pointer; }
+.rv-check:disabled { cursor: not-allowed; opacity: 0.5; }
+.rv-new { position: absolute; top: 8px; right: 8px; font-size: 10px; font-weight: 700; letter-spacing: .4px; padding: 2px 7px; border-radius: 10px; background: #414063; color: #fff; }
+.rv-play { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; }
+.rv-play span { width: 40px; height: 40px; border-radius: 50%; background: rgba(0,0,0,.55); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 16px; padding-left: 3px; }
+.rv-duration { position: absolute; right: 8px; bottom: 8px; font-size: 11px; font-variant-numeric: tabular-nums; padding: 1px 6px; border-radius: 4px; background: rgba(0,0,0,.6); color: #fff; }
+.rv-body { padding: 8px 10px 10px; }
+.rv-name { font-size: 12.5px; font-weight: 600; color: #17171b; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rv-meta { display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-top: 4px; }
+.rv-when { font-size: 11px; color: #9a9aa2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rv-tag { flex: none; font-size: 10.5px; font-weight: 600; padding: 2px 8px; border-radius: 10px; }
+.rv-tag.draft { background: #f1f2f5; color: #5f6170; }
+.rv-tag.review { background: #e8eefc; color: #1e40af; }
+.rv-tag.published { background: #e6f4ea; color: #1e6b36; }
+.rv-tag.pending { background: #fff7ed; color: #9a3412; }
+.rv-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin-top: 14px; padding-top: 12px; border-top: 1px solid #eef0f5; }
+.rv-foot-note { font-size: 12.5px; color: #6b7280; }
+.rv-foot-note b { color: #17171b; font-weight: 600; }
+.dark .rv-section, .dark .rv-card { background: #333; border-color: #4a4a4a; }
+.dark .rv-title h2, .dark .rv-name, .dark .rv-group, .dark .rv-foot-note b { color: #fff; }
+@media (max-width: 760px) { .rv-section { margin: 16px 0; } .rv-hint { margin-left: 0; } }

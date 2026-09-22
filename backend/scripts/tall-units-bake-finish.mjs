@@ -6,9 +6,9 @@
 // Safe to re-run: the ORIGINAL file is copied to BACKUP_DIR once, and every run
 // bakes from that original — never from an already-baked file.
 //
-//   node scripts/bake-tall-unit-wood.mjs            bake
-//   node scripts/bake-tall-unit-wood.mjs --dry-run  check only, write nothing
-//   node scripts/bake-tall-unit-wood.mjs --restore  put the originals back
+//   node scripts/tall-units-bake-finish.mjs            bake
+//   node scripts/tall-units-bake-finish.mjs --dry-run  check only, write nothing
+//   node scripts/tall-units-bake-finish.mjs --restore  put the originals back
 //
 // Parts are found by SHAPE, not by name: inside these files the node names are
 // out of order (file "Mesh_4" is the app's Mesh_5), so names are unreliable.
@@ -17,10 +17,18 @@
 // A file is skipped (left untouched) if its shape does not match that pattern.
 // A file that is ALREADY baked (e.g. copied from another machine) is left as it
 // is and never saved as an "original".
-// Folders come from lib/env.mjs (the backend .env: GLB_STORAGE_DIR, …).
+// Which files: every model in the catalogue category "Tall Units", looked up in
+// THIS machine's database — file names differ between machines (they start
+// with an id made at upload), so they are never hard-coded. A model whose file
+// already has its own colours / textures is skipped.
+// Writes baked-parts.last-run.json (baked-parts.dry-run.json for --dry-run):
+// model file → part numbers, used by record-baked-finish.mjs.
+// Folders and database come from lib/env.mjs (the backend .env).
 
 import { GLB_DIR, WOOD_DIR, BACKUP_ROOT } from './lib/env.mjs'
-import { NodeIO } from '@gltf-transform/core'
+import { MongoClient } from 'mongodb'
+import config from 'config'
+import { createIO } from './lib/glb-wood-bake.mjs'
 import { createRequire } from 'module'
 import fs from 'fs'
 import path from 'path'
@@ -29,21 +37,49 @@ const require = createRequire(import.meta.url)
 const sharp = require('sharp')
 
 const BACKUP_DIR = path.join(BACKUP_ROOT, 'glb-original-tall-units')
+const CATEGORY_NAME = 'Tall Units'
+const LAST_RUN = path.join(BACKUP_DIR, 'baked-parts.last-run.json')
+const DRY_RUN_LIST = path.join(BACKUP_DIR, 'baked-parts.dry-run.json')
 
-// The 10 plain-white tall units (Left door 400–600, Right door 400–600).
-// Kitchen Tall Unit 500×2100 is NOT listed — it already has its own colours.
-const FILES = [
-  'd785e120-6c7e-4634-a163-c93a88f87e7b_Tall_unit_Left_door_opening_handles_450_x_2080.glb',
-  '25134b76-7a72-4aab-b900-a597fab04674_Tall_unit_Left_door_opening_handles_400_x_2080.glb',
-  'c9b6076f-cd14-40b1-bed6-af35f48d2a8e_Tall_unit_Left_door_opening_handles_600_x_2080.glb',
-  '3fabea4f-f22f-49f5-bd36-cd520c2e01f6_Tall_unit_Left_door_opening_handles_550_x_2080.glb',
-  'f2a03977-9ecb-40e5-aeda-4ae26a595737_Tall_unit_Left_door_opening_handles_500_x_2080.glb',
-  '540300b0-3686-4070-a114-c31dcca9328a_Tall_Unit_with_Right_Opening_Door_600_X_2080_Blender_.glb',
-  '9562394c-0c6d-45d3-86a0-fbcf8337703a_Tall_Unit_with_Right_Opening_Door_550_X_2080_Blender_.glb',
-  '15ec27ff-d12a-4b1b-9e47-b79b4db15f26_Tall_Unit_with_Right_Opening_Door_450_X_2080_Blender_.glb',
-  '89274663-1187-4a51-acbd-cf2f57cd107a_Tall_Unit_with_Right_Opening_Door_400_X_2080_Blender_.glb',
-  'dca56126-bc40-48d0-81d8-a2231946d70b_Tall_Unit_with_Right_Opening_Door_500_X_2080_Blender_.glb'
-]
+/** The models of the "Tall Units" category: [{ modelId, name, file }]. */
+async function tallUnitModels() {
+  const client = await MongoClient.connect(process.env.MONGODB_URL || config.get('mongodb'))
+  try {
+    const db = client.db()
+    const cat = await db.collection('categories').findOne({ name: CATEGORY_NAME })
+    if (!cat) throw new Error(`category "${CATEGORY_NAME}" not found`)
+    const models = await db
+      .collection('models')
+      // categoryId is stored as a string here; accept an ObjectId too.
+      .find({ categoryId: { $in: [String(cat._id), cat._id] } })
+      .project({ name: 1, modelFileUrl: 1 })
+      .toArray()
+    return models
+      .map((m) => ({
+        modelId: String(m._id),
+        name: String(m.name || '').trim(),
+        file: String(m.modelFileUrl || '').split('/').pop()
+      }))
+      .filter((m) => m.file.endsWith('.glb'))
+  } finally {
+    await client.close()
+  }
+}
+
+/** A file whose parts already carry their own colours / textures (not ours). */
+function hasOwnColours(doc) {
+  return doc
+    .getRoot()
+    .listMeshes()
+    .some((mesh) =>
+      mesh.listPrimitives().some((p) => {
+        const mat = p.getMaterial()
+        if (!mat || mat.getExtras()?.bakedFinish) return false
+        const white = mat.getBaseColorFactor().slice(0, 3).every((v) => v > 0.98)
+        return !!mat.getBaseColorTexture() || !white
+      })
+    )
+}
 
 const PARTS = {
   shutter: {
@@ -68,7 +104,9 @@ const args = process.argv.slice(2)
 const DRY = args.includes('--dry-run')
 const RESTORE = args.includes('--restore')
 
-const io = new NodeIO()
+// Reads every GLB format (incl. Draco-compressed files, e.g. Kitchen Tall Unit),
+// so such a file is checked and skipped instead of failing to open.
+const io = await createIO()
 
 /** Mesh nodes in depth-first order — the same order three.js names Mesh_0…N. */
 function meshNodesInOrder(doc) {
@@ -283,6 +321,7 @@ async function bakeOne(file, images) {
   const nodes = meshNodesInOrder(doc)
   const before = signature(nodes)
   const parts = findParts(nodes)
+  if (hasOwnColours(doc)) return { file, status: 'SKIPPED (already has its own colours)' }
   if (!parts) return { file, status: 'SKIPPED (shape not recognised)' }
 
   const baseMat = parts.shutter.node.getMesh().listPrimitives()[0].getMaterial()
@@ -343,18 +382,18 @@ async function bakeOne(file, images) {
 
 async function main() {
   if (RESTORE) {
-    for (const file of FILES) {
-      const backup = path.join(BACKUP_DIR, file)
-      if (fs.existsSync(backup)) {
-        fs.copyFileSync(backup, path.join(GLB_DIR, file))
-        console.log('restored', file)
-      } else {
-        console.log('no backup for', file)
-      }
+    // Every original kept here goes back (whatever this machine calls the files).
+    const files = fs.existsSync(BACKUP_DIR) ? fs.readdirSync(BACKUP_DIR).filter((f) => f.endsWith('.glb')) : []
+    for (const file of files) {
+      fs.copyFileSync(path.join(BACKUP_DIR, file), path.join(GLB_DIR, file))
+      console.log('restored', file)
     }
+    if (!files.length) console.log('no backups found')
     return
   }
-  if (!DRY) fs.mkdirSync(BACKUP_DIR, { recursive: true })
+  const models = await tallUnitModels()
+  console.log(`category "${CATEGORY_NAME}": ${models.length} model(s)`)
+  fs.mkdirSync(BACKUP_DIR, { recursive: true })
   const images = {
     shutter: await loadImage(PARTS.shutter),
     handle: await loadImage(PARTS.handle)
@@ -362,14 +401,24 @@ async function main() {
   console.log(
     `textures: shutter ${images.shutter.length} bytes, handle ${images.handle.length} bytes`
   )
-  for (const file of FILES) {
+  const list = {}
+  for (const m of models) {
     try {
-      const r = await bakeOne(file, images)
-      console.log(JSON.stringify(r))
+      const r = await bakeOne(m.file, images)
+      console.log(JSON.stringify({ model: m.name, ...r }))
+      if (r.shutter && r.handle) {
+        list[m.file] = {
+          modelId: m.modelId,
+          name: m.name,
+          shutters: [Number(r.shutter.slice(5))],
+          handles: [Number(r.handle.slice(5))]
+        }
+      }
     } catch (e) {
-      console.log(JSON.stringify({ file, status: 'ERROR — live file untouched', error: e.message }))
+      console.log(JSON.stringify({ model: m.name, file: m.file, status: 'ERROR — live file untouched', error: e.message }))
     }
   }
+  fs.writeFileSync(DRY ? DRY_RUN_LIST : LAST_RUN, JSON.stringify(list, null, 2))
   if (!DRY) console.log('originals kept in', BACKUP_DIR)
 }
 

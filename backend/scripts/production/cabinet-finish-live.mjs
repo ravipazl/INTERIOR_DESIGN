@@ -12,7 +12,7 @@
 // Run from the backend folder:
 //   npm run cabinet-finishes:check     checks + dry run — changes NOTHING (default)
 //   npm run cabinet-finishes:apply     backs up, bakes, records, verifies
-//   node scripts/production/apply-cabinet-finishes.mjs --restore <run-log.json>
+//   node scripts/production/cabinet-finish-live.mjs --restore <run-log.json>
 //
 // Settings are read from the backend .env (see scripts/lib/env.mjs):
 //   MONGODB_URL, GLB_STORAGE_DIR, and optionally WOOD_TEXTURE_DIR,
@@ -164,7 +164,16 @@ async function preflight() {
       ok(`category "${c.name}": ${models.length} models, ${present.length} GLB files present`)
     }
     const tall = await db.collection('categories').findOne({ name: 'Tall Units' })
-    tall ? ok('category "Tall Units" found') : line('   ! category "Tall Units" not found — the tall units are matched by file name')
+    if (!tall) bad('category "Tall Units" is missing in the database')
+    else {
+      const models = await db
+        .collection('models')
+        .find({ categoryId: { $in: [String(tall._id), tall._id] } })
+        .project({ modelFileUrl: 1 })
+        .toArray()
+      const present = models.filter((m) => fs.existsSync(path.join(GLB_DIR, String(m.modelFileUrl || '').split('/').pop())))
+      ok(`category "Tall Units": ${models.length} models, ${present.length} GLB files present`)
+    }
   } catch (e) {
     bad(`database not reachable: ${maskUrl(mongoUrl)} — ${e.message}`)
   } finally {
@@ -205,10 +214,10 @@ async function verify(expected) {
 async function restore(logFile) {
   const log = JSON.parse(fs.readFileSync(logFile, 'utf8'))
   title('Restore original GLB files')
-  await run('bake-tall-unit-wood.mjs', ['--restore'])
+  await run('tall-units-bake-finish.mjs', ['--restore'])
   for (const c of CATEGORIES) await run('bake-category-wood.mjs', ['--category', c.name, '--restore'])
   title('Undo recorded finishes')
-  if (log.recordBackups?.tall) await run('record-tall-unit-finish.mjs', ['--restore', log.recordBackups.tall])
+  if (log.recordBackups?.tall) await run('tall-units-record-finish.mjs', ['--restore', log.recordBackups.tall])
   for (const f of log.recordBackups?.categories || []) await run('record-baked-finish.mjs', ['--restore', f])
   line('\n   Done. Ask users to refresh the page (Ctrl+F5).')
 }
@@ -238,11 +247,12 @@ async function main() {
     })
 
   line(' • Tall Units')
-  const tallOut = await run('bake-tall-unit-wood.mjs', dry)
-  collect(tallOut)
-  for (const j of jsonLines(tallOut)) {
-    if (j.shutter && j.handle) {
-      expected.push({ name: j.file, file: j.file, shutters: [Number(j.shutter.slice(5))], handles: [Number(j.handle.slice(5))] })
+  collect(await run('tall-units-bake-finish.mjs', dry))
+  // The tall units found in this machine's "Tall Units" category.
+  const tallList = path.join(BACKUP_ROOT, TALL_FOLDER, APPLY ? 'baked-parts.last-run.json' : 'baked-parts.dry-run.json')
+  if (fs.existsSync(tallList)) {
+    for (const [file, e] of Object.entries(JSON.parse(fs.readFileSync(tallList, 'utf8')))) {
+      expected.push({ name: e.name, file, shutters: e.shutters, handles: e.handles })
     }
   }
 
@@ -262,7 +272,7 @@ async function main() {
   title(`3. ${APPLY ? 'Record' : 'Dry-run record of'} the finish in the database`)
   const recordBackups = { tall: null, categories: [] }
   line(' • Tall Units')
-  const tallRec = await run('record-tall-unit-finish.mjs', dry)
+  const tallRec = await run('tall-units-record-finish.mjs', dry)
   recordBackups.tall = backupFileOf(tallRec)
   for (const list of lists) {
     if (!fs.existsSync(list)) continue
@@ -308,7 +318,7 @@ async function main() {
   ;[...problems, ...verifyFailed].forEach((p) => line(`   ✘ ${p}`))
   warnings.forEach((w) => line(`   ! ${w} (skipped)`))
   line(`   Undo everything with:`)
-  line(`     node scripts/production/apply-cabinet-finishes.mjs --restore "${logFile}"`)
+  line(`     node scripts/production/cabinet-finish-live.mjs --restore "${logFile}"`)
   line('   Ask users to refresh the page (Ctrl+F5) to load the new 3D files.')
   if (problems.length || verifyFailed.length) process.exitCode = 1
 }

@@ -27,14 +27,80 @@ import SaveTemplateButton from "./SaveTemplateButton";
  * static catalog model.
  */
 
+const Card = ({
+  icon,
+  label,
+  onClick,
+  isActive,
+}: {
+  icon: string;
+  label: string;
+  onClick: () => void;
+  isActive?: boolean;
+}) => (
+  <button
+    type="button"
+    onClick={onClick}
+    className={`flex flex-col items-center justify-center gap-1 rounded-lg border p-2 w-[74px] h-[70px] transition ${
+      isActive
+        ? "border-[color:var(--pz-accent)] bg-[color:var(--pz-accent)]/10"
+        : "border-[color:var(--pz-panel-border)] bg-white dark:bg-[#3a3a3a] hover:border-[color:var(--pz-accent)]"
+    }`}
+  >
+    <span className="material-symbols-outlined text-[22px] text-[color:var(--pz-accent)]">
+      {icon}
+    </span>
+    <span className="text-[11px] leading-tight text-neutral-600 dark:text-neutral-200 text-center">
+      {label}
+    </span>
+  </button>
+);
+
+/** Collapsible section, chevron on the left like the reference design. */
+const PanelSection = ({
+  title,
+  open,
+  onToggle,
+  children,
+}: {
+  id: string;
+  title: string;
+  open: boolean;
+  onToggle: () => void;
+  children: React.ReactNode;
+}) => (
+  <div className="border-b border-[color:var(--pz-panel-border)] last:border-b-0">
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-expanded={open}
+      className="w-full flex items-center gap-2 px-3 py-2.5 text-left"
+    >
+      <span
+        className={`material-symbols-outlined text-[18px] text-[color:var(--pz-panel-muted)] transition-transform ${
+          open ? "rotate-90" : ""
+        }`}
+      >
+        chevron_right
+      </span>
+      <span className="text-[13px] font-semibold text-[color:var(--pz-text)]">
+        {title}
+      </span>
+    </button>
+    {open ? <div className="px-3 pb-3">{children}</div> : null}
+  </div>
+);
+
+// Which sections are expanded, kept across a remount of the panel (it is
+// rebuilt when the page reloads its data), so an open section stays open.
+// Import starts CLOSED — it is a one-off at the start of a project, whereas
+// Draw room is used constantly.
+let lastOpenSections: string[] = ["draw", "openings"];
+
 const FloorPlanTools: React.FC = () => {
   const [active, setActive] = useState<string>("");
-  // Which sections are expanded. Import starts CLOSED — it is a one-off at the
-  // start of a project, whereas Draw room is used constantly.
-  const [openSections, setOpenSections] = useState<string[]>([
-    "draw",
-    "openings",
-  ]);
+  const [openSections, setOpenSections] =
+    useState<string[]>(lastOpenSections);
   // Overall-dimensions overlay mode. "outer" = footprint (W×H outside the plan),
   // "inner" = show ALL per-wall labels at once. Mutually exclusive; both sit on
   // top of the always-on individual show-on-select behaviour.
@@ -203,77 +269,24 @@ const FloorPlanTools: React.FC = () => {
     }
   };
 
-  const Card = ({
-    icon,
-    label,
-    onClick,
-    isActive,
-  }: {
-    icon: string;
-    label: string;
-    onClick: () => void;
-    isActive?: boolean;
-  }) => (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`flex flex-col items-center justify-center gap-1 rounded-lg border p-2 w-[74px] h-[70px] transition ${
-        isActive
-          ? "border-[color:var(--pz-accent)] bg-[color:var(--pz-accent)]/10"
-          : "border-[color:var(--pz-panel-border)] bg-white dark:bg-[#3a3a3a] hover:border-[color:var(--pz-accent)]"
-      }`}
-    >
-      <span className="material-symbols-outlined text-[22px] text-[color:var(--pz-accent)]">
-        {icon}
-      </span>
-      <span className="text-[11px] leading-tight text-neutral-600 dark:text-neutral-200 text-center">
-        {label}
-      </span>
-    </button>
-  );
-
-  /** Collapsible section, chevron on the left like the reference design. */
-  const Section = ({
+  // open/toggle for a PanelSection. PanelSection and Card are defined OUTSIDE
+  // this component: a component defined inside is a NEW type on every render,
+  // so React threw away and rebuilt everything in it — including AI Import's
+  // file box while the file dialog was open, which lost the chosen file.
+  const sectionProps = (id: string) => ({
     id,
-    title,
-    children,
-  }: {
-    id: string;
-    title: string;
-    children: React.ReactNode;
-  }) => {
-    const open = openSections.includes(id);
-    return (
-      <div className="border-b border-[color:var(--pz-panel-border)] last:border-b-0">
-        <button
-          type="button"
-          onClick={() =>
-            setOpenSections((s) =>
-              s.includes(id) ? s.filter((x) => x !== id) : [...s, id]
-            )
-          }
-          aria-expanded={open}
-          className="w-full flex items-center gap-2 px-3 py-2.5 text-left"
-        >
-          <span
-            className={`material-symbols-outlined text-[18px] text-[color:var(--pz-panel-muted)] transition-transform ${
-              open ? "rotate-90" : ""
-            }`}
-          >
-            chevron_right
-          </span>
-          <span className="text-[13px] font-semibold text-[color:var(--pz-text)]">
-            {title}
-          </span>
-        </button>
-        {open ? <div className="px-3 pb-3">{children}</div> : null}
-      </div>
-    );
-  };
+    open: openSections.includes(id),
+    onToggle: () =>
+      setOpenSections((s) => {
+        const next = s.includes(id) ? s.filter((x) => x !== id) : [...s, id];
+        lastOpenSections = next;
+        return next;
+      }),
+  });
 
   return (
     <div className="pz-fp-tools">
-      <Section id="import" title="Import floor plan">
+      <PanelSection title="Import floor plan" {...sectionProps("import")}>
         <FloorPlanAiImport inline />
         <p className="mt-2 text-[11px] leading-snug text-[color:var(--pz-text-2)]">
           PDF, PNG, JPG or WEBP. Walls and rooms are read from the drawing.
@@ -289,9 +302,9 @@ const FloorPlanTools: React.FC = () => {
             Saves this plan as a reusable template, not as the project.
           </p>
         </div>
-      </Section>
+      </PanelSection>
 
-      <Section id="draw" title="Draw room">
+      <PanelSection title="Draw room" {...sectionProps("draw")}>
         <div className="grid grid-cols-2 gap-2">
           <Card
             icon="edit"
@@ -323,9 +336,9 @@ const FloorPlanTools: React.FC = () => {
             <option value="m">Metres (m)</option>
           </select>
         </label>
-      </Section>
+      </PanelSection>
 
-      <Section id="openings" title="Place doors and windows">
+      <PanelSection title="Place doors and windows" {...sectionProps("openings")}>
         <div className="grid grid-cols-2 gap-2">
           <Card
             icon="door_front"
@@ -365,9 +378,9 @@ const FloorPlanTools: React.FC = () => {
             )}
           </div>
         ) : null}
-      </Section>
+      </PanelSection>
 
-      <Section id="measure" title="Measurements">
+      <PanelSection title="Measurements" {...sectionProps("measure")}>
         <div className="grid grid-cols-2 gap-2">
           <Card
             icon="crop_free"
@@ -382,7 +395,7 @@ const FloorPlanTools: React.FC = () => {
             isActive={dimMode === "inner"}
           />
         </div>
-      </Section>
+      </PanelSection>
     </div>
   );
 };

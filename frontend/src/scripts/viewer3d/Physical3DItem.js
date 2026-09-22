@@ -477,7 +477,7 @@ export class Physical3DItem extends Mesh {
   /**
    * True when `textureUrl` is the finish already baked into this mesh's GLB
    * material (a baked GLB marks it in the material extras → userData, e.g.
-   * scripts/bake-tall-unit-wood.mjs). Compared by path, ignoring host/query.
+   * scripts/tall-units-bake-finish.mjs). Compared by path, ignoring host/query.
    */
   static isBakedFinish(mesh, textureUrl) {
     const baked = mesh?.__origMaterial?.userData?.bakedTexture;

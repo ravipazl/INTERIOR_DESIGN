@@ -9,11 +9,17 @@
 
 import Anthropic from '@anthropic-ai/sdk'
 import multer from '@koa/multer'
+import sharp from 'sharp'
 
 const client = new Anthropic() // reads ANTHROPIC_API_KEY from env
 
 const MODEL = process.env.FLOORPLAN_AI_MODEL || 'claude-opus-4-8'
 const MAX_BYTES = 20 * 1024 * 1024 // 20 MB
+// Images are resized to at most this many px on the long side before they go to
+// Claude: phone photos / scans (e.g. 6000×4500, 12 MB) are rejected by the API
+// ("image exceeds … maximum"), and this is still sharp enough to read the
+// dimension labels on a plan.
+const MAX_IMAGE_EDGE = 2400
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -96,21 +102,54 @@ Rules:
 - Return empty arrays for rooms/openings if none are legible. Do not invent them.
 - Origin is the top-left; x increases right, y increases down.`
 
-async function vectorize(buffer, mimetype) {
-  const b64 = buffer.toString('base64')
+/**
+ * Any uploaded image → a JPEG Claude accepts: turned upright (phone EXIF),
+ * flattened onto white (transparent PNGs), at most MAX_IMAGE_EDGE px on the
+ * long side. Small images are not enlarged.
+ */
+async function prepareImage(buffer) {
+  try {
+    const out = await sharp(buffer, { limitInputPixels: 400e6 })
+      .rotate()
+      .flatten({ background: '#ffffff' })
+      .resize({ width: MAX_IMAGE_EDGE, height: MAX_IMAGE_EDGE, fit: 'inside', withoutEnlargement: true })
+      .jpeg({ quality: 88 })
+      .toBuffer()
+    return { data: out, mediaType: 'image/jpeg' }
+  } catch (err) {
+    const e = new Error("This image couldn't be opened. Try a PNG, JPG or PDF of the plan.")
+    e.userFacing = true
+    throw e
+  }
+}
+
+// Step-by-step log lines in the backend terminal, so a failed import shows
+// exactly where it stopped: [floorplan-ai] #id step …
+const log = (id, ...parts) => console.log(`[floorplan-ai] #${id}`, ...parts)
+const mb = (bytes) => `${(bytes / 1048576).toFixed(1)} MB`
+let requestSeq = 0
+
+async function vectorize(buffer, mimetype, id = '-') {
   const isPdf =
-    mimetype === 'application/pdf' || (!mimetype && buffer.slice(0, 4).toString() === '%PDF')
+    mimetype === 'application/pdf' || buffer.slice(0, 4).toString() === '%PDF'
 
-  const fileBlock = isPdf
-    ? {
-        type: 'document',
-        source: { type: 'base64', media_type: 'application/pdf', data: b64 }
-      }
-    : {
-        type: 'image',
-        source: { type: 'base64', media_type: mimetype || 'image/png', data: b64 }
-      }
+  let fileBlock
+  if (isPdf) {
+    fileBlock = {
+      type: 'document',
+      source: { type: 'base64', media_type: 'application/pdf', data: buffer.toString('base64') }
+    }
+  } else {
+    const img = await prepareImage(buffer)
+    log(id, `image prepared for AI: ${mb(img.data.length)} JPEG`)
+    fileBlock = {
+      type: 'image',
+      source: { type: 'base64', media_type: img.mediaType, data: img.data.toString('base64') }
+    }
+  }
 
+  log(id, `sending to AI (${MODEL}, ${isPdf ? 'PDF' : 'image'})…`)
+  const started = Date.now()
   const res = await client.messages.create({
     model: MODEL,
     max_tokens: 16000,
@@ -119,38 +158,90 @@ async function vectorize(buffer, mimetype) {
     output_config: { format: { type: 'json_schema', schema: FLOORPLAN_SCHEMA } }
   })
 
+  log(id, `AI answered in ${((Date.now() - started) / 1000).toFixed(1)} s (stop: ${res.stop_reason})`)
   const textBlock = res.content.find((b) => b.type === 'text')
   if (!textBlock) throw new Error('Model returned no structured output')
   return JSON.parse(textBlock.text)
 }
 
+/**
+ * Signed-in user or null (and a 401 already written). Every call spends
+ * Anthropic credits, so only signed-in users may use it — same check as
+ * AI render (/ai-render) and /upload. The app already sends the token.
+ */
+async function requireUser(app, ctx) {
+  const token = String(ctx.headers.authorization || '').replace(/^Bearer\s+/i, '').trim()
+  if (!token) {
+    ctx.status = 401
+    ctx.body = { error: 'unauthenticated', message: 'Sign in to use AI import.' }
+    return null
+  }
+  try {
+    const { user } = await app.service('authentication').create({ strategy: 'jwt', accessToken: token })
+    if (user) return user
+  } catch (_) {
+    /* fall through */
+  }
+  ctx.status = 401
+  ctx.body = { error: 'unauthenticated', message: 'Your session has expired. Sign in again.' }
+  return null
+}
+
 export const floorplanAi = (app) => {
   app.use(async (ctx, next) => {
     if (ctx.path !== '/floorplan-ai' || ctx.method !== 'POST') return next()
+    const id = ++requestSeq
+    log(id, 'request received')
+
+    // Login first — before the file is read or Claude is called.
+    if (!(await requireUser(app, ctx))) {
+      log(id, `stopped: not signed in (${ctx.status})`)
+      return
+    }
 
     try {
       await upload.single('plan')(ctx, async () => {})
     } catch (err) {
-      ctx.status = err.code === 'LIMIT_FILE_SIZE' ? 413 : 400
-      ctx.body = { error: 'upload_failed', message: err.message || String(err) }
+      const tooBig = err.code === 'LIMIT_FILE_SIZE'
+      log(id, `stopped: upload failed — ${tooBig ? 'file over 20 MB' : err.message || err}`)
+      ctx.status = tooBig ? 413 : 400
+      ctx.body = {
+        error: 'upload_failed',
+        message: tooBig
+          ? 'This file is too large (max 20 MB). Try a smaller image or PDF of the plan.'
+          : "The file couldn't be uploaded. Please try again."
+      }
       return
     }
 
     const file = ctx.request.file
     if (!file) {
+      log(id, 'stopped: no file in the request')
       ctx.status = 400
       ctx.body = { error: 'no_file', message: 'multipart field "plan" (pdf/image) is required' }
       return
     }
 
+    log(id, `file "${file.originalname}" ${file.mimetype || '?'} ${mb(file.size)}`)
     try {
-      const result = await vectorize(file.buffer, file.mimetype)
+      const result = await vectorize(file.buffer, file.mimetype, id)
+      log(
+        id,
+        `done: ${result?.walls?.length || 0} walls, ${result?.rooms?.length || 0} rooms, ` +
+          `${result?.openings?.length || 0} doors/windows (units ${result?.units})`
+      )
       ctx.status = 200
       ctx.body = result // { units, walls, rooms }
     } catch (err) {
-      console.error('[floorplan-ai] failed:', err?.message || err)
+      // Full detail in the server log; a plain message for the user.
+      console.error(`[floorplan-ai] #${id} failed:`, err?.message || err)
       ctx.status = 502
-      ctx.body = { error: 'vectorize_failed', message: err?.message || String(err) }
+      ctx.body = {
+        error: 'vectorize_failed',
+        message: err?.userFacing
+          ? err.message
+          : "Couldn't read this plan. Try a clearer image or PDF of the floor plan."
+      }
     }
   })
 }

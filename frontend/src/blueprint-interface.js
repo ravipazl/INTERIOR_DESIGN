@@ -495,17 +495,36 @@ BlueprintInterface.healFloorplanIntersections = () => {
       BlueprintInterface.blueprint3d.model &&
       BlueprintInterface.blueprint3d.model.floorplan;
     if (!fp || typeof fp.getCorners !== "function") return;
+    // Doors/windows already on the walls (heal-on-open runs on a furnished
+    // plan). A split shortens a wall, and whatever sat on the cut-off half gets
+    // dragged along with it — so remember where each one is now, and which
+    // wall (by corners) it was on, to put it back afterwards.
+    const wallItems = (BlueprintInterface.blueprint3d.model.roomItems || [])
+      .filter((it) => it && it.__currentWall && it.position)
+      .map((it) => ({
+        it,
+        pos: it.position.clone(),
+        wallKey: it.__currentWall.getUuid(),
+        side: it.__metadata && it.__metadata.wallSide,
+      }));
     // Pass 1 — split walls at T-junctions + merge coincident corners.
-    // .slice() because the corner/wall arrays mutate as walls split.
-    fp.getCorners()
-      .slice()
-      .forEach((c) => {
-        try {
-          c.mergeWithIntersected(false);
-        } catch (e) {
-          /* per-corner, never abort the whole heal */
-        }
-      });
+    // mergeWithIntersected fixes ONE wall per corner per call, so a single sweep
+    // could leave T-junctions behind (which heal-on-open then split later, under
+    // the doors). Sweep until nothing changes. .slice() because the corner/wall
+    // arrays mutate as walls split.
+    for (let sweep = 0; sweep < 10; sweep++) {
+      let changed = false;
+      fp.getCorners()
+        .slice()
+        .forEach((c) => {
+          try {
+            if (c.mergeWithIntersected(false)) changed = true;
+          } catch (e) {
+            /* per-corner, never abort the whole heal */
+          }
+        });
+      if (!changed) break;
+    }
     // Pass 2 — split any remaining X crossings (walls that cross without a
     // shared endpoint). newWallsForIntersections runs its own update().
     fp.getWalls()
@@ -518,6 +537,25 @@ BlueprintInterface.healFloorplanIntersections = () => {
         }
       });
     fp.update();
+    // Put each door/window whose wall was split back where it was, on the piece
+    // of wall it actually sits on (it may now be the new half).
+    const walls = fp.getWalls();
+    wallItems.forEach(({ it, pos, wallKey, side }) => {
+      try {
+        const cur = it.__currentWall;
+        if (cur && walls.includes(cur) && cur.getUuid() === wallKey) return; // untouched
+        const target = it.__nearestWallTo([pos.x, pos.y, pos.z]);
+        if (!target) return;
+        const edge =
+          side === "front"
+            ? target.frontEdge || target.backEdge
+            : target.backEdge || target.frontEdge;
+        if (edge) it.snapToWall(pos.clone(), target, edge);
+      } catch (e) {
+        console.error("heal: re-placing a door/window failed", e);
+      }
+    });
+    if (wallItems.length) BlueprintInterface.redrawDoors2D?.();
   } catch (e) {
     console.error("healFloorplanIntersections failed", e);
   }

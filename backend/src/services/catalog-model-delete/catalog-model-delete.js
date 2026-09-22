@@ -64,17 +64,83 @@ function findModelById(db, id) {
   })
 }
 
+function toObjectIdOrNull(value) {
+  try {
+    return new ObjectId(String(value))
+  } catch (_) {
+    return null
+  }
+}
+
+// Both string and ObjectId forms of each id, for $in matches on mixed-type fields.
+function idVariants(ids) {
+  const out = []
+  for (const value of ids) {
+    out.push(String(value))
+    const asObjectId = toObjectIdOrNull(value)
+    if (asObjectId) out.push(asObjectId)
+  }
+  return out
+}
+
 async function countFurnishedReferences(db, id) {
+  // Count only placements that are REALLY in use, in a project that still exists:
+  //   - the row is still active, OR
+  //   - the row is referenced by that project's floor-plan scene (covers rows
+  //     that were wrongly marked inactive while still visible in the viewport —
+  //     deleting their model would break that scene).
+  //
+  // Removing an item from a design does not delete its furnished_models row —
+  // it only sets isActive:false — and deleting a project leaves its rows behind.
+  // Counting those left-overs made the model undeletable forever ("placed in 27
+  // furnished item(s)" even after it was removed from every project).
+  //
   // Match both modelId-as-string (the common case) and modelId-as-ObjectId
   // (legacy rows) so a wrongly-typed reference can't sneak past the guard.
-  const collection = db.collection('furnished_models')
-  let total = await collection.countDocuments({ modelId: id })
-  try {
-    total += await collection.countDocuments({ modelId: new ObjectId(id) })
-  } catch (_) {
-    /* id wasn't a valid ObjectId — skip */
+  const rows = await db
+    .collection('furnished_models')
+    .find(
+      { modelId: { $in: idVariants([id]) } },
+      { projection: { _id: 1, projectId: 1, isActive: 1, isDeleted: 1 } }
+    )
+    .toArray()
+  if (!rows.length) return 0
+
+  // Projects that still exist (projectId may be stored as string or ObjectId).
+  const projectIds = [...new Set(rows.map((r) => String(r.projectId)))]
+  const liveProjects = await db
+    .collection('projects')
+    .find({ _id: { $in: idVariants(projectIds) } }, { projection: { _id: 1 } })
+    .toArray()
+  const liveProjectIds = new Set(liveProjects.map((p) => String(p._id)))
+  if (!liveProjectIds.size) return 0
+
+  // Every furnished-model id referenced by those live projects' floor-plan scenes.
+  const floorplans = await db
+    .collection('floorplans')
+    .find(
+      { projectId: { $in: idVariants([...liveProjectIds]) } },
+      { projection: { scene: 1 } }
+    )
+    .toArray()
+  const inSceneIds = new Set()
+  for (const fp of floorplans) {
+    let scene = fp.scene
+    try {
+      scene = typeof scene === 'string' ? JSON.parse(scene) : scene
+    } catch (_) {
+      scene = null
+    }
+    for (const item of (scene && scene.items) || []) {
+      if (item && item.dbid) inSceneIds.add(String(item.dbid))
+    }
   }
-  return total
+
+  return rows.filter((r) => {
+    if (!liveProjectIds.has(String(r.projectId))) return false
+    const isActive = r.isActive !== false && r.isDeleted !== true // missing flag = active
+    return isActive || inSceneIds.has(String(r._id))
+  }).length
 }
 
 async function deleteComponentRows(db, id) {

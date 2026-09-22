@@ -7,6 +7,7 @@ import {
 import { AuthService } from "@pazl/services/authService";
 import { ProjectsService } from "@pazl/services/projectsService";
 import Toast, { ToastState } from "../Toast";
+import "./index.css";
 
 /**
  * RenderHistory — the team's render history for one project, shown on the
@@ -39,6 +40,8 @@ const RenderHistory: React.FC<Props> = ({
 
   const [items, setItems] = useState<ProjectItem[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  // Video length in seconds (read from each video's metadata), for the card.
+  const [durations, setDurations] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   // BOQ PDF preview shown BEFORE the send/email fires (Send to admin / Send to
@@ -229,15 +232,37 @@ const RenderHistory: React.FC<Props> = ({
     });
   };
 
-  // What the admin SEES is only what was submitted to them (or already
-  // published) — never the architect's private drafts. The architect keeps
-  // seeing all of their own renders (drafts included).
-  const visibleItems = isAdmin
-    ? items.filter((i) => i.status !== "draft")
-    : items;
+  // Everyone sees every render of the project, each marked with its status tag
+  // (Draft / Sent to admin / Published). The admin used to see only submitted
+  // renders, so renders the admin made (saved as drafts) never showed up.
+  const visibleItems = items;
   // Partition the gallery into Images and Videos.
   const imageItems = visibleItems.filter((i) => i.kind !== "video");
   const videoItems = visibleItems.filter((i) => i.kind === "video");
+
+  // Status shown on each card: Draft (architect only) → Sent to admin → Published.
+  const statusTag = (st?: string) => {
+    if (!st) return null;
+    if (st === "draft") return { label: "Draft", cls: "draft" };
+    if (st === "pending_review") return { label: "Sent to admin", cls: "review" };
+    if (st === "published") return { label: "Published", cls: "published" };
+    return { label: st.replace(/_/g, " "), cls: "draft" };
+  };
+  const formatWhen = (iso?: string) => {
+    if (!iso) return "";
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return "";
+    return d.toLocaleString("en-IN", {
+      day: "numeric",
+      month: "short",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+  const formatDuration = (secs: number) => {
+    const t = Math.round(secs);
+    return `${Math.floor(t / 60)}:${String(t % 60).padStart(2, "0")}`;
+  };
 
   // One card renderer, reused by both the Images and the Videos section.
   const renderCard = (item: ProjectItem) => {
@@ -252,41 +277,33 @@ const RenderHistory: React.FC<Props> = ({
       !!item.createdAt &&
       !seen.has(item._id as string) &&
       Date.now() - new Date(item.createdAt).getTime() < 24 * 60 * 60 * 1000;
+    const open = () => {
+      setPreview(item);
+      markSeen(item._id); // opening a render clears its NEW badge
+    };
+    const status = statusTag(item.status);
+    const secs = durations[item._id as string];
     return (
       <div
         key={item._id}
-        onClick={() => {
-          setPreview(item);
-          markSeen(item._id); // opening a render clears its NEW badge
+        role="button"
+        tabIndex={0}
+        onClick={open}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            open();
+          }
         }}
         title="Click to preview"
-        style={{
-          border: isSel ? "2px solid #5b3df5" : "1px solid #e5e7eb",
-          borderRadius: 8,
-          overflow: "hidden",
-          cursor: "pointer",
-          background: "#fff",
-        }}
+        className={"rv-card" + (isSel && !isUnavailable ? " selected" : "")}
       >
-        <div style={{ position: "relative" }}>
+        <div className="rv-thumb">
           {failed[item._id as string] ? (
-            <div
-              style={{
-                width: "100%",
-                height: 130,
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                justifyContent: "center",
-                background: "#f3f4f6",
-                border: "1px dashed #d1d5db",
-                color: "#9aa0ab",
-                fontSize: 12,
-                textAlign: "center",
-                padding: 8,
-              }}
-            >
-              <span style={{ fontSize: 20, lineHeight: 1, marginBottom: 4 }}>⛰</span>
+            <div className="rv-unavailable">
+              <span className="material-symbols-outlined" aria-hidden="true">
+                {isVideo ? "videocam_off" : "hide_image"}
+              </span>
               {isVideo ? "Video unavailable" : "Preview unavailable"}
             </div>
           ) : isVideo ? (
@@ -296,12 +313,11 @@ const RenderHistory: React.FC<Props> = ({
               playsInline
               preload="metadata"
               onError={() => markFailed(item._id)}
-              style={{
-                width: "100%",
-                height: 130,
-                objectFit: "cover",
-                background: "#11131a",
-                display: "block",
+              onLoadedMetadata={(e) => {
+                const d = (e.currentTarget as HTMLVideoElement).duration;
+                if (item._id && Number.isFinite(d) && d > 0) {
+                  setDurations((m) => ({ ...m, [item._id as string]: d }));
+                }
               }}
             />
           ) : (
@@ -310,127 +326,48 @@ const RenderHistory: React.FC<Props> = ({
               alt={item.title || "render"}
               loading="lazy"
               onError={() => markFailed(item._id)}
-              style={{
-                width: "100%",
-                height: 130,
-                objectFit: "cover",
-                background: "#f3f4f6",
-                display: "block",
-              }}
             />
           )}
           {isVideo && !failed[item._id as string] && (
-            <div
-              style={{
-                position: "absolute",
-                inset: 0,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                pointerEvents: "none",
-              }}
-            >
-              <div
-                style={{
-                  width: 44,
-                  height: 44,
-                  borderRadius: "50%",
-                  background: "rgba(0,0,0,0.55)",
-                  color: "#fff",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontSize: 18,
-                  paddingLeft: 3,
-                }}
-              >
-                ▶
-              </div>
+            <div className="rv-play" aria-hidden="true">
+              <span>▶</span>
             </div>
           )}
+          {isVideo && secs ? (
+            <span className="rv-duration">{formatDuration(secs)}</span>
+          ) : null}
           <input
             type="checkbox"
+            className="rv-check"
             checked={isSel && !isUnavailable}
             disabled={isUnavailable}
             onChange={() => toggle(item._id)}
             onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => e.stopPropagation()}
+            aria-label={`Select ${item.title || (isVideo ? "video" : "render")}`}
             title={
               isUnavailable ? "File unavailable — can't be sent" : "Select to send"
             }
-            style={{
-              position: "absolute",
-              top: 8,
-              left: 8,
-              width: 18,
-              height: 18,
-              cursor: isUnavailable ? "not-allowed" : "pointer",
-              opacity: isUnavailable ? 0.5 : 1,
-            }}
           />
-          {isNew && (
-            <span
-              style={{
-                position: "absolute",
-                top: 8,
-                right: 8,
-                fontSize: 9.5,
-                fontWeight: 700,
-                letterSpacing: 0.4,
-                padding: "2px 7px",
-                borderRadius: 10,
-                background: "#5b3df5",
-                color: "#fff",
-              }}
-            >
-              NEW
-            </span>
-          )}
-          <span
-            style={{
-              position: "absolute",
-              bottom: 8,
-              left: 8,
-              fontSize: 11,
-              fontWeight: 600,
-              padding: "2px 8px",
-              borderRadius: 12,
-              background: isVideo ? "#111827" : "#e0e7ff",
-              color: isVideo ? "#fff" : "#3730a3",
-            }}
-          >
-            {isVideo ? "▶ Video" : "Image"}
-          </span>
+          {isNew && <span className="rv-new">NEW</span>}
         </div>
-        <div style={{ padding: "6px 8px" }}>
-          <div
-            style={{
-              fontSize: 12,
-              color: "#374151",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
-            }}
-            title={item.title}
-          >
+        <div className="rv-body">
+          <div className="rv-name" title={item.title}>
             {item.title || (isVideo ? "Render video" : "Render")}
           </div>
-          {item.createdBy && (
-            <div style={{ fontSize: 10.5, color: "#9ca3af" }}>by {item.createdBy}</div>
-          )}
+          <div className="rv-meta">
+            <span className="rv-when">
+              {[formatWhen(item.createdAt), item.createdBy ? `by ${item.createdBy}` : ""]
+                .filter(Boolean)
+                .join(" · ")}
+            </span>
+            {status ? (
+              <span className={"rv-tag " + status.cls}>{status.label}</span>
+            ) : null}
+          </div>
         </div>
       </div>
     );
-  };
-
-  const gridStyle: React.CSSProperties = {
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))",
-    gap: 12,
-    // Scroll WITHIN the section once there are many items, so a large gallery
-    // doesn't push the page (and the Send button) endlessly far down.
-    maxHeight: 470,
-    overflowY: "auto",
-    paddingRight: 4,
   };
 
   // Attachment THUMBNAIL tile in the email composer.
@@ -702,107 +639,87 @@ const RenderHistory: React.FC<Props> = ({
   const disabled = busy || awaitingClient;
 
   return (
-    <div className="bg-white rounded m-2 p-4 shadow-md shadow-[#00000026] dark:bg-[#333333]">
-      <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
-        <div className="flex items-center gap-2">
-          <h2 className="text-lg font-semibold text-[#414063] dark:text-white">
-            Renders &amp; videos
-          </h2>
-          {!isAdmin && projectStatus === "quotation_pending_approval" && (
-            <span
-              className="text-xs px-2 py-1 rounded"
-              style={{ background: "#fff7ed", color: "#9a3412" }}
-            >
-              Pending approval
+    <div className="rv-section dark:bg-[#333333]">
+      <div className="rv-head">
+        <div className="rv-title">
+          <span className="rv-title-icon">
+            <span className="material-symbols-outlined" aria-hidden="true">
+              photo_library
             </span>
+          </span>
+          <h2>Renders &amp; videos</h2>
+          {!isAdmin && projectStatus === "quotation_pending_approval" && (
+            <span className="rv-tag pending">Pending approval</span>
           )}
           {awaitingClient && (
-            <span
-              className="text-xs px-2 py-1 rounded"
-              style={{ background: "#eef6ff", color: "#1e40af" }}
-            >
-              Quote sent — awaiting client
-            </span>
+            <span className="rv-tag review">Quote sent — awaiting client</span>
           )}
         </div>
         <button
-          className="px-3 py-2 rounded border border-[#d1d5db] text-sm text-[#414063] dark:text-white"
+          type="button"
+          className="rv-btn"
           onClick={() => load(true)}
           disabled={busy}
           title="Refresh the render history"
         >
+          <span className="material-symbols-outlined" style={{ fontSize: 17 }} aria-hidden="true">
+            refresh
+          </span>
           Refresh
         </button>
       </div>
+      <p className="rv-hint">
+        {isAdmin
+          ? "Every render and video of this project. Select the ones to share with the client."
+          : "Every render and video made in the 3D editor appears here automatically."}
+      </p>
 
       {loading ? (
-        <p className="text-sm text-[#6b7280]">Loading renders…</p>
+        <p className="rv-empty" style={{ marginTop: 14 }}>Loading renders…</p>
       ) : visibleItems.length === 0 ? (
-        <p className="text-sm text-[#6b7280]">
-          {isAdmin
-            ? "No renders have been submitted for review yet."
-            : "No renders yet. Create a render in the editor and it will appear here automatically."}
+        <p className="rv-empty" style={{ marginTop: 14 }}>
+          No renders yet. Create a render in the editor and it will appear here
+          automatically.
         </p>
       ) : (
         <>
-          {/* Both sections always show once ANY item exists, so an empty one reads
+          {/* Both groups always show once ANY item exists, so an empty one reads
               as "none yet" instead of silently disappearing. */}
-          <div style={{ marginBottom: 6 }}>
-            <div
-              style={{
-                fontWeight: 600,
-                color: "#374151",
-                fontSize: 14,
-                margin: "6px 0",
-              }}
-            >
-              Images{" "}
-              <span style={{ color: "#9ca3af", fontWeight: 400 }}>
-                ({imageItems.length})
-              </span>
-            </div>
-            {imageItems.length > 0 ? (
-              <div style={gridStyle}>{imageItems.map(renderCard)}</div>
-            ) : (
-              <p className="text-sm text-[#9ca3af]" style={{ margin: "4px 0" }}>
-                No renders yet.
-              </p>
-            )}
+          <div className="rv-group">
+            Images <span>({imageItems.length})</span>
           </div>
-          <div>
-            <div
-              style={{
-                fontWeight: 600,
-                color: "#374151",
-                fontSize: 14,
-                margin: "14px 0 6px",
-              }}
-            >
-              Videos{" "}
-              <span style={{ color: "#9ca3af", fontWeight: 400 }}>
-                ({videoItems.length})
-              </span>
-            </div>
-            {videoItems.length > 0 ? (
-              <div style={gridStyle}>{videoItems.map(renderCard)}</div>
-            ) : (
-              <p className="text-sm text-[#9ca3af]" style={{ margin: "4px 0" }}>
-                No videos yet.
-              </p>
-            )}
+          {imageItems.length > 0 ? (
+            <div className="rv-grid">{imageItems.map(renderCard)}</div>
+          ) : (
+            <p className="rv-empty">No renders yet.</p>
+          )}
+          <div className="rv-group">
+            Videos <span>({videoItems.length})</span>
           </div>
+          {videoItems.length > 0 ? (
+            <div className="rv-grid">{videoItems.map(renderCard)}</div>
+          ) : (
+            <p className="rv-empty">No videos yet.</p>
+          )}
         </>
       )}
 
-      {/* Send button — placed AFTER the render/video cards, so you review the
-          renders first and then send. (Refresh stays in the header above.) */}
-      <div className="flex items-center justify-end gap-2 mt-4">
+      {/* Send bar — AFTER the cards, so you review the renders first and then
+          send. (Refresh stays in the header above.) */}
+      <div className="rv-foot">
+        <span className="rv-foot-note">
+          {selectedItems.length ? (
+            <>
+              <b>{selectedItems.length} selected</b> · the BOQ PDF is attached
+              automatically
+            </>
+          ) : (
+            "Select renders or videos to include · the BOQ PDF is attached automatically"
+          )}
+        </span>
         <button
-          className="px-4 py-2 rounded text-sm text-white"
-          style={{
-            background: disabled || preparing ? "#9ca3af" : "#5b3df5",
-            cursor: disabled || preparing ? "default" : "pointer",
-          }}
+          type="button"
+          className="rv-btn primary"
           onClick={openSendPreview}
           disabled={disabled || preparing}
           title={
@@ -813,6 +730,9 @@ const RenderHistory: React.FC<Props> = ({
               : "Preview the BOQ, then submit it with the selected renders to the admin"
           }
         >
+          <span className="material-symbols-outlined" style={{ fontSize: 17 }} aria-hidden="true">
+            send
+          </span>
           {preparing ? "Preparing BOQ…" : busy ? sendingLabel : actionLabel}
         </button>
       </div>
