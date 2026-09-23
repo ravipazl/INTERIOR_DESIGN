@@ -105,7 +105,6 @@ import {
 import { BoundaryView3D } from "./BoundaryView3D.js";
 import BlueprintInterface from "@pazl/blueprint-interface.js";
 import { handleAddFurnishedModelToScene } from "@pazl/viewer3d-state-interface.js";
-import { VRButton } from "three/examples/jsm/webxr/VRButton.js";
 
 // Short unit suffix for the on-screen 3D dimension chips, keyed by the current
 // global measurement unit — so the chips read "mm"/"ft"/… like the floor plan
@@ -1246,9 +1245,10 @@ export class Viewer3D extends Scene {
     //SEt the animation loop
     scope.renderer.setAnimationLoop(scope.render.bind(this));
     scope.renderer.render(scope, currentCamera);
-
-    document.body.appendChild(VRButton.createButton(scope.renderer));
-    scope.renderer.xr.enabled = true;
+    // three.js's VR button used to be added here. On an ordinary PC the browser
+    // reports no headset, so it only ever showed a grey "VR NOT SUPPORTED" box
+    // across the bottom of the 3D view that could not be dismissed. Nothing in
+    // the app uses VR, so the button and renderer.xr are gone.
   }
 
   __zoom(evt) {

@@ -11,6 +11,7 @@ import {
   RepeatWrapping,
   MeshBasicMaterial,
   Group,
+  DoubleSide,
 } from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
 import {
@@ -1139,6 +1140,25 @@ export class Physical3DItem extends Mesh {
     this.__loadedItem.scale.y = 100 * this.__itemModel.__scale.y;
     this.__loadedItem.scale.z = 100 * this.__itemModel.__scale.z;
 
+    // A MIRRORED item (negative scale on an axis — the toolbar's Mirror) turns
+    // the model's faces inside out, so it would look hollow. Show both sides.
+    // Here rather than in the mirror action, so it also holds after a reload,
+    // where the negative scale comes back from the saved item.
+    const mirrored =
+      this.__loadedItem.scale.x * this.__loadedItem.scale.y * this.__loadedItem.scale.z < 0;
+    if (mirrored) {
+      this.__loadedItem.traverse((o) => {
+        if (!o.isMesh) return;
+        const mats = Array.isArray(o.material) ? o.material : [o.material];
+        mats.forEach((m) => {
+          if (m && m.side !== DoubleSide) {
+            m.side = DoubleSide;
+            m.needsUpdate = true;
+          }
+        });
+      });
+    }
+
     this.__loadedItem.children.map((child) => {
       child.receiveShadow = true;
       child.castShadow = true;
@@ -1590,9 +1610,14 @@ export class Physical3DItem extends Mesh {
       nativeSize.y > 0 &&
       nativeSize.z > 0
     ) {
-      const sx = (Number(expectedSize[0]) || 0) / (100 * nativeSize.x);
-      const sy = (Number(expectedSize[1]) || 0) / (100 * nativeSize.y);
-      const sz = (Number(expectedSize[2]) || 0) / (100 * nativeSize.z);
+      // Keep the SIGN of the scale this item already has. Sizes are always
+      // positive, so recomputing from them would undo a MIRRORED item (the
+      // toolbar's Mirror, saved as a negative width scale) on every load.
+      const keepSign = (value, current) => (current < 0 ? -Math.abs(value) : Math.abs(value));
+      const current = this.__itemModel.__scale;
+      const sx = keepSign((Number(expectedSize[0]) || 0) / (100 * nativeSize.x), current.x);
+      const sy = keepSign((Number(expectedSize[1]) || 0) / (100 * nativeSize.y), current.y);
+      const sz = keepSign((Number(expectedSize[2]) || 0) / (100 * nativeSize.z), current.z);
       this.__itemModel.__scale.set(sx, sy, sz);
       // Write the corrected scale AND size back into __metadata too. __metadata
       // is the stale second copy that __applyMetaData() reads scale/size BACK
@@ -1665,10 +1690,13 @@ export class Physical3DItem extends Mesh {
         nativeSize.y > 0 &&
         nativeSize.z > 0
       ) {
+        // Keep the sign, so a mirrored item stays mirrored (see above).
+        const keep = (value, current) => (current < 0 ? -Math.abs(value) : Math.abs(value));
+        const now = this.__itemModel.__scale;
         this.__itemModel.__scale.set(
-          (Number(expectedSize[0]) || 0) / (100 * nativeSize.x),
-          (Number(expectedSize[1]) || 0) / (100 * nativeSize.y),
-          (Number(expectedSize[2]) || 0) / (100 * nativeSize.z)
+          keep((Number(expectedSize[0]) || 0) / (100 * nativeSize.x), now.x),
+          keep((Number(expectedSize[1]) || 0) / (100 * nativeSize.y), now.y),
+          keep((Number(expectedSize[2]) || 0) / (100 * nativeSize.z), now.z)
         );
       }
 

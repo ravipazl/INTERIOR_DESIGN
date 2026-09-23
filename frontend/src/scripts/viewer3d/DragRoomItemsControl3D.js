@@ -718,6 +718,9 @@ export class DragRoomItemsControl3D extends EventDispatcher {
   }
 
   __processMove(evt) {
+    // A locked item (the toolbar's Lock) can still be clicked and looked at,
+    // it just doesn't move with the pointer.
+    if (this.__selected && this.__selected.__pzLocked) return;
     let rect = this.__domElement.getBoundingClientRect();
 
     if (this.__allowDragging) {

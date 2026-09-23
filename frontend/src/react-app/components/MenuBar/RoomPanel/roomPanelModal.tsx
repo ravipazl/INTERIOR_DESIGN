@@ -13,7 +13,13 @@ function RoomPanelModal({
   canDelete,
   onDelete,
   isDeleting,
+  selectMode,
+  selected,
+  onToggleSelect,
 }: roomPanelModalProps) {
+  // In selection mode the whole card ticks; a model that can't be deleted
+  // (the built-in catalogue) shows no tick box and stays quiet.
+  const selectable = !!selectMode && !!canDelete;
   const [confirming, setConfirming] = useState(false);
 
   // Method 1 — in-app thumbnail upload. Kept fully local so no parent wiring
@@ -62,8 +68,15 @@ function RoomPanelModal({
     // (name, Width, price, + Add). Everything still works — the details just
     // appear on hover instead of always being visible.
     <div
-      className="group relative w-[135px] h-[150px] m-1.5 rounded-lg overflow-hidden bg-neutral-50 dark:bg-[#3a3a3a] border border-neutral-100 dark:border-[#444444] shadow-sm"
+      className={`group relative w-[135px] h-[150px] m-1.5 rounded-lg overflow-hidden bg-neutral-50 dark:bg-[#3a3a3a] shadow-sm ${
+        selected
+          ? "border-2 border-[color:var(--pz-accent)]"
+          : "border border-neutral-100 dark:border-[#444444]"
+      } ${selectMode && !canDelete ? "opacity-50" : ""} ${
+        selectable ? "cursor-pointer" : ""
+      }`}
       key={modalData?._id}
+      onClick={selectable ? () => onToggleSelect && onToggleSelect() : undefined}
       // Pre-warm the GLB the moment the user hovers the card, so by the time
       // they click "+ Add" (or drag-drop) the model is already downloaded and
       // parsed — the item then appears instantly instead of after a white-box
@@ -77,7 +90,7 @@ function RoomPanelModal({
       }}
       // Drag-to-place: pick up this model, then drop it onto the 3D canvas to
       // add it at that spot. The "+ Add" button (on hover) still works too.
-      draggable
+      draggable={!selectMode}
       onDragStart={(e) => {
         setDraggedModel(modalData);
         try {
@@ -112,8 +125,26 @@ function RoomPanelModal({
         onChange={handleThumbnailSelected}
       />
 
+      {/* Selection mode: a tick box in the corner, always visible. */}
+      {selectable && (
+        <div
+          className={`absolute top-1 left-1 z-30 w-5 h-5 rounded border flex items-center justify-center text-[12px] leading-none ${
+            selected
+              ? "bg-[color:var(--pz-accent)] border-[color:var(--pz-accent)] text-white"
+              : "bg-white/90 border-neutral-300 text-transparent"
+          }`}
+          aria-hidden="true"
+        >
+          ✓
+        </div>
+      )}
+
       {/* Top-corner actions — appear on hover: Upload Image + delete × */}
-      <div className="absolute top-1 left-1 right-1 flex items-center justify-between opacity-0 group-hover:opacity-100 transition-opacity z-20">
+      <div
+        className={`absolute top-1 left-1 right-1 flex items-center justify-between transition-opacity z-20 ${
+          selectMode ? "hidden" : "opacity-0 group-hover:opacity-100"
+        }`}
+      >
         <button
           type="button"
           onClick={openFilePicker}
@@ -147,6 +178,8 @@ function RoomPanelModal({
         className={`absolute bottom-0 left-0 right-0 bg-white/95 dark:bg-[#2b2b2b]/95 px-2 pt-1.5 pb-2 transition-transform duration-200 z-20 ${
           confirming
             ? "translate-y-0"
+            : selectMode
+            ? "translate-y-full" // no "+ Add" while ticking cards
             : "translate-y-full group-hover:translate-y-0"
         }`}
       >

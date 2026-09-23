@@ -1,0 +1,66 @@
+/* The toolbar that pops up beside a selected 3D item (ItemToolbar3D.tsx).
+   Fixed to the viewport because the position comes from projecting the item
+   through the 3D camera, which gives screen coordinates (same as the
+   dimension chips in Viewer3d). */
+
+.pz-it3d {
+  position: fixed;
+  z-index: 30;
+  display: flex;
+  align-items: flex-start;
+  font-size: 13px;
+  color: var(--pz-text);
+  user-select: none;
+}
+
+.pz-it3d-bar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px 6px;
+  background: var(--pz-panel-surface);
+  border: 1px solid var(--pz-panel-border);
+  border-radius: 8px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.14);
+}
+
+.pz-it3d-grip {
+  font-size: 18px !important;
+  color: var(--pz-text-2);
+  padding: 0 2px;
+  cursor: grab;
+}
+
+.pz-it3d-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--pz-text);
+  cursor: pointer;
+}
+
+.pz-it3d-btn .material-symbols-outlined {
+  font-size: 18px;
+}
+
+.pz-it3d-btn:hover {
+  background: var(--pz-panel-hover, rgba(0, 0, 0, 0.06));
+}
+
+.pz-it3d-btn.pz-it3d-active {
+  background: var(--pz-accent-soft);
+  color: var(--pz-accent);
+}
+
+.pz-it3d-btn.pz-it3d-danger {
+  color: #dc2626;
+}
+
+.pz-it3d-btn.pz-it3d-danger:hover {
+  background: rgba(220, 38, 38, 0.1);
+}

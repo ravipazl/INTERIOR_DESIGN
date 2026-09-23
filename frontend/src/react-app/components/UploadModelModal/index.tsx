@@ -22,6 +22,10 @@ type FileItem = {
   status: "queued" | "uploading" | "done" | "error";
   progress: number;
   error?: string;
+  /** This file's OWN size (mm) and mesh count, read from the GLB itself. */
+  dims?: { w: number; h: number; d: number };
+  meshes?: number;
+  measuring?: boolean;
 };
 
 // Re-use the shared PLACEMENT_OPTIONS so Upload / Search / Generate stay
@@ -52,6 +56,8 @@ function UploadModelModal({
   const [meshCount, setMeshCount] = useState<number>(0);
   const [measuring, setMeasuring] = useState<boolean>(false);
   const [measured, setMeasured] = useState<boolean>(false);
+  // True once the W/H/D boxes have been typed in by hand.
+  const dimsEdited = useRef<boolean>(false);
   const [price, setPrice] = useState<number>(0);
   const [busy, setBusy] = useState<boolean>(false);
   const [summary, setSummary] = useState<string>("");
@@ -68,6 +74,7 @@ function UploadModelModal({
     setItems([]);
     setSummary("");
     setMeasured(false);
+    dimsEdited.current = false;
     setMeasuring(false);
     setMeshCount(0);
   }, [show, categoryId]);
@@ -143,11 +150,12 @@ function UploadModelModal({
   // range (10 mm – 5 m); anything outside means an odd export (wrong units /
   // axis) → we keep the defaults and let the user type. The three boxes stay
   // editable either way, so this never blocks an upload.
-  const measureGlbDimensions = async (file: File) => {
+  /** Measure ONE file. Returns its own size + mesh count, or null. */
+  const measureGlb = async (
+    file: File
+  ): Promise<{ dims: { w: number; h: number; d: number } | null; meshes: number } | null> => {
     const loader: any = (BlueprintInterface as any)?.GLTFLoader;
-    if (!loader || typeof loader.parse !== "function") return;
-    setMeasuring(true);
-    setMeasured(false);
+    if (!loader || typeof loader.parse !== "function") return null;
     try {
       const buffer = await file.arrayBuffer();
       const gltf: any = await new Promise((resolve, reject) =>
@@ -161,26 +169,55 @@ function UploadModelModal({
       gltf.scene.traverse((o: any) => {
         if (o.isMesh) meshes += 1;
       });
-      setMeshCount(meshes);
-      const size = new Box3()
-        .setFromObject(gltf.scene)
-        .getSize(new Vector3());
+      const size = new Box3().setFromObject(gltf.scene).getSize(new Vector3());
       const toMm = (u: number) => Math.round(u * 1000);
       const w = toMm(size.x);
       const h = toMm(size.y);
       const d = toMm(size.z);
       const sane = (v: number) => Number.isFinite(v) && v >= 10 && v <= 5000;
-      if (sane(w) && sane(h) && sane(d)) {
-        setWidth(w);
-        setHeight(h);
-        setDepth(d);
-        setMeasured(true);
-      }
+      return { dims: sane(w) && sane(h) && sane(d) ? { w, h, d } : null, meshes };
     } catch (_) {
       /* measurement is optional — user can type the values */
-    } finally {
-      setMeasuring(false);
+      return null;
     }
+  };
+
+  /**
+   * Measure EVERY file that was just added and keep each result on its own
+   * row, so each model is saved with the size of its own GLB. (Measuring only
+   * the first file and sending those numbers with every upload is what gave
+   * every model in a multi-file upload the first file's dimensions.)
+   * The boxes above show the first file's numbers, and stay editable.
+   */
+  const measureFiles = async (files: File[], fillBoxes: boolean) => {
+    setMeasuring(true);
+    if (fillBoxes) setMeasured(false);
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const result = await measureGlb(file);
+      setItems((prev) =>
+        prev.map((it) =>
+          it.file === file
+            ? {
+                ...it,
+                measuring: false,
+                dims: result?.dims || undefined,
+                meshes: result?.meshes,
+              }
+            : it
+        )
+      );
+      if (fillBoxes && i === 0 && result) {
+        if (result.meshes) setMeshCount(result.meshes);
+        if (result.dims) {
+          setWidth(result.dims.w);
+          setHeight(result.dims.h);
+          setDepth(result.dims.d);
+          setMeasured(true);
+        }
+      }
+    }
+    setMeasuring(false);
   };
 
   const handleFiles = (files: FileList | null) => {
@@ -195,6 +232,7 @@ function UploadModelModal({
         name: f.name.replace(/\.glb$/i, ""),
         status: "queued",
         progress: 0,
+        measuring: true,
       });
     }
     setItems((prev) => {
@@ -206,9 +244,13 @@ function UploadModelModal({
       }
       return merged;
     });
-    // Auto-measure W/H/D from the first uploaded model (best-effort).
-    if (isFirstBatch && next.length) {
-      void measureGlbDimensions(next[0].file);
+    // Measure each file on its own (best-effort); the boxes above show the
+    // first one's numbers.
+    if (next.length) {
+      void measureFiles(
+        next.map((it) => it.file),
+        isFirstBatch
+      );
     }
   };
 
@@ -242,15 +284,22 @@ function UploadModelModal({
         )
       );
       try {
+        // EACH file is saved with the size of its OWN GLB. The boxes above are
+        // used only for a file that could not be measured, and for the single
+        // file whose numbers you typed there.
+        const own = items[i].dims;
+        const typedForThisOne = items.length === 1 && dimsEdited.current;
+        const size =
+          own && !typedForThisOne ? own : { w: width, h: height, d: depth };
         const res: any = await ModelsService.uploadGlb({
           file: items[i].file,
           name: items[i].name,
           categoryId: effectiveCategoryId,
           type,
-          width,
-          height,
-          depth,
-          meshCount,
+          width: size.w,
+          height: size.h,
+          depth: size.d,
+          meshCount: items[i].meshes ?? meshCount,
           price,
           onProgress: (pct) => {
             setItems((prev) =>
@@ -480,7 +529,9 @@ function UploadModelModal({
                 <span className="text-xs text-blue-500">measuring…</span>
               ) : measured ? (
                 <span className="text-xs text-green-600 dark:text-green-400">
-                  ✓ auto-filled from your model — edit if needed
+                  {items.length > 1
+                    ? "✓ each file is saved with its own size (shown in the list)"
+                    : "✓ auto-filled from your model — edit if needed"}
                 </span>
               ) : null}
             </div>
@@ -495,6 +546,7 @@ function UploadModelModal({
                   className="mt-1 block w-full border rounded px-2 py-1 dark:bg-neutral-800 dark:text-white"
                   value={width === 0 ? "" : width}
                   onChange={(e) => {
+                    dimsEdited.current = true;
                     const v = e.target.value;
                     if (v === "") {
                       setWidth(0);
@@ -519,6 +571,7 @@ function UploadModelModal({
                   className="mt-1 block w-full border rounded px-2 py-1 dark:bg-neutral-800 dark:text-white"
                   value={height === 0 ? "" : height}
                   onChange={(e) => {
+                    dimsEdited.current = true;
                     const v = e.target.value;
                     if (v === "") {
                       setHeight(0);
@@ -543,6 +596,7 @@ function UploadModelModal({
                   className="mt-1 block w-full border rounded px-2 py-1 dark:bg-neutral-800 dark:text-white"
                   value={depth === 0 ? "" : depth}
                   onChange={(e) => {
+                    dimsEdited.current = true;
                     const v = e.target.value;
                     if (v === "") {
                       setDepth(0);
@@ -614,8 +668,20 @@ function UploadModelModal({
                     onChange={(e) => renameItem(idx, e.target.value)}
                     disabled={busy || it.status !== "queued"}
                   />
-                  <div className="w-28 text-xs text-neutral-500">
-                    {(it.file.size / 1024).toFixed(0)} KB
+                  {/* This file's OWN size — what it will be saved with. */}
+                  <div className="w-40 text-xs text-neutral-500 leading-tight">
+                    <div>{(it.file.size / 1024).toFixed(0)} KB</div>
+                    <div>
+                      {it.measuring ? (
+                        <span className="text-blue-500">measuring…</span>
+                      ) : it.dims ? (
+                        `${it.dims.w} × ${it.dims.h} × ${it.dims.d} mm`
+                      ) : (
+                        <span title="This GLB could not be measured — the boxes above are used instead.">
+                          sizes above
+                        </span>
+                      )}
+                    </div>
                   </div>
                   <div className="w-40">
                     {it.status === "queued" && (
