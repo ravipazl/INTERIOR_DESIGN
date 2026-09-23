@@ -77,7 +77,10 @@ function hasOwnLook(row) {
   const mat = row.prim.getMaterial()
   if (!mat) return false
   const white = mat.getBaseColorFactor().slice(0, 3).every((v) => v > 0.98)
-  const plainName = /^(default material)?$/i.test(mat.getName() || '')
+  // "default material.001" / ".002" are the duplicate names an export writes
+  // when the same plain material is copied — still a plain material, so a
+  // cabinet using them must not be skipped as "already has its own look".
+  const plainName = /^(default material(\.\d+)?)?$/i.test(mat.getName() || '')
   return !!mat.getBaseColorTexture() || !white || !plainName
 }
 
@@ -97,7 +100,10 @@ function detectByShape(rows, modelName = '') {
   // Front = the side the handles sit on (+Z for most files, −Z for some).
   const avgHandleZ = handleRows.reduce((t, r) => t + r.centre[2], 0) / (handleRows.length || 1)
   const front = avgHandleZ < 0 ? -1 : 1
-  const boards = plain.filter((r) => r.size[2] <= 25 && r.size[0] >= 200 && r.size[1] >= 500)
+  // ≥ 120 mm wide, not 200: a 150 mm oil pull-out has a real shutter too.
+  // Still a thin (≤ 25 mm), tall (≥ 500 mm) board, so side panels and
+  // worktops — which are deep, not thin-and-tall — are still excluded.
+  const boards = plain.filter((r) => r.size[2] <= 25 && r.size[0] >= 120 && r.size[1] >= 500)
   const frontZ = Math.max(...boards.map((r) => front * r.centre[2]))
   // The frontmost board(s). A back panel is also thin but sits at the back.
   let shutters = boards
