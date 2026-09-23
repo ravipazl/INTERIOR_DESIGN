@@ -273,6 +273,11 @@ function RoomPanel({
   const [showRoomPanelModal, setShowRoomPanelModal] = useState<boolean>(false);
   const [selectedModels, setSelectedModels] = useState<Model[]>([]);
   const [deletingModelId, setDeletingModelId] = useState<string | null>(null);
+  // Deleting several models at once (header: Select → tick cards → Delete (N)).
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkBusy, setBulkBusy] = useState(false);
+  const [bulkProgress, setBulkProgress] = useState("");
   const [roomPanelData, setRoomPanelData] = useState<Category[]>([]);
   const [showUploadModal, setShowUploadModal] = useState<boolean>(false);
   const [showAddCategoryModal, setShowAddCategoryModal] =
@@ -460,6 +465,22 @@ function RoomPanel({
     matchName(c?.data?.name ?? c?.name)
   );
 
+  /** A model is deletable when YOU created it (upload / Sketchfab / AI). */
+  const isDeletable = (m: any) =>
+    !!(m?.isUserUploaded || m?.isFromSketchfab || m?.isAiGenerated);
+  /** The deletable models currently on screen — what "Select all" ticks. */
+  const deletableShownModels = () =>
+    (placementFilter !== "all" ? shownSubtreeModels : shownLeafModels).filter(
+      isDeletable
+    );
+  const toggleSelected = (id: string) =>
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+
   const handleAddTreeData = async () => {
     const nodeMap = new Map();
     await Promise.all(
@@ -617,6 +638,56 @@ function RoomPanel({
     } finally {
       setDeletingModelId(null);
     }
+  };
+
+  /**
+   * Delete SEVERAL catalog models at once (the header's Select mode). Each one
+   * goes through the same single-model call as the × on a card, so the same
+   * rules apply: a seeded catalog model, or one still used in a project, is
+   * kept and reported instead of deleted.
+   */
+  const handleDeleteSelectedModels = async () => {
+    const ids = Array.from(selectedIds);
+    if (!ids.length || bulkBusy) return;
+    // No confirmation pop-up: ticking the models and pressing Delete (N) is
+    // the confirmation. Models used in a project are refused by the backend
+    // and reported in the summary line.
+    setBulkBusy(true);
+    let deleted = 0;
+    const kept: string[] = [];
+    for (let i = 0; i < ids.length; i++) {
+      setBulkProgress(`Deleting ${i + 1} of ${ids.length}…`);
+      try {
+        await ModelsService.deleteCatalogModel(ids[i]);
+        deleted++;
+        setSelectedModels((prev) => prev.filter((m) => m._id !== ids[i]));
+      } catch (e: any) {
+        kept.push(
+          e?.inUseCount != null
+            ? "still used in a project"
+            : e?.code === "protected"
+            ? "part of the built-in catalogue"
+            : e?.message || "failed"
+        );
+      }
+    }
+    // One refresh at the end, not one per model.
+    try {
+      const resp = await ModelsService.getAllModels();
+      const data: any = (resp as any)?.data ?? resp;
+      if (Array.isArray(data)) ModelsService.saveModelsToLocalStorage(data);
+    } catch (e) {
+      console.warn("handleDeleteSelectedModels: catalog refresh failed", e);
+    }
+    setBulkBusy(false);
+    setSelectedIds(new Set());
+    setSelectMode(false);
+    const reasons = Array.from(new Set(kept));
+    setBulkProgress(
+      `${deleted} deleted` +
+        (kept.length ? ` · ${kept.length} kept: ${reasons.join(", ")}` : "")
+    );
+    setTimeout(() => setBulkProgress(""), 6000);
   };
 
   const refreshCategoriesTree = async () => {
@@ -789,6 +860,19 @@ function RoomPanel({
                 {selectedTreeNode.data.name}
               </h5>
               <div className="flex items-center gap-3">
+                {/* Select several models and delete them in one go. Only your
+                    own uploads can be deleted, so only those can be ticked. */}
+                <button
+                  className="text-xs px-3 py-1 rounded border border-neutral-400 text-neutral-700 dark:text-neutral-100 hover:bg-white/60 dark:hover:bg-white/10"
+                  title="Select several models to delete"
+                  onClick={() => {
+                    setSelectMode((on) => !on);
+                    setSelectedIds(new Set());
+                    setBulkProgress("");
+                  }}
+                >
+                  {selectMode ? "Done" : "Select"}
+                </button>
                 <button
                   className="text-xs px-3 py-1 rounded bg-[color:var(--pz-accent)] text-white hover:opacity-90"
                   title="Upload your own .glb files into this category"
@@ -805,6 +889,58 @@ function RoomPanel({
                 />
               </div>
             </div>
+            {/* Selection bar — only while picking models to delete. */}
+            {selectMode && (
+              <div className="flex items-center gap-2 px-3 py-2 bg-[color:var(--pz-accent-soft)] border-b border-neutral-200 dark:border-neutral-600">
+                <button
+                  className="text-xs text-[color:var(--pz-accent)] font-medium"
+                  disabled={bulkBusy}
+                  onClick={() => {
+                    const deletable = deletableShownModels();
+                    setSelectedIds((prev) =>
+                      prev.size >= deletable.length
+                        ? new Set()
+                        : new Set(deletable.map((m: any) => String(m._id)))
+                    );
+                  }}
+                >
+                  {selectedIds.size >= deletableShownModels().length &&
+                  deletableShownModels().length > 0
+                    ? "Clear all"
+                    : "Select all"}
+                </button>
+                <span className="text-xs text-[color:var(--pz-accent)]">
+                  {bulkBusy
+                    ? bulkProgress
+                    : `${selectedIds.size} selected`}
+                </span>
+                <div className="ml-auto flex items-center gap-2">
+                  <button
+                    className="text-xs px-3 py-1 rounded bg-red-500 text-white hover:bg-red-600 disabled:opacity-40"
+                    disabled={!selectedIds.size || bulkBusy}
+                    onClick={handleDeleteSelectedModels}
+                  >
+                    Delete ({selectedIds.size})
+                  </button>
+                  <button
+                    className="text-xs px-3 py-1 rounded border border-neutral-400 text-neutral-700 dark:text-neutral-100 disabled:opacity-40"
+                    disabled={bulkBusy}
+                    onClick={() => {
+                      setSelectMode(false);
+                      setSelectedIds(new Set());
+                    }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
+            {/* What happened after a bulk delete, e.g. "2 deleted · 1 kept…". */}
+            {!selectMode && bulkProgress && (
+              <div className="px-3 py-2 text-xs text-neutral-600 dark:text-neutral-200 border-b border-neutral-200 dark:border-neutral-600">
+                {bulkProgress}
+              </div>
+            )}
             <div className="p-2 pb-[225px] max-h-full overflow-y-auto">
               {/* Search box, placement pills and Sort removed — the category
                   tree already narrows the list, and the panel is now 320px
@@ -835,6 +971,9 @@ function RoomPanel({
                           canDelete={canDelete}
                           isDeleting={deletingModelId === model._id}
                           onDelete={() => handleDeleteCatalogModel(model)}
+                          selectMode={selectMode}
+                          selected={selectedIds.has(String(model._id))}
+                          onToggleSelect={() => toggleSelected(String(model._id))}
                         />
                       );
                     })}
@@ -894,6 +1033,9 @@ function RoomPanel({
                         canDelete={canDelete}
                         isDeleting={deletingModelId === model._id}
                         onDelete={() => handleDeleteCatalogModel(model)}
+                        selectMode={selectMode}
+                        selected={selectedIds.has(String(model._id))}
+                        onToggleSelect={() => toggleSelected(String(model._id))}
                       />
                     );
                   })}

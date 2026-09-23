@@ -88,6 +88,10 @@ export interface roomPanelModalProps {
   onDelete?: () => void;
   /** Disables the card buttons while a delete request is in flight. */
   isDeleting?: boolean;
+  /** Selection mode (deleting several at once): the card ticks instead of adding. */
+  selectMode?: boolean;
+  selected?: boolean;
+  onToggleSelect?: () => void;
 }
 
 export interface roomPanelModalCardProps {
