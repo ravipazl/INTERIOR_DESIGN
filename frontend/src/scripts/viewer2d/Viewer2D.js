@@ -269,6 +269,10 @@ export class Viewer2D extends Application {
     // this.__floorplanContainer.addChild(this.__tempWall);
     this.__floorplanContainer.addChild(origin);
     this.__floorplanContainer.addChild(this.__floorplanElementsHolder);
+    // Alignment guides + the start-point ✕ shown while drawing a wall
+    // (__drawDrawingHelpers). Above the plan, below the transformer handles.
+    this.__drawHelpers = new Graphics();
+    this.__floorplanContainer.addChild(this.__drawHelpers);
     this.__floorplanContainer.addChild(this.__groupTransformer);
 
     this.__tempWallHolder.addChild(this.__tempWall);
@@ -453,6 +457,9 @@ export class Viewer2D extends Application {
         this.__groupTransformer.visible = false;
         this.__groupTransformer.selected = null;
         this.__lastNode = null;
+        this.__alignX = null;
+        this.__alignY = null;
+        this.__drawDrawingHelpers();
         this.__floorplanContainer.plugins.resume("drag");
         this.__changeCursorMode();
         break;
@@ -468,6 +475,9 @@ export class Viewer2D extends Application {
         this.__groupTransformer.visible = false;
         this.__groupTransformer.selected = null;
         this.__lastNode = null;
+        this.__alignX = null;
+        this.__alignY = null;
+        this.__drawDrawingHelpers();
         this.__changeCursorMode();
         break;
       default:
@@ -536,6 +546,10 @@ export class Viewer2D extends Application {
           Math.floor(cmCo.y / Configuration.getNumericValue(snapTolerance)) *
           Configuration.getNumericValue(snapTolerance);
       }
+
+      // Same alignment as the preview, so the wall lands exactly where the
+      // guide showed it.
+      cmCo = this.__alignToCorners(cmCo);
 
       // Orthogonal (toolbar option): straight lines only — horizontal or
       // vertical from the previous point. Off by default.
@@ -609,6 +623,8 @@ export class Viewer2D extends Application {
         this.__lengthBox.hide();
       }
     }
+    // Mark the new start point (or clear the mark when the wall closed).
+    this.__drawDrawingHelpers();
   }
 
   __drawModeMouseMove(evt) {
@@ -626,8 +642,14 @@ export class Viewer2D extends Application {
           Math.floor(cmCo.y / Configuration.getNumericValue(snapTolerance)) *
           Configuration.getNumericValue(snapTolerance);
       }
+      // Line up with an existing corner (and show the guide) before Orthogonal,
+      // which has the last word on keeping the wall straight.
+      cmCo = this.__alignToCorners(cmCo);
       if (this.__drawTools && this.__drawTools.orthogonal && this.__lastNode) {
         cmCo = this.__drawTools.orthoFrom(this.__lastNode.location, cmCo);
+        // Orthogonal moved the point off a guide → that guide is not real.
+        if (this.__alignX && Math.abs(cmCo.x - this.__alignX.x) > 0.5) this.__alignX = null;
+        if (this.__alignY && Math.abs(cmCo.y - this.__alignY.y) > 0.5) this.__alignY = null;
       }
       this.__lineCursor = cmCo;
       if (this.__lastNode !== null) {
@@ -635,6 +657,7 @@ export class Viewer2D extends Application {
       } else {
         this.__tempWall.update(lastNode, undefined, cmCo);
         if (this.__lengthBox) this.__lengthBox.hide();
+        this.__drawDrawingHelpers();
       }
     }
   }
@@ -650,6 +673,112 @@ export class Viewer2D extends Application {
     this.__tempWall.update(this.__lastNode, end);
     if (this.__lengthBox && !IS_TOUCH_DEVICE) {
       this.__lengthBox.show(from, end, this.__lineCursor);
+    }
+    this.__drawDrawingHelpers();
+  }
+
+  // ── Drawing helpers: alignment guides + the start-point mark ──────────────
+  //
+  // While a wall is being drawn, the point snaps to line up LEVEL or PLUMB with
+  // an existing corner, and that alignment is SHOWN: a green line through the
+  // corner it lined up with, right across the plan (what Coohom draws). The
+  // point the wall is being drawn FROM is marked with a green ✕, so a wall left
+  // half-drawn shows where it carries on from.
+
+  /** Line the point up with an existing corner (level / plumb). cm in, cm out. */
+  __alignToCorners(cmCo) {
+    this.__alignX = null;
+    this.__alignY = null;
+    if (!cmCo || !this.__floorplan) return cmCo;
+    const zoom = this.__floorplanContainer.scale.x || 1;
+    const tol = Dimensioning.pixelToCm(12 / zoom);
+    let bx = tol;
+    let by = tol;
+    const corners = this.__floorplan.corners || [];
+    for (let i = 0; i < corners.length; i++) {
+      const c = corners[i];
+      if (!c || c === this.__lastNode) continue;
+      const p = c.location;
+      const dx = Math.abs(p.x - cmCo.x);
+      const dy = Math.abs(p.y - cmCo.y);
+      if (dx < bx) {
+        bx = dx;
+        this.__alignX = p;
+      }
+      if (dy < by) {
+        by = dy;
+        this.__alignY = p;
+      }
+    }
+    if (this.__alignX) cmCo.x = this.__alignX.x;
+    if (this.__alignY) cmCo.y = this.__alignY.y;
+    return cmCo;
+  }
+
+  /** Draw the guides for the current alignment and mark the start point. */
+  __drawDrawingHelpers() {
+    const g = this.__drawHelpers;
+    if (!g) return;
+    g.clear();
+    if (this.__mode !== floorplannerModes.DRAW) return;
+    const zoom = this.__floorplanContainer.scale.x || 1;
+    const px = (p) => ({
+      x: Dimensioning.cmToPixel(p.x),
+      y: Dimensioning.cmToPixel(p.y),
+    });
+    const GREEN = 0x1d9e75;
+    // Only across what is ON SCREEN — an "endless" line would cost thousands of
+    // dashes per mouse move. The visible area in this container's own
+    // coordinates: (screen − container position) ÷ zoom.
+    const pos = this.__floorplanContainer.position;
+    const view = { w: this.renderer.width, h: this.renderer.height };
+    const left = (0 - pos.x) / zoom;
+    const right = (view.w - pos.x) / zoom;
+    const top = (0 - pos.y) / zoom;
+    const bottom = (view.h - pos.y) / zoom;
+    const dash = (x1, y1, x2, y2, step) => {
+      const dx = x2 - x1;
+      const dy = y2 - y1;
+      const len = Math.hypot(dx, dy);
+      const n = Math.min(400, Math.max(1, Math.floor(len / step)));
+      for (let i = 0; i < n; i += 2) {
+        const a = i / n;
+        const b = Math.min(1, (i + 1) / n);
+        g.moveTo(x1 + dx * a, y1 + dy * a);
+        g.lineTo(x1 + dx * b, y1 + dy * b);
+      }
+    };
+
+    // The guide lines, dashed so they are never mistaken for a wall.
+    g.lineStyle(1.5 / zoom, GREEN, 0.9);
+    const step = 10 / zoom;
+    if (this.__alignY) {
+      const p = px(this.__alignY);
+      dash(left, p.y, right, p.y, step);
+    }
+    if (this.__alignX) {
+      const p = px(this.__alignX);
+      dash(p.x, top, p.x, bottom, step);
+    }
+    // A dot on the corner each guide comes from.
+    g.lineStyle(0);
+    g.beginFill(GREEN, 1);
+    [this.__alignX, this.__alignY].forEach((c) => {
+      if (!c) return;
+      const p = px(c);
+      g.drawCircle(p.x, p.y, 4 / zoom);
+    });
+    g.endFill();
+
+    // The ✕ on the point this wall is being drawn from.
+    if (this.__lastNode) {
+      const p = px(this.__lastNode.location);
+      const r = 8 / zoom;
+      g.lineStyle(2.5 / zoom, GREEN, 1);
+      g.moveTo(p.x - r, p.y - r);
+      g.lineTo(p.x + r, p.y + r);
+      g.moveTo(p.x + r, p.y - r);
+      g.lineTo(p.x - r, p.y + r);
     }
   }
 
