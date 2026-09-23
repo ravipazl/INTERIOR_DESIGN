@@ -892,6 +892,104 @@ BlueprintInterface.setItem3DVisible = (id, visible) => {
   }
 };
 
+// --- Actions for the toolbar that pops up on a selected 3D item -------------
+// (components/MenuBar/ItemToolbar3D.tsx). Each takes the placed item's model id
+// and works on the item in the 3D scene; all are guarded and return true/false.
+
+const __roomplanner = () =>
+  (BlueprintInterface.blueprint3d && BlueprintInterface.blueprint3d.roomplanner) || null;
+
+/** The placed 3D item with this model id (the one the toolbar is showing for). */
+BlueprintInterface.getItem3DById = (id) => {
+  const rp = __roomplanner();
+  if (!rp || !rp.__physicalRoomItems || !id) return null;
+  return (
+    rp.__physicalRoomItems.find(
+      (p) => ((p.itemModel && p.itemModel.__id) || (p.__itemModel && p.__itemModel.__id)) === id
+    ) || null
+  );
+};
+
+/**
+ * Mirror the item left-to-right (a left-hand cabinet becomes a right-hand one).
+ * A negative scale turns the model's faces inside out, so the materials are put
+ * on both sides — otherwise the item looks hollow from the front.
+ */
+BlueprintInterface.mirrorItem3D = (id) => {
+  const item = BlueprintInterface.getItem3DById(id);
+  if (!item || !item.__itemModel) return false;
+  try {
+    const s = item.__itemModel.__scale;
+    item.__itemModel.scale = new Vector3(-s.x, s.y, s.z);
+    if (item.__loadedItem) {
+      item.__loadedItem.scale.x = -item.__loadedItem.scale.x;
+      item.__loadedItem.traverse((o) => {
+        if (!o.isMesh) return;
+        const mats = Array.isArray(o.material) ? o.material : [o.material];
+        mats.forEach((m) => {
+          if (m) {
+            m.side = 2; // THREE.DoubleSide
+            m.needsUpdate = true;
+          }
+        });
+      });
+    }
+    const rp = __roomplanner();
+    if (rp) {
+      rp.needsUpdate = true;
+      rp.shouldRender = true;
+    }
+    return true;
+  } catch (e) {
+    console.error("mirrorItem3D failed", e);
+    return false;
+  }
+};
+
+/** Add a copy of the item beside it (the Ctrl+C / Ctrl+V path, in one step). */
+BlueprintInterface.duplicateItem3D = (id) => {
+  const rp = __roomplanner();
+  const item = BlueprintInterface.getItem3DById(id);
+  if (!rp || !item) return false;
+  try {
+    const previous = rp.__copiedItem;
+    rp.__copiedItem = item;
+    rp.__pasteCopiedItem();
+    rp.__copiedItem = previous; // leave the user's own copy alone
+    return true;
+  } catch (e) {
+    console.error("duplicateItem3D failed", e);
+    return false;
+  }
+};
+
+/**
+ * Lock / unlock: a locked item can't be dragged or turned in the 3D view.
+ * Its own flag — the engine's `fixed` flag is true for almost every item and
+ * means something else (how it snaps to walls and floors).
+ * Lasts for this session; it is not saved with the project.
+ */
+BlueprintInterface.setItem3DLocked = (id, locked) => {
+  const item = BlueprintInterface.getItem3DById(id);
+  if (!item) return false;
+  try {
+    item.__pzLocked = !!locked;
+    const rp = __roomplanner();
+    // Drop the move/turn gizmo while it is locked.
+    if (locked && rp?.transformControls?.object === item) rp.transformControls.detach();
+    else if (!locked && rp?.transformControls && rp.__currentItemSelected === item) {
+      rp.transformControls.attach(item);
+    }
+    if (rp) rp.needsUpdate = true;
+    return true;
+  } catch (e) {
+    console.error("setItem3DLocked failed", e);
+    return false;
+  }
+};
+
+BlueprintInterface.isItem3DLocked = (id) => !!BlueprintInterface.getItem3DById(id)?.__pzLocked;
+
 // Fly the 3D camera to frame a room (or the whole plan if no room given).
 BlueprintInterface.focusRoom3D = (room) => {
   try {

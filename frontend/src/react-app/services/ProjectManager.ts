@@ -1279,6 +1279,19 @@ export class ProjectManager {
     }
   }
 
+  /** Mirror a placed item left-to-right and save it (toolbar: Mirror). */
+  async onFurnishedModelMirror(furnishedModelId: string) {
+    const existingFurnishedModel = this.getFurnishedModelById(furnishedModelId);
+    if (!existingFurnishedModel) return false;
+    await existingFurnishedModel.handleMirror();
+    await this.updateFloorPlan(
+      existingFurnishedModel?.model?.type === MODEL_TYPES.FLOOR_UNIT
+        ? HISTORY_TITLES.FLOOR_ITEM_UPDATED
+        : HISTORY_TITLES.WALL_ITEM_UPDATED
+    );
+    return true;
+  }
+
   async onFurnishedModelHandleChanged(furnishedModelId: string) {
     const existingFurnishedModel = this.getFurnishedModelById(furnishedModelId);
     console.debug(

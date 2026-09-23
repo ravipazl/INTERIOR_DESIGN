@@ -252,6 +252,21 @@ export class FurnishedModel extends LocalDBManager {
     });
   }
 
+  /**
+   * Mirror the item left-to-right: the width axis keeps its size but changes
+   * sign. Saved on the item itself (like width/height/depth are), so the item
+   * is still mirrored after a reload — the 3D view alone forgets it.
+   */
+  async handleMirror() {
+    const current =
+      this.scale && this.scale.length === 3 ? this.scale : [1, 1, 1];
+    const scaleVec = [-current[0], current[1], current[2]];
+    this.scale = scaleVec;
+    await this.update();
+    const placed = (BlueprintInterface as any)?.getItem3DById?.(this._id);
+    await placed?.__itemUpdatedEvent({ property: "sizeAbsolute", scaleVec });
+  }
+
   async onHandleChanged() {
     console.debug("FurnishedModel.ts ~ onHandleChanged");
     this.isHandleChanged = true;

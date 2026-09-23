@@ -4,6 +4,7 @@ import NavRail from "@pazl/components/NavRail";
 import MenuBar from "@pazl/components/MenuBar";
 import FloorPlanTools from "@pazl/components/MenuBar/FloorPlanTools";
 import EditorShortcuts2D from "@pazl/components/MenuBar/EditorShortcuts2D";
+import ItemToolbar3D from "@pazl/components/MenuBar/ItemToolbar3D";
 import BlueprintInterface from "@pazl/blueprint-interface";
 import { AuthService } from "@pazl/services/authService";
 import { CategoriesService } from "@pazl/services/categoriesService";
@@ -319,6 +320,10 @@ const DrawingComponent = ({
           {!isLoading && activeTab === "floor_plan" ? (
             <EditorShortcuts2D />
           ) : null}
+          {/* The toolbar that pops up beside the item you click in 3D. It
+              positions itself from the item's place on screen, so it lives
+              here with the canvas rather than in a side panel. */}
+          {!isLoading && activeTab !== "floor_plan" ? <ItemToolbar3D /> : null}
         </div>
         {/* The inspector OVERLAYS the canvas — it is position:fixed on the
             right edge and no space is reserved for it here.
