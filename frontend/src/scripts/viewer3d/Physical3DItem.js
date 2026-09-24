@@ -307,18 +307,35 @@ export class Physical3DItem extends Mesh {
       }
 
       if (evt.property === "combinedRotation") {
-        if (evt.rotationY || evt.rotationY === 0) {
+        // ONE HOME FOR THE TURN. The item and the mesh inside it both hold an
+        // angle and the two NEST, so a turn must live in exactly one of them.
+        // When the event carries an angle, that angle is the item's WHOLE turn
+        // and goes on the item, so the mesh has to go back to square — the
+        // tweens below included, which otherwise animate it straight back to
+        // its old angle and hand you double the turn.
+        const onItem = evt.rotationY || evt.rotationY === 0;
+        const meshTurn = onItem
+          ? { x: 0, y: 0, z: 0 }
+          : scope.__itemModel.combinedRotation;
+        if (onItem) {
           let rotation = evt.rotationY
             ? convertAngleToEulersUnit(evt.rotationY)
             : 0;
           rotation = Math.abs(evt.rotationY) === 360 ? 0 : rotation;
           scope.rotation.set(0, rotation, 0);
+          if (scope.__loadedItem) {
+            scope.__loadedItem.rotation.set(0, 0, 0);
+            scope.__recentreLoadedMesh();
+          }
         } else if (scope.__loadedItem) {
           scope.__loadedItem.rotation.set(
             scope.__itemModel.combinedRotation.x,
             scope.__itemModel.combinedRotation.y,
             scope.__itemModel.combinedRotation.z
           );
+          // Turning the mesh moves its middle off the item's spot unless the
+          // centring shift turns with it — see __recentreLoadedMesh.
+          scope.__recentreLoadedMesh();
         }
         scope.__boxhelper.rotation.set(
           scope.__itemModel.combinedRotation.x,
@@ -328,16 +345,19 @@ export class Physical3DItem extends Mesh {
         if (scope.__loadedItem) {
           gsap.to(scope.__loadedItem.rotation, {
             duration: duration,
-            x: scope.__itemModel.combinedRotation.x,
+            x: meshTurn.x,
             onUpdate: __tinyUpdate,
           });
           gsap.to(scope.__loadedItem.rotation, {
             duration: duration,
-            y: scope.__itemModel.combinedRotation.y,
+            y: meshTurn.y,
+            // The mesh drifts off its spot as it turns unless the centring
+            // shift is re-derived each frame — see __recentreLoadedMesh.
+            onUpdate: () => scope.__recentreLoadedMesh(),
           });
           gsap.to(scope.__loadedItem.rotation, {
             duration: duration,
-            z: scope.__itemModel.combinedRotation.z,
+            z: meshTurn.z,
           });
         }
         gsap.to(scope.__boxhelper.rotation, {
@@ -403,18 +423,35 @@ export class Physical3DItem extends Mesh {
       }
 
       if (evt.property === "combinedRotation") {
-        if (evt.rotationY || evt.rotationY === 0) {
+        // ONE HOME FOR THE TURN. The item and the mesh inside it both hold an
+        // angle and the two NEST, so a turn must live in exactly one of them.
+        // When the event carries an angle, that angle is the item's WHOLE turn
+        // and goes on the item, so the mesh has to go back to square — the
+        // tweens below included, which otherwise animate it straight back to
+        // its old angle and hand you double the turn.
+        const onItem = evt.rotationY || evt.rotationY === 0;
+        const meshTurn = onItem
+          ? { x: 0, y: 0, z: 0 }
+          : scope.__itemModel.combinedRotation;
+        if (onItem) {
           let rotation = evt.rotationY
             ? convertAngleToEulersUnit(evt.rotationY)
             : 0;
           rotation = Math.abs(evt.rotationY) === 360 ? 0 : rotation;
           scope.rotation.set(0, rotation, 0);
+          if (scope.__loadedItem) {
+            scope.__loadedItem.rotation.set(0, 0, 0);
+            scope.__recentreLoadedMesh();
+          }
         } else if (scope.__loadedItem) {
           scope.__loadedItem.rotation.set(
             scope.__itemModel.combinedRotation.x,
             scope.__itemModel.combinedRotation.y,
             scope.__itemModel.combinedRotation.z
           );
+          // Turning the mesh moves its middle off the item's spot unless the
+          // centring shift turns with it — see __recentreLoadedMesh.
+          scope.__recentreLoadedMesh();
         }
         scope.__boxhelper.rotation.set(
           scope.__itemModel.combinedRotation.x,
@@ -1092,6 +1129,28 @@ export class Physical3DItem extends Mesh {
     }
   }
 
+  /**
+   * Put the mesh's centre back on the item's origin for its current angle.
+   *
+   * The mesh sits inside the item, shifted by -__center so its middle lands on
+   * the item's own spot. That shift only works while the mesh is square-on:
+   * turning the mesh spins its geometry about the GLB's origin and leaves the
+   * shift pointing the old way, so the middle ends up at (-c + R·c) — off the
+   * spot by however far that GLB was modelled from its origin. Turning the
+   * shift as well (p = -R·c) brings the middle back to the origin at any angle,
+   * and for an unturned mesh R·c === c, the same shift as before.
+   *
+   * Safe to call as often as the angle changes; it is derived, not accumulated.
+   */
+  __recentreLoadedMesh() {
+    if (!this.__loadedItem || !this.__center) return;
+    const centred = this.__center.clone().applyEuler(this.__loadedItem.rotation);
+    this.__loadedItem.position.x = -centred.x;
+    this.__loadedItem.position.y = -centred.y;
+    this.__loadedItem.position.z = -centred.z;
+    this.__loadedItem.updateMatrixWorld(true);
+  }
+
   async __initializeChildItem() {
     /* PERF-REMOVED console.debug: console.debug(
       "DEBUG: __initializeChildItem -> itemModel",
@@ -1184,6 +1243,13 @@ export class Physical3DItem extends Mesh {
     const wasChild = this.__loadedItem.parent === this;
     if (wasChild) this.remove(this.__loadedItem);
     this.__loadedItem.position.set(0, 0, 0);
+    // Take the TURN off before measuring, for the same reason the position is
+    // reset above. On a re-init the mesh still carries the angle set at the end
+    // of this method, and a rotated box measures the model's width and depth
+    // SWAPPED — which sizes the selection outline wrongly and, worse, gives a
+    // centre that belongs to no axis of the model. The angle is put back at the
+    // end; an unturned item is already at zero, so nothing changes for it.
+    this.__loadedItem.rotation.set(0, 0, 0);
     this.__loadedItem.updateMatrixWorld(true);
 
     // Honest full bounding box of the WHOLE loaded model — every mesh, nothing
@@ -1357,6 +1423,22 @@ export class Physical3DItem extends Mesh {
     this.__loadedItem.rotation.x = this.__itemModel.combinedRotation.x;
     this.__loadedItem.rotation.y = this.__itemModel.combinedRotation.y;
     this.__loadedItem.rotation.z = this.__itemModel.combinedRotation.z;
+
+    // KEEP A TURNED ITEM CENTRED ON ITS OWN SPOT.
+    //
+    // The mesh is a CHILD of this item, offset by -__center so its geometry
+    // sits on the item's origin. Turning the child spins its geometry about the
+    // GLB's own origin, but that offset is not turned with it — so the mesh
+    // centre lands at (-c + R·c) instead of on the origin, i.e. the cabinet
+    // swings off its spot by an amount that depends on how far that particular
+    // GLB was modelled from its origin. Straight-on items have R = identity and
+    // land exactly right, which is why only the turned runs along the side walls
+    // came out crooked, each by a different distance, half inside the wall.
+    //
+    // Turning the offset with the mesh puts the centre back on the origin at any
+    // angle: with p = -R·c the centre maps to p + R·c = 0. For an unturned item
+    // R·c === c, so this writes back the very same offset as before.
+    this.__recentreLoadedMesh();
 
     this.__boxhelper.rotation.x = this.__itemModel.combinedRotation.x;
     this.__boxhelper.rotation.y = this.__itemModel.combinedRotation.y;

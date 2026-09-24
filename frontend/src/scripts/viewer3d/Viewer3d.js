@@ -92,6 +92,7 @@ import { Floor3D } from "./floor3d.js";
 import { Lights3D } from "./lights3d.js";
 import { HUD } from "./hud.js";
 import { Physical3DItem } from "./Physical3DItem.js";
+import { convertAngleToEulersUnit } from "@pazl/utils/unitsUtils";
 import { DragRoomItemsControl3D } from "./DragRoomItemsControl3D.js";
 import { Configuration, viewBounds, configDimUnit, configWallHeight } from "../core/configuration.js";
 import { Dimensioning } from "../core/dimensioning.js";
@@ -1964,10 +1965,32 @@ export class Viewer3D extends Scene {
         BlueprintInterface.ProjectManagerService.getFurnishedModelById(
           physicalRoomItem.__itemModel.__id
         );
-      if (
-        furnishedModel &&
-        physicalRoomItem.rotation.y != furnishedModel?.rotation[1]
-      ) {
+      // COMPARE THE SAME UNIT, AND THE ITEM'S WHOLE TURN.
+      //
+      // This used to read `physicalRoomItem.rotation.y != furnishedModel.rotation[1]`
+      // — RADIANS against DEGREES, so it was true for practically every turned
+      // item and the record's angle got re-applied on top of the angle the item
+      // had already been rebuilt with. A cabinet saved at 90° came back at 90 +
+      // 90 = 180°, facing into the wall, and the keep-inside-the-room correction
+      // then shoved its now wrongly-shaped footprint into the middle of the
+      // room. That is why a plan looked right when placed and moved on reload.
+      //
+      // An item's turn can sit on the item or on the mesh inside it and the two
+      // nest, so the angle to compare is the sum. The mesh's own angle is not
+      // applied until its model has loaded, but it is already known here as the
+      // model's combinedRotation, which is what the mesh will be given.
+      const modelTurn = physicalRoomItem.__itemModel?.combinedRotation?.y || 0;
+      const currentTurn = physicalRoomItem.rotation.y + modelTurn;
+      const savedTurn = convertAngleToEulersUnit(furnishedModel?.rotation?.[1] || 0);
+      // RESTORE A MISSING TURN; NEVER OVERRIDE ONE THAT IS ALREADY THERE.
+      //
+      // That is all this was ever for — putting an angle back on an item that
+      // was rebuilt without one. Comparing the two angles instead is a trap:
+      // −90° and 270° are the same angle but do not compare equal, and the
+      // record's conversion uses a rounded quarter-turn, so equal angles differ
+      // in the last decimal. Asking only "does it have a turn yet?" avoids both.
+      const alreadyTurned = Math.abs(currentTurn) > 0.02;
+      if (furnishedModel && !alreadyTurned && Math.abs(savedTurn) > 0.02) {
         itemsToUpdateRotation.push({
           physicalRoomItem: physicalRoomItem,
           furnishedModel: furnishedModel,
@@ -1980,6 +2003,15 @@ export class Viewer3D extends Scene {
         property: "combinedRotation",
       });
     });
+
+    // Every item above is BRAND NEW and therefore visible. Anything the user
+    // hid (the toolbar's Hide / the item list's eye) must stay hidden, or it
+    // reappears on its own after a save, an undo or a template load.
+    try {
+      BlueprintInterface.reapplyHiddenItems3D?.();
+    } catch (e) {
+      /* never break loading over this */
+    }
   }
 
   __drawBoundary() {
@@ -2298,6 +2330,16 @@ export class Viewer3D extends Scene {
   // to the left wall, the gap to the right wall, and the height off the floor.
   // Click a chip → type a new value → the door/window MOVES to that position.
   // Fully guarded: any missing data or error just hides the labels.
+  /** False when the item, or anything it hangs from, has been hidden. */
+  __itemIsVisible(item) {
+    let node = item;
+    while (node) {
+      if (node.visible === false) return false;
+      node = node.parent;
+    }
+    return true;
+  }
+
   updateDimensionLabels() {
     try {
       const scope = this;
@@ -2475,7 +2517,11 @@ export class Viewer3D extends Scene {
         !wall ||
         !wall.start ||
         !wall.end ||
-        !item.position
+        !item.position ||
+        // Hidden item (the toolbar's Hide, or the item list's eye): its
+        // measurements must go with it — they are chips on the page, not part
+        // of the 3D scene, so nothing else would take them away.
+        !scope.__itemIsVisible(item)
       ) {
         hide();
         return;

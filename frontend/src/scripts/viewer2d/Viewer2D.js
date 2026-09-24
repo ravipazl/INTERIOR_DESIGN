@@ -273,6 +273,9 @@ export class Viewer2D extends Application {
     // (__drawDrawingHelpers). Above the plan, below the transformer handles.
     this.__drawHelpers = new Graphics();
     this.__floorplanContainer.addChild(this.__drawHelpers);
+    // Auto-furnish preview (setPlanOverlay) — above the plan, below the tools.
+    this.__planOverlay = new Graphics();
+    this.__floorplanContainer.addChild(this.__planOverlay);
     this.__floorplanContainer.addChild(this.__groupTransformer);
 
     this.__tempWallHolder.addChild(this.__tempWall);
@@ -675,6 +678,34 @@ export class Viewer2D extends Application {
       this.__lengthBox.show(from, end, this.__lineCursor);
     }
     this.__drawDrawingHelpers();
+  }
+
+  /**
+   * Show shapes on top of the plan — used by Auto-furnish to preview the
+   * cabinets before they are placed, and to highlight the picked walls.
+   * `shapes` is [{ points: [{x, y}…] (cm), fill, alpha, line }] or null to clear.
+   */
+  setPlanOverlay(shapes) {
+    const g = this.__planOverlay;
+    if (!g) return;
+    g.clear();
+    if (!shapes || !shapes.length) return;
+    const zoom = this.__floorplanContainer.scale.x || 1;
+    shapes.forEach((shape) => {
+      const pts = (shape.points || []).map((p) => ({
+        x: Dimensioning.cmToPixel(p.x),
+        y: Dimensioning.cmToPixel(p.y),
+      }));
+      if (pts.length < 2) return;
+      g.lineStyle((shape.lineWidth || 1) / zoom, shape.line ?? 0x534ab7, 1);
+      if (shape.fill !== undefined && shape.fill !== null) {
+        g.beginFill(shape.fill, shape.alpha ?? 0.5);
+      }
+      g.moveTo(pts[0].x, pts[0].y);
+      for (let i = 1; i < pts.length; i++) g.lineTo(pts[i].x, pts[i].y);
+      g.lineTo(pts[0].x, pts[0].y);
+      if (shape.fill !== undefined && shape.fill !== null) g.endFill();
+    });
   }
 
   // ── Drawing helpers: alignment guides + the start-point mark ──────────────

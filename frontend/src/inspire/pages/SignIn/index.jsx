@@ -159,6 +159,22 @@ const SignIn = () => {
     }
   };
 
+  /**
+   * Enter in the password field logs in, exactly as the Login button does.
+   *
+   * The button is a plain button, not a submit, so the form never submitted on
+   * Enter and the key did nothing. preventDefault stops the browser reloading
+   * the page on an implicit submit, and the guard is the SAME `signInStatus`
+   * that disables the button — so Enter can never do anything a click could
+   * not, such as sending an empty or badly formed email.
+   */
+  const handlePasswordKeyDown = (e) => {
+    if (e.key !== "Enter") return;
+    e.preventDefault();
+    if (!signInStatus) return;
+    handleLogin();
+  };
+
   const handleLogin = async () => {
     setLoading(true);
     const loginResponse = await authService.signIn({
@@ -235,6 +251,7 @@ const SignIn = () => {
                         placeholder="Password"
                         className="email_password_text border-0 shadow-none"
                         onChange={(e) => setPassword(e.target.value)}
+                        onKeyDown={handlePasswordKeyDown}
                         isInvalid={isInvalidLogin}
                       />
                       <InputGroup.Text

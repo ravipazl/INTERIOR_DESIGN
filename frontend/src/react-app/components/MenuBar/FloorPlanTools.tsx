@@ -10,6 +10,7 @@ import {
 } from "@pazl/main/core/constants.js";
 import FloorPlanAiImport from "./FloorPlanAiImport";
 import SaveTemplateButton from "./SaveTemplateButton";
+import KitchenPlanner2D from "./KitchenPlanner2D";
 
 /**
  * The Floor plan step's tool panel, docked in the left sidebar.
@@ -378,6 +379,12 @@ const FloorPlanTools: React.FC = () => {
             )}
           </div>
         ) : null}
+      </PanelSection>
+
+      {/* Auto-furnish a kitchen straight from the plan: pick a layout, click
+          the walls, see the cabinets previewed, place them. */}
+      <PanelSection title="Kitchen" {...sectionProps("kitchen")}>
+        <KitchenPlanner2D />
       </PanelSection>
 
       <PanelSection title="Measurements" {...sectionProps("measure")}>

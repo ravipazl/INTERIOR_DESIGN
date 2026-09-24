@@ -264,6 +264,10 @@ const FloorPlanMenu = ({
   useEffect(() => {
     if (BlueprintInterface && BlueprintInterface.blueprint3d) {
       handleWallClicked2D((evt: any) => {
+        // While the Kitchen planner is picking walls, a wall click MEANS
+        // "use this wall for the run" — don't also open Wall properties over
+        // the plan and let its fields be edited by accident.
+        if ((BlueprintInterface as any).__kitchenPicking) return;
         BlueprintInterface.setSelectedWall2D(evt.item);
         setItem2D(evt.item);
         setIsWallClicked(true);

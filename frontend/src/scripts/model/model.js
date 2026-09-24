@@ -94,10 +94,23 @@ export class Model extends EventDispatcher {
       // Without this guard exportSerialized throws, which silently breaks the
       // undo/redo history (snapshots are never recorded).
       if (physicalRoomItem && physicalRoomItem.rotation) {
+        // SAVE THE TURN THAT IS ACTUALLY ON SCREEN.
+        //
+        // An item can be turned in two places, and which one is used depends on
+        // how it got there: turning it by hand puts the angle on the item
+        // itself, while loading a saved plan puts it on the mesh inside. Reading
+        // only the item's own angle therefore wrote a ZERO for everything that
+        // came back from a saved plan, and the turn was lost on the next save —
+        // cabinets that ran along a side wall came back square to the room.
+        // The two nest, so their sum is the angle you see either way; for an
+        // item turned in only one of them (all of them, today) the sum is just
+        // that angle, exactly as before.
+        const mesh = physicalRoomItem.__loadedItem;
+        const inner = mesh && mesh.rotation ? mesh.rotation : null;
         item.metadata.rotation = [
-          physicalRoomItem.rotation.x,
-          physicalRoomItem.rotation.y,
-          physicalRoomItem.rotation.z,
+          physicalRoomItem.rotation.x + (inner ? inner.x : 0),
+          physicalRoomItem.rotation.y + (inner ? inner.y : 0),
+          physicalRoomItem.rotation.z + (inner ? inner.z : 0),
         ];
       }
       roomItemsJSON.push(item.metadata);

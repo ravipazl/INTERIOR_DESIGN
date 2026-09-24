@@ -1,0 +1,78 @@
+{
+  "room": "Kitchen",
+  "presets": [
+    {
+      "id": "straight",
+      "name": "Straight run",
+      "summary": "tall unit \u00b7 sink under the window \u00b7 drawers \u00b7 shutters \u00b7 wall units above",
+      "layout": "straightRun",
+      "modules": {
+        "tall": {
+          "category": "Tall Units",
+          "match": null
+        },
+        "sink": {
+          "category": "Below Counter Storage",
+          "match": "sink"
+        },
+        "drawer": {
+          "category": "Below Counter Storage",
+          "match": "drawer"
+        },
+        "shutter": {
+          "category": "Below Counter Storage",
+          "match": "shutter|door|opening",
+          "exclude": "corner|sink|oil ?pull"
+        },
+        "pullout": {
+          "category": "Below Counter Storage",
+          "match": "oil ?pull"
+        },
+        "wallUnit": {
+          "category": "Wall Unit",
+          "match": null,
+          "exclude": "glass"
+        },
+        "corner": {
+          "category": "Below Counter Storage",
+          "match": "corner"
+        }
+      },
+      "rules": {
+        "worktopTopMm": 850,
+        "wallUnitGapMm": 600,
+        "minRunMm": 1500,
+        "doorClearanceMm": 100,
+        "windowMarginMm": 50,
+        "fillerMinMm": 150,
+        "fillerMaxMm": 300
+      }
+    }
+  ],
+  "layouts": [
+    {
+      "id": "straight",
+      "name": "Straight",
+      "walls": 1,
+      "hint": "One wall."
+    },
+    {
+      "id": "l",
+      "name": "L-shape",
+      "walls": 2,
+      "hint": "Two walls that meet."
+    },
+    {
+      "id": "u",
+      "name": "U-shape",
+      "walls": 3,
+      "hint": "Three walls in a row."
+    },
+    {
+      "id": "parallel",
+      "name": "Parallel",
+      "walls": 2,
+      "hint": "Two facing walls."
+    }
+  ]
+}
