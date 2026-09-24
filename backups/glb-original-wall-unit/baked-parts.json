@@ -29,5 +29,25 @@
     "handles": [
       2
     ]
+  },
+  "d0222164-4784-49e2-9988-1b938152e89f_Wall_unit_600_x_600_right_opening_solid_shutter_handle_1_.glb": {
+    "modelId": "6ab4d2b78df05e6cf3edad25",
+    "name": "Wall unit 600 x 600 right opening solid shutter handle (1)",
+    "shutters": [
+      3
+    ],
+    "handles": [
+      2
+    ]
+  },
+  "5120cf4e-2990-461a-bf0f-abbf2640a6f3_Wall_unit_600_x_600_right_opening_solid_shutter_handle.glb": {
+    "modelId": "6ab4d2b78df05e6cf3edad45",
+    "name": "Wall unit 600 x 600 right opening solid shutter handle",
+    "shutters": [
+      1
+    ],
+    "handles": [
+      2
+    ]
   }
 }
