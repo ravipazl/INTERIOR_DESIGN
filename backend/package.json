@@ -46,6 +46,7 @@
     "models:deletable": "node scripts/flag-models-deletable.js",
     "cabinet-finishes:check": "node scripts/production/cabinet-finish-live.mjs",
     "cabinet-finishes:apply": "node scripts/production/cabinet-finish-live.mjs --apply",
+    "cabinet-finishes:verify": "node scripts/production/verify-cabinet-finishes.mjs",
     "mocha": "cross-env NODE_ENV=test mocha test/ --recursive --exit",
     "test": "npm run mocha",
     "bundle:client": "npm pack --pack-destination ./public"
