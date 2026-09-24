@@ -403,11 +403,16 @@ async function faceTheCorner(normalA, normalB) {
   const x = normalA.x + normalB.x;
   const y = normalA.y + normalB.y;
   if (!x && !y) return; // facing walls — no corner between them
-  return turnTheLastItem(Math.atan2(x, y) - Math.PI / 4);
+  // `always`: a corner unit's angle is SET, even when it works out as 0. A
+  // normal cabinet arrives square and 0 means "leave it", but a corner unit can
+  // land already carrying an angle, and in a back-left corner — the one corner
+  // whose answer IS 0 — skipping the write left that stray angle in place and
+  // the unit faced along the wall instead of into the room.
+  return turnTheLastItem(Math.atan2(x, y) - Math.PI / 4, { always: true });
 }
 
 /** Turn the item that was just added to `radians`, and save that turn. */
-async function turnTheLastItem(radians) {
+async function turnTheLastItem(radians, { always = false } = {}) {
   try {
     const rp = BlueprintInterface?.blueprint3d?.roomplanner;
     const items = rp && rp.__physicalRoomItems;
@@ -416,7 +421,11 @@ async function turnTheLastItem(radians) {
     if (!phys || !id) return;
     let degrees = Math.round((radians * 180) / Math.PI);
     degrees = ((degrees % 360) + 360) % 360;
-    if (degrees === 0) return; // already the right way round
+    // Skipping a turn of 0 is right for a cabinet that arrives square, and
+    // saves a needless write. `always` is for callers whose item may already
+    // carry an angle, where 0 is a value to SET rather than a reason to do
+    // nothing — see faceTheCorner.
+    if (degrees === 0 && !always) return;
 
     // 1. Turn it in the view straight away, so what you see is right.
     //
