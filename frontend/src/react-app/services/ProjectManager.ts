@@ -825,6 +825,21 @@ export class ProjectManager {
                 .filter(Boolean)
             );
 
+            // A scene with NO items at all is not evidence that every record is
+            // an orphan — it is what a half-written save leaves behind. Deleting
+            // on that reading wipes a whole room's furniture that the user can
+            // still see listed, and the rows cannot be got back. So the sweep
+            // below only runs when the scene names at least one item; until the
+            // scene is written properly the records are left alone.
+            if (
+              !sceneDbids.size &&
+              floorPlanData.furnishedModels.some((m: any) => m.isActive)
+            ) {
+              console.warn(
+                "ProjectManager ~ loadSceneInitially ~ the saved scene has no items but the project has active models; leaving them alone instead of deleting them"
+              );
+            }
+
             scene?.items.map((item: any) => {
               const foundModel = floorPlanData.furnishedModels.find(
                 (model) => model._id === item?.dbid
@@ -833,7 +848,19 @@ export class ProjectManager {
                 itemsList.push({
                   ...item,
                   position: foundModel.position,
-                  rotation: [0, 0, 0],
+                  // KEEP THE ITEM'S OWN TURN.
+                  //
+                  // This used to be hardcoded to [0,0,0], which threw away the
+                  // rotation on every load: an item turned to face along a wall
+                  // came back square to the room, half inside the wall and
+                  // crossing its neighbours. Item takes its angle straight from
+                  // metadata.rotation (items/item.js) and nothing else re-applies
+                  // it, so keeping what the scene saved is the whole fix — and
+                  // for a scene that really was saved unturned it is still
+                  // [0,0,0], exactly as before.
+                  rotation: Array.isArray(item?.rotation)
+                    ? item.rotation
+                    : [0, 0, 0],
                   scale: foundModel.scale,
                 });
               } else {
@@ -867,7 +894,7 @@ export class ProjectManager {
             for (const model of floorPlanData.furnishedModels) {
               if (sceneDbids.has(model._id)) {
                 inSceneModels.push(model);
-              } else if (model.isActive) {
+              } else if (model.isActive && sceneDbids.size) {
                 // Orphan: in the DB but not in the scene. Remove it so the BOQ
                 // (which counts active models) stays in sync. remove() writes
                 // isActive:false + isDeleted:true, so the sync service deletes

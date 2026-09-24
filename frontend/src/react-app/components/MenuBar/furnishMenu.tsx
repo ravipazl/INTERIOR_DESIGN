@@ -43,6 +43,7 @@ import Loader from "../Loader";
 import ShortcutsModal from "./Shorcuts";
 import { Physical3DItem } from "@pazl/main/viewer3d/Physical3DItem";
 import UploadModelModal from "@pazl/components/UploadModelModal";
+import RoomTemplatePanel from "@pazl/components/MenuBar/RoomTemplatePanel";
 import GenerateFromPhotoModal from "@pazl/components/GenerateFromPhotoModal";
 import ModelSearchModal from "@pazl/components/ModelSearchModal";
 import SnapControlPanel from "../SnapControlPanel";
@@ -118,6 +119,8 @@ const FurnishMenu = ({
   const [showShortcutsModal, setShowShortcutsModal] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [showToolbarUploadModal, setShowToolbarUploadModal] = useState(false);
+  // Auto-furnish (room templates) — fills the selected room in one go.
+  const [showAutoFurnish, setShowAutoFurnish] = useState(false);
   const [showGenerateModal, setShowGenerateModal] = useState(false);
   const [showSearchModelsModal, setShowSearchModelsModal] = useState(false);
 
@@ -1017,7 +1020,16 @@ const FurnishMenu = ({
           onUpload={() => setShowToolbarUploadModal(true)}
           onGenerate={() => setShowGenerateModal(true)}
           onSearchModels={() => setShowSearchModelsModal(true)}
+          onAutoFurnish={() => setShowAutoFurnish(true)}
         />
+      )}
+      {showAutoFurnish && (
+        <div
+          className="fixed z-20 w-[300px] rounded-lg shadow-[0_4px_16px_rgba(0,0,0,0.2)] bg-white dark:bg-[#333333] border border-[color:var(--pz-panel-border)]"
+          style={{ left: "calc(var(--pz-nav-w, 0px) + 540px)", top: 110 }}
+        >
+          <RoomTemplatePanel onClose={() => setShowAutoFurnish(false)} />
+        </div>
       )}
       {showObjectPanel && selectedModel && (
         <ObjectPanel

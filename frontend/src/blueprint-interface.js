@@ -23,6 +23,7 @@ import {
   EVENT_ITEM_REMOVED,
   EVENT_LOADED,
   ACTION_EVENT_2D,
+  EVENT_WALL_2D_CLICKED,
 } from "@pazl/main/core/events.js";
 
 const BlueprintInterface = {};
@@ -872,6 +873,17 @@ BlueprintInterface.selectItem3DById = (id) => {
 };
 
 // Show/hide a placed 3D item by its model id (the outliner's visibility eye).
+/**
+ * The items the user has hidden, by model id.
+ *
+ * The 3D view rebuilds EVERY item from scratch whenever the plan reloads
+ * (Viewer3d.addRoomItems on EVENT_LOADED — after a save, an undo, a template
+ * load…), and a rebuilt item is visible again. Without this list a hidden door
+ * came back on its own a moment later. Kept for this session only; it is not
+ * saved with the project.
+ */
+BlueprintInterface.__hiddenItemIds = new Set();
+
 BlueprintInterface.setItem3DVisible = (id, visible) => {
   try {
     const rp =
@@ -884,12 +896,35 @@ BlueprintInterface.setItem3DVisible = (id, visible) => {
     );
     if (!phys) return false;
     phys.visible = visible;
+    if (visible) BlueprintInterface.__hiddenItemIds.delete(id);
+    else BlueprintInterface.__hiddenItemIds.add(id);
     rp.needsUpdate = true;
     return true;
   } catch (e) {
     console.error("setItem3DVisible failed", e);
     return false;
   }
+};
+
+BlueprintInterface.isItem3DVisible = (id) => !BlueprintInterface.__hiddenItemIds.has(id);
+
+/** Re-hide everything the user hid. Runs after the 3D items are rebuilt. */
+BlueprintInterface.reapplyHiddenItems3D = () => {
+  const ids = BlueprintInterface.__hiddenItemIds;
+  if (!ids.size) return 0;
+  const rp =
+    BlueprintInterface.blueprint3d && BlueprintInterface.blueprint3d.roomplanner;
+  if (!rp || !rp.__physicalRoomItems) return 0;
+  let hidden = 0;
+  rp.__physicalRoomItems.forEach((p) => {
+    const id = (p.itemModel && p.itemModel.__id) || (p.__itemModel && p.__itemModel.__id);
+    if (id && ids.has(id)) {
+      p.visible = false;
+      hidden += 1;
+    }
+  });
+  if (hidden) rp.needsUpdate = true;
+  return hidden;
 };
 
 // --- Actions for the toolbar that pops up on a selected 3D item -------------
@@ -989,6 +1024,30 @@ BlueprintInterface.setItem3DLocked = (id, locked) => {
 };
 
 BlueprintInterface.isItem3DLocked = (id) => !!BlueprintInterface.getItem3DById(id)?.__pzLocked;
+
+/**
+ * Draw the Auto-furnish preview on the 2D plan (the cabinets that WOULD be
+ * placed, and the picked walls). `shapes` is the list Viewer2D.setPlanOverlay
+ * takes; null clears it.
+ */
+BlueprintInterface.setPlanOverlay2D = (shapes) => {
+  try {
+    BlueprintInterface.blueprint3d?.floorplanner?.setPlanOverlay?.(shapes);
+    return true;
+  } catch (e) {
+    console.error("setPlanOverlay2D failed", e);
+    return false;
+  }
+};
+
+/** Listen for wall clicks in the 2D plan. Returns a function that stops it. */
+BlueprintInterface.onWall2DClicked = (callback) => {
+  const fp = BlueprintInterface.blueprint3d?.floorplanner;
+  if (!fp?.addFloorplanListener) return () => {};
+  const handler = (evt) => callback(evt?.item || null);
+  fp.addFloorplanListener(EVENT_WALL_2D_CLICKED, handler);
+  return () => fp.removeFloorplanListener?.(EVENT_WALL_2D_CLICKED, handler);
+};
 
 // Fly the 3D camera to frame a room (or the whole plan if no room given).
 BlueprintInterface.focusRoom3D = (room) => {

@@ -26,6 +26,8 @@ interface RoomPanelTypeProps {
   onUpload?: () => void;
   onGenerate?: () => void;
   onSearchModels?: () => void;
+  /** Auto-furnish: fill the selected room from a room template. */
+  onAutoFurnish?: () => void;
 }
 
 // Placement-type pill tabs for the Explore panel. Each pill filters the
@@ -267,6 +269,7 @@ function RoomPanel({
   onUpload,
   onGenerate,
   onSearchModels,
+  onAutoFurnish,
 }: RoomPanelTypeProps) {
   const [treeData, setTreeData] = useState<TreeNode[]>([]);
   const [selectedTreeNode, setSelectedTreeNode] = useState({} as TreeNode);
@@ -1091,10 +1094,12 @@ function RoomPanel({
             open={openSections.includes("addmodel")}
             onToggle={toggleSection}
           >
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-4 gap-2">
               <ToolCard icon="upload" label="Upload" onClick={onUpload} />
               <ToolCard icon="auto_awesome" label="Generate" onClick={onGenerate} />
               <ToolCard icon="travel_explore" label="Search" onClick={onSearchModels} />
+              {/* Fills the selected room from a room template (Kitchen). */}
+              <ToolCard icon="grid_view" label="Auto-furnish" onClick={onAutoFurnish} />
             </div>
           </PanelSection>
 
