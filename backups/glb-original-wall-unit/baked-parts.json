@@ -49,5 +49,703 @@
     "handles": [
       2
     ]
+  },
+  "bc0271ec-fbad-4dcd-b809-6006ffebba7a_Wall_unit_500_x_600_Fluted_glass_right_opening_handle_shelf.glb": {
+    "modelId": "6ab4d2b68df05e6cf3edacf9",
+    "name": "Wall unit 500 x 600 Fluted glass right opening handle_shelf",
+    "shutters": [
+      2
+    ],
+    "handles": [
+      3
+    ]
+  },
+  "1fdfdce1-064c-4060-a19e-28447cae36f9_Wall_unit_450_x_600_Fluted_glass_right_opening_handle_shelf.glb": {
+    "modelId": "6ab4d2b68df05e6cf3edacff",
+    "name": "Wall unit 450 x 600 Fluted glass right opening handle_shelf",
+    "shutters": [
+      3
+    ],
+    "handles": [
+      2
+    ]
+  },
+  "a3ee6036-ed55-44bb-b1ca-ff0ef712dc0a_Wall_unit_600_x_600_Fluted_glass_right_opening_handle_shelf.glb": {
+    "modelId": "6ab4d2b68df05e6cf3edad05",
+    "name": "Wall unit 600 x 600 Fluted glass right opening handle_shelf",
+    "shutters": [
+      2
+    ],
+    "handles": [
+      4
+    ]
+  },
+  "b672b635-ca3e-4e4f-aeb5-69e745a46e16_Wall_unit_550_x_600_Fluted_glass_right_opening_handle_shelf.glb": {
+    "modelId": "6ab4d2b68df05e6cf3edad0b",
+    "name": "Wall unit 550 x 600 Fluted glass right opening handle_shelf",
+    "shutters": [
+      4
+    ],
+    "handles": [
+      2
+    ]
+  },
+  "49aeb932-a249-4e97-a1b4-11c93eb913d3_Wall_unit_550_x_600_Fluted_glass_right_opening_handle.glb": {
+    "modelId": "6ab4d2b68df05e6cf3edad11",
+    "name": "Wall unit 550 x 600 Fluted glass right opening handle",
+    "shutters": [
+      3
+    ],
+    "handles": [
+      1
+    ]
+  },
+  "2b5b10b9-dc4a-4d39-9e1b-c767169bb87a_Wall_unit_500_x_600_Fluted_glass_right_opening_handle.glb": {
+    "modelId": "6ab4d2b68df05e6cf3edad16",
+    "name": "Wall unit 500 x 600 Fluted glass right opening handle",
+    "shutters": [
+      2
+    ],
+    "handles": [
+      1
+    ]
+  },
+  "a71ded79-e897-42d6-b936-3aff1b11ef0d_Wall_unit_450_x_600_Fluted_glass_right_opening_handle.glb": {
+    "modelId": "6ab4d2b78df05e6cf3edad1b",
+    "name": "Wall unit 450 x 600 Fluted glass right opening handle",
+    "shutters": [
+      3
+    ],
+    "handles": [
+      1
+    ]
+  },
+  "6e230380-4dc5-4c37-9177-c60ff3db2d7b_Wall_unit_600_x_600_Fluted_glass_right_opening_handle.glb": {
+    "modelId": "6ab4d2b78df05e6cf3edad20",
+    "name": "Wall unit 600 x 600 Fluted glass right opening handle",
+    "shutters": [
+      1
+    ],
+    "handles": [
+      3
+    ]
+  },
+  "6f06f9db-387a-46cf-b894-735e173d5195_Wall_unit_550_x_600_right_opening_solid_shutter_handle_1_.glb": {
+    "modelId": "6ab4d2b78df05e6cf3edad2a",
+    "name": "Wall unit 550 x 600 right opening solid shutter handle (1)",
+    "shutters": [
+      3
+    ],
+    "handles": [
+      2
+    ]
+  },
+  "0635fbba-5c9a-4e1c-ba1e-b68a2cc2cf01_Wall_unit_500_x_600_right_opening_solid_shutter_handle_1_.glb": {
+    "modelId": "6ab4d2b78df05e6cf3edad2f",
+    "name": "Wall unit 500 x 600 right opening solid shutter handle (1)",
+    "shutters": [
+      2
+    ],
+    "handles": [
+      3
+    ]
+  },
+  "b7d131e8-d786-4186-bded-910765203659_Wall_unit_450_x_600_right_opening_solid_shutter_handle_1_.glb": {
+    "modelId": "6ab4d2b78df05e6cf3edad34",
+    "name": "Wall unit 450 x 600 right opening solid shutter handle (1)",
+    "shutters": [
+      3
+    ],
+    "handles": [
+      2
+    ]
+  },
+  "d8628734-78be-441f-80d7-fa61da543e19_Wall_unit_550_x_600_right_opening_solid_shutter_handle.glb": {
+    "modelId": "6ab4d2b78df05e6cf3edad39",
+    "name": "Wall unit 550 x 600 right opening solid shutter handle",
+    "shutters": [
+      2
+    ],
+    "handles": [
+      1
+    ]
+  },
+  "d043f705-f30c-46ac-ab45-aabce68371d2_Wall_unit_500_x_600_right_opening_solid_shutter_handle.glb": {
+    "modelId": "6ab4d2b78df05e6cf3edad3d",
+    "name": "Wall unit 500 x 600 right opening solid shutter handle",
+    "shutters": [
+      1
+    ],
+    "handles": [
+      2
+    ]
+  },
+  "f3ed0f52-2ef4-45a5-becb-bbd08e856363_Wall_unit_450_x_600_right_opening_solid_shutter_handle.glb": {
+    "modelId": "6ab4d2b78df05e6cf3edad41",
+    "name": "Wall unit 450 x 600 right opening solid shutter handle",
+    "shutters": [
+      1
+    ],
+    "handles": [
+      2
+    ]
+  },
+  "fd0bcb9a-308b-4680-9d68-dd1003220d97_Wall_Unit_500_x_600_plain_glass_right_opening_handle_shelf.glb": {
+    "modelId": "6ab4d2b78df05e6cf3edad49",
+    "name": "Wall Unit 500 x 600 plain glass right opening handle_shelf",
+    "shutters": [
+      3
+    ],
+    "handles": [
+      2
+    ]
+  },
+  "a5ab04e6-c3a7-4f26-a6a6-4b4ccc2c94c4_Wall_Unit_450_x_600_plain_glass_right_opening_handle_shelf.glb": {
+    "modelId": "6ab4d2b78df05e6cf3edad4f",
+    "name": "Wall Unit 450 x 600 plain glass right opening handle_shelf",
+    "shutters": [
+      2
+    ],
+    "handles": [
+      3
+    ]
+  },
+  "9225f4c0-7f77-4285-8878-b2a06f981764_Wall_Unit_600_x_600_plain_glass_right_opening_handle_shelf.glb": {
+    "modelId": "6ab4d2b78df05e6cf3edad55",
+    "name": "Wall Unit 600 x 600 plain glass right opening handle_shelf",
+    "shutters": [
+      4
+    ],
+    "handles": [
+      3
+    ]
+  },
+  "921e417c-e8c9-45bd-be21-92d56c8ad191_Wall_Unit_550_x_600_plain_glass_right_opening_handle_shelf.glb": {
+    "modelId": "6ab4d2b78df05e6cf3edad5b",
+    "name": "Wall Unit 550 x 600 plain glass right opening handle_shelf",
+    "shutters": [
+      4
+    ],
+    "handles": [
+      2
+    ]
+  },
+  "dbad8433-38df-45e5-9833-164a9d07df93_Wall_Unit_450_x_600_plain_glass_right_opening_handle_.glb": {
+    "modelId": "6ab4d2b78df05e6cf3edad61",
+    "name": "Wall Unit 450 x 600 plain glass right opening handle",
+    "shutters": [
+      1
+    ],
+    "handles": [
+      3
+    ]
+  },
+  "93a8cfbd-4912-4301-a61b-05293f4cdedb_Wall_Unit_600_x_600_plain_glass_right_opening_handle_.glb": {
+    "modelId": "6ab4d2b78df05e6cf3edad66",
+    "name": "Wall Unit 600 x 600 plain glass right opening handle",
+    "shutters": [
+      1
+    ],
+    "handles": [
+      2
+    ]
+  },
+  "c53165ba-c8b0-432c-bd09-13dfc843f751_Wall_Unit_550_x_600_plain_glass_right_opening_handle_.glb": {
+    "modelId": "6ab4d2b78df05e6cf3edad6b",
+    "name": "Wall Unit 550 x 600 plain glass right opening handle",
+    "shutters": [
+      3
+    ],
+    "handles": [
+      2
+    ]
+  },
+  "aeda8a31-6c1e-4c82-a377-2a5b87bb8f51_Wall_Unit_500_x_600_plain_glass_right_opening_handle_.glb": {
+    "modelId": "6ab4d2b78df05e6cf3edad70",
+    "name": "Wall Unit 500 x 600 plain glass right opening handle",
+    "shutters": [
+      3
+    ],
+    "handles": [
+      1
+    ]
+  },
+  "43c52e71-36a2-4d43-81da-6221fc4b533c_Wall_unit_500_x_825_plain_glass_left_opening_profile_shelf.glb": {
+    "modelId": "6ab4d2b78df05e6cf3edad75",
+    "name": "Wall unit 500 x 825 plain glass left opening profile_shelf",
+    "shutters": [
+      1
+    ],
+    "handles": []
+  },
+  "cbc736da-7ae8-4daa-ae52-710db8beec40_Wall_unit_450_x_825_plain_glass_left_opening_profile_shelf.glb": {
+    "modelId": "6ab4d2b78df05e6cf3edad7b",
+    "name": "Wall unit 450 x 825 plain glass left opening profile_shelf",
+    "shutters": [
+      1
+    ],
+    "handles": []
+  },
+  "45d5d675-3fb5-490c-ab85-c866222cab90_Wall_unit_600_x_825_plain_glass_left_opening_profile_shelf.glb": {
+    "modelId": "6ab4d2b78df05e6cf3edad81",
+    "name": "Wall unit 600 x 825 plain glass left opening profile_shelf",
+    "shutters": [
+      1
+    ],
+    "handles": []
+  },
+  "d472c3b7-359e-44c8-88cc-382bb4ddc7dc_Wall_unit_550_x_825_plain_glass_left_opening_profile_shelf.glb": {
+    "modelId": "6ab4d2b78df05e6cf3edad87",
+    "name": "Wall unit 550 x 825 plain glass left opening profile_shelf",
+    "shutters": [
+      1
+    ],
+    "handles": []
+  },
+  "f3e1b3f1-ebe1-4554-a6bf-c2254bebf3eb_Wall_unit_500_x_825_plain_glass_left_opening_profile.glb": {
+    "modelId": "6ab4d2b78df05e6cf3edad8d",
+    "name": "Wall unit 500 x 825 plain glass left opening profile",
+    "shutters": [
+      1
+    ],
+    "handles": []
+  },
+  "819149f6-c550-4c81-9e89-576eec848416_Wall_unit_450_x_825_plain_glass_left_opening_profile.glb": {
+    "modelId": "6ab4d2b78df05e6cf3edad92",
+    "name": "Wall unit 450 x 825 plain glass left opening profile",
+    "shutters": [
+      1
+    ],
+    "handles": []
+  },
+  "5c31daf2-1138-49e3-a7fe-64a89de9e07e_Wall_unit_600_x_825_plain_glass_left_opening_profile.glb": {
+    "modelId": "6ab4d2b78df05e6cf3edad97",
+    "name": "Wall unit 600 x 825 plain glass left opening profile",
+    "shutters": [
+      1
+    ],
+    "handles": []
+  },
+  "ab97dd59-b4eb-4c94-801d-2926ffc33631_Wall_unit_550_x_825_plain_glass_left_opening_profile.glb": {
+    "modelId": "6ab4d2b78df05e6cf3edad9c",
+    "name": "Wall unit 550 x 825 plain glass left opening profile",
+    "shutters": [
+      1
+    ],
+    "handles": []
+  },
+  "8615319a-9c41-4025-8e09-2d70ae29e5b6_Wall_Unit_500_x_600_plain_glass_left_opening_handle_shelf.glb": {
+    "modelId": "6ab4d2b78df05e6cf3edada1",
+    "name": "Wall Unit 500 x 600 plain glass left opening handle_shelf",
+    "shutters": [
+      1
+    ],
+    "handles": [
+      2
+    ]
+  },
+  "d84f9e7c-973a-4a2c-b398-ed4f81462f43_Wall_Unit_450_x_600_plain_glass_left_opening_handle_shelf.glb": {
+    "modelId": "6ab4d2b78df05e6cf3edada7",
+    "name": "Wall Unit 450 x 600 plain glass left opening handle_shelf",
+    "shutters": [
+      1
+    ],
+    "handles": [
+      2
+    ]
+  },
+  "d2e7ef26-84dd-43b5-b985-a0b309f8a4f6_Wall_Unit_600_x_600_plain_glass_left_opening_handle_shelf.glb": {
+    "modelId": "6ab4d2b78df05e6cf3edadad",
+    "name": "Wall Unit 600 x 600 plain glass left opening handle_shelf",
+    "shutters": [
+      1
+    ],
+    "handles": [
+      2
+    ]
+  },
+  "42b0cf8f-2427-406a-90e9-f0972fca7926_Wall_Unit_550_x_600_plain_glass_left_opening_handle_shelf.glb": {
+    "modelId": "6ab4d2b78df05e6cf3edadb3",
+    "name": "Wall Unit 550 x 600 plain glass left opening handle_shelf",
+    "shutters": [
+      1
+    ],
+    "handles": [
+      2
+    ]
+  },
+  "d18c4007-bbca-4c5b-8500-8ed26593f96f_Wall_Unit_500_x_600_plain_glass_left_opening_handle_.glb": {
+    "modelId": "6ab4d2b78df05e6cf3edadb9",
+    "name": "Wall Unit 500 x 600 plain glass left opening handle",
+    "shutters": [
+      1
+    ],
+    "handles": [
+      2
+    ]
+  },
+  "107ce243-e60a-4919-b5c8-70db0513f8b5_Wall_Unit_450_x_600_plain_glass_left_opening_handle_.glb": {
+    "modelId": "6ab4d2b78df05e6cf3edadbe",
+    "name": "Wall Unit 450 x 600 plain glass left opening handle",
+    "shutters": [
+      1
+    ],
+    "handles": [
+      2
+    ]
+  },
+  "87f25ded-c868-4e78-a353-1db68da21c91_Wall_Unit_600_x_600_plain_glass_left_opening_handle_.glb": {
+    "modelId": "6ab4d2b78df05e6cf3edadc3",
+    "name": "Wall Unit 600 x 600 plain glass left opening handle",
+    "shutters": [
+      1
+    ],
+    "handles": [
+      2
+    ]
+  },
+  "aa0a239c-7da6-42fb-9020-1af197af2592_Wall_Unit_550_x_600_plain_glass_left_opening_handle_.glb": {
+    "modelId": "6ab4d2b78df05e6cf3edadc8",
+    "name": "Wall Unit 550 x 600 plain glass left opening handle",
+    "shutters": [
+      1
+    ],
+    "handles": [
+      2
+    ]
+  },
+  "b646cfaf-43e1-4c3f-8c8e-27ddc5845b77_Wall_Unit_500_x_825_plain_glass_Alu_frame_profile_shelf_.glb": {
+    "modelId": "6ab4d2b88df05e6cf3edadcd",
+    "name": "Wall Unit 500 x 825 plain glass Alu frame profile_shelf",
+    "shutters": [
+      1
+    ],
+    "handles": []
+  },
+  "ec497ffd-f020-40c3-8f7e-d9198b6c4893_Wall_Unit_450_x_825_plain_glass_Alu_frame_profile_shelf_.glb": {
+    "modelId": "6ab4d2b88df05e6cf3edadd3",
+    "name": "Wall Unit 450 x 825 plain glass Alu frame profile_shelf",
+    "shutters": [
+      1
+    ],
+    "handles": []
+  },
+  "31dec600-d898-4a84-b187-bfc0ace987dc_Wall_Unit_600_x_825_plain_glass_Alu_frame_profile_shelf_.glb": {
+    "modelId": "6ab4d2b88df05e6cf3edadd9",
+    "name": "Wall Unit 600 x 825 plain glass Alu frame profile_shelf",
+    "shutters": [
+      1
+    ],
+    "handles": []
+  },
+  "1aec8791-df9b-45ce-b44a-e21fd454193b_Wall_Unit_550_x_825_plain_glass_Alu_frame_profile_shelf_.glb": {
+    "modelId": "6ab4d2b88df05e6cf3edaddf",
+    "name": "Wall Unit 550 x 825 plain glass Alu frame profile_shelf",
+    "shutters": [
+      1
+    ],
+    "handles": []
+  },
+  "ead5ad2a-f6f2-48b0-9d37-edf8e236fa6f_Wall_Unit_550_x_825_plain_glass_Alu_frame_profile_.glb": {
+    "modelId": "6ab4d2b88df05e6cf3edade5",
+    "name": "Wall Unit 550 x 825 plain glass Alu frame profile",
+    "shutters": [
+      1
+    ],
+    "handles": []
+  },
+  "8367847e-f8a6-4ef7-98b3-5c41b3abd52f_Wall_Unit_500_x_825_plain_glass_Alu_frame_profile_.glb": {
+    "modelId": "6ab4d2b88df05e6cf3edadea",
+    "name": "Wall Unit 500 x 825 plain glass Alu frame profile",
+    "shutters": [
+      1
+    ],
+    "handles": []
+  },
+  "31d3fc30-c236-4335-9b1c-a2fd24d6960c_Wall_Unit_450_x_825_plain_glass_Alu_frame_profile_.glb": {
+    "modelId": "6ab4d2b88df05e6cf3edadef",
+    "name": "Wall Unit 450 x 825 plain glass Alu frame profile",
+    "shutters": [
+      1
+    ],
+    "handles": []
+  },
+  "2e5c33c9-70f7-4524-8487-e96313d9f464_Wall_Unit_600_x_825_plain_glass_Alu_frame_profile_.glb": {
+    "modelId": "6ab4d2b88df05e6cf3edadf4",
+    "name": "Wall Unit 600 x 825 plain glass Alu frame profile",
+    "shutters": [
+      1
+    ],
+    "handles": []
+  },
+  "5ec28408-b079-4f7e-98d3-d35732292d67_Wall_unit_550_x_600_left_opening_solid_shutter_profile_shelf.glb": {
+    "modelId": "6ab4d2b88df05e6cf3edadf9",
+    "name": "Wall unit 550 x 600 left opening solid shutter profile_shelf",
+    "shutters": [
+      1
+    ],
+    "handles": []
+  },
+  "9615022f-2a84-4465-9f89-1a9b4b214056_Wall_unit_500_x_600_left_opening_solid_shutter_profile_shelf.glb": {
+    "modelId": "6ab4d2b88df05e6cf3edadfe",
+    "name": "Wall unit 500 x 600 left opening solid shutter profile_shelf",
+    "shutters": [
+      1
+    ],
+    "handles": []
+  },
+  "5537092b-8c7d-4b03-a317-dd98735d3360_Wall_unit_450_x_600_left_opening_solid_shutter_profile_shelf.glb": {
+    "modelId": "6ab4d2b88df05e6cf3edae03",
+    "name": "Wall unit 450 x 600 left opening solid shutter profile_shelf",
+    "shutters": [
+      1
+    ],
+    "handles": []
+  },
+  "d91922c9-e079-49b1-9570-73e42039f7cd_Wall_unit_600_x_600_left_opening_solid_shutter_profile_shelf.glb": {
+    "modelId": "6ab4d2b88df05e6cf3edae08",
+    "name": "Wall unit 600 x 600 left opening solid shutter profile_shelf",
+    "shutters": [
+      1
+    ],
+    "handles": []
+  },
+  "0c9eb9b7-7814-4e74-a64e-48323fe1568f_Wall_unit_550_x_600_left_opening_solid_shutter_profile.glb": {
+    "modelId": "6ab4d2b88df05e6cf3edae0d",
+    "name": "Wall unit 550 x 600 left opening solid shutter profile",
+    "shutters": [
+      1
+    ],
+    "handles": []
+  },
+  "7a81ed77-a85e-4667-b9f6-e1ee6feba099_Wall_unit_500_x_600_left_opening_solid_shutter_profile.glb": {
+    "modelId": "6ab4d2b88df05e6cf3edae11",
+    "name": "Wall unit 500 x 600 left opening solid shutter profile",
+    "shutters": [
+      1
+    ],
+    "handles": []
+  },
+  "ea0ad5dc-049f-4a51-9bbd-a8f47f5987ba_Wall_unit_450_x_600_left_opening_solid_shutter_profile.glb": {
+    "modelId": "6ab4d2b88df05e6cf3edae15",
+    "name": "Wall unit 450 x 600 left opening solid shutter profile",
+    "shutters": [
+      1
+    ],
+    "handles": []
+  },
+  "fd24a059-6f4a-4e92-a90f-c5f074dc9359_Wall_unit_600_x_600_left_opening_solid_shutter_profile.glb": {
+    "modelId": "6ab4d2b88df05e6cf3edae19",
+    "name": "Wall unit 600 x 600 left opening solid shutter profile",
+    "shutters": [
+      1
+    ],
+    "handles": []
+  },
+  "96505cbb-19db-428e-b002-cda2b95b504b_Wall_unit_550_x_600_left_opening_solid_shutter_handle_shelf_.glb": {
+    "modelId": "6ab4d2b88df05e6cf3edae1d",
+    "name": "Wall unit 550 x 600 left opening solid shutter handle_shelf",
+    "shutters": [
+      1
+    ],
+    "handles": [
+      2
+    ]
+  },
+  "ddc26adb-2e6f-43fd-8ab7-2579c7e1a14e_Wall_unit_500_x_600_left_opening_solid_shutter_handle_shelf_.glb": {
+    "modelId": "6ab4d2b88df05e6cf3edae22",
+    "name": "Wall unit 500 x 600 left opening solid shutter handle_shelf",
+    "shutters": [
+      1
+    ],
+    "handles": [
+      2
+    ]
+  },
+  "acf636a3-b53d-4945-879e-6828f5f09236_Wall_unit_450_x_600_left_opening_solid_shutter_handle_shelf_.glb": {
+    "modelId": "6ab4d2b88df05e6cf3edae27",
+    "name": "Wall unit 450 x 600 left opening solid shutter handle_shelf",
+    "shutters": [
+      1
+    ],
+    "handles": [
+      2
+    ]
+  },
+  "6cd6b16e-b516-4d41-b3eb-0928bdbdde84_Wall_unit_600_x_600_left_opening_solid_shutter_handle_shelf_.glb": {
+    "modelId": "6ab4d2b88df05e6cf3edae2c",
+    "name": "Wall unit 600 x 600 left opening solid shutter handle_shelf",
+    "shutters": [
+      1
+    ],
+    "handles": [
+      2
+    ]
+  },
+  "8c4b5ecd-20f8-460e-80c1-a8f131cbbe73_Wall_unit_500_x_600_left_opening_solid_shutter_handle.glb": {
+    "modelId": "6ab4d2b88df05e6cf3edae31",
+    "name": "Wall unit 500 x 600 left opening solid shutter handle",
+    "shutters": [
+      1
+    ],
+    "handles": [
+      2
+    ]
+  },
+  "2e974202-b72a-4ac7-ba73-3a5ee54be88f_Wall_unit_450_x_600_left_opening_solid_shutter_handle.glb": {
+    "modelId": "6ab4d2b88df05e6cf3edae35",
+    "name": "Wall unit 450 x 600 left opening solid shutter handle",
+    "shutters": [
+      1
+    ],
+    "handles": [
+      2
+    ]
+  },
+  "06dbc159-a770-4fdd-ab9f-b3f171757ac5_Wall_unit_550_x_600_left_opening_solid_shutter_handle.glb": {
+    "modelId": "6ab4d2b88df05e6cf3edae39",
+    "name": "Wall unit 550 x 600 left opening solid shutter handle",
+    "shutters": [
+      1
+    ],
+    "handles": [
+      2
+    ]
+  },
+  "831de67b-690e-45d7-ab46-5132f003e9d6_Wall_Unit_550_x_600_fluted_glass_left_opening_handle_shelf_.glb": {
+    "modelId": "6ab4d2b88df05e6cf3edae3d",
+    "name": "Wall Unit 550 x 600 fluted glass left opening handle_shelf",
+    "shutters": [
+      1
+    ],
+    "handles": [
+      2
+    ]
+  },
+  "6f04e3c9-c3ca-4eec-93a4-3bdb53bfe5cb_Wall_Unit_500_x_600_fluted_glass_left_opening_handle_shelf_.glb": {
+    "modelId": "6ab4d2b88df05e6cf3edae43",
+    "name": "Wall Unit 500 x 600 fluted glass left opening handle_shelf",
+    "shutters": [
+      1
+    ],
+    "handles": [
+      2
+    ]
+  },
+  "016b3665-627d-4650-b6fe-bc66015bb455_Wall_Unit_450_x_600_fluted_glass_left_opening_handle_shelf_.glb": {
+    "modelId": "6ab4d2b88df05e6cf3edae49",
+    "name": "Wall Unit 450 x 600 fluted glass left opening handle_shelf",
+    "shutters": [
+      1
+    ],
+    "handles": [
+      2
+    ]
+  },
+  "c3c41df8-565f-4dee-a4e3-6dbfb0d4b2b3_Wall_Unit_600_x_600_fluted_glass_left_opening_handle_shelf_.glb": {
+    "modelId": "6ab4d2b88df05e6cf3edae4f",
+    "name": "Wall Unit 600 x 600 fluted glass left opening handle_shelf",
+    "shutters": [
+      1
+    ],
+    "handles": [
+      2
+    ]
+  },
+  "503b2550-6ccb-4eb4-800e-df9e19351969_Wall_Unit_550_x_600_fluted_glass_left_opening_handle_.glb": {
+    "modelId": "6ab4d2b88df05e6cf3edae55",
+    "name": "Wall Unit 550 x 600 fluted glass left opening handle",
+    "shutters": [
+      1
+    ],
+    "handles": [
+      2
+    ]
+  },
+  "9760b298-357e-4c69-bc97-aff1e7c32920_Wall_Unit_500_x_600_fluted_glass_left_opening_handle_.glb": {
+    "modelId": "6ab4d2b88df05e6cf3edae5a",
+    "name": "Wall Unit 500 x 600 fluted glass left opening handle",
+    "shutters": [
+      1
+    ],
+    "handles": [
+      2
+    ]
+  },
+  "682721cf-57a9-400e-899d-2dd7031dcc3e_Wall_Unit_450_x_600_fluted_glass_left_opening_handle_.glb": {
+    "modelId": "6ab4d2b88df05e6cf3edae5f",
+    "name": "Wall Unit 450 x 600 fluted glass left opening handle",
+    "shutters": [
+      1
+    ],
+    "handles": [
+      2
+    ]
+  },
+  "a781fea4-760c-45a6-827b-c9243de6abb4_Wall_Unit_600_x_600_fluted_glass_left_opening_handle_.glb": {
+    "modelId": "6ab4d2b88df05e6cf3edae64",
+    "name": "Wall Unit 600 x 600 fluted glass left opening handle",
+    "shutters": [
+      1
+    ],
+    "handles": [
+      2
+    ]
+  },
+  "95cd1d00-b09b-44a8-be75-b17b97c8ce6f_Wall_Unit_550_x_600_Fluted_Glass_Alu._Frame_Profile_shelf_.glb": {
+    "modelId": "6ab4d2b88df05e6cf3edae69",
+    "name": "Wall Unit 550 x 600 Fluted Glass Alu. Frame Profile_shelf",
+    "shutters": [
+      1
+    ],
+    "handles": []
+  },
+  "e8730f0d-c454-45e8-b211-5f6c466f0f10_Wall_Unit_500_x_600_Fluted_Glass_Alu._Frame_Profile_shelf_.glb": {
+    "modelId": "6ab4d2b88df05e6cf3edae6f",
+    "name": "Wall Unit 500 x 600 Fluted Glass Alu. Frame Profile_shelf",
+    "shutters": [
+      1
+    ],
+    "handles": []
+  },
+  "5d0a25c6-159e-45f2-a03c-7762c2258c3c_Wall_Unit_450_x_600_Fluted_Glass_Alu._Frame_Profile_shelf_.glb": {
+    "modelId": "6ab4d2b88df05e6cf3edae75",
+    "name": "Wall Unit 450 x 600 Fluted Glass Alu. Frame Profile_shelf",
+    "shutters": [
+      1
+    ],
+    "handles": []
+  },
+  "b8b621ca-40dc-4ad1-9687-991514b9bd56_Wall_Unit_600_x_600_Fluted_Glass_Alu._Frame_Profile_shelf_.glb": {
+    "modelId": "6ab4d2b98df05e6cf3edae7b",
+    "name": "Wall Unit 600 x 600 Fluted Glass Alu. Frame Profile_shelf",
+    "shutters": [
+      1
+    ],
+    "handles": []
+  },
+  "84043cd5-af10-47dc-9521-c3f39dac7d5d_Wall_Unit_450_x_600_Fluted_Glass_Alu_Frame_Profile_.glb": {
+    "modelId": "6ab4d2b98df05e6cf3edae86",
+    "name": "Wall Unit 450 x 600 Fluted Glass Alu Frame Profile",
+    "shutters": [
+      1
+    ],
+    "handles": []
+  },
+  "ec18f7e1-f279-45a7-a72d-35d2bdbb7b14_Wall_Unit_600_x_600_Fluted_Glass_Alu_Frame_Profile_.glb": {
+    "modelId": "6ab4d2b98df05e6cf3edae8b",
+    "name": "Wall Unit 600 x 600 Fluted Glass Alu Frame Profile",
+    "shutters": [
+      1
+    ],
+    "handles": []
+  },
+  "30dae414-12f4-4b24-82d4-302dff9df36e_Wall_Unit_550_x_600_Fluted_Glass_Alu_Frame_Profile_.glb": {
+    "modelId": "6ab4d2b98df05e6cf3edae90",
+    "name": "Wall Unit 550 x 600 Fluted Glass Alu Frame Profile",
+    "shutters": [
+      1
+    ],
+    "handles": []
   }
 }
