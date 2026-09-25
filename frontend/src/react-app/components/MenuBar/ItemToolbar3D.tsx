@@ -1,4 +1,10 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import "material-symbols";
 import BlueprintInterface from "@pazl/blueprint-interface.js";
 import {
@@ -41,7 +47,15 @@ const mirrorItem = (id: string | null) => {
   });
 };
 
-/** Where to put the toolbar: just right of the item's top-right corner. */
+/**
+ * Where to put the toolbar: the MIDDLE of the item's top edge.
+ *
+ * It used to be the top-right corner, and the bar was drawn 16px further right
+ * again. For an item near the right of the screen that put the bar underneath
+ * the object panel, which overlays the canvas — the buttons were unreachable.
+ * The bar is now centred on this point and clamped to the free canvas area
+ * (see placeToolbar below).
+ */
 const anchorFor = (item: any): Point => {
   const rp = roomplanner();
   if (!rp || !item || !rp.camera || !rp.domElement) return null;
@@ -51,7 +65,8 @@ const anchorFor = (item: any): Point => {
     const box = item.worldBox;
     if (!box || !isFinite(box.max.x)) return null;
     const rect = rp.domElement.getBoundingClientRect();
-    const corner = box.max.clone();
+    const corner = box.min.clone().add(box.max).multiplyScalar(0.5);
+    corner.y = box.max.y;
     const centre = box.min.clone().add(box.max).multiplyScalar(0.5);
     // Project the top corner AND the centre: if the corner is behind the
     // camera (zoomed inside the item) fall back to the centre.
@@ -69,9 +84,54 @@ const anchorFor = (item: any): Point => {
   }
 };
 
+/**
+ * Centre the bar on the anchor and keep it inside the free part of the canvas.
+ *
+ * The bar is `position: fixed`, so these are viewport coordinates. Panels that
+ * overlay the canvas mark themselves with data-pz-canvas-overlay="right"; their
+ * left edge is the right-hand limit here, which is what stops the bar sliding
+ * under the object panel. With no room above the item the bar drops below it.
+ */
+const placeToolbar = (
+  point: { x: number; y: number },
+  size: { w: number; h: number }
+) => {
+  const GAP = 12;
+  const PAD = 8;
+  let left = point.x - size.w / 2;
+  let top = point.y - size.h - GAP;
+
+  const rect = roomplanner()?.domElement?.getBoundingClientRect();
+  let minLeft = PAD;
+  let maxRight = window.innerWidth - PAD;
+  let minTop = PAD;
+  if (rect) {
+    minLeft = rect.left + PAD;
+    maxRight = rect.right - PAD;
+    minTop = rect.top + PAD;
+  }
+  document
+    .querySelectorAll('[data-pz-canvas-overlay="right"]')
+    .forEach((el) => {
+      const r = (el as HTMLElement).getBoundingClientRect();
+      if (r.width > 0 && r.height > 0 && r.left < maxRight) {
+        maxRight = r.left - PAD;
+      }
+    });
+
+  if (size.w > 0) {
+    left = Math.min(Math.max(left, minLeft), Math.max(minLeft, maxRight - size.w));
+  }
+  if (top < minTop) top = point.y + GAP;
+
+  return { left, top };
+};
+
 const ItemToolbar3D: React.FC = () => {
   const [item, setItem] = useState<any>(null);
   const [point, setPoint] = useState<Point>(null);
+  const barRef = useRef<HTMLDivElement>(null);
+  const [size, setSize] = useState({ w: 0, h: 0 });
   const [hidden, setHidden] = useState(false);
   const [locked, setLocked] = useState(false);
   const itemRef = useRef<any>(null);
@@ -177,6 +237,17 @@ const ItemToolbar3D: React.FC = () => {
   const saveRef = useRef(save);
   saveRef.current = save;
 
+  // Its own size, needed to centre it. Measured after paint, and only stored
+  // when it actually changes, so this can't loop.
+  useLayoutEffect(() => {
+    const el = barRef.current;
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    if (Math.abs(r.width - size.w) > 1 || Math.abs(r.height - size.h) > 1) {
+      setSize({ w: r.width, h: r.height });
+    }
+  });
+
   if (!item || !point) return null;
 
   const BI = BlueprintInterface as any;
@@ -238,8 +309,9 @@ const ItemToolbar3D: React.FC = () => {
 
   return (
     <div
+      ref={barRef}
       className="pz-it3d"
-      style={{ left: point.x + 16, top: point.y }}
+      style={placeToolbar(point, size)}
       onMouseDown={(e) => e.stopPropagation()}
       onPointerDown={(e) => e.stopPropagation()}
     >

@@ -37,6 +37,10 @@ const ObjectFinishingsModal = ({
   // Optional: when given, an Exterior | Interior switch is shown under the
   // title. Absent (any other caller), the panel is exactly as before.
   onSwitchFinishingType,
+  // Optional: true when this panel is rendered inside ObjectPanel's Material
+  // tab. It then fills the tab instead of floating over the canvas at a fixed
+  // position. Everything else — contents, state, handlers — is unchanged.
+  docked = false,
 }: any) => {
   const externalStyle =
     selectedChildComponent?.externalFinishFinishing ??
@@ -157,29 +161,57 @@ const ObjectFinishingsModal = ({
   // added "scroll" but removed "wheel").
 
   return (
-    <div className="fixed w-[260px] h-auto block right-[386px] top-[168px] z-10 shadow-[0_4px_4px_0px_rgba(0,0,0,0.25)] bg-white dark:bg-neutral-700">
+    <div
+      className={
+        docked
+          ? "relative w-full h-auto block bg-white dark:bg-neutral-700"
+          : "fixed w-[260px] h-auto block right-[386px] top-[168px] z-10 shadow-[0_4px_4px_0px_rgba(0,0,0,0.25)] bg-white dark:bg-neutral-700"
+      }
+    >
       <div className="h-auto bg-white dark:bg-neutral-700">
-        <div className=" bg-[#E9E5EC] dark:bg-[#333333] text-l text-center font-medium leading-tight text-neutral-800 dark:text-neutral-50">
-          <TETabs className="mb-0 items-center justify-between">
-            <div className="p-3 mt-0 bg-[#F9F9FA] border-t border-r border-l border-b-0 border-inherit">
-              <span className="font-bold">
-                {selectedChildComponent
-                  ? capitalizeText(selectedChildComponent.name)
-                  : capitalizeText(selectedComponentGroup?.name)
-                  ? capitalizeText(selectedComponentGroup.name)
-                  : ""}
-                :{" "}
-                {selectedFinishingType
-                  ? capitalizeText(selectedFinishingType)
-                  : ""}
-              </span>
+        <div
+          className={
+            docked
+              ? "text-l font-medium leading-tight text-neutral-800 dark:text-neutral-50"
+              : " bg-[#E9E5EC] dark:bg-[#333333] text-l text-center font-medium leading-tight text-neutral-800 dark:text-neutral-50"
+          }
+        >
+          {/* Docked in the Material tab: the part name is a plain heading and
+              the panel's own close icon is dropped — the tab bar already has
+              one, and two X's side by side read as a mistake. */}
+          {docked ? (
+            <div className="px-4 pt-3 pb-1 text-sm font-bold">
+              {selectedChildComponent
+                ? capitalizeText(selectedChildComponent.name)
+                : capitalizeText(selectedComponentGroup?.name)
+                ? capitalizeText(selectedComponentGroup.name)
+                : ""}
+              {selectedFinishingType
+                ? `: ${capitalizeText(selectedFinishingType)}`
+                : ""}
             </div>
-            <img
-              className="finishing-modal-close-icon"
-              src={require("../../images/close.svg")}
-              onClick={onHideObjectProperties}
-            />
-          </TETabs>
+          ) : (
+            <TETabs className="mb-0 items-center justify-between">
+              <div className="p-3 mt-0 bg-[#F9F9FA] border-t border-r border-l border-b-0 border-inherit">
+                <span className="font-bold">
+                  {selectedChildComponent
+                    ? capitalizeText(selectedChildComponent.name)
+                    : capitalizeText(selectedComponentGroup?.name)
+                    ? capitalizeText(selectedComponentGroup.name)
+                    : ""}
+                  :{" "}
+                  {selectedFinishingType
+                    ? capitalizeText(selectedFinishingType)
+                    : ""}
+                </span>
+              </div>
+              <img
+                className="finishing-modal-close-icon"
+                src={require("../../images/close.svg")}
+                onClick={onHideObjectProperties}
+              />
+            </TETabs>
+          )}
           {onSwitchFinishingType ? (
             <div className="flex gap-1.5 px-3 py-2 bg-white dark:bg-neutral-700">
               {(["exterior", "interior"] as const).map((t) => {
@@ -209,7 +241,13 @@ const ObjectFinishingsModal = ({
               })}
             </div>
           ) : null}
-          <TETabsContent className="bg-white m-0 overflow-y-auto h-auto">
+          <TETabsContent
+            className={
+              docked
+                ? "bg-white dark:bg-neutral-700 m-0 overflow-y-auto h-auto px-1 pb-3"
+                : "bg-white m-0 overflow-y-auto h-auto"
+            }
+          >
             <TETabsPane show={showObjectComponentsModal}>
               <div>
                 <div className=" px-3 flex flex-col text-justify">

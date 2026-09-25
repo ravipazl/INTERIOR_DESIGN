@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { v4 as uuidv4 } from "uuid";
 import { FurnishedModel } from "@pazl/entities/FurnishedModel";
 import { Finishing } from "@pazl/entities/Finishing";
@@ -10,6 +11,7 @@ import { RatesService } from "@pazl/services/RatesService";
 import ObjectMaterialModal from "@pazl/components/ObjectMaterialModal";
 import ObjectFinishingsModal from "@pazl/components/ObjectFinishingsModal";
 import ComponentsGroup from "./componentsGroup";
+import { useMaterialTab } from "./materialTabContext";
 import "./objectComponents.css";
 import "@pazl/components/MenuBar/index.css";
 import HandleTypesModal from "@pazl/components/HandleTypesModal";
@@ -1878,10 +1880,35 @@ function ObjectComponents({
     return () => window.removeEventListener("keydown", onKey);
   }, [showObjectComponentsModal]);
 
+  // ── Material tab ─────────────────────────────────────────────────────────
+  // The finish panel used to float over the canvas. When ObjectPanel offers a
+  // Material tab, render it in there instead (same component, same props, same
+  // state — only its DOM parent changes) and tell the panel when it is open so
+  // the tab can switch to it. Outside ObjectPanel there is no context, so the
+  // panel keeps floating exactly as before.
+  const materialTab = useMaterialTab();
+  const isDockedInMaterialTab = !!materialTab?.container;
+
+  // Through a ref so this fires on open/close only, not on every render.
+  const setMaterialOpenRef = useRef(materialTab?.setMaterialOpen);
+  setMaterialOpenRef.current = materialTab?.setMaterialOpen;
+
+  useEffect(() => {
+    setMaterialOpenRef.current?.(showObjectComponentsModal);
+  }, [showObjectComponentsModal]);
+
+  useEffect(() => {
+    return () => setMaterialOpenRef.current?.(false);
+  }, []);
+
+  const renderFinishPanel = (panel: React.ReactNode) =>
+    materialTab?.container ? createPortal(panel, materialTab.container) : panel;
+
   return (
     <>
-      {showObjectComponentsModal && (
+      {showObjectComponentsModal && renderFinishPanel(
         <ObjectFinishingsModal
+          docked={isDockedInMaterialTab}
           onHideObjectPanel={onHideObjectPanel}
           isDarkMode={isDarkMode}
           showObjectComponentsModal={showObjectComponentsModal}
