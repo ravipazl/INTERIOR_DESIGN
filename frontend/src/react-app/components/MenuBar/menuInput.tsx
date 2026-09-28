@@ -114,6 +114,9 @@ function MenuInput({
       );
       BlueprintInterface.removeWall();
       onClose();
+    } else if (itemData.itemName === "delete_room") {
+      (BlueprintInterface as any).removeRoom2D?.(item2D);
+      onClose();
     } else {
       BlueprintInterface.actionsHistory2DManager.rise2DActionEvent(
         ACTION_EVENT_2D,

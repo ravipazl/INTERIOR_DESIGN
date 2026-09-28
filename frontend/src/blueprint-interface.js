@@ -1161,6 +1161,97 @@ BlueprintInterface.removeCorner = () => {
   BlueprintInterface.selectedCorner2D.remove();
 };
 
+BlueprintInterface.removeRoom2D = (roomTarget) => {
+  const room = (roomTarget && roomTarget.room) || roomTarget || BlueprintInterface.getSelectedRoom2D();
+  if (!room) return false;
+
+  const fp =
+    BlueprintInterface.blueprint3d &&
+    BlueprintInterface.blueprint3d.model &&
+    BlueprintInterface.blueprint3d.model.floorplan;
+  if (!fp) return false;
+
+  const allRooms = fp.getRooms() || [];
+  const otherRooms = allRooms.filter(
+    (r) => r !== room && (typeof r.getUuid === "function" ? r.getUuid() !== room.getUuid() : true)
+  );
+
+  const roomCorners = room.corners || room._corners || [];
+  if (!roomCorners.length) return false;
+
+  // Gather all walls connected to this room's corners + explicit walls
+  const roomWallsSet = new Set();
+  roomCorners.forEach((c) => {
+    if (c.wallStarts) c.wallStarts.forEach((w) => roomWallsSet.add(w));
+    if (c.wallEnds) c.wallEnds.forEach((w) => roomWallsSet.add(w));
+  });
+  const explicitRoomWalls = room.__walls || room.walls || [];
+  explicitRoomWalls.forEach((w) => roomWallsSet.add(w));
+
+  const roomWalls = Array.from(roomWallsSet);
+  const wallsToRemove = [];
+
+  // Find walls exclusive to this room (not shared by any other room)
+  roomWalls.forEach((wall) => {
+    const isShared = otherRooms.some((r) => {
+      const otherWalls = r.__walls || r.walls || [];
+      if (otherWalls.includes(wall)) return true;
+      const otherCorners = r.corners || r._corners || [];
+      return otherCorners.includes(wall.start) && otherCorners.includes(wall.end);
+    });
+    if (!isShared) {
+      wallsToRemove.push(wall);
+    }
+  });
+
+  // Temporarily pause heavy floorplan updates while removing walls in batch
+  const prevUpdatesState = fp.__updatesOn;
+  fp.__updatesOn = false;
+
+  // Remove exclusive walls
+  wallsToRemove.forEach((wall) => {
+    try {
+      wall.remove();
+    } catch (e) {
+      console.error("Failed to remove room wall", e);
+    }
+  });
+
+  // Clean up any orphan corners that no longer have walls
+  const allCornersInPlan = fp.getCorners() || [];
+  allCornersInPlan.forEach((corner) => {
+    if (corner && corner.wallStarts && corner.wallEnds) {
+      if (corner.wallStarts.length === 0 && corner.wallEnds.length === 0) {
+        try {
+          corner.remove();
+        } catch (e) {
+          console.error("Failed to remove orphan corner", e);
+        }
+      }
+    }
+  });
+
+  // Re-enable updates and run single update
+  fp.__updatesOn = prevUpdatesState !== false;
+
+  BlueprintInterface.resetSelections();
+  try {
+    fp.update();
+  } catch (e) {
+    console.error("Error updating floorplan after room removal", e);
+  }
+
+  try {
+    BlueprintInterface.redrawDoors2D?.();
+    BlueprintInterface.snapshot2D?.();
+    BlueprintInterface.ProjectManagerService?.updateFloorPlan?.("Room deleted");
+  } catch (e) {
+    console.error("Error persisting room deletion", e);
+  }
+
+  return true;
+};
+
 BlueprintInterface.resetSelections = () => {
   BlueprintInterface.setSelectedWall2D(null);
   BlueprintInterface.setSelectedCorner2D(null);

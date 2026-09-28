@@ -1575,8 +1575,11 @@ export class DrawTools2D {
     this.fp.update();
     try {
       BlueprintInterface.snapshot2D && BlueprintInterface.snapshot2D();
+      BlueprintInterface.ProjectManagerService?.updateFloorPlan?.(
+        msg || "Floorplan updated"
+      );
     } catch (e) {
-      /* undo history is best-effort */
+      /* undo history / persist is best-effort */
     }
     if (msg) this.__hint(msg, 2200);
     this.__redraw();

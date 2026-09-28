@@ -13,6 +13,7 @@ import RoomPanelSkeleton from "./roomPanelSkeleton";
 import { MODEL_TYPES } from "@pazl/entities/Model";
 import UploadModelModal from "@pazl/components/UploadModelModal";
 import AddCategoryModal from "@pazl/components/AddCategoryModal";
+import EditCategoryModal from "@pazl/components/EditCategoryModal";
 import useDockTop from "@pazl/react-app/hooks/useDockTop";
 
 interface RoomPanelTypeProps {
@@ -285,6 +286,13 @@ function RoomPanel({
   const [showUploadModal, setShowUploadModal] = useState<boolean>(false);
   const [showAddCategoryModal, setShowAddCategoryModal] =
     useState<boolean>(false);
+  const [showEditCategoryModal, setShowEditCategoryModal] =
+    useState<boolean>(false);
+  const [editingCategoryNode, setEditingCategoryNode] = useState<{
+    id: string;
+    name: string;
+    parentCategoryId?: string | null;
+  } | null>(null);
   // null = create main; string = preset parent (sub-category creation)
   // Both sections start open — the panel is the reason you are on this step.
   const dockTop = useDockTop();
@@ -563,9 +571,7 @@ function RoomPanel({
             model.type === MODEL_TYPES.IN_WALL_UNIT
         );
         const filteredModels = models.filter(
-          (model: any) =>
-            model.categoryId === node.data.parentCategoryId ||
-            model.categoryId === node.data.id
+          (model: any) => model.categoryId === node.data.id
         );
         setSelectedModels(filteredModels ?? []);
       } else if (isOnlyFloorItems) {
@@ -573,16 +579,12 @@ function RoomPanel({
           (model: Model) => model.type === MODEL_TYPES.FLOOR_UNIT
         );
         const filteredModels = models.filter(
-          (model: any) =>
-            model.categoryId === node.data.parentCategoryId ||
-            model.categoryId === node.data.id
+          (model: any) => model.categoryId === node.data.id
         );
         setSelectedModels(filteredModels ?? []);
       } else {
         const filteredModels = allModels.filter(
-          (model: any) =>
-            model.categoryId === node.data.parentCategoryId ||
-            model.categoryId === node.data.id
+          (model: any) => model.categoryId === node.data.id
         );
         setSelectedModels(filteredModels ?? []);
       }
@@ -719,9 +721,7 @@ function RoomPanel({
     const allModels = await ModelsService.getModelsFromLocalStorage();
     if (!allModels?.length || !selectedTreeNode?.data) return;
     const filteredModels = allModels.filter(
-      (model: any) =>
-        model.categoryId === selectedTreeNode.data.parentCategoryId ||
-        model.categoryId === selectedTreeNode.data.id
+      (model: any) => model.categoryId === selectedTreeNode.data.id
     );
     setSelectedModels(filteredModels ?? []);
   };
@@ -765,9 +765,7 @@ function RoomPanel({
             model.type === MODEL_TYPES.IN_WALL_UNIT
         );
         const filteredModels = models.filter(
-          (model: any) =>
-            model.categoryId === child.data.parentCategoryId ||
-            model.categoryId === child.data.id
+          (model: any) => model.categoryId === child.data.id
         );
         setSelectedModels(filteredModels ?? []);
       } else if (isOnlyFloorItems) {
@@ -775,16 +773,12 @@ function RoomPanel({
           (model: Model) => model.type === MODEL_TYPES.FLOOR_UNIT
         );
         const filteredModels = models.filter(
-          (model: any) =>
-            model.categoryId === child.data.parentCategoryId ||
-            model.categoryId === child.data.id
+          (model: any) => model.categoryId === child.data.id
         );
         setSelectedModels(filteredModels ?? []);
       } else {
         const filteredModels = allModels.filter(
-          (model: any) =>
-            model.categoryId === child.data.parentCategoryId ||
-            model.categoryId === child.data.id
+          (model: any) => model.categoryId === child.data.id
         );
         setSelectedModels(filteredModels ?? []);
       }
@@ -792,59 +786,83 @@ function RoomPanel({
   };
 
   const renderNode = useCallback(
-    ({ node }: any) => (
-      <div
-        className={`group flex items-start min-h-[24px] py-1`}
-        key={node.data.id}
-      >
+    ({ node }: any) => {
+      // Check if this node is a sub-title (depth 2 or below, i.e. its parent itself is a subcategory)
+      const parentCat = node.data.parentCategoryId
+        ? roomPanelData.find((c: any) => c._id === node.data.parentCategoryId)
+        : null;
+      const isLeafSubTitle = !!parentCat?.parentCategoryId;
+
+      return (
         <div
-          onClick={() => onRoomPanelTreeViewClick(node)}
-          className={`self-center cursor-pointer mt-1
-                ${
-                  !node.hasChildren()
-                    ? ""
-                    : node.hasChildren() && node.options.opened
-                    ? "bg-[url('/public/assets/icons/down.png')] bg-no-repeat bg-contain w-[20px] h-[20px]"
-                    : "bg-[url('/public/assets/icons/next.png')] bg-no-repeat bg-contain w-[20px] h-[20px]"
-                }
-          `}
-        />
-        <div
-          className={`cursor-pointer w-full min-w-0 mr-1 cursor-pointer bg-no-repeat ${
-            node.isSelected() ? "bg-[#E9E5EC]" : ""
-          }`}
-          onClick={() => onRoomPanelTreeViewClick(node)}
+          className={`group flex items-start min-h-[24px] py-1`}
+          key={node.data.id}
         >
           <div
-            className={`font-normal text-sm py-1 flex items-center gap-1.5 min-w-0 ${
-              node.isSelected()
-                ? "text-primary dark:text-[#333333]"
-                : "text-primary dark:text-neutral-50"
+            onClick={() => onRoomPanelTreeViewClick(node)}
+            className={`self-center cursor-pointer mt-1
+                  ${
+                    !node.hasChildren()
+                      ? ""
+                      : node.hasChildren() && node.options.opened
+                      ? "bg-[url('/public/assets/icons/down.png')] bg-no-repeat bg-contain w-[20px] h-[20px]"
+                      : "bg-[url('/public/assets/icons/next.png')] bg-no-repeat bg-contain w-[20px] h-[20px]"
+                  }
+            `}
+          />
+          <div
+            className={`cursor-pointer w-full min-w-0 mr-1 cursor-pointer bg-no-repeat ${
+              node.isSelected() ? "bg-[#E9E5EC]" : ""
             }`}
+            onClick={() => onRoomPanelTreeViewClick(node)}
           >
-            <CategoryIcon name={node.data.name} />
-            <span className="truncate" title={node.data.name}>
-              {node.data.name}
-            </span>
+            <div
+              className={`font-normal text-sm py-1 flex items-center gap-1.5 min-w-0 ${
+                node.isSelected()
+                  ? "text-primary dark:text-[#333333]"
+                  : "text-primary dark:text-neutral-50"
+              }`}
+            >
+              <CategoryIcon name={node.data.name} />
+              <span className="truncate" title={node.data.name}>
+                {node.data.name}
+              </span>
+            </div>
           </div>
-        </div>
-        {/* Hover "+" for main categories only — quick sub-category add */}
-        {!node.data.parentCategoryId && (
+          {/* Edit (rename) category / sub-title name */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setEditingCategoryNode({
+                id: node.data.id,
+                name: node.data.name,
+                parentCategoryId: node.data.parentCategoryId,
+              });
+              setShowEditCategoryModal(true);
+            }}
+            className="opacity-0 group-hover:opacity-100 hover:!opacity-100 text-xs px-1 py-0.5 mr-1 my-auto rounded border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-700 text-neutral-600 dark:text-neutral-200 transition-opacity shrink-0 flex items-center justify-center"
+            title={`Edit name of "${node.data.name}"`}
+          >
+            <span className="material-symbols-outlined text-[13px] leading-none">
+              edit
+            </span>
+          </button>
+          {/* Quick sub-category add (+) icon for all categories and sub-titles */}
           <button
             onClick={(e) => {
               e.stopPropagation();
               setAddCategoryParentId(node.data.id);
               setShowAddCategoryModal(true);
             }}
-            className="opacity-0 group-hover:opacity-100 text-xs px-1.5 py-0.5 mr-1 rounded bg-[color:var(--pz-accent)] text-white hover:opacity-100"
+            className="opacity-40 group-hover:opacity-100 hover:!opacity-100 text-xs px-1.5 py-0.5 mr-1 my-auto rounded bg-[color:var(--pz-accent)] text-white transition-opacity shrink-0"
             title={`Add a sub-category under "${node.data.name}"`}
           >
             +
           </button>
-        )}
-      </div>
-    ),
-    [isDarkMode]
+        </div>
+      );
+    },
+    [isDarkMode, roomPanelData]
   );
 
   return (
@@ -1094,12 +1112,10 @@ function RoomPanel({
             open={openSections.includes("addmodel")}
             onToggle={toggleSection}
           >
-            <div className="grid grid-cols-4 gap-2">
+            <div className="grid grid-cols-3 gap-2">
               <ToolCard icon="upload" label="Upload" onClick={onUpload} />
               <ToolCard icon="auto_awesome" label="Generate" onClick={onGenerate} />
               <ToolCard icon="travel_explore" label="Search" onClick={onSearchModels} />
-              {/* Fills the selected room from a room template (Kitchen). */}
-              <ToolCard icon="grid_view" label="Auto-furnish" onClick={onAutoFurnish} />
             </div>
           </PanelSection>
 
@@ -1150,6 +1166,23 @@ function RoomPanel({
         onClose={() => setShowAddCategoryModal(false)}
         onSuccess={refreshCategoriesTree}
         presetParentId={addCategoryParentId}
+      />
+      <EditCategoryModal
+        show={showEditCategoryModal}
+        category={editingCategoryNode}
+        onClose={() => {
+          setShowEditCategoryModal(false);
+          setEditingCategoryNode(null);
+        }}
+        onSuccess={async () => {
+          await refreshCategoriesTree();
+          if (editingCategoryNode && selectedTreeNode?.data?.id === editingCategoryNode.id) {
+            setSelectedTreeNode((prev: any) => ({
+              ...prev,
+              data: { ...prev.data, name: editingCategoryNode.name },
+            }));
+          }
+        }}
       />
     </>
   );

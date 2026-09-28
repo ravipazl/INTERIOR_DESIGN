@@ -91,6 +91,31 @@ export const CategoriesService = {
     return response.data;
   },
 
+  updateCategory: async (
+    id: string,
+    input: {
+      name: string;
+      parentCategoryId?: string | null;
+    }
+  ) => {
+    const accessToken = AuthService.getAccessToken();
+    const payload: any = { name: input.name.trim() };
+    if (input.parentCategoryId !== undefined) {
+      payload.parentCategoryId = input.parentCategoryId;
+    }
+    const response = await axios.patch(`/categories/${id}`, payload, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    if (response?.status < 200 || response?.status >= 300) {
+      const msg =
+        response?.data?.message ||
+        response?.data?.error ||
+        `HTTP ${response?.status} from /categories/${id}`;
+      throw new Error(msg);
+    }
+    return response.data;
+  },
+
   /**
    * Refetch all categories from the API and overwrite the localStorage cache.
    * Call after creating a category so the catalog tree picks up the new entry

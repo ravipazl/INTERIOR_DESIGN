@@ -99,6 +99,11 @@ function SearchableSelect({
         type="button"
         onClick={() => !disabled && setOpen((v) => !v)}
         disabled={disabled}
+        title={
+          selected
+            ? `${selected.group ? selected.group + " → " : ""}${selected.label}`
+            : placeholder
+        }
         className="flex items-center justify-between w-full border rounded px-2 py-1 text-left text-sm bg-white dark:bg-neutral-800 dark:text-white disabled:opacity-40"
       >
         <span
