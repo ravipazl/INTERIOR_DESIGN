@@ -106,11 +106,63 @@ export async function findCategory(db, nameOrKey) {
   )
 }
 
-/** The models of a category (categoryId is stored as a string; accept an ObjectId too). */
-export function modelsOf(db, cat, projection) {
+/**
+ * A category's id plus every descendant's, as strings. Read in one pass — the
+ * tree is small and a per-level query would be slower and harder to follow.
+ */
+async function subtreeIds(db, rootId) {
+  const cats = await db
+    .collection('categories')
+    .find({})
+    .project({ parentCategoryId: 1 })
+    .toArray()
+  const ids = new Set([String(rootId)])
+  let grew = true
+  while (grew) {
+    grew = false
+    for (const c of cats) {
+      const id = String(c._id)
+      const parent = c.parentCategoryId ? String(c.parentCategoryId) : null
+      if (parent && ids.has(parent) && !ids.has(id)) {
+        ids.add(id)
+        grew = true
+      }
+    }
+  }
+  return ids
+}
+
+/**
+ * The models of a category AND ALL ITS SUB-CATEGORIES.
+ *
+ * The subtree matters as much here as it does in the app. This used to match
+ * the category's own id only, which was right while models sat directly in
+ * "Below Counter Storage". Once that category grew sub-categories the models
+ * moved down into the leaves and it held NONE of its own — so every script
+ * built on this (bake-category-wood, record-baked-finish, the live cabinet
+ * finish run) silently found 0 models for Below Counter Storage and Wall Unit
+ * and baked nothing at all. Nothing failed; there was simply no work.
+ *
+ * categoryId is stored as a string on most records and as an ObjectId on some,
+ * so both forms of every id are offered to the query.
+ */
+export async function modelsOf(db, cat, projection) {
+  const ids = await subtreeIds(db, cat._id)
+  const any = []
+  for (const id of ids) {
+    any.push(id)
+    const asObjectId = cat._id?.constructor
+    if (asObjectId && typeof asObjectId.createFromHexString === 'function') {
+      try {
+        any.push(asObjectId.createFromHexString(id))
+      } catch (e) {
+        // not a hex id — the string form above still matches
+      }
+    }
+  }
   return db
     .collection('models')
-    .find({ categoryId: { $in: [String(cat._id), cat._id] } })
+    .find({ categoryId: { $in: any } })
     .project(projection)
     .toArray()
 }
