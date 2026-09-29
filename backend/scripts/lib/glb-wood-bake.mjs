@@ -356,5 +356,51 @@ export function detectByShape(rows, modelName = '', eligible = (r) => !hasOwnLoo
     const body = others.reduce((a, r) => (!a || volume(r) > volume(a) ? r : a), null)
     shutters = others.filter((r) => r !== body && r.size[1] >= 500).map((r) => r.index)
   }
-  return { shutters, handles: handleRows.map((r) => r.index) }
+
+  // PROFILE HANDLES — a handle that is not a bar at all.
+  //
+  // The rule above looks for a small bar, which is what a "basic handle" is.
+  // A profile handle is the opposite shape: a narrow strip running the FULL
+  // HEIGHT of the door beside it. On a 400 mm tall unit the door measures
+  // 365 x 1944 x 18 and the profile 35 x 1944 x 18 — together the cabinet's
+  // width. Sorted, that strip is 18 x 35 x 1944, so the bar rule (thinnest
+  // side ≤ 12 mm, longest ≤ 200 mm) misses it by a mile and always will:
+  // widening the bar rule far enough to catch it would swallow every side
+  // panel in the catalogue. It needs its own rule.
+  //
+  // It runs along the door either way up. Beside a tall door it is narrow and
+  // full height (35 x 1944 x 18 next to a 365 x 1944 x 18 door); above a drawer
+  // it is the other way round — full width and short (250 x 35 x 18 across a
+  // 250 x 685 x 18 front). So the test is "matches the door on one axis, tiny
+  // on the other", not a fixed orientation.
+  //
+  // Only when no bar was found — a door has one kind of handle or the other,
+  // never both — and only in the shutter's own plane, which is what separates
+  // the profile from the back panel (equally thin, equally tall, at the back),
+  // from a side panel (equally narrow, but 564 mm deep) and from a plinth or
+  // rail (at the front, but deep).
+  let handles = handleRows.map((r) => r.index)
+  if (!handles.length && shutters.length) {
+    const chosen = new Set(shutters)
+    const door = rows.filter((r) => chosen.has(r.index))
+    const doorW = Math.max(...door.map((r) => r.size[0]))
+    const doorH = Math.max(...door.map((r) => r.size[1]))
+    const SLIM = 60 // a door, filler or drawer front is always wider than this
+    // 0.4, not 0.8: a double-shutter unit carries ONE PROFILE PER LEAF, so each
+    // runs only half the opening (two 447 x 35 x 18 strips across a 900 mm
+    // front). Half of a half is the floor, and it still cannot reach anything
+    // else — whatever matches is at most 60 mm on its short side and under
+    // 25 mm deep, sitting in the door's own plane.
+    const ALONG = 0.4
+    handles = plain
+      .filter((r) => !chosen.has(r.index) && r.size[2] <= 25)
+      .filter(
+        (r) =>
+          (r.size[0] <= SLIM && r.size[1] >= doorH * ALONG) || // upright, beside the door
+          (r.size[1] <= SLIM && r.size[0] >= doorW * ALONG) // flat, along the top
+      )
+      .filter((r) => front * r.centre[2] >= frontZ - 5 && front * r.centre[2] > 0)
+      .map((r) => r.index)
+  }
+  return { shutters, handles }
 }
