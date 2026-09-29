@@ -6,6 +6,7 @@ import { Category } from "@pazl/entities/Category";
 import { Model } from "@pazl/entities/Model";
 import { FurnishedModel } from "@pazl/entities/FurnishedModel";
 import { ModelsService } from "@pazl/services/ModelsService";
+import { generateAndUploadThumbnail } from "@pazl/helpers/generateThumbnail";
 import { CategoriesService } from "@pazl/services/categoriesService";
 import { TreeNode } from "@pazl/helpers/Types";
 import { handleAddItemsToScene } from "@pazl/viewer3d-state-interface";
@@ -292,6 +293,10 @@ function RoomPanel({
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkBusy, setBulkBusy] = useState(false);
   const [bulkProgress, setBulkProgress] = useState("");
+  // Re-taking the catalogue preview pictures for the selected branch.
+  const [previewBusy, setPreviewBusy] = useState(false);
+  const [previewProgress, setPreviewProgress] = useState("");
+  const previewStop = React.useRef(false);
   const [roomPanelData, setRoomPanelData] = useState<Category[]>([]);
   const [showUploadModal, setShowUploadModal] = useState<boolean>(false);
   const [showAddCategoryModal, setShowAddCategoryModal] =
@@ -360,6 +365,9 @@ function RoomPanel({
   useEffect(() => {
     setPlacementFilter("all");
     setSearchQuery("");
+    // A finished-preview message belongs to the branch it ran on; carrying it
+    // to the next category would claim work that never happened there.
+    setPreviewProgress("");
     (async () => {
       try {
         const all = await ModelsService.getModelsFromLocalStorage();
@@ -493,6 +501,77 @@ function RoomPanel({
   const shownLeafModels = sortModels(
     (selectedModels || []).filter((m: any) => matchName(m?.name))
   );
+
+  /**
+   * Every model in the selected category and below it — what the preview job
+   * works on, so picking "Tall Units" covers the whole branch rather than the
+   * one leaf that happens to be open.
+   */
+  const modelsInSelectedBranch = (): any[] => {
+    const rootId = selectedTreeNode?.data?.id;
+    if (!rootId) return [];
+    const ids = collectCategoryIds(rootId);
+    const all = allModelsCache.length ? allModelsCache : selectedModels;
+    return (all || []).filter((m: any) => ids.has(String(m.categoryId)));
+  };
+
+  /**
+   * Take the catalogue preview pictures again for this branch.
+   *
+   * There is no script for this. package.json carries `thumbnails:generate`,
+   * but it points at scripts/generate-thumbnails.js, which has never existed in
+   * this repository — it belongs to the other Pazl project and renders with a
+   * local Blender install, so it can neither be pushed here nor run on the
+   * server. What DOES work is the renderer this app already uses on every
+   * upload: it draws the .glb in an offscreen canvas and posts the image to
+   * /thumbnail-upload. This simply runs that over models that already exist.
+   *
+   * `redoAll` matters more than it looks. A tall unit whose GLB was grey when
+   * its picture was taken HAS a thumbnail — a photograph of a grey cabinet — so
+   * a "only the missing ones" pass would skip exactly the cards that are wrong.
+   * After a wood bake you want every picture taken again.
+   *
+   * One at a time on purpose: each render builds a WebGL context and uploads a
+   * file, and a hundred at once would exhaust the browser's context limit and
+   * fail in a way that looks like a bug in the models.
+   */
+  const generatePreviews = async (redoAll: boolean) => {
+    const all = modelsInSelectedBranch();
+    const todo = redoAll ? all : all.filter((m: any) => !m?.thumbnail);
+    if (!todo.length) {
+      setPreviewProgress(
+        all.length ? "Every model here already has a picture." : "No models here."
+      );
+      return;
+    }
+    previewStop.current = false;
+    setPreviewBusy(true);
+    let done = 0;
+    let failed = 0;
+    for (const m of todo) {
+      if (previewStop.current) break;
+      setPreviewProgress(`Rendering ${done + failed + 1} of ${todo.length}…`);
+      // One bad model must not end the run — it is reported at the end.
+      const ok = await generateAndUploadThumbnail(
+        String(m._id),
+        String(m.modelFileUrl || "")
+      );
+      if (ok) done += 1;
+      else failed += 1;
+    }
+    setPreviewBusy(false);
+    setPreviewProgress(
+      `${done} picture(s) updated` +
+        (failed ? ` · ${failed} failed` : "") +
+        (previewStop.current ? " · stopped" : "") +
+        ". Reload to see them."
+    );
+    // The cards read their image once, from the thumbnail the model carried
+    // when the panel opened, so they do not change under you — hence "Reload".
+    // Nothing is refreshed here on purpose: the pictures are already saved on
+    // the server, and a half-refreshed panel would be harder to trust than a
+    // plain reload.
+  };
   /**
    * What a category holds: its sub-categories and its models, counting every
    * level below it, not just the first.
@@ -1091,6 +1170,46 @@ function RoomPanel({
                   }}
                 />
               </div>
+              {/* PREVIEW PICTURES for this branch.
+                  On its own line under the buttons: the row above already needs
+                  ~224px of the panel's 250 and cannot take a fourth control.
+                  Hidden while ticking cards to delete, where it would only be
+                  in the way. */}
+              {!selectMode && (
+                <div className="flex items-center gap-2 pt-0.5">
+                  <button
+                    className="text-xs px-2 py-1 rounded border border-neutral-400 text-neutral-700 dark:text-neutral-100 hover:bg-white/60 dark:hover:bg-white/10 disabled:opacity-40"
+                    disabled={previewBusy}
+                    title="Render a preview picture for every model here that has none"
+                    onClick={() => generatePreviews(false)}
+                  >
+                    Previews
+                  </button>
+                  <button
+                    className="text-xs px-2 py-1 rounded border border-neutral-400 text-neutral-700 dark:text-neutral-100 hover:bg-white/60 dark:hover:bg-white/10 disabled:opacity-40"
+                    disabled={previewBusy}
+                    title="Take every preview picture again — use after the wood finish changes, when the old pictures show grey cabinets"
+                    onClick={() => generatePreviews(true)}
+                  >
+                    Retake all
+                  </button>
+                  {previewBusy && (
+                    <button
+                      className="text-xs px-2 py-1 rounded bg-red-500 text-white"
+                      onClick={() => {
+                        previewStop.current = true;
+                      }}
+                    >
+                      Stop
+                    </button>
+                  )}
+                </div>
+              )}
+              {previewProgress && !selectMode && (
+                <p className="text-[11px] text-neutral-600 dark:text-neutral-200 leading-snug">
+                  {previewProgress}
+                </p>
+              )}
             </div>
             {/* Selection bar — only while picking models to delete. */}
             {selectMode && (
