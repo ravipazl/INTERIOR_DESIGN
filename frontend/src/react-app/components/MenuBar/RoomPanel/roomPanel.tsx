@@ -159,6 +159,20 @@ const CAT_W = 260;     // category panel width
 const ITEMS_W = 250;   // item grid width (1 card per row)
 const ITEMS_LEFT = CAT_INSET + CAT_W;
 
+/**
+ * The "Previews" / "Retake all" buttons in the item panel header.
+ *
+ * Off. Flip to true to show them again — nothing else needs changing.
+ *
+ * They render a catalogue picture for models that already have none, by
+ * running the same offscreen renderer the app uses after every upload. Kept
+ * behind a switch rather than deleted because there is no other way to do it:
+ * package.json's `thumbnails:generate` points at scripts/generate-thumbnails.js,
+ * which has never existed in this repository — it belongs to the other Pazl
+ * project and renders through a local Blender install.
+ */
+const SHOW_PREVIEW_TOOLS = false;
+
 /** Collapsible section, matching the Floor plan panel's sections. `action`
  *  renders on the header row (used for the Category "+"), and stops its own
  *  click from toggling the section. */
@@ -1174,8 +1188,14 @@ function RoomPanel({
                   On its own line under the buttons: the row above already needs
                   ~224px of the panel's 250 and cannot take a fourth control.
                   Hidden while ticking cards to delete, where it would only be
-                  in the way. */}
-              {!selectMode && (
+                  in the way.
+
+                  HIDDEN ON PURPOSE — set SHOW_PREVIEW_TOOLS to true to bring
+                  them back. The code is kept rather than deleted because it is
+                  the only way to give a preview picture to a model that already
+                  exists: `npm run thumbnails:generate` points at a script that
+                  has never existed in this repository. */}
+              {SHOW_PREVIEW_TOOLS && !selectMode && (
                 <div className="flex items-center gap-2 pt-0.5">
                   <button
                     className="text-xs px-2 py-1 rounded border border-neutral-400 text-neutral-700 dark:text-neutral-100 hover:bg-white/60 dark:hover:bg-white/10 disabled:opacity-40"
@@ -1205,7 +1225,7 @@ function RoomPanel({
                   )}
                 </div>
               )}
-              {previewProgress && !selectMode && (
+              {SHOW_PREVIEW_TOOLS && previewProgress && !selectMode && (
                 <p className="text-[11px] text-neutral-600 dark:text-neutral-200 leading-snug">
                   {previewProgress}
                 </p>
