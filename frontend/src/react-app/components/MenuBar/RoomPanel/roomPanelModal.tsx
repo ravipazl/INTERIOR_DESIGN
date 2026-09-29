@@ -5,6 +5,7 @@ import {
   setDraggedModel,
   clearDraggedModel,
 } from "@pazl/helpers/dragDropModel";
+import { modelFallbackUrl } from "@pazl/main/helpers/modelUrlFallback";
 import { warmModelCache } from "@pazl/viewer3d-state-interface";
 
 function RoomPanelModal({
@@ -27,6 +28,33 @@ function RoomPanelModal({
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [thumbSrc, setThumbSrc] = useState<string>(modalData?.thumbnail || "");
   const [imgError, setImgError] = useState(false);
+  const [triedFallback, setTriedFallback] = useState(false);
+
+  /**
+   * A thumbnail the WEBSITE cannot find is not a missing thumbnail.
+   *
+   * The picture is saved into THUMB_STORAGE_DIR and linked as
+   * "/assets/models/thumbnails/<id>.jpg". When the web server serves /assets
+   * from a different folder than the one the backend wrote into — the build
+   * folder, typically — that link is a 404 even though the file exists, and the
+   * card said "No preview" for a picture that was sitting on the server.
+   *
+   * The backend serves the same folder itself (src/model-files.js) and
+   * modelUrlFallback already retries broken <img> tags against the API address.
+   * That global retry could never help HERE, though: this card's own onError
+   * replaced the <img> with "No preview" in the same tick, so the retry landed
+   * on an element that was already gone. Asking for the fallback URL ourselves,
+   * before giving up, is what makes it reachable.
+   */
+  const handleThumbError = () => {
+    const alt = !triedFallback ? modelFallbackUrl(thumbSrc) : null;
+    if (alt) {
+      setTriedFallback(true);
+      setThumbSrc(alt);
+      return;
+    }
+    setImgError(true);
+  };
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string>("");
 
@@ -45,6 +73,8 @@ function RoomPanelModal({
       // cache-bust so the browser re-fetches the (possibly overwritten) file
       setThumbSrc(`${res.thumbnail}?t=${Date.now()}`);
       setImgError(false);
+      // A new picture gets its own chance at the fallback.
+      setTriedFallback(false);
     } catch (err: any) {
       setUploadError(err?.message || "Upload failed");
     } finally {
@@ -112,7 +142,7 @@ function RoomPanelModal({
           className="w-full h-full object-contain p-2 transition-transform duration-200 group-hover:scale-105"
           src={thumbSrc}
           alt={modalData?._id}
-          onError={() => setImgError(true)}
+          onError={handleThumbError}
         />
       ) : (
         <div className="w-full h-full flex items-center justify-center text-[11px] text-neutral-400">

@@ -21,12 +21,15 @@ import url from 'url'
 const __dirname = path.dirname(url.fileURLToPath(import.meta.url))
 
 // Same defaults as services/model-upload and services/thumbnail-upload.
+// "frontend", not "pazl-design-frontend" — that name belongs to the other Pazl
+// repository and resolves to nothing here, so a server without the two
+// variables set served 404s for files it had just saved.
 const GLB_DIR =
   process.env.GLB_STORAGE_DIR ||
-  path.resolve(__dirname, '../../pazl-design-frontend/public/assets/models/glb')
+  path.resolve(__dirname, '../../frontend/public/assets/models/glb')
 const THUMB_DIR =
   process.env.THUMB_STORAGE_DIR ||
-  path.resolve(__dirname, '../../pazl-design-frontend/public/assets/models/thumbnails')
+  path.resolve(__dirname, '../../frontend/public/assets/models/thumbnails')
 
 const ROUTES = [
   { prefix: '/assets/models/glb/', dir: GLB_DIR, ext: { '.glb': 'model/gltf-binary', '.gltf': 'model/gltf+json' } },

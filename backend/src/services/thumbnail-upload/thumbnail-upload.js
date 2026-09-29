@@ -26,12 +26,18 @@ const __dirname = path.dirname(url.fileURLToPath(import.meta.url))
 
 // Same public folder the old catalog thumbnails already live in, and the same
 // folder the frontend serves at /assets/models/thumbnails.
+//
+// THE FALLBACK NAMED THE WRONG PROJECT. It pointed at "pazl-design-frontend",
+// which is the OTHER Pazl repository; this one calls its frontend "frontend".
+// That directory does not exist here, so with THUMB_STORAGE_DIR unset the
+// service quietly CREATED it, wrote every picture into it and recorded a link
+// nothing serves — a card reading "No preview" for a file that was saved
+// successfully. It only ever worked because backend/.env sets the variable on
+// the development PC. Pointing the fallback at this repository's own frontend
+// means a server that forgets the variable still lands somewhere real.
 const THUMB_STORAGE_DIR =
   process.env.THUMB_STORAGE_DIR ||
-  path.resolve(
-    __dirname,
-    '../../../../pazl-design-frontend/public/assets/models/thumbnails'
-  )
+  path.resolve(__dirname, '../../../../frontend/public/assets/models/thumbnails')
 
 const MAX_BYTES = Number(process.env.MAX_THUMB_BYTES) || 8 * 1024 * 1024 // 8 MB
 const PUBLIC_URL_PREFIX = '/assets/models/thumbnails'
