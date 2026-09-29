@@ -36,12 +36,24 @@ const SCRIPTS = path.join(BACKEND_DIR, 'scripts')
 // Category NAMES differ between machines ("Wall Unit" here is "Above Counter
 // Storage" on the live server, "Tall Units" is "Tall Unit"), so the scripts are
 // given the group KEY and look the name up themselves (lib/categories.mjs).
-const CATEGORIES = ['below', 'wall'].map((key) => ({
+//
+// ALL THREE GROUPS NOW BAKE THE SAME WAY. Tall units used to go through
+// tall-units-bake-finish.mjs, written before the shared engine existed and
+// carrying its own part detection: door = the tallest thin panel furthest along
+// +Z, handle = the smallest part in front of it, and the whole file skipped
+// when that shape did not match. That is why a tall unit could come out plain
+// on a server where the below-counter and wall units were finished correctly —
+// not a different cabinet, a different program. bake-category-wood.mjs matches
+// parts by name first and falls back to shape rules that also cover profile
+// handles, corner doors and files modelled facing -Z, and it shares one
+// measuring routine with the upload path, so a cabinet is finished the same way
+// wherever its finish came from. The old scripts stay on disk for restoring a
+// run made with them.
+const CATEGORIES = ['tall', 'below', 'wall'].map((key) => ({
   key,
   name: CABINET_GROUPS[key].label,
   folder: CABINET_GROUPS[key].backupFolder
 }))
-const TALL_FOLDER = CABINET_GROUPS.tall.backupFolder
 const FINISHES = [
   { name: 'Wood 10002', image: '10002.jpg', fileUrl: '/assets/rooms/textures/library/wooden_grains/10002.jpg' },
   { name: 'Wood 10012', image: '10012.jpg', fileUrl: '/assets/rooms/textures/library/wooden_grains/10012.jpg' }
@@ -154,7 +166,7 @@ async function preflight() {
       else if (row.texture?.fileUrl !== f.fileUrl) bad(`finish "${f.name}" uses ${row.texture?.fileUrl}, expected ${f.fileUrl}`)
       else ok(`finish "${f.name}" found`)
     }
-    for (const key of ['tall', ...CATEGORIES.map((c) => c.key)]) {
+    for (const key of CATEGORIES.map((c) => c.key)) {
       let found
       try {
         found = await findCategory(db, key)
@@ -206,9 +218,10 @@ async function verify(expected) {
 async function restore(logFile) {
   const log = JSON.parse(fs.readFileSync(logFile, 'utf8'))
   title('Restore original GLB files')
-  await run('tall-units-bake-finish.mjs', ['--restore'])
   for (const c of CATEGORIES) await run('bake-category-wood.mjs', ['--category', c.key, '--restore'])
   title('Undo recorded finishes')
+  // Old run-logs, from before tall units joined the shared path, recorded their
+  // finish with the tall-only script and must be undone with it.
   if (log.recordBackups?.tall) await run('tall-units-record-finish.mjs', ['--restore', log.recordBackups.tall])
   for (const f of log.recordBackups?.categories || []) await run('record-baked-finish.mjs', ['--restore', f])
   line('\n   Done. Ask users to refresh the page (Ctrl+F5).')
@@ -238,16 +251,6 @@ async function main() {
       else if (/MISSING/.test(j.status || '')) warnings.push(what)
     })
 
-  line(' • Tall Units')
-  collect(await run('tall-units-bake-finish.mjs', dry))
-  // The tall units found in this machine's "Tall Units" category.
-  const tallList = path.join(BACKUP_ROOT, TALL_FOLDER, APPLY ? 'baked-parts.last-run.json' : 'baked-parts.dry-run.json')
-  if (fs.existsSync(tallList)) {
-    for (const [file, e] of Object.entries(JSON.parse(fs.readFileSync(tallList, 'utf8')))) {
-      expected.push({ name: e.name, file, shutters: e.shutters, handles: e.handles })
-    }
-  }
-
   const lists = []
   for (const c of CATEGORIES) {
     line(` • ${c.name}`)
@@ -262,10 +265,7 @@ async function main() {
   }
 
   title(`3. ${APPLY ? 'Record' : 'Dry-run record of'} the finish in the database`)
-  const recordBackups = { tall: null, categories: [] }
-  line(' • Tall Units')
-  const tallRec = await run('tall-units-record-finish.mjs', dry)
-  recordBackups.tall = backupFileOf(tallRec)
+  const recordBackups = { categories: [] }
   for (const list of lists) {
     if (!fs.existsSync(list)) continue
     line(` • ${path.basename(path.dirname(list))}`)
@@ -295,7 +295,7 @@ async function main() {
       {
         createdAt: new Date().toISOString(),
         glbDir: GLB_DIR,
-        glbBackups: [TALL_FOLDER, ...CATEGORIES.map((c) => c.folder)].map((f) => path.join(BACKUP_ROOT, f)),
+        glbBackups: CATEGORIES.map((c) => path.join(BACKUP_ROOT, c.folder)),
         recordBackups,
         files: expected.map((e) => e.file),
         problems: [...problems, ...verifyFailed]
