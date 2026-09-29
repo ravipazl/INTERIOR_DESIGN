@@ -46,6 +46,8 @@ import {
   partRows,
   orderLikeThree,
   bakeDoc,
+  detectByName,
+  detectByShape,
   WOOD
 } from './lib/glb-wood-bake.mjs'
 
@@ -72,53 +74,6 @@ const LAST_RUN = path.join(BACKUP_DIR, 'baked-parts.last-run.json')
 const DRY_RUN_LIST = path.join(BACKUP_DIR, 'baked-parts.dry-run.json')
 const SKIP_NAMES = [/handle colour/i]
 
-/** A part whose material already gives it its own look (texture, colour, glass…). */
-function hasOwnLook(row) {
-  const mat = row.prim.getMaterial()
-  if (!mat) return false
-  const white = mat.getBaseColorFactor().slice(0, 3).every((v) => v > 0.98)
-  // "default material.001" / ".002" are the duplicate names an export writes
-  // when the same plain material is copied — still a plain material, so a
-  // cabinet using them must not be skipped as "already has its own look".
-  const plainName = /^(default material(\.\d+)?)?$/i.test(mat.getName() || '')
-  return !!mat.getBaseColorTexture() || !white || !plainName
-}
-
-function detectByName(rows) {
-  const plain = rows.filter((r) => !hasOwnLook(r))
-  const shutters = plain.filter((r) => /shutter/i.test(r.name)).map((r) => r.index)
-  const handles = plain.filter((r) => /handle/i.test(r.name)).map((r) => r.index)
-  return { shutters, handles }
-}
-
-function detectByShape(rows, modelName = '') {
-  const plain = rows.filter((r) => !hasOwnLook(r))
-  const handleRows = plain.filter((r) => {
-    const s = [...r.size].sort((a, b) => a - b)
-    return s[0] <= 12 && s[2] <= 120
-  })
-  // Front = the side the handles sit on (+Z for most files, −Z for some).
-  const avgHandleZ = handleRows.reduce((t, r) => t + r.centre[2], 0) / (handleRows.length || 1)
-  const front = avgHandleZ < 0 ? -1 : 1
-  // ≥ 120 mm wide, not 200: a 150 mm oil pull-out has a real shutter too.
-  // Still a thin (≤ 25 mm), tall (≥ 500 mm) board, so side panels and
-  // worktops — which are deep, not thin-and-tall — are still excluded.
-  const boards = plain.filter((r) => r.size[2] <= 25 && r.size[0] >= 120 && r.size[1] >= 500)
-  const frontZ = Math.max(...boards.map((r) => front * r.centre[2]))
-  // The frontmost board(s). A back panel is also thin but sits at the back.
-  let shutters = boards
-    .filter((r) => front * r.centre[2] >= frontZ - 5 && front * r.centre[2] > 0)
-    .map((r) => r.index)
-  if (!shutters.length && /corner/i.test(modelName)) {
-    // L-shaped corner door: tall (≥ 500 mm), not a handle, not the body.
-    const volume = (r) => r.size[0] * r.size[1] * r.size[2]
-    const handleIdx = new Set(handleRows.map((r) => r.index))
-    const others = plain.filter((r) => !handleIdx.has(r.index))
-    const body = others.reduce((a, r) => (!a || volume(r) > volume(a) ? r : a), null)
-    shutters = others.filter((r) => r !== body && r.size[1] >= 500).map((r) => r.index)
-  }
-  return { shutters, handles: handleRows.map((r) => r.index) }
-}
 
 async function main() {
   if (RESTORE) {

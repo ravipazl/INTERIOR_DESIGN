@@ -8,33 +8,33 @@
       "layout": "straightRun",
       "modules": {
         "tall": {
-          "category": "Tall Units",
+          "category": "KITCHEN > Tall Units",
           "match": null
         },
         "sink": {
-          "category": "Below Counter Storage",
+          "category": "KITCHEN > Below Counter Storage",
           "match": "sink"
         },
         "drawer": {
-          "category": "Below Counter Storage",
+          "category": "KITCHEN > Below Counter Storage",
           "match": "drawer"
         },
         "shutter": {
-          "category": "Below Counter Storage",
+          "category": "KITCHEN > Below Counter Storage",
           "match": "shutter|door|opening",
           "exclude": "corner|sink|oil ?pull"
         },
         "pullout": {
-          "category": "Below Counter Storage",
+          "category": "KITCHEN > Below Counter Storage",
           "match": "oil ?pull"
         },
         "wallUnit": {
-          "category": "Wall Unit",
+          "category": "KITCHEN > Wall Unit",
           "match": null,
           "exclude": "glass"
         },
         "corner": {
-          "category": "Below Counter Storage",
+          "category": "KITCHEN > Below Counter Storage",
           "match": "corner"
         }
       },

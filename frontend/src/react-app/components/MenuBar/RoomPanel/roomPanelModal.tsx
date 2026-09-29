@@ -68,7 +68,11 @@ function RoomPanelModal({
     // (name, Width, price, + Add). Everything still works — the details just
     // appear on hover instead of always being visible.
     <div
-      className={`group relative w-[135px] h-[150px] m-1.5 rounded-lg overflow-hidden bg-neutral-50 dark:bg-[#3a3a3a] shadow-sm ${
+      // 135x150 -> 210x230. Two of the old cards fitted a row in the 320px
+      // panel and the thumbnail was too small to tell one shutter from the
+      // next. The panel is now 250px (ITEMS_W) and takes one card per row, so
+      // the card fills the row instead of floating in 100px of empty space.
+      className={`group relative w-[210px] h-[230px] m-1.5 rounded-lg overflow-hidden bg-neutral-50 dark:bg-[#3a3a3a] shadow-sm ${
         selected
           ? "border-2 border-[color:var(--pz-accent)]"
           : "border border-neutral-100 dark:border-[#444444]"
@@ -213,20 +217,25 @@ function RoomPanelModal({
             >
               {modalData?.name?.toUpperCase()}
             </h5>
-            <div className="flex items-center gap-1 text-[10px] text-neutral-600 dark:text-neutral-200">
-              <span>Width</span>
-              <select className="text-[10px] focus:outline-none bg-transparent dark:bg-[#2b2b2b]">
-                {(Array.isArray(modalData?.standardWidth)
-                  ? modalData.standardWidth
-                  : []
-                ).map((option, index) => (
-                  <option key={index}>{option} mm</option>
-                ))}
-              </select>
+            {/* Width and price share a line now that the card is 210px wide —
+                they were stacked because there was no room beside each other. */}
+            <div className="flex items-center justify-center gap-2 text-[10px] text-neutral-600 dark:text-neutral-200">
+              <span className="flex items-center gap-1">
+                <span>Width</span>
+                <select className="text-[10px] focus:outline-none bg-transparent dark:bg-[#2b2b2b]">
+                  {(Array.isArray(modalData?.standardWidth)
+                    ? modalData.standardWidth
+                    : []
+                  ).map((option, index) => (
+                    <option key={index}>{option} mm</option>
+                  ))}
+                </select>
+              </span>
+              <span className="text-neutral-300 dark:text-neutral-500">·</span>
+              <span className="font-medium text-[#414063] dark:text-neutral-100">
+                ₹ {modalData?.price} / Sq.ft
+              </span>
             </div>
-            <p className="text-[10px] font-medium text-[#414063] dark:text-neutral-100">
-              ₹ {modalData?.price} / Sq.ft
-            </p>
             <button
               onClick={onAddItemToSceneClick}
               disabled={isDeleting}
