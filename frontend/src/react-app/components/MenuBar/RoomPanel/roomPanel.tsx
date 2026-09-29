@@ -996,6 +996,70 @@ function RoomPanel({
     }
   };
 
+  /**
+   * The models of one category, under whatever placement restriction the panel
+   * is running with. The same three cases the two selection handlers above
+   * apply inline; a third copy would be the one that drifts.
+   */
+  const modelsInCategory = (allModels: any[], categoryId: string) => {
+    const byCategory = (m: any) => m.categoryId === categoryId;
+    if (isOnlyWallItems) {
+      return (allModels || [])
+        .filter(
+          (m: Model) =>
+            m.type === MODEL_TYPES.WALL_UNIT ||
+            m.type === MODEL_TYPES.IN_WALL_FLOOR_UNIT ||
+            m.type === MODEL_TYPES.IN_WALL_UNIT
+        )
+        .filter(byCategory);
+    }
+    if (isOnlyFloorItems) {
+      return (allModels || [])
+        .filter((m: Model) => m.type === MODEL_TYPES.FLOOR_UNIT)
+        .filter(byCategory);
+    }
+    return (allModels || []).filter(byCategory);
+  };
+
+  /** Is there a level above the one the panel is showing? */
+  const parentOfShown = () => {
+    try {
+      return selectedTreeNode?.getParent?.() || null;
+    } catch (e) {
+      return null;
+    }
+  };
+
+  /**
+   * Back — up one level in the panel.
+   *
+   * The panel drills down (Below Counter Storage → 2 Drawer system → … along
+   * basic handles) and each click replaced what it showed, with no way to
+   * return: you had to find the parent yourself in the category tree. This
+   * walks back up and keeps the tree in step, so both sides agree on where you
+   * are.
+   *
+   * Deliberately NOT onRoomPanelTreeViewClick(parent): that handler toggles a
+   * node, so on an already-open parent it would deselect it and jump to the
+   * GRANDparent. Going up is its own move, not a click.
+   */
+  const goToParent = async () => {
+    const parent = parentOfShown();
+    if (!parent) return;
+    treeHandlers.trees.tree.handlers.setSelected(parent, true);
+    treeHandlers.trees.tree.handlers.setOpen(parent, true);
+    setSelectedTreeNode(parent);
+    setShowRoomPanelModal(true);
+    // Leaving a level behind: its search, page and ticked cards do not belong
+    // to the level we are arriving at.
+    setSearchQuery("");
+    setPage(1);
+    setSelectMode(false);
+    setSelectedIds(new Set());
+    const allModels = await ModelsService.getModelsFromLocalStorage();
+    setSelectedModels(modelsInCategory(allModels, parent.data.id));
+  };
+
   const renderNode = useCallback(
     ({ node }: any) => {
       // Check if this node is a sub-title (depth 2 or below, i.e. its parent itself is a subcategory)
@@ -1149,9 +1213,52 @@ function RoomPanel({
                 shutter with wooden frame along basic ha…" hides the very part
                 that tells one of these apart from the next. */}
             <div className="bg-[#E9E5EC] dark:bg-[#333333] flex flex-col px-4 py-2 gap-1.5">
-              <h5 className="text-sm font-semibold leading-snug text-neutral-600 dark:text-neutral-50">
-                {selectedTreeNode.data.name}
-              </h5>
+              {/* BACK, beside the title. Rendered only when there IS a level
+                  above — an arrow that does nothing at the top of a branch
+                  reads as broken.
+
+                  The two numbers here are the whole alignment fix:
+
+                  • The box is 20px, not 24, and carries no top margin. The
+                    title is 14px on leading-snug, so its first line is ~19px
+                    tall; a 16px glyph centred in a 20px box lands 2px down,
+                    level with the text. Centred in a 24px box it sat 5px down
+                    — low against a line that is shorter than the box.
+                  • No negative left margin. The box now starts exactly on the
+                    header's 16px gutter, the same left edge as the "Select"
+                    button on the row below, so the two lines share a margin.
+
+                  `items-start` keeps the arrow on the FIRST line of a name long
+                  enough to wrap ("2 Drawer system along basic handles"), rather
+                  than floating beside the middle of two. */}
+              <div className="flex items-start gap-1.5">
+                {parentOfShown() && (
+                  <button
+                    type="button"
+                    onClick={goToParent}
+                    title={`Back to "${parentOfShown()?.data?.name}"`}
+                    aria-label="Back"
+                    className="shrink-0 w-5 h-5 flex items-center justify-center rounded text-neutral-600 dark:text-neutral-100 hover:bg-white/70 dark:hover:bg-white/10"
+                  >
+                    <svg
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      aria-hidden="true"
+                    >
+                      <path d="m15 18-6-6 6-6" />
+                    </svg>
+                  </button>
+                )}
+                <h5 className="text-sm font-semibold leading-snug text-neutral-600 dark:text-neutral-50">
+                  {selectedTreeNode.data.name}
+                </h5>
+              </div>
               <div className="flex items-center gap-3">
                 {/* Select several models and delete them in one go. Only your
                     own uploads can be deleted, so only those can be ticked. */}
