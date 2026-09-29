@@ -31,7 +31,10 @@ const args = process.argv.slice(2)
 const argValue = (flag) => (args.indexOf(flag) !== -1 ? args[args.indexOf(flag) + 1] : null)
 const LIST_MISSING = args.includes('--list-missing')
 const ONE = argValue('--category')
-const GROUPS = ONE ? [ONE] : ['below', 'wall']
+// 'tall' was missing, so the one group that had a finishing problem was the one
+// this check never looked at — it reported "every cabinet the site serves
+// carries the default wood" while the tall units were grey.
+const GROUPS = ONE ? [ONE] : ['tall', 'below', 'wall']
 
 /**
  * The material names inside a .glb, read straight from its JSON chunk.
@@ -67,7 +70,7 @@ const main = async () => {
   }
 
   const client = await MongoClient.connect(process.env.MONGODB_URL || config.get('mongodb'))
-  const totals = { ok: 0, missing: 0, noFile: 0, unreadable: 0 }
+  const totals = { ok: 0, withHandle: 0, missing: 0, noFile: 0, unreadable: 0 }
   const missing = []
   try {
     const db = client.db()
@@ -90,10 +93,16 @@ const main = async () => {
           bad.push({ name: m.name, why: 'file could not be read as a .glb' })
           continue
         }
-        // A model counts as finished when it carries the wood on its door; the
-        // handle is absent on profile-handle models, where the handle is part
-        // of the door itself, so it is reported but never required.
+        // A model counts as finished when it carries the wood on its door.
+        //
+        // The handle is COUNTED but not required. It used to be dismissed as
+        // "part of the door on profile-handle models" — that was wrong: a
+        // profile handle is its own part, a slim rail running along the door
+        // (35 x 1944 x 18 beside a 365 x 1944 x 18 door), and detectByShape now
+        // finds it. A file baked before that rule existed still has a bare
+        // handle, which is worth seeing in the count without failing the run.
         const hasShutter = mats.includes(SHUTTER)
+        if (mats.includes(HANDLE)) totals.withHandle += 1
         if (hasShutter) {
           ok += 1
           totals.ok += 1
@@ -119,7 +128,8 @@ const main = async () => {
   }
 
   console.log(
-    `\nfinished: ${totals.ok} | no wood: ${totals.missing} | file absent: ${totals.noFile} | unreadable: ${totals.unreadable}`
+    `\nfinished: ${totals.ok} | of those, handle wood too: ${totals.withHandle}` +
+      ` | no wood: ${totals.missing} | file absent: ${totals.noFile} | unreadable: ${totals.unreadable}`
   )
   if (!missing.length) {
     console.log('Every cabinet the site serves carries the default wood.')
