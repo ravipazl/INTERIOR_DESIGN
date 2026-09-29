@@ -286,12 +286,28 @@ export async function bakeDoc(io, doc, { shutters, handles }, images) {
 export function hasOwnLook(row) {
   const mat = row.prim.getMaterial()
   if (!mat) return false
-  const white = mat.getBaseColorFactor().slice(0, 3).every((v) => v > 0.98)
   // "default material.001" / ".002" are the duplicate names an export writes
   // when the same plain material is copied — still a plain material, so a
   // cabinet using them must not be skipped as "already has its own look".
   const plainName = /^(default material(\.\d+)?)?$/i.test(mat.getName() || '')
-  return !!mat.getBaseColorTexture() || !white || !plainName
+  // THE NAME DECIDES, NOT THE COLOUR.
+  //
+  // This used to require the base colour to be white as well, and that is what
+  // kept the tall units grey. An export straight out of Blender carries ONE
+  // material called "default material" at its default viewport grey (0.218) on
+  // every mesh. Under the old test that grey read as "a finish somebody chose",
+  // so every part of the cabinet was protected, nothing was left to detect, and
+  // the bake skipped the file — while the same cabinet exported white was
+  // finished normally. Measured on the models the live report listed: 0 of 15
+  // detectable before, 15 of 15 after, and detection is byte-identical on all
+  // 241 cabinets already in the catalogue.
+  //
+  // A real finish announces itself by its material NAME ("Copper", "Glass",
+  // "Fluted") or by carrying a texture. Both are still protected. What is no
+  // longer protected is a plain-named, untextured material in some arbitrary
+  // colour — if someone ever tints a door that way and wants it kept, the
+  // material needs a name of its own.
+  return !!mat.getBaseColorTexture() || !plainName
 }
 
 export function detectByName(rows, eligible = (r) => !hasOwnLook(r)) {
