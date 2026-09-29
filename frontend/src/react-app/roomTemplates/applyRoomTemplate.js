@@ -106,13 +106,125 @@ function openingsOnWall(edge, startPoint, unit) {
   return openings.sort((p, q) => p.startCm - q.startCm);
 }
 
-/** Models of one category, by the category's NAME (live has its own ids). */
-function modelsOfCategory(name) {
+const lower = (s) => String(s || "").trim().toLowerCase();
+
+/** The category tree as stored, indexed by id. */
+function categoryIndex() {
   const cats = CategoriesService.getCategoriesFromLocalStorage() || [];
-  const cat = cats.find((c) => String(c.name || "").toLowerCase() === name.toLowerCase());
+  const byId = new Map(cats.map((c) => [String(c._id), c]));
+  return { cats, byId };
+}
+
+/** ["KITCHEN", "Below Counter Storage", "2 Drawer system"] for one category. */
+function pathOf(cat, byId) {
+  const parts = [];
+  const seen = new Set();
+  let cur = cat;
+  // `seen` only guards against a parent loop in the data — a tree cannot
+  // otherwise run forever, but a bad parentCategoryId would hang the app.
+  while (cur && !seen.has(String(cur._id))) {
+    seen.add(String(cur._id));
+    parts.unshift(String(cur.name || ""));
+    cur = cur.parentCategoryId ? byId.get(String(cur.parentCategoryId)) : null;
+  }
+  return parts;
+}
+
+/**
+ * Find a category by NAME or by PATH — "Wall Unit", or "KITCHEN > Wall Unit",
+ * or "Below Counter Storage > 2 Drawer system".
+ *
+ * The last name must be the category itself; the ones before it need only be
+ * ANCESTORS, in order, not necessarily its immediate parents. So "KITCHEN >
+ * Tall Units" keeps finding Tall Units if a level is inserted between them
+ * later — a preset says which branch it means, not how deep the tree happens to
+ * be this month.
+ *
+ * Why a path at all: names are no longer unique. Sub-categories put "Corner
+ * Unit" under Below Counter Storage today and could put another under Wardrobe
+ * tomorrow, and a bare name takes whichever the list happens to hold first — so
+ * auto-furnish would quietly start pulling wardrobe doors into the kitchen.
+ * That is a wrong result with no error, which is the worst kind. A duplicate
+ * name is therefore warned about here, loudly, naming the paths to choose from.
+ */
+function findCategory(spec) {
+  const { cats, byId } = categoryIndex();
+  const want = String(spec || "")
+    .split(">")
+    .map(lower)
+    .filter(Boolean);
+  if (!want.length) return null;
+
+  const leaf = want[want.length - 1];
+  const named = cats.filter((c) => lower(c.name) === leaf);
+  if (!named.length) return null;
+
+  if (want.length > 1) {
+    return (
+      named.find((c) => {
+        const have = pathOf(c, byId).map(lower);
+        // Walk both from the leaf upwards. The leaf must line up exactly; each
+        // ancestor above it may sit any number of levels higher, as long as the
+        // order holds.
+        let w = want.length - 1;
+        for (let i = have.length - 1; i >= 0 && w >= 0; i -= 1) {
+          if (have[i] === want[w]) w -= 1;
+          else if (w === want.length - 1) return false;
+        }
+        return w < 0;
+      }) || null
+    );
+  }
+
+  if (named.length > 1) {
+    console.warn(
+      `auto-furnish: "${spec}" matches ${named.length} categories — ` +
+        named.map((c) => pathOf(c, byId).join(" > ")).join(", ") +
+        ". Using the first. Give the preset a path to be sure which one."
+    );
+  }
+  return named[0];
+}
+
+/** A category's id plus every descendant's, however deep. */
+function subtreeIds(rootId) {
+  const { cats } = categoryIndex();
+  const ids = new Set([String(rootId)]);
+  let grew = true;
+  while (grew) {
+    grew = false;
+    cats.forEach((c) => {
+      const id = String(c._id);
+      const parent = c.parentCategoryId ? String(c.parentCategoryId) : null;
+      if (parent && ids.has(parent) && !ids.has(id)) {
+        ids.add(id);
+        grew = true;
+      }
+    });
+  }
+  return ids;
+}
+
+/**
+ * Models of one category AND ALL ITS SUB-CATEGORIES, addressed by name or path
+ * (never by id — live has its own ids).
+ *
+ * The subtree is the whole point. This used to keep only models whose
+ * categoryId was the category's own, which was right while models sat directly
+ * in "Below Counter Storage". Once that grew sub-categories, the models moved
+ * down into leaves and the category itself held NONE: 0 direct against 110 in
+ * its subtree, and auto-furnish placed nothing but tall units — the one
+ * category that had no sub-categories yet.
+ *
+ * Searching the subtree also means a sub-category added later needs no code
+ * change: its models are found wherever they are put, at any depth.
+ */
+function modelsOfCategory(spec) {
+  const cat = findCategory(spec);
   if (!cat) return [];
+  const ids = subtreeIds(cat._id);
   const all = ModelsService.getModelsFromLocalStorage() || [];
-  return all.filter((m) => String(m.categoryId) === String(cat._id));
+  return all.filter((m) => ids.has(String(m.categoryId)));
 }
 
 /**

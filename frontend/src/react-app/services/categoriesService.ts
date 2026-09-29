@@ -91,6 +91,55 @@ export const CategoriesService = {
     return response.data;
   },
 
+  updateCategory: async (
+    id: string,
+    input: {
+      name: string;
+      parentCategoryId?: string | null;
+    }
+  ) => {
+    const accessToken = AuthService.getAccessToken();
+    const payload: any = { name: input.name.trim() };
+    if (input.parentCategoryId !== undefined) {
+      payload.parentCategoryId = input.parentCategoryId;
+    }
+    const response = await axios.patch(`/categories/${id}`, payload, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    if (response?.status < 200 || response?.status >= 300) {
+      const msg =
+        response?.data?.message ||
+        response?.data?.error ||
+        `HTTP ${response?.status} from /categories/${id}`;
+      throw new Error(msg);
+    }
+    return response.data;
+  },
+
+  /**
+   * Delete a category.
+   *
+   * The caller is responsible for checking the category is EMPTY first — see
+   * the delete button in RoomPanel. The server has no such guard, so asking it
+   * to remove a category that still has sub-categories or models would leave
+   * both orphaned: the models would keep a categoryId pointing at nothing and
+   * disappear from the tree without being deleted.
+   */
+  deleteCategory: async (id: string) => {
+    const accessToken = AuthService.getAccessToken();
+    const response = await axios.delete(`/categories/${id}`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    if (response?.status < 200 || response?.status >= 300) {
+      const msg =
+        response?.data?.message ||
+        response?.data?.error ||
+        `HTTP ${response?.status} from /categories/${id}`;
+      throw new Error(msg);
+    }
+    return response.data;
+  },
+
   /**
    * Refetch all categories from the API and overwrite the localStorage cache.
    * Call after creating a category so the catalog tree picks up the new entry

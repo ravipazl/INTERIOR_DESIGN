@@ -13,6 +13,7 @@ import RoomPanelSkeleton from "./roomPanelSkeleton";
 import { MODEL_TYPES } from "@pazl/entities/Model";
 import UploadModelModal from "@pazl/components/UploadModelModal";
 import AddCategoryModal from "@pazl/components/AddCategoryModal";
+import EditCategoryModal from "@pazl/components/EditCategoryModal";
 import useDockTop from "@pazl/react-app/hooks/useDockTop";
 
 interface RoomPanelTypeProps {
@@ -143,8 +144,18 @@ const DEFAULT_ICON_D = [
 // width — they were separate literals, so widening the category panel to match
 // the Floor plan panel left the grid starting 56px underneath it.
 const CAT_INSET = 4;   // gap between the nav rail and the category panel
-const CAT_W = 200;     // category panel width
-const ITEMS_W = 320;   // item grid width (2 cards per row)
+// 200 -> 260. The deepest rows carry the longest names ("3 Drawer system along
+// profile handles" under Below Counter Storage > 3 Drawer system) and lose 20px
+// of width to indent at every level, so at 200 a leaf had ~82px — enough for a
+// dozen characters. The item grid follows automatically, ITEMS_LEFT being
+// derived from this.
+const CAT_W = 260;     // category panel width
+// 320 -> 250. Two 147px cards (135 + 12 margin) fitted the old 304px of usable
+// width, so models came two-up and small. One per row, at 250, lets the card
+// grow to 210px — see roomPanelModal.tsx. It cannot go much below this: the
+// header row (Select / + Upload GLB / x) needs ~224px and the bulk-delete
+// toolbar ~250px, so a narrower panel breaks those onto extra lines.
+const ITEMS_W = 250;   // item grid width (1 card per row)
 const ITEMS_LEFT = CAT_INSET + CAT_W;
 
 /** Collapsible section, matching the Floor plan panel's sections. `action`
@@ -285,6 +296,24 @@ function RoomPanel({
   const [showUploadModal, setShowUploadModal] = useState<boolean>(false);
   const [showAddCategoryModal, setShowAddCategoryModal] =
     useState<boolean>(false);
+  const [showEditCategoryModal, setShowEditCategoryModal] =
+    useState<boolean>(false);
+  const [editingCategoryNode, setEditingCategoryNode] = useState<{
+    id: string;
+    name: string;
+    parentCategoryId?: string | null;
+  } | null>(null);
+  // The category the delete button is asking about, with what it holds. Set
+  // only when the category is empty — see whatCategoryHolds.
+  const [deletingCategory, setDeletingCategory] = useState<{
+    id: string;
+    name: string;
+    node: any;
+  } | null>(null);
+  // Typed back by the user before a large branch is removed.
+  const [deleteTyped, setDeleteTyped] = useState<string>("");
+  const [deleteBusy, setDeleteBusy] = useState<boolean>(false);
+  const [deleteError, setDeleteError] = useState<string>("");
   // null = create main; string = preset parent (sub-category creation)
   // Both sections start open — the panel is the reason you are on this step.
   const dockTop = useDockTop();
@@ -464,6 +493,103 @@ function RoomPanel({
   const shownLeafModels = sortModels(
     (selectedModels || []).filter((m: any) => matchName(m?.name))
   );
+  /**
+   * What a category holds: its sub-categories and its models, counting every
+   * level below it, not just the first.
+   *
+   * A category may only be deleted when this is empty. The server will remove
+   * one regardless, which would orphan whatever was inside — the models would
+   * keep a categoryId pointing at a category that no longer exists and vanish
+   * from the tree without being deleted. So the guard lives here, where the
+   * counts are, and the message can say what to clear first.
+   */
+  const whatCategoryHolds = useCallback(
+    (node: any) => {
+      const ids: string[] = [];
+      const walk = (n: any) => {
+        ids.push(String(n?.data?.id ?? n?.id));
+        (n?.children || []).forEach(walk);
+      };
+      (node?.children || []).forEach(walk);
+      const subCategories = ids.length;
+      const self = String(node?.data?.id ?? node?.id);
+      const models = (allModelsCache || []).filter((m: any) =>
+        [self, ...ids].includes(String(m?.categoryId))
+      ).length;
+      return { subCategories, models, empty: subCategories === 0 && models === 0 };
+    },
+    [allModelsCache]
+  );
+
+  /**
+   * Remove a category and everything beneath it, deepest first.
+   *
+   * Order matters: a model must go before the category holding it, and a
+   * sub-category before its parent, or whatever is left points at something
+   * that no longer exists — invisible in the tree but still in the database.
+   *
+   * The server refuses to delete a model that a project is using, so this can
+   * legitimately half-finish. When that happens the categories still holding
+   * those models are LEFT ALONE and the caller is told which and why; a partly
+   * deleted branch that claimed success would be worse than one that stopped.
+   */
+  const deleteCategoryTree = useCallback(
+    async (node: any, onProgress?: (msg: string) => void) => {
+      const idOf = (n: any) => String(n?.data?.id ?? n?.id);
+      // Deepest first: children before their parent.
+      const order: any[] = [];
+      const walk = (n: any) => {
+        (n?.children || []).forEach(walk);
+        order.push(n);
+      };
+      walk(node);
+
+      const kept: string[] = [];
+      // The categories that really went, so a parent is only removed once every
+      // one of its children has been.
+      const removed = new Set<string>();
+      let models = 0;
+      let categories = 0;
+
+      for (const current of order) {
+        const id = idOf(current);
+        const mine = (allModelsCache || []).filter(
+          (m: any) => String(m?.categoryId) === id
+        );
+        let blocked = false;
+        for (const m of mine) {
+          onProgress?.(`Deleting ${m.name}…`);
+          try {
+            await ModelsService.deleteCatalogModel(String(m._id));
+            models += 1;
+          } catch (e: any) {
+            blocked = true;
+            kept.push(`${m.name}: ${e?.message || "refused"}`);
+          }
+        }
+        // Its own models could not all go, so this category has to stay.
+        if (blocked) continue;
+        // …and so does any category still holding a sub-category that stayed.
+        // Children are visited first, so by now each one either got deleted or
+        // did not; a parent may only go once ALL of its children have.
+        const childrenGone = (current?.children || []).every((c: any) =>
+          removed.has(idOf(c))
+        );
+        if (!childrenGone) continue;
+        onProgress?.(`Deleting ${current?.data?.name ?? "category"}…`);
+        try {
+          await CategoriesService.deleteCategory(id);
+          removed.add(id);
+          categories += 1;
+        } catch (e: any) {
+          kept.push(`${current?.data?.name}: ${e?.message || "refused"}`);
+        }
+      }
+      return { models, categories, kept };
+    },
+    [allModelsCache]
+  );
+
   const shownChildren = (selectedTreeNode?.children || []).filter((c: any) =>
     matchName(c?.data?.name ?? c?.name)
   );
@@ -563,9 +689,7 @@ function RoomPanel({
             model.type === MODEL_TYPES.IN_WALL_UNIT
         );
         const filteredModels = models.filter(
-          (model: any) =>
-            model.categoryId === node.data.parentCategoryId ||
-            model.categoryId === node.data.id
+          (model: any) => model.categoryId === node.data.id
         );
         setSelectedModels(filteredModels ?? []);
       } else if (isOnlyFloorItems) {
@@ -573,16 +697,12 @@ function RoomPanel({
           (model: Model) => model.type === MODEL_TYPES.FLOOR_UNIT
         );
         const filteredModels = models.filter(
-          (model: any) =>
-            model.categoryId === node.data.parentCategoryId ||
-            model.categoryId === node.data.id
+          (model: any) => model.categoryId === node.data.id
         );
         setSelectedModels(filteredModels ?? []);
       } else {
         const filteredModels = allModels.filter(
-          (model: any) =>
-            model.categoryId === node.data.parentCategoryId ||
-            model.categoryId === node.data.id
+          (model: any) => model.categoryId === node.data.id
         );
         setSelectedModels(filteredModels ?? []);
       }
@@ -719,9 +839,7 @@ function RoomPanel({
     const allModels = await ModelsService.getModelsFromLocalStorage();
     if (!allModels?.length || !selectedTreeNode?.data) return;
     const filteredModels = allModels.filter(
-      (model: any) =>
-        model.categoryId === selectedTreeNode.data.parentCategoryId ||
-        model.categoryId === selectedTreeNode.data.id
+      (model: any) => model.categoryId === selectedTreeNode.data.id
     );
     setSelectedModels(filteredModels ?? []);
   };
@@ -765,9 +883,7 @@ function RoomPanel({
             model.type === MODEL_TYPES.IN_WALL_UNIT
         );
         const filteredModels = models.filter(
-          (model: any) =>
-            model.categoryId === child.data.parentCategoryId ||
-            model.categoryId === child.data.id
+          (model: any) => model.categoryId === child.data.id
         );
         setSelectedModels(filteredModels ?? []);
       } else if (isOnlyFloorItems) {
@@ -775,16 +891,12 @@ function RoomPanel({
           (model: Model) => model.type === MODEL_TYPES.FLOOR_UNIT
         );
         const filteredModels = models.filter(
-          (model: any) =>
-            model.categoryId === child.data.parentCategoryId ||
-            model.categoryId === child.data.id
+          (model: any) => model.categoryId === child.data.id
         );
         setSelectedModels(filteredModels ?? []);
       } else {
         const filteredModels = allModels.filter(
-          (model: any) =>
-            model.categoryId === child.data.parentCategoryId ||
-            model.categoryId === child.data.id
+          (model: any) => model.categoryId === child.data.id
         );
         setSelectedModels(filteredModels ?? []);
       }
@@ -792,59 +904,131 @@ function RoomPanel({
   };
 
   const renderNode = useCallback(
-    ({ node }: any) => (
-      <div
-        className={`group flex items-start min-h-[24px] py-1`}
-        key={node.data.id}
-      >
+    ({ node }: any) => {
+      // Check if this node is a sub-title (depth 2 or below, i.e. its parent itself is a subcategory)
+      const parentCat = node.data.parentCategoryId
+        ? roomPanelData.find((c: any) => c._id === node.data.parentCategoryId)
+        : null;
+      const isLeafSubTitle = !!parentCat?.parentCategoryId;
+
+      return (
+        // `relative` anchors the hover actions, which are positioned OUT OF THE
+        // FLOW on purpose — see the overlay at the end of this row.
         <div
-          onClick={() => onRoomPanelTreeViewClick(node)}
-          className={`self-center cursor-pointer mt-1
-                ${
-                  !node.hasChildren()
-                    ? ""
-                    : node.hasChildren() && node.options.opened
-                    ? "bg-[url('/public/assets/icons/down.png')] bg-no-repeat bg-contain w-[20px] h-[20px]"
-                    : "bg-[url('/public/assets/icons/next.png')] bg-no-repeat bg-contain w-[20px] h-[20px]"
-                }
-          `}
-        />
-        <div
-          className={`cursor-pointer w-full min-w-0 mr-1 cursor-pointer bg-no-repeat ${
-            node.isSelected() ? "bg-[#E9E5EC]" : ""
-          }`}
-          onClick={() => onRoomPanelTreeViewClick(node)}
+          className={`group relative flex items-start min-h-[24px] py-1`}
+          key={node.data.id}
         >
           <div
-            className={`font-normal text-sm py-1 flex items-center gap-1.5 min-w-0 ${
-              node.isSelected()
-                ? "text-primary dark:text-[#333333]"
-                : "text-primary dark:text-neutral-50"
+            onClick={() => onRoomPanelTreeViewClick(node)}
+            className={`self-center cursor-pointer mt-1
+                  ${
+                    !node.hasChildren()
+                      ? ""
+                      : node.hasChildren() && node.options.opened
+                      ? "bg-[url('/public/assets/icons/down.png')] bg-no-repeat bg-contain w-[20px] h-[20px]"
+                      : "bg-[url('/public/assets/icons/next.png')] bg-no-repeat bg-contain w-[20px] h-[20px]"
+                  }
+            `}
+          />
+          <div
+            className={`cursor-pointer flex-1 min-w-0 mr-1 cursor-pointer bg-no-repeat ${
+              node.isSelected() ? "bg-[#E9E5EC]" : ""
+            }`}
+            onClick={() => onRoomPanelTreeViewClick(node)}
+          >
+            <div
+              className={`font-normal text-sm py-1 flex items-center gap-1.5 min-w-0 ${
+                node.isSelected()
+                  ? "text-primary dark:text-[#333333]"
+                  : "text-primary dark:text-neutral-50"
+              }`}
+            >
+              <CategoryIcon name={node.data.name} />
+              <span className="truncate" title={node.data.name}>
+                {node.data.name}
+              </span>
+            </div>
+          </div>
+          {/* HOVER ACTIONS — OUT OF THE FLOW, DELIBERATELY.
+              These used to be flex children hidden with opacity-0, which hides
+              the ink but keeps the space: 88px gone from EVERY row, hovered or
+              not, on top of 20px of indent per level. In a 200px panel that
+              left a depth-2 row nothing at all, so the tree read "Bel...",
+              "3..", ":" instead of its names.
+
+              Positioned absolutely, they reserve nothing. The name gets the
+              whole row at rest, and these appear over its tail only while the
+              pointer is on that one row — so the background below has to match
+              whatever the row is painted with, or the panel shows through. */}
+          <div
+            className={`absolute right-0 top-0 bottom-0 hidden group-hover:flex items-center pl-3 pr-1 ${
+              node.isSelected() ? "bg-[#E9E5EC]" : "bg-white dark:bg-neutral-700"
             }`}
           >
-            <CategoryIcon name={node.data.name} />
-            <span className="truncate" title={node.data.name}>
-              {node.data.name}
-            </span>
+            {/* Edit (rename) category / sub-title name */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setEditingCategoryNode({
+                  id: node.data.id,
+                  name: node.data.name,
+                  parentCategoryId: node.data.parentCategoryId,
+                });
+                setShowEditCategoryModal(true);
+              }}
+              className="text-xs px-1 py-0.5 mr-1 rounded border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-700 text-neutral-600 dark:text-neutral-200 shrink-0 flex items-center justify-center"
+              title={`Edit name of "${node.data.name}"`}
+            >
+              <span className="material-symbols-outlined text-[13px] leading-none">
+                edit
+              </span>
+            </button>
+            {/* Quick sub-category add (+) icon for all categories and sub-titles */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setAddCategoryParentId(node.data.id);
+                setShowAddCategoryModal(true);
+              }}
+              className="text-xs px-1.5 py-0.5 rounded bg-[color:var(--pz-accent)] text-white shrink-0"
+              title={`Add a sub-category under "${node.data.name}"`}
+            >
+              +
+            </button>
+            {/* Delete — LAST, and after a gap (ml-2).
+                "+" is pressed constantly while building the tree and this cannot
+                be undone; side by side at this size, the two are a few pixels
+                apart. Grey like rename until the pointer is on it, so a column of
+                these does not read as a column of errors.
+
+                ALWAYS ENABLED, like the rename button beside it. It used to be
+                disabled whenever the category held anything, which said "no"
+                without saying what to do about it. The guard now lives in the
+                dialog, which can explain what is inside and ask for the name back
+                before removing it all. */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setDeleteError("");
+                setDeleteTyped("");
+                setDeletingCategory({
+                  id: node.data.id,
+                  name: node.data.name,
+                  node,
+                });
+              }}
+              className="text-xs px-1 py-0.5 ml-2 rounded border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-700 text-neutral-600 dark:text-neutral-200 shrink-0 flex items-center justify-center hover:border-[#E3B7B2] hover:bg-[#FDF4F3] hover:text-[#B4372F]"
+              title={`Delete "${node.data.name}"`}
+            >
+              <span className="material-symbols-outlined text-[13px] leading-none">
+                delete
+              </span>
+            </button>
           </div>
         </div>
-        {/* Hover "+" for main categories only — quick sub-category add */}
-        {!node.data.parentCategoryId && (
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              setAddCategoryParentId(node.data.id);
-              setShowAddCategoryModal(true);
-            }}
-            className="opacity-0 group-hover:opacity-100 text-xs px-1.5 py-0.5 mr-1 rounded bg-[color:var(--pz-accent)] text-white hover:opacity-100"
-            title={`Add a sub-category under "${node.data.name}"`}
-          >
-            +
-          </button>
-        )}
-      </div>
-    ),
-    [isDarkMode]
+      );
+    },
+    [isDarkMode, roomPanelData]
   );
 
   return (
@@ -858,8 +1042,21 @@ function RoomPanel({
             bottom: 0,
           }}>
           <div className="h-full flex flex-col mb-10px">
-            <div className="bg-[#E9E5EC] dark:bg-[#333333] flex items-center justify-between px-4">
-              <h5 className="p-2 text-sm text-center font-semibold leading-tight text-neutral-600 dark:text-neutral-50">
+            {/* TITLE ON ITS OWN LINE, BUTTONS BENEATH.
+                This was one row — name beside buttons — so a long category name
+                had nowhere to go but downward: "Fluted Glass shutter with
+                wooden frame along basic handle - left opening" wrapped onto
+                five lines and pushed the whole header, and the models below it,
+                down the panel, and the buttons with it.
+
+                Now the name has the panel's full width to itself and the
+                buttons sit on their own line underneath, so however long a
+                category is called the buttons stay put. The name is shown in
+                FULL — it wraps rather than being cut, because "Fluted Glass
+                shutter with wooden frame along basic ha…" hides the very part
+                that tells one of these apart from the next. */}
+            <div className="bg-[#E9E5EC] dark:bg-[#333333] flex flex-col px-4 py-2 gap-1.5">
+              <h5 className="text-sm font-semibold leading-snug text-neutral-600 dark:text-neutral-50">
                 {selectedTreeNode.data.name}
               </h5>
               <div className="flex items-center gap-3">
@@ -883,8 +1080,11 @@ function RoomPanel({
                 >
                   + Upload GLB
                 </button>
+                {/* Held at the far end by an auto margin rather than by the
+                    row's old justify-between, which no longer applies now that
+                    the title has moved to its own line. */}
                 <img
-                  className="finishing-modal-close-icon"
+                  className="finishing-modal-close-icon ml-auto"
                   src={require("../../../images/close.svg")}
                   onClick={() => {
                     setShowRoomPanelModal(false);
@@ -894,7 +1094,11 @@ function RoomPanel({
             </div>
             {/* Selection bar — only while picking models to delete. */}
             {selectMode && (
-              <div className="flex items-center gap-2 px-3 py-2 bg-[color:var(--pz-accent-soft)] border-b border-neutral-200 dark:border-neutral-600">
+              /* flex-wrap, because this bar wants ~286px and the panel is 250:
+                 without it the buttons squeeze and "Delete (0)" breaks across
+                 two lines inside its own border. Wrapped, the counts stay on
+                 the first line and the two buttons drop to the second. */
+              <div className="flex flex-wrap items-center gap-2 px-3 py-2 bg-[color:var(--pz-accent-soft)] border-b border-neutral-200 dark:border-neutral-600">
                 <button
                   className="text-xs text-[color:var(--pz-accent)] font-medium"
                   disabled={bulkBusy}
@@ -946,9 +1150,9 @@ function RoomPanel({
             )}
             <div className="p-2 pb-[225px] max-h-full overflow-y-auto">
               {/* Search box, placement pills and Sort removed — the category
-                  tree already narrows the list, and the panel is now 320px
-                  wide, where three stacked filter rows cost more space than
-                  they earned. The state behind them stays at its defaults
+                  tree already narrows the list, and the panel is narrow
+                  (ITEMS_W), where three stacked filter rows cost more space
+                  than they earned. The state behind them stays at its defaults
                   (placementFilter "all", empty query, default sort), so the
                   list below simply browses the selected category. */}
               {placementFilter !== "all" ? (
@@ -1094,12 +1298,10 @@ function RoomPanel({
             open={openSections.includes("addmodel")}
             onToggle={toggleSection}
           >
-            <div className="grid grid-cols-4 gap-2">
+            <div className="grid grid-cols-3 gap-2">
               <ToolCard icon="upload" label="Upload" onClick={onUpload} />
               <ToolCard icon="auto_awesome" label="Generate" onClick={onGenerate} />
               <ToolCard icon="travel_explore" label="Search" onClick={onSearchModels} />
-              {/* Fills the selected room from a room template (Kitchen). */}
-              <ToolCard icon="grid_view" label="Auto-furnish" onClick={onAutoFurnish} />
             </div>
           </PanelSection>
 
@@ -1145,11 +1347,140 @@ function RoomPanel({
         categoryName={selectedTreeNode?.data?.name}
         defaultType={1}
       />
+      {/* Confirm before deleting a category.
+          Empty one: a short question. Holding something: it says exactly what
+          goes, and for more than a handful asks for the name back — instant for
+          a leaf, deliberate for a branch. */}
+      {deletingCategory && (() => {
+        const holds = whatCategoryHolds(deletingCategory.node);
+        const total = holds.subCategories + holds.models;
+        const mustType = total > 5;
+        const ready = !mustType || deleteTyped.trim() === deletingCategory.name;
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
+            <div className="w-[360px] rounded-xl bg-white dark:bg-neutral-800 p-5 shadow-xl">
+              <h4 className="text-sm font-bold text-neutral-800 dark:text-neutral-50">
+                Delete “{deletingCategory.name}”?
+              </h4>
+              {holds.empty ? (
+                <p className="mt-2 text-xs leading-relaxed text-neutral-600 dark:text-neutral-300">
+                  It is empty — no sub-categories and no models. This cannot be
+                  undone.
+                </p>
+              ) : (
+                <p className="mt-2 text-xs leading-relaxed text-neutral-600 dark:text-neutral-300">
+                  It holds{" "}
+                  <b>
+                    {holds.subCategories
+                      ? `${holds.subCategories} sub-categor${holds.subCategories === 1 ? "y" : "ies"}`
+                      : ""}
+                    {holds.subCategories && holds.models ? " and " : ""}
+                    {holds.models
+                      ? `${holds.models} model${holds.models === 1 ? "" : "s"}`
+                      : ""}
+                  </b>
+                  . Deleting it removes all of them. This cannot be undone.
+                </p>
+              )}
+              {mustType && (
+                <div className="mt-3">
+                  <label className="block text-[11px] text-neutral-500 dark:text-neutral-400">
+                    Type <b>{deletingCategory.name}</b> to confirm
+                  </label>
+                  <input
+                    className="mt-1 w-full rounded-lg border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-700 px-2 py-1.5 text-xs text-neutral-800 dark:text-neutral-100"
+                    value={deleteTyped}
+                    onChange={(e) => setDeleteTyped(e.target.value)}
+                    autoFocus
+                  />
+                </div>
+              )}
+              {deleteError && (
+                <p className="mt-2 whitespace-pre-line text-xs text-[#B4372F]">
+                  {deleteError}
+                </p>
+              )}
+              <div className="mt-4 flex justify-end gap-2">
+                <button
+                  className="rounded-lg border border-neutral-300 dark:border-neutral-600 px-3 py-1.5 text-xs text-neutral-700 dark:text-neutral-200"
+                  disabled={deleteBusy}
+                  onClick={() => {
+                    setDeletingCategory(null);
+                    setDeleteError("");
+                    setDeleteTyped("");
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  className="rounded-lg bg-[#B4372F] px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
+                  disabled={deleteBusy || !ready}
+                  onClick={async () => {
+                    setDeleteBusy(true);
+                    setDeleteError("");
+                    try {
+                      const out = await deleteCategoryTree(
+                        deletingCategory.node,
+                        (msg) => setBulkProgress(msg)
+                      );
+                      await CategoriesService.refreshCategoriesCache();
+                      await refreshCategoriesTree();
+                      if (selectedTreeNode?.data?.id === deletingCategory.id) {
+                        setShowRoomPanelModal(false);
+                        setSelectedTreeNode(null);
+                      }
+                      if (out.kept.length) {
+                        // Say plainly what stayed behind rather than closing on
+                        // a half-done job.
+                        setDeleteError(
+                          `Kept ${out.kept.length}:\n` + out.kept.join("\n")
+                        );
+                      } else {
+                        setDeletingCategory(null);
+                        setDeleteTyped("");
+                      }
+                    } catch (e: any) {
+                      setDeleteError(e?.message || "Could not delete it.");
+                    } finally {
+                      setDeleteBusy(false);
+                      setBulkProgress("");
+                    }
+                  }}
+                >
+                  {deleteBusy
+                    ? "Deleting…"
+                    : holds.empty
+                    ? "Delete category"
+                    : `Delete ${total} item${total === 1 ? "" : "s"}`}
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
       <AddCategoryModal
         show={showAddCategoryModal}
         onClose={() => setShowAddCategoryModal(false)}
         onSuccess={refreshCategoriesTree}
         presetParentId={addCategoryParentId}
+      />
+      <EditCategoryModal
+        show={showEditCategoryModal}
+        category={editingCategoryNode}
+        onClose={() => {
+          setShowEditCategoryModal(false);
+          setEditingCategoryNode(null);
+        }}
+        onSuccess={async () => {
+          await refreshCategoriesTree();
+          if (editingCategoryNode && selectedTreeNode?.data?.id === editingCategoryNode.id) {
+            setSelectedTreeNode((prev: any) => ({
+              ...prev,
+              data: { ...prev.data, name: editingCategoryNode.name },
+            }));
+          }
+        }}
       />
     </>
   );

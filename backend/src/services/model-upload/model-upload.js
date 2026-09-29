@@ -19,6 +19,7 @@ import url from 'url'
 import multer from '@koa/multer'
 import { v4 as uuidv4 } from 'uuid'
 import gltfPipeline from 'gltf-pipeline'
+import { applyDefaultWood } from './auto-wood.js'
 
 const { processGlb } = gltfPipeline
 
@@ -189,15 +190,37 @@ export const modelUpload = (app) => {
     // Three.js compatibility. The file is written as-is.
     //
     // If clients ever upload meshopt / Draco / quantized files in the future,
-    // the right place to decompress is gltf-transform (which the user runs
-    // offline via the C:/GLB/decoded batch pipeline). Doing it server-side
-    // would require @gltf-transform/core as a backend dependency.
+    // the right place to decompress is gltf-transform, which IS a backend
+    // dependency (@gltf-transform/core, used by the default-wood step below).
     // Auto-center the GLB (X & Z) and count its meshes — server-side, so EVERY
     // upload is fixed automatically regardless of the client. Defensive: falls
     // back to the original buffer on any parse issue.
     const centered = centerAndCountGlb(file.buffer)
-    const bufferToWrite = centered.buffer
+    let bufferToWrite = centered.buffer
     const autoMeshCount = centered.meshCount
+
+    // DEFAULT SHUTTER AND HANDLE WOOD, APPLIED HERE.
+    //
+    // A cabinet arrives with a plain white shutter, so until now every new GLB
+    // rendered white until somebody remembered to run the bake script over its
+    // category. Doing it on the way in means there is nothing to remember, and
+    // a model is never briefly white for whoever uploaded it.
+    //
+    // Only cabinet categories are touched (auto-wood.js lists them, matched up
+    // the whole category tree), a part that already has its own texture is left
+    // alone, and any failure leaves the file exactly as it arrived.
+    const wood = await applyDefaultWood(
+      app,
+      bufferToWrite,
+      categoryId,
+      (body.name && String(body.name).trim()) || file.originalname || ''
+    )
+    bufferToWrite = wood.buffer
+    console.log(
+      wood.applied
+        ? `model-upload ~ default wood applied (${wood.category}): ${wood.bytes[0]} → ${wood.bytes[1]} bytes`
+        : `model-upload ~ default wood not applied: ${wood.reason}`
+    )
     const wasNormalized = false
     const normalizationWarning = null
 

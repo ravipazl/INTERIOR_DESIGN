@@ -76,8 +76,26 @@ export function partRows(doc) {
         const min = [Infinity, Infinity, Infinity]
         const max = [-Infinity, -Infinity, -Infinity]
         const pos = prim.getAttribute('POSITION')
-        for (let i = 0; i < pos.getCount(); i++) {
-          const p = transformPoint(w, pos.getElement(i, []))
+        // MEASURE THE VERTICES THIS PART ACTUALLY USES.
+        //
+        // Walking the whole POSITION accessor is right only while each part has
+        // an accessor of its own. Some exporters give every mesh in the file ONE
+        // shared vertex buffer and let each primitive pick its faces out of it
+        // with its own indices — an 11-part tall unit arriving as 11 KB rather
+        // than 70 KB. Measured by the accessor, all eleven parts then came back
+        // the size of the whole cabinet (400 x 2080 x 630), so no part looked
+        // like a thin door or a small handle, detectByShape found nothing, and
+        // the upload was stored with the exporter's grey still on it.
+        //
+        // Reading through the indices costs nothing on a normal export — there
+        // the indices reach every vertex of the accessor anyway, so every part
+        // measures exactly as it did before and the baked catalogue is
+        // untouched.
+        const idx = prim.getIndices()
+        const count = idx ? idx.getCount() : pos.getCount()
+        for (let i = 0; i < count; i++) {
+          const v = idx ? idx.getScalar(i) : i
+          const p = transformPoint(w, pos.getElement(v, []))
           for (let a = 0; a < 3; a++) {
             min[a] = Math.min(min[a], p[a])
             max[a] = Math.max(max[a], p[a])
@@ -255,4 +273,88 @@ export async function bakeDoc(io, doc, { shutters, handles }, images) {
     }
   }
   return out
+}
+
+// WHICH PARTS GET THE WOOD.
+//
+// Shared by the bake script and by the upload service, so an uploaded GLB is
+// finished by exactly the same rules as one baked from the command line — two
+// copies of this would drift, and a cabinet would then look different
+// depending on how its wood was applied.
+
+/** A part whose material already gives it its own look (texture, colour, glass…). */
+export function hasOwnLook(row) {
+  const mat = row.prim.getMaterial()
+  if (!mat) return false
+  const white = mat.getBaseColorFactor().slice(0, 3).every((v) => v > 0.98)
+  // "default material.001" / ".002" are the duplicate names an export writes
+  // when the same plain material is copied — still a plain material, so a
+  // cabinet using them must not be skipped as "already has its own look".
+  const plainName = /^(default material(\.\d+)?)?$/i.test(mat.getName() || '')
+  return !!mat.getBaseColorTexture() || !white || !plainName
+}
+
+export function detectByName(rows, eligible = (r) => !hasOwnLook(r)) {
+  const plain = rows.filter(eligible)
+  const shutters = plain.filter((r) => /shutter/i.test(r.name)).map((r) => r.index)
+  const handles = plain.filter((r) => /handle/i.test(r.name)).map((r) => r.index)
+  return { shutters, handles }
+}
+
+/**
+ * A part that must never be painted over: glass.
+ *
+ * Wood on a glass front is simply wrong, and unlike a wooden texture it is not
+ * a matter of taste — so this holds even where a caller has asked to override
+ * whatever the file shipped with.
+ */
+export function isGlass(row) {
+  const mat = row.prim.getMaterial()
+  if (!mat) return false
+  if (mat.getAlphaMode && mat.getAlphaMode() === 'BLEND') return true
+  if (mat.getBaseColorFactor && mat.getBaseColorFactor()[3] < 0.95) return true
+  return /glass/i.test(mat.getName() || '')
+}
+
+/**
+ * `eligible` decides which parts may take the wood, and is the ONLY difference
+ * between the two callers. The bake script leaves anything that already has its
+ * own look alone (the default). An upload passes a looser test, because a
+ * cabinet exported from Blender with its textures baked in has a "look" that is
+ * simply the exporter's, not a finish anyone chose — and the whole point of the
+ * upload step is that a new cabinet arrives in the house colours.
+ */
+export function detectByShape(rows, modelName = '', eligible = (r) => !hasOwnLook(r)) {
+  const plain = rows.filter(eligible)
+  const handleRows = plain.filter((r) => {
+    const s = [...r.size].sort((a, b) => a - b)
+    // A handle is a VERY thin bar: 12 mm on its thinnest side does nearly all
+    // the work here — a shutter is 18, a side panel more. The length limit was
+    // 120 mm, which quietly missed longer bar handles (a 10 x 160 x 30 handle
+    // on a tall unit kept the exporter's colour while its door was finished).
+    // 200 mm covers the long bars without reaching anything else: every other
+    // part of a cabinet is thicker than 12 mm.
+    return s[0] <= 12 && s[2] <= 200
+  })
+  // Front = the side the handles sit on (+Z for most files, −Z for some).
+  const avgHandleZ = handleRows.reduce((t, r) => t + r.centre[2], 0) / (handleRows.length || 1)
+  const front = avgHandleZ < 0 ? -1 : 1
+  // ≥ 120 mm wide, not 200: a 150 mm oil pull-out has a real shutter too.
+  // Still a thin (≤ 25 mm), tall (≥ 500 mm) board, so side panels and
+  // worktops — which are deep, not thin-and-tall — are still excluded.
+  const boards = plain.filter((r) => r.size[2] <= 25 && r.size[0] >= 120 && r.size[1] >= 500)
+  const frontZ = Math.max(...boards.map((r) => front * r.centre[2]))
+  // The frontmost board(s). A back panel is also thin but sits at the back.
+  let shutters = boards
+    .filter((r) => front * r.centre[2] >= frontZ - 5 && front * r.centre[2] > 0)
+    .map((r) => r.index)
+  if (!shutters.length && /corner/i.test(modelName)) {
+    // L-shaped corner door: tall (≥ 500 mm), not a handle, not the body.
+    const volume = (r) => r.size[0] * r.size[1] * r.size[2]
+    const handleIdx = new Set(handleRows.map((r) => r.index))
+    const others = plain.filter((r) => !handleIdx.has(r.index))
+    const body = others.reduce((a, r) => (!a || volume(r) > volume(a) ? r : a), null)
+    shutters = others.filter((r) => r !== body && r.size[1] >= 500).map((r) => r.index)
+  }
+  return { shutters, handles: handleRows.map((r) => r.index) }
 }

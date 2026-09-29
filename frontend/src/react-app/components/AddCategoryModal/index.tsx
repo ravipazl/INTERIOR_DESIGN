@@ -42,10 +42,26 @@ function AddCategoryModal({
     );
   }, [show, presetParentId]);
 
-  const mainCategories = useMemo(
-    () => allCategories.filter((c) => !c.parentCategoryId),
-    [allCategories]
-  );
+  const parentOptions = useMemo(() => {
+    const getPath = (cat: Category): string => {
+      if (!cat.parentCategoryId) return cat.name;
+      const parent = allCategories.find((c) => c._id === cat.parentCategoryId);
+      return parent ? `${getPath(parent)} → ${cat.name}` : cat.name;
+    };
+    return allCategories
+      .slice()
+      .sort((a, b) => getPath(a).localeCompare(getPath(b)))
+      .map((c) => {
+        const parentCat = c.parentCategoryId
+          ? allCategories.find((p) => p._id === c.parentCategoryId)
+          : null;
+        return {
+          value: c._id,
+          group: parentCat ? getPath(parentCat) : undefined,
+          label: c.name,
+        };
+      });
+  }, [allCategories]);
 
   // Names already used at the same level (case-insensitive), for duplicate check
   const siblingNames = useMemo(() => {
@@ -78,12 +94,13 @@ function AddCategoryModal({
 
     setBusy(true);
     try {
-      await CategoriesService.createCategory({
+      const parentVal = parentId === NONE_VALUE ? null : parentId;
+      const created = await CategoriesService.createCategory({
         name: trimmed,
-        parentCategoryId: parentId === NONE_VALUE ? null : parentId,
+        parentCategoryId: parentVal,
       });
       await CategoriesService.refreshCategoriesCache();
-      onSuccess();
+      onSuccess(created?._id, parentVal);
       onClose();
     } catch (e: any) {
       setError(e?.message || "Failed to create category.");
@@ -127,7 +144,7 @@ function AddCategoryModal({
                 setName(e.target.value);
                 if (error) setError(null);
               }}
-              placeholder="e.g. Bedroom or Bed"
+              placeholder="e.g. Glass Bottle or Shutter"
               disabled={busy}
               autoFocus
             />
@@ -152,10 +169,7 @@ function AddCategoryModal({
                     value: NONE_VALUE,
                     label: "None — top-level (main) category",
                   },
-                  ...mainCategories.map((c) => ({
-                    value: c._id,
-                    label: `${c.name} (sub-category under this)`,
-                  })),
+                  ...parentOptions,
                 ]}
               />
             </div>
