@@ -39,7 +39,12 @@ const LABELS: Record<string, string> = {
 };
 
 const KitchenPlanner2D: React.FC = () => {
-  const [layout, setLayout] = useState<string>("straight");
+  // NOTHING SELECTED UNTIL YOU CHOOSE. This used to start on "straight", so
+  // opening the Floor plan tab put you into wall-picking mode — "Click 1 more
+  // wall in the plan…" — for a layout you had never asked for, and your next
+  // click on a wall was taken by the kitchen picker instead of opening Wall
+  // properties. An empty string means no layout; see `spec` below.
+  const [layout, setLayout] = useState<string>("");
   const [picked, setPicked] = useState<number[]>([]);
   const [room, setRoom] = useState<any>(null);
   const [note, setNote] = useState<string>("");
@@ -51,6 +56,10 @@ const KitchenPlanner2D: React.FC = () => {
   /** Clicking a wall in the plan picks it (or unpicks it). */
   useEffect(() => {
     const BI = BlueprintInterface as any;
+    // NO LAYOUT CHOSEN → the picker takes nothing over. Turning a layout off
+    // has to give wall clicks back to the rest of the app, or cancelling would
+    // leave Wall properties silently unopenable for the rest of the session.
+    if (!layout) return;
     // Tell the rest of the app that wall clicks belong to the picker now, so
     // Wall properties doesn't open over the plan while you choose walls.
     BI.__kitchenPicking = true;
@@ -91,7 +100,7 @@ const KitchenPlanner2D: React.FC = () => {
   }, [layout]);
 
   const planned: any = useMemo(() => {
-    if (!room || !picked.length) return null;
+    if (!layout || !room || !picked.length) return null;
     return planKitchenLayout(room, layout, picked);
   }, [room, layout, picked]);
 
@@ -149,7 +158,8 @@ const KitchenPlanner2D: React.FC = () => {
     return () => BI.setPlanOverlay2D?.(null);
   }, [described, picked, slots]);
 
-  const spec = (LAYOUTS as any)[layout];
+  // null while no layout is chosen — every reader below must cope with that.
+  const spec = layout ? (LAYOUTS as any)[layout] : null;
   const wallLine = (index: number, order: number) => {
     const w = described?.walls[index];
     if (!w) return null;
@@ -201,8 +211,14 @@ const KitchenPlanner2D: React.FC = () => {
           <button
             key={l.id}
             type="button"
+            /* TOGGLE, not a radio group. Clicking the chosen layout again
+               turns it off, which is the only way to leave the wall-picking
+               mode: before this, once a shape was on there was no way to say
+               "never mind" — you could switch shapes but not stop. Either way
+               the picked walls are cleared, because they were chosen to suit
+               the shape you are leaving. */
             onClick={() => {
-              setLayout(l.id);
+              setLayout((cur) => (cur === l.id ? "" : l.id));
               setPicked([]);
               setNote("");
             }}
@@ -217,13 +233,18 @@ const KitchenPlanner2D: React.FC = () => {
         ))}
       </div>
 
-      <p className="text-[11px] text-[color:var(--pz-text-2)] leading-snug mb-2">
-        {picked.length < spec.walls
-          ? `Click ${spec.walls - picked.length} more wall${
-              spec.walls - picked.length === 1 ? "" : "s"
-            } in the plan. Any order — they just have to join up.`
-          : "Walls picked. Check the preview, then place."}
-      </p>
+      {/* No layout chosen → no instruction. The whole paragraph goes, rather
+          than showing an empty one, so the section ends at the buttons instead
+          of leaving a gap where a line of text used to be. */}
+      {spec && (
+        <p className="text-[11px] text-[color:var(--pz-text-2)] leading-snug mb-2">
+          {picked.length < spec.walls
+            ? `Click ${spec.walls - picked.length} more wall${
+                spec.walls - picked.length === 1 ? "" : "s"
+              } in the plan. Any order — they just have to join up.`
+            : "Walls picked. Check the preview, then place."}
+        </p>
+      )}
 
       {picked.map((index, order) => wallLine(index, order))}
 
