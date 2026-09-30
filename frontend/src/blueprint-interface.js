@@ -4,7 +4,7 @@ import {
   configDimUnit,
   viewBounds,
 } from "@pazl/main/core/configuration.js";
-import { dimFeetAndInch } from "@pazl/main/core/constants.js";
+import { dimMilliMeter } from "@pazl/main/core/constants.js";
 import * as lshape_room_json from "@pazl/rooms/Lshape.json";
 import { STORAGE_KEY } from "@pazl/main/core/constants.js";
 import { cornerTolerance } from "@pazl/main/core/configuration.js";
@@ -193,7 +193,7 @@ BlueprintInterface.init = () => {
   } catch (e) {
     console.error("attach EVENT_LOADED redrawDoors2D listener failed", e);
   }
-  Configuration.setValue(configDimUnit, dimFeetAndInch);
+  Configuration.setValue(configDimUnit, dimMilliMeter);
   BlueprintInterface.blueprint3d.model.loadSerialized(lShapeRoom);
   BlueprintInterface.configurationHelper =
     BlueprintInterface.blueprint3d.configurationHelper;
@@ -244,7 +244,7 @@ BlueprintInterface.getUnit = () => {
   return (
     BlueprintInterface.blueprint3d?.configurationHelper?.unit ??
     Configuration.getStringValue(configDimUnit) ??
-    dimFeetAndInch
+    dimMilliMeter
   );
 };
 

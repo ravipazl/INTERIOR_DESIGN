@@ -1,5 +1,5 @@
 import { Configuration, configDimUnit } from "./core/configuration";
-import { dimCentiMeter, dimFeetAndInch } from "./core/constants";
+import { dimCentiMeter, dimMilliMeter } from "./core/constants";
 import { Model } from "./model/model";
 import { Viewer3D } from "./viewer3d/Viewer3d";
 import { Viewer2D, floorplannerModes } from "./viewer2d/Viewer2D";
@@ -23,7 +23,7 @@ class BlueprintJS {
    */
   constructor(options) {
     console.debug("bluprint.js ~ options", options);
-    Configuration.setValue(configDimUnit, dimFeetAndInch);
+    Configuration.setValue(configDimUnit, dimMilliMeter);
 
     // console.log('BLUEPRINT JS :: OPTIONS ::: ', options);
 

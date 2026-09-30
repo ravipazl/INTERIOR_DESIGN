@@ -39,7 +39,14 @@ export class RoomView2D extends BaseFloorplanViewElement2D {
 
     __drawUpdatedLabel() {
         let roomCenter = this.__room.areaCenter;
-        let area = Math.round(this.__room.area * 100) / 100;
+        // THE CLEAR FLOOR AREA, not the footprint. `room.area` is measured over
+        // the corners, which sit on the walls' OUTER faces, so it counted the
+        // walls as floor — about 20% too much on a small room, and it did not
+        // agree with the Inner dimensions drawn on the same plan. `clearArea`
+        // uses the interior faces, so the area and those numbers now describe
+        // the same rectangle. `room.area` itself is untouched: the floor mesh,
+        // the 3D view and anything else reading it are unaffected.
+        let area = Math.round(this.__room.clearArea * 100) / 100;
         // let measure = Dimensioning.cmToMeasure(parseInt(area), 2);
         let measure = "";
         measure = dimUnitRoomLabel(area);
