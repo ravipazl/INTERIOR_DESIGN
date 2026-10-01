@@ -205,8 +205,49 @@ class WallSnap {
     // forced rotation — the item keeps its orientation; the user rotates it
     // when they want (like SketchUp). The generous wall tolerance (see
     // SnapConfig) makes all four walls catch easily.
-    const halfAlongNormal =
-      Math.abs(nx) > Math.abs(nz) ? ctx.itemHalfSize.x : ctx.itemHalfSize.z;
+    // HOW FAR THE ITEM REACHES TOWARD THIS WALL, IN THE DIRECTION IT IS
+    // ACTUALLY FACING.
+    //
+    // This used to pick an axis by which way the WALL points — the X extent for
+    // a left or right wall, the Z extent for a front or back one:
+    //
+    //   Math.abs(nx) > Math.abs(nz) ? ctx.itemHalfSize.x : ctx.itemHalfSize.z
+    //
+    // That is only right while the item is square to the world, and the
+    // auto-orient that used to guarantee it was removed (see the note in
+    // DragRoomItemsControl3D). So a cabinet turned to face a side wall — its
+    // back to the wall, exactly as intended — was still pushed away by half its
+    // WIDTH instead of half its depth.
+    //
+    // The size of the error is the difference between the two, which is why it
+    // showed on some modules and not others: a 1150 sink or double shutter
+    // stood 284 mm off the wall, while a 500 single shutter was out by 41 mm
+    // and looked fine. Same bug, different magnitude.
+    //
+    // Projecting the item's own X and Z axes onto the wall normal measures the
+    // real reach whatever angle it sits at. Square to the world it returns the
+    // very same number as before, so untouched placements do not move.
+    let halfAlongNormal = ctx.itemHalfSize.z;
+    const obj = ctx.dragged;
+    if (obj && obj.matrixWorld) {
+      if (typeof obj.updateMatrixWorld === "function") {
+        obj.updateMatrixWorld(true);
+      }
+      // Columns 0 and 2 of the world matrix are the item's local X and Z axes.
+      const e = obj.matrixWorld.elements;
+      const lx = Math.hypot(e[0], e[2]) || 1;
+      const lz = Math.hypot(e[8], e[10]) || 1;
+      const axX = e[0] / lx;
+      const axZ = e[2] / lx;
+      const azX = e[8] / lz;
+      const azZ = e[10] / lz;
+      halfAlongNormal =
+        Math.abs(nx * axX + nz * axZ) * ctx.itemHalfSize.x +
+        Math.abs(nx * azX + nz * azZ) * ctx.itemHalfSize.z;
+    } else {
+      halfAlongNormal =
+        Math.abs(nx) > Math.abs(nz) ? ctx.itemHalfSize.x : ctx.itemHalfSize.z;
+    }
     const wallOffset = ctx.config.wallExtraOffset ?? 0;
     const targetCentreDistance = halfAlongNormal + wallOffset;
     const gap = Math.abs(dist) - targetCentreDistance;

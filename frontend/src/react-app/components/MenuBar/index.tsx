@@ -9,6 +9,7 @@ import { handleModelSelect } from "../../../viewer3d-state-interface";
 import { handleSelectedModel } from "../../../events/event-interface";
 import "./index.css";
 import ErrorBoundary from "@pazl/react-app/errorBoundary";
+import { OPEN_3D_VIEW } from "@pazl/helpers/roomFocus";
 
 export enum MENU_TABS {
   FLOOR_PLAN = "floor_plan",
@@ -105,6 +106,7 @@ const MenuBar = ({
     onNavHandled?.();
   }, [requestedView]);
 
+
   useEffect(() => {
     if (BlueprintInterface?.blueprint3d) {
       handleSelectedModel((evt: any) => {
@@ -195,6 +197,28 @@ const MenuBar = ({
       window.history.pushState({ path }, "", path);
     }
   };
+
+  // "DESIGN THIS ROOM" ASKED FOR THE 3D VIEW.
+  //
+  // The button sits in the room properties panel, several levels below this
+  // component, and the tab switch (URL, viewer mode, panel) only exists here.
+  // Going through the same handleTabItemClick the nav rail uses means the
+  // switch is identical to pressing 3D by hand — no second code path to drift.
+  //
+  // Through a ref, because the listener is registered once while
+  // handleTabItemClick closes over `params`, which is rebuilt from the URL on
+  // every render. A listener holding the first render's copy would write back
+  // the URL as it was when the page opened, quietly undoing anything else that
+  // had changed in it since. It also has to sit BELOW handleTabItemClick: that
+  // is a const, so reading it higher up during render is a crash, not a
+  // hoisted undefined.
+  const tabClickRef = React.useRef(handleTabItemClick);
+  tabClickRef.current = handleTabItemClick;
+  useEffect(() => {
+    const goTo3D = () => tabClickRef.current(NAV_VIEWS.FURNISH);
+    window.addEventListener(OPEN_3D_VIEW, goTo3D);
+    return () => window.removeEventListener(OPEN_3D_VIEW, goTo3D);
+  }, []);
 
   const handleSwitchViewer = (mode: any) => {
     BlueprintInterface.switchViewer(mode);

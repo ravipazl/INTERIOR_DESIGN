@@ -16,6 +16,7 @@ import { ParametricsInterface } from "../src/scripts/ParametricsInterface.js";
 import { ModelsService } from "@pazl/services/ModelsService";
 import { MODEL_TYPES } from "@pazl/entities/Model";
 import { SnapManager } from "../src/scripts/snap/SnapEngine.js";
+import { Dimensioning } from "../src/scripts/core/dimensioning";
 
 // ---------------------------------------------------------------------------
 // GLB cache — load each model file only ONCE (Coohom-style). The drag ghost and
@@ -85,6 +86,96 @@ function handleAddItemsToScene(
     currentUnitItem,
     furnishModelId,
   });
+  // WHILE A ROOM IS FOCUSED, EVERYTHING GOES INTO THAT ROOM.
+  //
+  // Placement otherwise follows the last selection, which is usually whichever
+  // room or wall was touched before focusing — so a new item landed in a
+  // neighbouring room and then vanished, because that room is hidden.
+  //
+  // GIVE IT A WALL OF THIS ROOM — never no wall at all. Clearing the edge was
+  // the obvious way to stop the stale one being used, and it was wrong: a base
+  // unit snaps flush to `__selectedEdge`, so with none it stood off the wall
+  // with a gap. The fallback inside RoomplannerHelper.addWallItems does not
+  // rescue it either, because that picks rooms[0] — the first room in the plan,
+  // not the one being designed.
+  //
+  // A wall the user has actually clicked IN THIS ROOM is left exactly as it is;
+  // only a selection belonging to some other room is replaced.
+  //
+  // AND NONE OF IT APPLIES WHEN THE CALLER ALREADY KNOWS WHERE THE ITEM GOES.
+  //
+  // `__hasExplicitDropPoint` means the exact wall, point and normal were worked
+  // out by the caller — auto-furnish placing a kitchen run module by module, or
+  // a drag dropped at a screen position. Auto-furnish sets all five fields per
+  // module and then calls this function; overriding them sent every module of
+  // the run to one wall at one point, stacked on top of each other, whenever
+  // the walls picked in 2D were not in the room focused in 3D. The guesswork
+  // below is only for the "+ Add" path, which has no point of its own.
+  try {
+    const focusRoom = BlueprintInterface.focusedRoom3D?.();
+    const helper = BlueprintInterface.roomplanningHelper;
+    if (focusRoom && helper && !helper.__hasExplicitDropPoint) {
+      helper.__selectedRoom = focusRoom;
+      helper.__roomName = focusRoom.name;
+      const chosen = helper.__selectedEdge;
+      const chosenIsHere =
+        chosen &&
+        chosen.room &&
+        chosen.room.roomByCornersId === focusRoom.roomByCornersId;
+      if (!chosenIsHere) {
+        const edge =
+          (typeof focusRoom.getDefaultWallEdge === "function"
+            ? focusRoom.getDefaultWallEdge()
+            : null) ||
+          focusRoom.edgePointer ||
+          null;
+        if (edge) {
+          helper.__selectedEdge = edge;
+          helper.__selectedEdgeNormal = edge.normal ?? { x: 0, y: 0, z: 1 };
+          // HEIGHT MATTERS, AND A WALL'S CENTRE IS THE WRONG ONE FOR FURNITURE.
+          //
+          // HalfEdge.center is the centre of the whole wall PLANE, so its y is
+          // about half the wall height. snapToWall places the item at the point
+          // it is given, so handing that straight over left a sink unit hanging
+          // in mid-air, roughly 1.4 m up, instead of standing on the floor.
+          //
+          // Auto-furnish already makes this distinction explicitly — it passes
+          // y = 0 for a floor-level slot and the centre height only for a wall
+          // one. Floor-standing types here are 1 (FloorItem), 7
+          // (InWallFloorItem) and 9 (WallFloorItem); 2 and 3 hang on the wall.
+          const centre = edge.center || focusRoom.center || null;
+          if (centre) {
+            const raw = currentUnitItem?.model?.type ?? currentUnitItem?.type;
+            const type = parseInt(raw, 10);
+            const standsOnFloor = !(type === 2 || type === 3);
+            helper.__selectedEdgePoint = new Vector3(
+              centre.x,
+              standsOnFloor ? 0 : centre.y || 0,
+              centre.z
+            );
+          } else {
+            helper.__selectedEdgePoint = null;
+          }
+          // The FIELD, not the `wallThickness` setter — that setter writes
+          // back to the edge and would change the wall's real thickness.
+          // This mirrors what addWallItems does for its own fallback edge.
+          if (edge.wall?.thickness != null) {
+            helper.__wallThickness = Dimensioning.cmToMeasureRaw(
+              edge.wall.thickness
+            );
+          }
+        } else {
+          // No wall to be had — better to land in the middle of the right room
+          // than against a wall of the wrong one.
+          helper.__selectedEdge = null;
+          helper.__selectedEdgePoint = focusRoom.center || null;
+        }
+        helper.__hasExplicitDropPoint = false;
+      }
+    }
+  } catch (e) {
+    /* placement falls back to its normal behaviour */
+  }
   currentUnitItem = currentUnitItem?.model
     ? currentUnitItem.model
     : currentUnitItem;
@@ -169,9 +260,38 @@ function handleAddItemsToScene(
             const targetHcm = Number(slot.h) / 10;
             const targetWcm = Number(slot.w) / 10;
             const targetDcm = Number(slot.d) / 10;
-            // AXIS DETECTION: Y is the vertical (height) axis. Of the two flat
-            // axes (X, Z), the LARGER is the door's WIDTH, the smaller its DEPTH.
-            const xIsWidth = size.x >= size.z;
+            // AXIS DETECTION: Y is the vertical (height) axis. Which of the two
+            // flat axes (X, Z) is the WIDTH is decided from the model's own
+            // DECLARED dimensions, not by assuming the larger one wins.
+            //
+            // "Wider than deep" is not true of every cabinet. A 500 mm single
+            // shutter is 582 mm deep, so the old test read its width as being on
+            // Z, swapped width and depth in the scaling below, and set
+            // `fitInnerTurn` — a bogus 90° turn — on exactly the narrow units.
+            // Anything 600 mm or wider escaped it, which is why one set of
+            // modules behaved and another did not.
+            //
+            // dimensions are [height, width, depth], so their ratio says which
+            // way round the model really is. Comparing that against the measured
+            // ratio picks the right axis whatever the proportions. The old
+            // measurement-only guess stays as the fallback for a model with no
+            // declared dimensions.
+            let xIsWidth = size.x >= size.z;
+            const decDims = Array.isArray(currentUnitItem.dimensions)
+              ? currentUnitItem.dimensions
+              : null;
+            if (
+              decDims &&
+              decDims.length >= 3 &&
+              Number(decDims[1]) > 0 &&
+              Number(decDims[2]) > 0
+            ) {
+              const declaredRatio = Number(decDims[1]) / Number(decDims[2]);
+              const measuredRatio = size.x / size.z;
+              xIsWidth =
+                Math.abs(measuredRatio - declaredRatio) <=
+                Math.abs(1 / measuredRatio - declaredRatio);
+            }
             const nativeWidth = xIsWidth ? size.x : size.z;
             const nativeDepth = xIsWidth ? size.z : size.x;
             const sHeight = targetHcm / size.y;
@@ -220,8 +340,44 @@ function handleAddItemsToScene(
             const maxDeclaredCm = Math.max(...declaredCm);
             const maxActual = Math.max(size.x, size.y, size.z);
 
-            if (maxDeclaredCm > 0 && maxActual > 0) {
-              const ratio = maxDeclaredCm / maxActual;
+            // SCALE FROM THE FLAT AXES, NOT FROM THE BIGGEST ONE.
+            //
+            // Matching the largest declared number to the largest measured
+            // extent assumes both are the same axis. For a sink unit they are
+            // not: the bowl and tap stand above the carcass, so the GLB measures
+            // 1005 mm tall while the unit is declared 900 wide × 825 high. The
+            // largest declared value is then the WIDTH and the largest measured
+            // value is the HEIGHT, and dividing one by the other scaled the
+            // whole cabinet to 89.5% — about 10% small, with its depth short by
+            // 6 cm. snapToWall still offset it by the depth it was supposed to
+            // have, so it stood off the wall.
+            //
+            // The width and depth are reliable where the height is not: nothing
+            // overhangs a cabinet sideways. Both flat ratios are computed, the
+            // orientation that makes them AGREE is the right one, and their mean
+            // is the scale. On all four cabinets measured — sink, double
+            // shutter and two single shutters — this gives exactly 100 (metres
+            // to centimetres), where the old rule gave 89.5 and 97.1.
+            //
+            // Scaling stays uniform, so nothing is ever stretched out of shape.
+            let ratio = maxDeclaredCm > 0 && maxActual > 0
+              ? maxDeclaredCm / maxActual
+              : 0;
+            const wCm = Number(declaredCm[1]);
+            const dCm = Number(declaredCm[2]);
+            if (wCm > 0 && dCm > 0) {
+              // X is the width, or Z is — whichever reading is self-consistent.
+              const asXWidth = [wCm / size.x, dCm / size.z];
+              const asZWidth = [dCm / size.x, wCm / size.z];
+              const spread = (p) => Math.abs(p[0] - p[1]);
+              const best = spread(asXWidth) <= spread(asZWidth)
+                ? asXWidth
+                : asZWidth;
+              const mean = (best[0] + best[1]) / 2;
+              if (isFinite(mean) && mean > 0) ratio = mean;
+            }
+
+            if (ratio > 0) {
               gltf.scene.scale.setScalar(ratio);
               box.setFromObject(gltf.scene);
               size = box.getSize(new Vector3());

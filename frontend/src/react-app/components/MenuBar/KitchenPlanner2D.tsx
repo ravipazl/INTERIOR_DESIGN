@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import BlueprintInterface from "@pazl/blueprint-interface";
 import {
   planKitchenLayout,
@@ -53,6 +53,19 @@ const KitchenPlanner2D: React.FC = () => {
 
   const described = useMemo(() => (room ? describeRoom(room) : null), [room]);
 
+  // The wall-click listener is registered once per layout, so it closes over
+  // the `room` of that render. A ref keeps it reading the CURRENT room without
+  // tearing the listener down and rebuilding it on every pick.
+  const roomRef = useRef<any>(null);
+  roomRef.current = room;
+
+  // Nothing picked means no room is locked in. Unpicking back to zero has to
+  // release it as surely as "Clear picked walls" does, or the kitchen stays
+  // tied to a room the user has visibly deselected.
+  useEffect(() => {
+    if (!picked.length && room) setRoom(null);
+  }, [picked, room]);
+
   /** Clicking a wall in the plan picks it (or unpicks it). */
   useEffect(() => {
     const BI = BlueprintInterface as any;
@@ -65,9 +78,28 @@ const KitchenPlanner2D: React.FC = () => {
     BI.__kitchenPicking = true;
     const stop = BI.onWall2DClicked?.((wall: any) => {
       if (!wall) return;
-      // The room this wall belongs to — kitchens are placed inside a room.
+      // WHICH ROOM IS THIS KITCHEN BEING BUILT IN?
+      //
+      // A wall BETWEEN two rooms is attached to both, so `attachedRooms[0]`
+      // picked an arbitrary one of them. That matters more than it looks: the
+      // numbers collected below are positions in one particular room's wall
+      // list, so two clicks that resolved to different rooms produced a mix of
+      // indices with no single meaning — and the run was then laid out along
+      // whichever walls those numbers happened to hit in the last room picked,
+      // which is how a kitchen ended up strung across a room at angles nobody
+      // chose.
+      //
+      // So the room is decided ONCE, by the first wall picked, and every later
+      // pick must be a wall of that same room. Before anything is picked, a
+      // room focused in 3D wins, so choosing a shared wall builds the kitchen
+      // in the room you are actually designing rather than its neighbour.
+      const attached = ((wall.attachedRooms as any[]) || []).filter(Boolean);
+      const focusId = BI.__roomFocusId;
       const theRoom =
-        (wall.attachedRooms && wall.attachedRooms[0]) ||
+        roomRef.current ||
+        (focusId &&
+          attached.find((r: any) => r && r.roomByCornersId === focusId)) ||
+        attached[0] ||
         BI.blueprint3d?.model?.floorplan?.getRooms?.()[0] ||
         null;
       if (!theRoom) {
@@ -78,7 +110,11 @@ const KitchenPlanner2D: React.FC = () => {
       if (!desc) return;
       const index = desc.walls.findIndex((w: any) => w.edge && w.edge.wall === wall);
       if (index < 0) {
-        setNote("That wall isn't one of this room's walls.");
+        setNote(
+          roomRef.current
+            ? "Pick walls from the same room — use Clear picked walls to start on another one."
+            : "That wall isn't one of this room's walls."
+        );
         return;
       }
       setRoom(theRoom);
@@ -281,6 +317,11 @@ const KitchenPlanner2D: React.FC = () => {
           type="button"
           onClick={() => {
             setPicked([]);
+            // Release the room as well. The first pick LOCKS the kitchen to one
+            // room; without clearing it here, "Clear picked walls" would free
+            // the walls but keep the room, and there would be no way to start a
+            // kitchen in a different one without reloading the page.
+            setRoom(null);
             setNote("");
             (BlueprintInterface as any).setPlanOverlay2D?.(null);
           }}

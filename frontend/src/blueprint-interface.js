@@ -2,6 +2,7 @@ import { BlueprintJS } from "@pazl/main/blueprint.js";
 import {
   Configuration,
   configDimUnit,
+  configWallHeight,
   viewBounds,
 } from "@pazl/main/core/configuration.js";
 import { dimMilliMeter } from "@pazl/main/core/constants.js";
@@ -189,6 +190,15 @@ BlueprintInterface.init = () => {
       // before wall-collision existed) by pulling it back inside. Runs a little
       // later so items are fully in __roomItems first.
       setTimeout(() => BlueprintInterface.rescueOutsideItems?.(), 600);
+      // Then give any orphaned item its room back. After the rescue, so an item
+      // that was outside every room has already been pulled inside one.
+      setTimeout(() => BlueprintInterface.reassignOrphanRoomIds?.(), 900);
+      // Put back the room you were designing before the reload. Done here, in
+      // the engine, rather than left to the chip in the 3D panel: that panel
+      // only exists once you are on the 3D tab, so a reload while on the floor
+      // plan came back showing the whole house. After the orphan pass, so a
+      // room's items belong to it before anything is hidden.
+      setTimeout(() => BlueprintInterface.restoreRoomFocus3D?.(), 1000);
     });
   } catch (e) {
     console.error("attach EVENT_LOADED redrawDoors2D listener failed", e);
@@ -469,6 +479,892 @@ BlueprintInterface.clearSelection3D = () => {
 // at a time (OUTER = footprint / outside faces, INNER = clear span / inside
 // faces). Returns the active mode.
 BlueprintInterface.__dimMode2D = "off";
+/**
+ * SHOW ONE ROOM, OR THE WHOLE HOUSE.
+ *
+ * Pass a room's `roomByCornersId` to work on that room alone in 3D; pass null
+ * to bring the house back. Nothing is split, copied or deleted — this only
+ * changes what is DRAWN, which is why leaving focus restores every room's work
+ * with no merging to do.
+ *
+ *   the focused room   floor, walls and furniture
+ *   other rooms        nothing at all
+ *
+ * The neighbours were drawn faintly at first, for context. In practice that
+ * read as an empty shell: one small floor patch adrift in a house-sized
+ * wireframe, with no way to tell the feature from a bug. Hiding them outright,
+ * and pointing the camera at the room, is what makes it look like a room.
+ *
+ * Items are matched by WHERE THEY STAND rather than by their stored roomId.
+ * That id is the room's corner list and goes stale the moment a wall is
+ * redrawn (see reassignOrphanRoomIds); geometry cannot go stale. Wall-mounted
+ * items — doors and windows — follow their wall instead, so a door stays with
+ * whichever side of it you are looking at.
+ */
+/**
+ * One command that prints the whole room-focus chain, so a failure says WHERE
+ * it broke instead of "nothing happened". Run it in the browser console:
+ *
+ *   BlueprintInterface.roomFocusDebug()
+ *
+ * Read-only; it changes nothing.
+ */
+BlueprintInterface.roomFocusDebug = () => {
+  const out = {};
+  try {
+    out.projectIdInUrl =
+      new URLSearchParams(window.location.search).get("projectId") || "(none)";
+    try {
+      out.storedFocus = JSON.parse(localStorage.getItem("pazl-room-focus") || "{}");
+    } catch (e) {
+      out.storedFocus = "(unreadable)";
+    }
+    const bp = BlueprintInterface.blueprint3d;
+    out.hasBlueprint3d = !!bp;
+    const three = bp && (bp.roomplanner || bp.three);
+    out.hasThreeView = !!three;
+    out.floors3d = three && three.floors3d ? three.floors3d.length : "(none)";
+    out.edges3d = three && three.edges3d ? three.edges3d.length : "(none)";
+    out.items3d =
+      three && three.__physicalRoomItems
+        ? three.__physicalRoomItems.length
+        : "(none)";
+    const rooms =
+      (bp && bp.model && bp.model.__floorplan && bp.model.__floorplan.rooms) || [];
+    out.roomCount = rooms.length;
+    out.roomIds = rooms.map((r) => r && r.roomByCornersId);
+    // Would the STORED focus actually match anything? This is the question
+    // every failure so far has come down to, so answer it here rather than
+    // relying on a log line a filtered console may be hiding.
+    const stored =
+      out.storedFocus && typeof out.storedFocus === "object"
+        ? out.storedFocus[out.projectIdInUrl]
+        : null;
+    out.focusForThisProject = stored || "(none)";
+    if (stored) {
+      const same = (r) => !!r && r.roomByCornersId === stored;
+      out.roomsMatchingFocus = rooms.filter(same).length;
+      out.floorsMatchingFocus =
+        three && three.floors3d
+          ? three.floors3d.filter((f) => f && same(f.room)).length
+          : 0;
+      out.wallsMatchingFocus =
+        three && three.edges3d
+          ? three.edges3d.filter((e) => e && e.edge && same(e.edge.room)).length
+          : 0;
+    }
+    out.floorsKnowTheirRoom =
+      three && three.floors3d
+        ? three.floors3d.filter((f) => f && f.room).length
+        : 0;
+    out.edgesKnowTheirRoom =
+      three && three.edges3d
+        ? three.edges3d.filter((e) => e && e.edge && e.edge.room).length
+        : 0;
+
+    // ITEMS, COUNTED THE SAME WAY THE FILTER COUNTS THEM.
+    //
+    // "Windows of other rooms are still showing" was reported several times
+    // while the floor and wall numbers above looked perfect, because items are
+    // not in floors3d or edges3d and were being missed. So walk the scene the
+    // way applyRoomFocus3D does and report what is actually on screen.
+    if (three && three.traverse) {
+      let total = 0;
+      let shown = 0;
+      let onWall = 0;
+      three.traverse((o) => {
+        if (!o || !(o.__itemModel || o.itemModel)) return;
+        total += 1;
+        if (o.visible) shown += 1;
+        const m = o.__itemModel || o.itemModel;
+        if (m && (m.currentWall || m.__currentWall)) onWall += 1;
+      });
+      out.itemsInScene = total;
+      out.itemsVisible = shown;
+      out.itemsOnAWall = onWall;
+      out.itemsTrackedInArray =
+        three.__physicalRoomItems ? three.__physicalRoomItems.length : 0;
+    }
+
+    // ANYTHING OF ANOTHER ROOM STILL ON SCREEN.
+    //
+    // Should be 0 while a room is focused. It was not, for a long time,
+    // because Edge3D keeps THREE plane arrays and only one of them was being
+    // hidden — the other two drew the rest of the house as faint outlines on
+    // the floor. Counting all three here means that class of miss shows up as
+    // a number instead of something you have to spot by eye.
+    if (stored && three && three.edges3d && three.floors3d) {
+      const same = (r) => !!r && r.roomByCornersId === stored;
+      let leftovers = 0;
+      three.edges3d.forEach((e) => {
+        if (!e || (e.edge && same(e.edge.room))) return;
+        ["planes", "basePlanes", "phantomPlanes"].forEach((k) => {
+          (e[k] || []).forEach((p) => {
+            if (p && p.visible) leftovers += 1;
+          });
+        });
+      });
+      three.floors3d.forEach((f) => {
+        if (!f || same(f.room)) return;
+        if (f.floorPlane && f.floorPlane.visible) leftovers += 1;
+        if (f.roofPlane && f.roofPlane.visible) leftovers += 1;
+      });
+      out.otherRoomPartsStillVisible = leftovers;
+    }
+  } catch (e) {
+    out.error = String((e && e.message) || e);
+  }
+  console.log("ROOM FOCUS DEBUG", out);
+  return out;
+};
+
+/**
+ * A room's centre in WORLD space. Corners store x and y, where y is the
+ * world's z — mixing those two up puts the camera somewhere else entirely, so
+ * the conversion lives here rather than being repeated at each call.
+ */
+function roomCentre3D(room) {
+  try {
+    if (room && room.center && typeof room.center.x === "number") {
+      return new Vector3(room.center.x, 0, room.center.z);
+    }
+    const cs = (room && room.corners) || [];
+    if (!cs.length) return null;
+    let sx = 0;
+    let sz = 0;
+    cs.forEach((c) => {
+      sx += c.x;
+      sz += c.y;
+    });
+    return new Vector3(sx / cs.length, 0, sz / cs.length);
+  } catch (e) {
+    return null;
+  }
+}
+
+/**
+ * FRAME ONE ROOM IN THE 3D VIEW.
+ *
+ * Put the whole room on screen, centred, seen from outside — the same job the
+ * engine's own "fit the whole plan" does for the house, done for a single room.
+ *
+ * It computes a distance rather than using a multiple of the room's size,
+ * because "far enough" depends on the CAMERA, not only the room: a tall narrow
+ * viewport needs more room than a wide one for the same floor. Taking the
+ * distance from the field of view and the live canvas aspect is what makes a
+ * small room and a large one both sit in the frame the same way.
+ *
+ * The ELEVATION is fixed rather than inherited. Reusing whatever direction the
+ * camera already had was the actual reason the view ended up between the walls:
+ * if you were last looking along the floor, the "closer" camera simply slid
+ * inside the room. Your left-right orientation is kept, so the room is not spun
+ * round underneath you — only the height is corrected.
+ */
+function frameRoomCamera(three, room) {
+  const cs = (room && room.corners) || [];
+  if (!three || !three.camera || three.camera.isOrthographicCamera) return false;
+  if (cs.length < 3 || !three.controls || !three.__animateCameraTo) return false;
+
+  const xs = cs.map((c) => c.x);
+  const zs = cs.map((c) => c.y); // corner.y IS the world z
+  const minX = Math.min(...xs);
+  const maxX = Math.max(...xs);
+  const minZ = Math.min(...zs);
+  const maxZ = Math.max(...zs);
+  const width = Math.max(maxX - minX, 1);
+  const depth = Math.max(maxZ - minZ, 1);
+  let wallH = 280;
+  try {
+    wallH = Configuration.getNumericValue(configWallHeight) || 280;
+  } catch (e) {
+    /* default is fine */
+  }
+
+  // The room's bounding SPHERE, so the fit holds from any direction. Using
+  // width or depth alone framed the room correctly from one side and cut it off
+  // from the next, because the diagonal is longer than either.
+  const radius = 0.5 * Math.sqrt(width * width + depth * depth + wallH * wallH);
+
+  const fov = (((three.camera.fov || 45) * Math.PI) / 180) || 0.785;
+  // camera.aspect can still hold its placeholder; the canvas is the truth.
+  const el = three.domElement;
+  const aspect =
+    el && el.clientWidth && el.clientHeight
+      ? el.clientWidth / el.clientHeight
+      : window.innerWidth / Math.max(1, window.innerHeight);
+  const halfV = fov / 2;
+  const halfH = Math.atan(Math.tan(halfV) * Math.max(aspect, 0.2));
+  // Whichever way the frustum is tighter is the one that decides the distance.
+  const half = Math.min(halfV, halfH);
+  // 1.0 would touch the edges of the screen; the extra is breathing room.
+  const MARGIN = 1.25;
+  const dist = (radius / Math.max(Math.sin(half), 0.05)) * MARGIN;
+
+  // Keep the azimuth you were already looking from, replace the elevation.
+  const target = new Vector3(
+    (minX + maxX) / 2,
+    wallH * 0.45,
+    (minZ + maxZ) / 2
+  );
+  const prev = three.camera.position.clone().sub(three.controls.target);
+  let dx = prev.x;
+  let dz = prev.z;
+  if (dx * dx + dz * dz < 1) {
+    dx = 0.55;
+    dz = 0.55;
+  }
+  const flat = Math.sqrt(dx * dx + dz * dz);
+  const ELEV = (35 * Math.PI) / 180;
+  const cos = Math.cos(ELEV);
+  const dir = new Vector3((dx / flat) * cos, Math.sin(ELEV), (dz / flat) * cos);
+
+  three.__animateCameraTo(
+    target.clone().add(dir.multiplyScalar(dist)),
+    target.clone(),
+    700
+  );
+  return true;
+}
+
+/**
+ * RE-READ THE SAVED FOCUS AND APPLY IT.
+ *
+ * The focus is stored per project in localStorage, under the same key the
+ * React side writes (helpers/roomFocus.ts). Reading it here as well is
+ * deliberate duplication of four lines: it means the engine can restore the
+ * focus on load on its own, without waiting for a React panel that only exists
+ * on one tab. Writing stays in one place — nothing here ever sets it.
+ *
+ * Does nothing when no room was saved for this project, so an ordinary project
+ * opens on the whole house exactly as before.
+ */
+BlueprintInterface.restoreRoomFocus3D = () => {
+  try {
+    const projectId =
+      new URLSearchParams(window.location.search).get("projectId") || "";
+    if (!projectId) return false;
+    const map = JSON.parse(localStorage.getItem("pazl-room-focus") || "{}");
+    const id = map && typeof map === "object" ? map[projectId] : null;
+    if (!id) return false;
+    return BlueprintInterface.applyRoomFocus3D(String(id));
+  } catch (e) {
+    // Unreadable storage must never stop a project opening.
+    return false;
+  }
+};
+
+// APPLY A FOCUS CHANGE THE MOMENT IT HAPPENS.
+//
+// "Design this room" and "All rooms" both write the preference and announce
+// it. Listening here means the 3D view reacts to that announcement directly,
+// instead of the change only taking effect when some React panel next decides
+// to re-read it. Registered once, at module load, and harmless when no room is
+// focused.
+try {
+  window.addEventListener("pazl-room-focus-changed", (evt) => {
+    try {
+      const id = (evt && evt.detail && evt.detail.roomId) || null;
+      BlueprintInterface.applyRoomFocus3D?.(id);
+    } catch (e) {
+      /* never let the focus break the view */
+    }
+  });
+} catch (e) {
+  /* no window (tests) */
+}
+
+/**
+ * WHY IS THIS ITEM NOT FLUSH AGAINST ITS WALL?
+ *
+ * Select the item in 3D, then run:
+ *
+ *   BlueprintInterface.snapDebug()
+ *
+ * Snapping an item to a wall is: project its point onto the wall plane, then
+ * push it back out along the wall normal by half the item's depth. Three things
+ * can go wrong and they look identical on screen — the normal points the wrong
+ * way, the half-depth is measured on the wrong axis, or the item is attached to
+ * a different wall than the one it appears to be near.
+ *
+ * So this measures the one number that settles it: the perpendicular distance
+ * from the item to the wall's interior line. Flush means that distance equals
+ * `halfDepthUsed`. Bigger means it was pushed too far; negative means it went
+ * through the wall to the outside.
+ */
+BlueprintInterface.snapDebug = () => {
+  const out = {};
+  try {
+    const bp = BlueprintInterface.blueprint3d;
+    const three = bp && (bp.roomplanner || bp.three);
+    const phys = three && three.__currentItemSelected;
+    const m = phys && (phys.itemModel || phys.__itemModel);
+    if (!m) {
+      out.error = "Select the item in 3D first, then run this again.";
+      console.log("SNAP DEBUG", out);
+      return out;
+    }
+    const meta = m.metadata || m.__metadata || {};
+    out.item = meta.itemName || m.__id;
+    out.itemType = meta.itemType;
+    out.position = [
+      Math.round(m.position.x),
+      Math.round(m.position.y),
+      Math.round(m.position.z),
+    ];
+    // The size the snap maths uses, and the size the model was saved with.
+    out.size = m.__size
+      ? [Math.round(m.__size.x), Math.round(m.__size.y), Math.round(m.__size.z)]
+      : null;
+    out.halfDepthUsed = m.__halfSize ? Math.round(m.__halfSize.z) : null;
+    out.scale = m.__scale
+      ? [m.__scale.x, m.__scale.y, m.__scale.z].map((v) => Number(v.toFixed(4)))
+      : null;
+
+    const edge = m.__currentWallEdge;
+    const wall = m.currentWall || m.__currentWall;
+    out.attachedToWall = !!wall;
+    if (edge) {
+      const a = edge.interiorStart();
+      const b = edge.interiorEnd();
+      out.wallFrom = a ? [Math.round(a.x), Math.round(a.y)] : null;
+      out.wallTo = b ? [Math.round(b.x), Math.round(b.y)] : null;
+      out.wallThickness = wall ? Math.round(wall.thickness) : null;
+      const n = edge.normal;
+      out.edgeNormal = n
+        ? [Number(n.x.toFixed(3)), Number(n.z.toFixed(3))]
+        : null;
+      const room = edge.room;
+      out.edgeKnowsItsRoom = !!room;
+      if (room && room.center && edge.center && n) {
+        const dot =
+          n.x * (room.center.x - edge.center.x) +
+          n.z * (room.center.z - edge.center.z);
+        // Negative means the stored normal faces OUT of the room, so anything
+        // that does not flip it first pushes the item the wrong way.
+        out.normalPointsIntoRoom = dot >= 0;
+      }
+      // THE NUMBER THAT MATTERS. Perpendicular distance from the item to the
+      // wall's interior line. Compare it with halfDepthUsed above.
+      if (a && b) {
+        const vx = b.x - a.x;
+        const vz = b.y - a.y;
+        const len = Math.hypot(vx, vz) || 1;
+        const px = m.position.x - a.x;
+        const pz = m.position.z - a.y;
+        const signed = (px * -vz + pz * vx) / len;
+        out.distanceFromWall = Math.round(signed);
+        out.distanceAbs = Math.abs(out.distanceFromWall);
+      }
+    } else {
+      out.note = "Item has no wall edge — it was never snapped to a wall.";
+    }
+  } catch (e) {
+    out.error = String((e && e.message) || e);
+  }
+  console.log("SNAP DEBUG", out);
+  return out;
+};
+
+/**
+ * WHERE DID EVERY PLACED ITEM ACTUALLY GO?
+ *
+ * Run in the console after an auto-furnish that came out wrong:
+ *
+ *   copy(JSON.stringify(BlueprintInterface.placementDebug(), null, 1))
+ *
+ * For each item it reports the position, the wall it is attached to, the room
+ * the geometry says it is standing in, and the room its record claims. When a
+ * kitchen run lands scattered, those three disagreeing is the answer — and
+ * which pair disagrees says whether the fault is in the placement, in the
+ * room bookkeeping, or in something moving items afterwards.
+ */
+BlueprintInterface.placementDebug = () => {
+  const out = { focus: null, rooms: [], items: [] };
+  try {
+    const bp = BlueprintInterface.blueprint3d;
+    const three = bp && (bp.roomplanner || bp.three);
+    const rooms =
+      (bp && bp.model && bp.model.__floorplan && bp.model.__floorplan.rooms) ||
+      [];
+    out.focus = BlueprintInterface.__roomFocusId || "(none)";
+    const nameOf = (r) =>
+      r ? `${r.name || "Room"}#${String(r.roomByCornersId).slice(0, 12)}` : null;
+    rooms.forEach((r) => {
+      const cs = (r && r.corners) || [];
+      out.rooms.push({
+        room: nameOf(r),
+        corners: cs.length,
+        bounds: cs.length
+          ? {
+              x: [
+                Math.round(Math.min(...cs.map((c) => c.x))),
+                Math.round(Math.max(...cs.map((c) => c.x))),
+              ],
+              z: [
+                Math.round(Math.min(...cs.map((c) => c.y))),
+                Math.round(Math.max(...cs.map((c) => c.y))),
+              ],
+            }
+          : null,
+        focused: r.roomByCornersId === BlueprintInterface.__roomFocusId,
+      });
+    });
+    const items = (bp && bp.model && bp.model.__roomItems) || [];
+    items.forEach((it) => {
+      if (!it || !it.position) return;
+      const here = new Vector2(it.position.x, it.position.z);
+      const geometric = rooms.filter(
+        (r) => r && r.pointInRoom && r.pointInRoom(here)
+      );
+      const phys =
+        (three &&
+          three.__physicalRoomItems &&
+          three.__physicalRoomItems.find(
+            (p) => p && (p.itemModel === it || p.__itemModel === it)
+          )) ||
+        null;
+      out.items.push({
+        name: (it.metadata && it.metadata.itemName) || it.__id || "(unnamed)",
+        at: [
+          Math.round(it.position.x),
+          Math.round(it.position.y),
+          Math.round(it.position.z),
+        ],
+        onWall: !!(it.currentWall || it.__currentWall),
+        // Which room the item is physically standing in, by geometry.
+        standingIn: geometric.map(nameOf),
+        // Which room its saved record says it belongs to.
+        recordSays:
+          (it.metadata && (it.metadata.roomName || it.metadata.roomId)) || null,
+        visible: phys ? phys.visible : "(no 3d object)",
+      });
+    });
+  } catch (e) {
+    out.error = String((e && e.message) || e);
+  }
+  console.log("PLACEMENT DEBUG", out);
+  return out;
+};
+
+/**
+ * MAY THE USER CLICK THIS RIGHT NOW?
+ *
+ * Clicking a wall or a floor does NOT use the meshes you can see. The model
+ * keeps its own set of picking planes — room.floorPlane, halfEdge.plane,
+ * halfEdge.exteriorPlane — and half_edge.js sets `plane.visible = true` on
+ * purpose, with a comment saying the raycaster needs it. They are invisible
+ * because their MATERIAL is invisible, not because the object is hidden.
+ *
+ * So a visibility test can never exclude them, which is why clicking the empty
+ * space beside the focused room still selected a room that was not on screen.
+ * They do carry a back-reference to what they belong to, so ownership is the
+ * test that works: `floorPlane.room`, and `plane.edge.room` for a wall.
+ *
+ * Returns true for everything when no room is focused, so ordinary editing of
+ * the whole house is completely unchanged.
+ */
+BlueprintInterface.pickableUnderFocus = (obj) => {
+  try {
+    const id = BlueprintInterface.__roomFocusId;
+    if (!id) return true;
+    if (!obj) return false;
+    const same = (r) => !!r && r.roomByCornersId === id;
+    if (obj.room) return same(obj.room);
+    if (obj.edge) return same(obj.edge.room);
+    // Not one of the model's picking planes — judged on visibility instead.
+    return true;
+  } catch (e) {
+    // A broken check must never make the plan unclickable.
+    return true;
+  }
+};
+
+/**
+ * The room currently being designed, or null for the whole house.
+ */
+BlueprintInterface.focusedRoom3D = () => {
+  try {
+    const id = BlueprintInterface.__roomFocusId;
+    if (!id) return null;
+    const rooms =
+      (BlueprintInterface.blueprint3d &&
+        BlueprintInterface.blueprint3d.model &&
+        BlueprintInterface.blueprint3d.model.__floorplan &&
+        BlueprintInterface.blueprint3d.model.__floorplan.rooms) ||
+      [];
+    return rooms.find((r) => r && r.roomByCornersId === id) || null;
+  } catch (e) {
+    return null;
+  }
+};
+
+/**
+ * KEEP FLOOR ITEMS IN THE ROOM BEING DESIGNED.
+ *
+ * Dragged past its walls, an item really did move into the next room — and then
+ * vanished, because that room is hidden. Not lost, but it looked lost. Anything
+ * ending up outside is walked back toward the centre until it is inside, so it
+ * lands just past the wall it was pushed through rather than in the middle.
+ *
+ * Doors and windows are exempt: they belong to a wall, and a wall is shared.
+ * So is the item you are HOLDING — correcting it mid-drag pulled it back as
+ * fast as you pulled it out, and a cabinet could not be pushed against a wall
+ * at all. It is corrected the moment you let go. While held it stays visible
+ * even outside the room (see applyRoomFocus3D), so it never appears lost.
+ */
+BlueprintInterface.keepItemsInFocusedRoom = () => {
+  try {
+    const room = BlueprintInterface.focusedRoom3D();
+    if (!room || !room.pointInRoom) return 0;
+    const three =
+      BlueprintInterface.blueprint3d &&
+      (BlueprintInterface.blueprint3d.roomplanner ||
+        BlueprintInterface.blueprint3d.three);
+    const heldModel =
+      (three &&
+        three.__currentItemSelected &&
+        (three.__currentItemSelected.itemModel ||
+          three.__currentItemSelected.__itemModel)) ||
+      null;
+    const items =
+      (BlueprintInterface.blueprint3d &&
+        BlueprintInterface.blueprint3d.model &&
+        BlueprintInterface.blueprint3d.model.__roomItems) ||
+      [];
+    const centre = roomCentre3D(room);
+    if (!centre) return 0;
+    let pulled = 0;
+    // `__roomItems` holds the MODEL items, so a correction here is the real
+    // move: assigning `position` runs Item's setter, which updates the 2D
+    // position, the saved metadata and the 3D object. Writing position.x
+    // directly mutates the vector behind the engine's back — the number
+    // changes and nothing moves.
+    items.forEach((it) => {
+      if (!it || !it.position) return;
+      // `currentWall` is the PUBLIC getter; `__currentWall` is the private
+      // field and is not always set. Reading only the private one made every
+      // door look like floor furniture.
+      if (it.currentWall || it.__currentWall) return;
+      if (it === heldModel) return;
+      if (room.pointInRoom(new Vector2(it.position.x, it.position.z))) return;
+      const put = (x, z) => {
+        it.position = new Vector3(x, it.position.y, z);
+        pulled += 1;
+      };
+      for (let step = 0.15; step <= 1.0001; step += 0.15) {
+        const x = it.position.x + (centre.x - it.position.x) * step;
+        const z = it.position.z + (centre.z - it.position.z) * step;
+        if (room.pointInRoom(new Vector2(x, z))) return put(x, z);
+      }
+      put(centre.x, centre.z);
+    });
+    return pulled;
+  } catch (e) {
+    return 0;
+  }
+};
+
+/**
+ * Re-apply the current focus. Called every frame and after a scene rebuild, so
+ * nothing the engine does to `visible` can survive even one frame.
+ */
+BlueprintInterface.reapplyRoomFocus3D = () => {
+  const id = BlueprintInterface.__roomFocusId;
+  if (!id) return false;
+  BlueprintInterface.keepItemsInFocusedRoom();
+  return BlueprintInterface.applyRoomFocus3D(id, { moveCamera: false });
+};
+
+/**
+ * SHOW ONE ROOM, OR THE WHOLE HOUSE.
+ *
+ * Pass a room's `roomByCornersId` to work on it alone in 3D; pass null to bring
+ * the house back. Nothing is split, copied or deleted — only what is DRAWN
+ * changes, which is why leaving focus restores every room's work with nothing
+ * to merge.
+ */
+BlueprintInterface.applyRoomFocus3D = (roomId, opts) => {
+  try {
+    // Kept so a RELEASE can be told apart from "there was never a focus". This
+    // function is called with no room on every mount, and the two must not look
+    // the same — see the camera block at the end.
+    const prevId = BlueprintInterface.__roomFocusId || null;
+    BlueprintInterface.__roomFocusId = roomId || null;
+    const three =
+      BlueprintInterface.blueprint3d &&
+      (BlueprintInterface.blueprint3d.roomplanner ||
+        BlueprintInterface.blueprint3d.three);
+    if (!three) return false;
+    const floors = three.floors3d || [];
+    const edges = three.edges3d || [];
+    const items = three.__physicalRoomItems || [];
+
+    const rooms =
+      (BlueprintInterface.blueprint3d.model &&
+        BlueprintInterface.blueprint3d.model.__floorplan &&
+        BlueprintInterface.blueprint3d.model.__floorplan.rooms) ||
+      [];
+    const room = roomId
+      ? rooms.find((r) => r && r.roomByCornersId === roomId)
+      : null;
+
+    if (roomId && !room) {
+      // NO ROOMS YET IS NOT THE SAME AS NO SUCH ROOM.
+      //
+      // The list is empty for a moment whenever the floorplan rebuilds —
+      // exactly while you are working — and treating that as "no focus" unhid
+      // the whole house. Leave the scene alone; the next call finds it.
+      if (!rooms.length) return false;
+      // A real list with no match means the room is genuinely gone: its corners
+      // changed, so its id did too. Keeping it would leave the view filtered by
+      // an id nothing matches — nothing counted as this room's, and nothing
+      // clickable either, because picking asks the same question. That is a
+      // dead editor, so let the focus go and show the house.
+      BlueprintInterface.__roomFocusId = null;
+      BlueprintInterface.__roomFocusWantsCamera = false;
+      return BlueprintInterface.applyRoomFocus3D(null);
+    }
+    const focused = roomId ? room : null;
+
+    // Match by ID, never by object identity: `focused` comes from the model's
+    // floorplan while floors and walls hold whatever room object the VIEW was
+    // built from, and those are not the same instances.
+    const wantedId = focused ? focused.roomByCornersId : null;
+    const isMine = (r) => !!r && r.roomByCornersId === wantedId;
+
+    // The room's extent plus a wall's worth of margin. Used ONLY for a
+    // wall-mounted item whose wall could not be identified: such an item sits
+    // inside the wall, on the room's own boundary, where pointInRoom can answer
+    // either way depending on which side of the mitre it lands. A margin there
+    // keeps this room's doors and windows on screen; items out in another room
+    // are nowhere near it and are still hidden.
+    let nearRoom = () => false;
+    const fcs = (focused && focused.corners) || [];
+    if (fcs.length) {
+      const fxs = fcs.map((c) => c.x);
+      const fzs = fcs.map((c) => c.y);
+      const pad = 40;
+      const loX = Math.min(...fxs) - pad;
+      const hiX = Math.max(...fxs) + pad;
+      const loZ = Math.min(...fzs) - pad;
+      const hiZ = Math.max(...fzs) + pad;
+      nearRoom = (x, z) => x >= loX && x <= hiX && z >= loZ && z <= hiZ;
+    }
+
+    let changed = 0;
+    const setVisible = (obj, on) => {
+      if (!obj || obj.visible === on) return;
+      obj.visible = on;
+      changed += 1;
+    };
+
+    floors.forEach((f) => {
+      if (!f) return;
+      const mine = !focused || isMine(f.room);
+      // Marked so the engine's own visibility passes leave a hidden room hidden.
+      f.__focusHidden = !mine;
+      setVisible(f.floorPlane, mine);
+      // The ceiling also answers to updateAdaptiveCeiling, which hides it from
+      // overhead; only force it OFF for a room being hidden entirely.
+      if (!mine) setVisible(f.roofPlane, false);
+    });
+
+    // THE WALLS THIS ROOM IS MADE OF, collected while hiding them.
+    //
+    // A door or window is shown or hidden with the wall it is cut into, and
+    // this is the only reliable way to know which wall that is. Asking the wall
+    // itself (wall.frontEdge.room / wall.backEdge.room) is a second, separate
+    // path to the same answer — and it was the one that left other rooms'
+    // doors and windows hanging in mid-air. Reading the set straight off the
+    // edges whose visibility was just decided means an opening can never
+    // disagree with its own wall.
+    // WALLS *AND* FACES.
+    //
+    // A wall between two rooms belongs to both of them, but each of its two
+    // FACES belongs to one room only. That difference is the whole of this:
+    // a door is cut through the wall and is rightly seen from both rooms,
+    // while a cabinet hangs on one face and must not appear in the room on the
+    // other side. Matching on the wall alone showed the neighbour's cabinets
+    // along every shared wall.
+    const myWalls = new Set();
+    const knownWalls = new Set();
+    const myEdges = new Set();
+    const knownEdges = new Set();
+    edges.forEach((e) => {
+      if (!e) return;
+      const mine = !focused || (e.edge && isMine(e.edge.room));
+      if (e.edge) {
+        knownEdges.add(e.edge);
+        if (mine) myEdges.add(e.edge);
+        if (e.edge.wall) {
+          knownWalls.add(e.edge.wall);
+          if (mine) myWalls.add(e.edge.wall);
+        }
+      }
+      e.__focusHidden = !mine;
+      // ALL THREE PLANE ARRAYS, NOT JUST `planes`.
+      //
+      // Edge3D.addToScene adds `planes`, `basePlanes` AND `phantomPlanes`.
+      // Only `planes` was being hidden, so every other room left its skirting
+      // footprint drawn flat on the floor — the faint outlines of the rest of
+      // the house that stayed on screen around the one room you had chosen.
+      // `basePlanes` is even commented "always visible", which is exactly why
+      // nothing else in the engine was ever going to hide it.
+      (e.planes || []).forEach((plane) => setVisible(plane, mine));
+      (e.basePlanes || []).forEach((plane) => setVisible(plane, mine));
+      (e.phantomPlanes || []).forEach((plane) => setVisible(plane, mine));
+    });
+
+    // EVERY ITEM IN THE SCENE, NOT JUST ONE LIST.
+    //
+    // __physicalRoomItems held 7 objects on a plan that visibly has more, so
+    // doors and windows are registered elsewhere and stayed hanging in mid-air
+    // in rooms that were otherwise gone. Walking the scene for anything
+    // carrying an item model catches them wherever they are tracked.
+    const seen = new Set();
+    const held = three.__currentItemSelected || null;
+    const judge = (it) => {
+      if (!it || seen.has(it)) return;
+      seen.add(it);
+      const model = it.__itemModel || it.itemModel;
+      if (!model || !it.position) return;
+      if (!focused) {
+        setVisible(it, true);
+        return;
+      }
+      // The item you are HOLDING is always drawn, even when the drag has taken
+      // it outside the room. Hiding it mid-drag is what "it vanished into the
+      // next room" looked like; keepItemsInFocusedRoom brings it back on
+      // release instead.
+      if (it === held) {
+        setVisible(it, true);
+        return;
+      }
+      const wall = model.currentWall || model.__currentWall || null;
+      // A door belongs to its wall: shown exactly when that wall is one of this
+      // room's, including a wall shared with the room next door.
+      //
+      // Only trust that when the wall is one the view actually drew. If an item
+      // points at a wall no edge knows about — a stale reference after a
+      // redraw — treating it as "not mine" would hide this room's OWN doors,
+      // which is worse than the bug being fixed. Fall through to position
+      // instead, and let geometry decide.
+      if (wall && knownWalls.has(wall)) {
+        // Types 3 and 7 are InWallItem and InWallFloorItem (items/factory.js):
+        // windows and doors, cut THROUGH the wall. They belong to both rooms
+        // the wall divides, so they go by the wall.
+        const meta = model.metadata || model.__metadata || {};
+        const type = parseInt(meta.itemType, 10);
+        if (type === 3 || type === 7) {
+          setVisible(it, myWalls.has(wall));
+          return;
+        }
+        // Everything else hangs on ONE face, and the engine records which:
+        // __currentWallEdge is the half-edge it was attached to. Judge it by
+        // that face, so the cabinets on the far side of a shared wall stay with
+        // the room they belong to.
+        //
+        // `wallSide` is the same fallback the engine uses itself in
+        // Item.__edgeDeleted, which clears the live edge but leaves the saved
+        // side intact — so an item that has lived through a wall edit still
+        // knows which face it is on.
+        const edge =
+          model.__currentWallEdge ||
+          (meta.wallSide === "front"
+            ? wall.frontEdge
+            : meta.wallSide === "back"
+            ? wall.backEdge
+            : null);
+        if (edge && knownEdges.has(edge)) {
+          setVisible(it, myEdges.has(edge));
+          return;
+        }
+        // No usable face — fall back to the wall rather than guessing, so an
+        // item with incomplete wall data errs towards being visible in the
+        // room whose wall it is on instead of disappearing from both.
+        setVisible(it, myWalls.has(wall));
+        return;
+      }
+      const inside = !!(
+        focused.pointInRoom &&
+        focused.pointInRoom(new Vector2(it.position.x, it.position.z))
+      );
+      setVisible(
+        it,
+        wall ? inside || nearRoom(it.position.x, it.position.z) : inside
+      );
+    };
+    items.forEach(judge);
+    try {
+      const root = three.scene || three; // Viewer3D is itself the scene
+      if (root && root.traverse) {
+        root.traverse((o) => {
+          if (o && (o.__itemModel || o.itemModel)) judge(o);
+        });
+      }
+    } catch (e) {
+      /* the array pass above still applies */
+    }
+
+    // POINT THE CAMERA AT THE ROOM — ONCE, WHEN THE 3D VIEW IS ACTUALLY LIVE.
+    //
+    // Asking for it is not the same as doing it. "Design this room" is pressed
+    // on the FLOOR PLAN page: at that moment the 3D camera and controls may not
+    // exist yet, and the tab switch that follows sets the camera itself — so a
+    // move made there was either dropped (__animateCameraTo returns early with
+    // no controls) or immediately overwritten. That is why the chosen room came
+    // up as a small shape in the distance instead of filling the view.
+    //
+    // So the request is REMEMBERED and carried out on the first pass where the
+    // viewer is ready, then cleared. The per-frame re-assert passes
+    // moveCamera:false and never sets the flag, so it can never pin the view
+    // and stop you looking around.
+    if (!opts || opts.moveCamera !== false) {
+      BlueprintInterface.__roomFocusWantsCamera = !!focused;
+      // LETTING A ROOM GO SHOULD PULL BACK TO THE WHOLE HOUSE.
+      //
+      // The mirror of taking a room up, which moves in to it. Without this the
+      // house came back around a camera still parked where the room had been,
+      // so "All rooms" looked like it had done nothing but reveal a wall at
+      // arm's length — only a reload showed the plan properly.
+      //
+      // Strictly on a RELEASE (`prevId` set, no room now). Asking for no focus
+      // when there was none already happens on every mount, and re-framing
+      // then would drag the camera away from wherever the user had put it.
+      if (!focused && prevId) {
+        BlueprintInterface.__roomFocusWantsHouse = true;
+      }
+    }
+    if (focused && BlueprintInterface.__roomFocusWantsCamera && three.enabled) {
+      // Only clear the request once the framing actually happened. Clearing it
+      // on the attempt meant a pass made before the canvas had a size used a
+      // nonsense aspect ratio, and there was no second chance to correct it.
+      if (frameRoomCamera(three, focused)) {
+        BlueprintInterface.__roomFocusWantsCamera = false;
+      }
+    } else if (
+      !focused &&
+      BlueprintInterface.__roomFocusWantsHouse &&
+      three.enabled &&
+      typeof three.frameFloorplan === "function"
+    ) {
+      // The engine's own pulled-back "dollhouse" fit — the one that runs on
+      // load. Reusing it is what makes releasing a focus land in exactly the
+      // view a reload gives, rather than a second, slightly different framing.
+      BlueprintInterface.__roomFocusWantsHouse = false;
+      three.frameFloorplan(true);
+    }
+
+    // Only ask for a frame when something actually moved, so re-asserting this
+    // every frame costs nothing.
+    if (changed) three.shouldRender = true;
+    return true;
+  } catch (e) {
+    console.error("applyRoomFocus3D failed", e);
+    return false;
+  }
+};
+
 BlueprintInterface.setDimensionsMode2D = (mode) => {
   try {
     const v2d =
@@ -637,6 +1533,88 @@ BlueprintInterface.measureAllComponents2D = async () => {
 // centre and the new position is persisted. Items already inside are NEVER
 // touched. Fully live-safe: only clearly-outside items move, and each move goes
 // through the normal save path so it sticks.
+/**
+ * GIVE EVERY ITEM BACK ITS ROOM.
+ *
+ * A placed item remembers its room by the room's id — and that id is the room's
+ * CORNER LIST, joined with commas:
+ *
+ *   06b4d848-…,7c4b76d9-…,beb053f2-…,c770385c-…
+ *
+ * Rooms are not stored with the plan; they are re-derived on load by finding
+ * closed loops of walls. So the moment a corner is added, merged or removed,
+ * the room's id changes and every item inside it is ORPHANED — its stored
+ * roomId matches no room any longer. Nothing visibly breaks, which is why this
+ * has gone unnoticed: the furniture still draws. But anything that asks "which
+ * room is this in" — the room-name change above, and room-by-room working —
+ * silently finds nothing.
+ *
+ * The fix is to treat roomId as a CACHE rather than a fact. An item's real room
+ * is the one it physically stands in, so any orphan is re-stamped from its own
+ * position. Items that still match a real room are not touched, and neither are
+ * wall-mounted items (doors and windows belong to a wall, not a floor).
+ *
+ * Safe to call at any time; it only writes when something is actually wrong.
+ */
+BlueprintInterface.reassignOrphanRoomIds = async () => {
+  try {
+    const model =
+      BlueprintInterface.blueprint3d && BlueprintInterface.blueprint3d.model;
+    const floorplan = model && model.__floorplan;
+    const rooms = (floorplan && floorplan.rooms) || [];
+    const pm = BlueprintInterface.ProjectManagerService;
+    const records = (pm && pm.furnishedModels) || [];
+    if (!rooms.length || !records.length) return 0;
+
+    const liveIds = new Set(
+      rooms.map((r) => r && r.roomByCornersId).filter(Boolean)
+    );
+    // Items in the scene, so an orphan can be located by where it stands.
+    const placed = new Map();
+    ((model && model.__roomItems) || []).forEach((it) => {
+      const id = it && it.__itemModel && it.__itemModel.__id;
+      if (id) placed.set(String(id), it);
+    });
+
+    // Imported here, not at the top: the entities import BlueprintInterface
+    // back, and a static import would close that circle. Same reason
+    // FurnishedModelComponent is loaded this way further down.
+    const { FurnishedModel } = await import("@pazl/entities/FurnishedModel");
+
+    let fixed = 0;
+    for (const record of records) {
+      if (!record || !record._id) continue;
+      if (record.roomId && liveIds.has(record.roomId)) continue; // still valid
+      const item = placed.get(String(record._id));
+      if (!item || !item.position) continue;
+      // A door or window belongs to its wall; it has no floor to stand on.
+      if (item.__itemModel && item.__itemModel.__currentWall) continue;
+
+      const here = new Vector2(item.position.x, item.position.z);
+      const room = rooms.find((r) => r && r.pointInRoom && r.pointInRoom(here));
+      if (!room || !room.roomByCornersId) continue;
+      if (room.roomByCornersId === record.roomId) continue;
+
+      console.debug(
+        "reassignOrphanRoomIds ~ re-homing item",
+        record._id,
+        "->",
+        room.roomByCornersId
+      );
+      record.roomId = room.roomByCornersId;
+      if (room.name) record.roomName = room.name;
+      // eslint-disable-next-line no-await-in-loop
+      await new FurnishedModel({ ...record }).update();
+      fixed += 1;
+    }
+    if (fixed) console.debug(`reassignOrphanRoomIds ~ ${fixed} item(s) re-homed`);
+    return fixed;
+  } catch (e) {
+    console.error("reassignOrphanRoomIds failed", e);
+    return 0;
+  }
+};
+
 BlueprintInterface.rescueOutsideItems = async () => {
   try {
     const model =

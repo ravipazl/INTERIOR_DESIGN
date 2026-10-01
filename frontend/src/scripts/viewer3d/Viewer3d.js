@@ -437,8 +437,18 @@ export class Viewer3D extends Scene {
       const show = scope.camera.position.y < wallH * 1.05;
       scope.__ceilingShown = show;
       (scope.floors3d || []).forEach((floor) => {
-        if (floor && floor.roofPlane && floor.roofPlane.visible !== show) {
-          floor.roofPlane.visible = show;
+        if (!floor || !floor.roofPlane) return;
+        // A CEILING FOLLOWS ITS OWN FLOOR.
+        //
+        // This switched every ceiling on whenever the camera dropped below
+        // ceiling height — including rooms hidden by room-focus. Moving the
+        // camera into a focused room did exactly that, so the neighbours' grey
+        // ceilings filled the screen and it looked as though nothing had been
+        // hidden at all. A room whose floor is hidden keeps its ceiling hidden.
+        const floorHidden = floor.floorPlane && floor.floorPlane.visible === false;
+        const want = show && !floorHidden;
+        if (floor.roofPlane.visible !== want) {
+          floor.roofPlane.visible = want;
           scope.shouldRender = true;
           scope.needsUpdate = true;
         }
@@ -2082,6 +2092,16 @@ export class Viewer3D extends Scene {
       scope.edges3d.push(edge3d);
     }
 
+    // The floors and walls above are BRAND NEW objects, so any room-focus that
+    // was in effect has just been thrown away with the old ones. Put it back,
+    // or switching room, editing a wall or any other rebuild silently returns
+    // you to the whole house.
+    try {
+      BlueprintInterface?.reapplyRoomFocus3D?.();
+    } catch (e) {
+      /* focus is optional — never let it break the scene */
+    }
+
     scope.shouldRender = true;
 
     /*let floorplanCenter = scope.floorplan.getCenter();
@@ -2321,6 +2341,37 @@ export class Viewer3D extends Scene {
     if (!scope.needsUpdate) {
       return;
     }
+
+    // ROOM-FOCUS IS RE-ASSERTED HERE, AS THE LAST THING BEFORE DRAWING.
+    //
+    // Many routines set `visible` for their own reasons — camera moves, wall
+    // redraws, reflections, ceilings, item edits. Guarding them one at a time
+    // was a losing game: each one fixed was followed by another.
+    //
+    // The position in the frame is the whole point. This used to sit at the top
+    // of render(), which left a gap: controls.update() a few lines above fires
+    // its 'change' listeners, and those walk the walls and their doors and
+    // windows setting visibility. So while the camera was MOVING the engine got
+    // the last word every frame and other rooms' windows came back; when it
+    // stopped, they went away again. Applied here, after everything else and
+    // immediately before the draw call, nothing in the frame can overwrite it,
+    // and nothing hidden can be on screen for even one frame — which is also
+    // what stops hidden rooms being hoverable, since picking tests `visible`.
+    //
+    // Cheap: it only writes when a value has drifted, and returns at once when
+    // no room is focused. Only the VISIBILITY half runs here — walking items
+    // back inside the room belongs on the slower guard, because doing it every
+    // frame fought the drag and a cabinet could not be pushed against a wall.
+    try {
+      if (BlueprintInterface?.__roomFocusId) {
+        BlueprintInterface.applyRoomFocus3D?.(BlueprintInterface.__roomFocusId, {
+          moveCamera: false,
+        });
+      }
+    } catch (e) {
+      /* never let the focus break rendering */
+    }
+
     scope.renderer.render(scope, scope.camera);
     scope.lastRender = Date.now();
     this.needsUpdate = true;

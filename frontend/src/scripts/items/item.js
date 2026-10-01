@@ -300,15 +300,27 @@ export class Item extends EventDispatcher {
   }
 
   __addToAWall(toWall, toWallEdge) {
+    // NO EDGE MEANS THERE IS NOTHING TO ATTACH TO — SAY SO AND STOP.
+    //
+    // Everything below reads the edge (its normal, its vertices, its front
+    // flag), so without one this cannot do its job. It is reached with a null
+    // edge on purpose: WallItem.snapToWall detects a missing edge, calls here
+    // anyway and then parks the item somewhere the user can drag it.
+    //
+    // The guard used to come AFTER the debug line, which read
+    // `toWallEdge.normal` — so that deliberate path threw instead, and it threw
+    // from inside a dispose during a design reset, taking the whole editor down
+    // with "Cannot read properties of null (reading 'normal')". A log line must
+    // never be the thing that decides whether the app survives.
+    if (!toWall || toWall === "undefined" || !toWallEdge) {
+      return;
+    }
     console.debug(
       "item.js -> __addToAWall -> __currentWall",
       this.id,
       this.__currentWall,
       toWallEdge.normal
     );
-    if (toWall === undefined || !toWall || toWall === "undefined") {
-      return;
-    }
     if (this.__currentWall && this.__currentWall !== toWall) {
       console.debug(
         "item.js -> __addToAWall -> removing listener",
@@ -319,7 +331,11 @@ export class Item extends EventDispatcher {
         EVENT_MOVED,
         this.__followWallEvent
       );
-      this.__currentWallEdge.removeEventListener(
+      // Optional: __edgeDeleted sets __currentWallEdge to null while leaving
+      // __currentWall in place, so this exact combination — a wall with no
+      // edge — is a state the engine creates itself. Moving to another wall
+      // from it threw here, the same crash one branch further along.
+      this.__currentWallEdge?.removeEventListener(
         EVENT_DELETED,
         this.__edgeDeletedEvent
       );

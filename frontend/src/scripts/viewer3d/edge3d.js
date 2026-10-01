@@ -204,6 +204,10 @@ export class Edge3D extends EventDispatcher {
 
     showAll() {
         let scope = this;
+        // "Show everything" still means "except what room-focus is hiding".
+        // Bound to a wall-changed event, so adding or moving anything called it
+        // and brought the rest of the house back.
+        if (scope.__focusHidden) return;
         scope.visible = true;
         scope.planes.forEach((plane) => {
             plane.material.transparent = !scope.visible;
@@ -254,7 +258,14 @@ export class Edge3D extends EventDispatcher {
         // reveals the interior (no transparency). Gated by a viewer flag so it's
         // only on in the furnish overview; elsewhere all walls stay visible.
         let cutaway = scope.scene && scope.scene.__cutawayEnabled;
-        scope.visible = cutaway ? (dot >= 0) : true;
+        // ROOM-FOCUS WINS.
+        //
+        // This runs on every camera move, and with cutaway off it set every
+        // wall in the house visible — so rotating the view undid room-focus
+        // instantly. `__focusHidden` is set by applyRoomFocus3D on the walls of
+        // rooms it is hiding; nothing else touches it, and it is false for
+        // every wall when no room is focused.
+        scope.visible = (cutaway ? (dot >= 0) : true) && !scope.__focusHidden;
         // show or hide planes
         scope.planes.forEach((plane) => {
             plane.visible = scope.visible;
