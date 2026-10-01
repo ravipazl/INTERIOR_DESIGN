@@ -1,4 +1,4 @@
-import { dimFeetAndInch } from "./constants.js";
+import { dimMilliMeter } from "./constants.js";
 import { EventDispatcher } from "three";
 import { EVENT_CHANGED } from "./events.js";
 
@@ -26,7 +26,11 @@ export const boundsY = "boundsY"; //In CMS
 export const viewBounds = "viewBounds"; //In CMS
 
 export var config = {
-  dimUnit: dimFeetAndInch,
+  // Millimetres by default — the unit this catalogue is modelled in (a tall
+  // unit is "500 x 2080", not "1'8\" x 6'10\""). A plan SAVES its unit
+  // (floorplan.js), so this is the starting point for a new plan; an existing
+  // one reopens in whatever it was saved with.
+  dimUnit: dimMilliMeter,
   lintelLevelHeight: 211, //In CMS
   wallHeight: 300, //In CMS
   wallThickness: 10,

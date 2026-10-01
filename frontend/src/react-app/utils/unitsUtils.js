@@ -56,13 +56,29 @@ function valueForDisplay(inputValue) {
   return parseFloat(Dimensioning.cmToMeasureRaw(inputValue)).toFixed(2);
 }
 
+/**
+ * A number typed into a properties field, in the DISPLAY unit, converted to the
+ * centimetres the engine stores.
+ *
+ * KEEP THE FRACTION. This used to finish with Math.round(), to WHOLE
+ * centimetres — so in millimetres every entry was snapped to the nearest 10:
+ *
+ *     118 mm -> 11.8 cm -> round -> 12 cm -> shown back as 120 mm
+ *
+ * 114 became 110, 115 became 120, 123 became 120. It only appeared to work when
+ * the number typed happened to be a multiple of ten, and it was silent — the
+ * field simply showed a value nobody had entered. It applied to wall LENGTHS
+ * through this same function too, so 6096 would have landed on 6100.
+ *
+ * Nothing needed that rounding: thickness and length are floats in the model.
+ * cmFromMeasureRaw already rounds to 3 decimal places of a centimetre — a
+ * hundredth of a millimetre — which is finer than anything can be drawn or
+ * built, and keeps float tails out of the stored value.
+ */
 function modalInputs(inputValue) {
-  console.debug("INFO: input value ", inputValue);
-  console.debug(
-    "INFO: output rounded off value ",
-    Math.round(Dimensioning.cmFromMeasureRaw(inputValue))
-  );
-  return Math.round(Dimensioning.cmFromMeasureRaw(inputValue));
+  const cm = Dimensioning.cmFromMeasureRaw(inputValue);
+  console.debug("INFO: input value ", inputValue, "-> cm", cm);
+  return cm;
 }
 
 /**

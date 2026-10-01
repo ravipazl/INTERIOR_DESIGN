@@ -82,7 +82,8 @@ const FloorPlanMenu = ({
   const [isRoomClicked, setIsRoomClicked] = useState<boolean>(false);
   // A selected door/window shown in the SAME unified panel as walls/corners.
   const [openingItem, setOpeningItem] = useState<any>(null);
-  const [unitMetric, setUnitMetric] = useState(dimFeetAndInch);
+  // Matches the engine's default (core/configuration.js) — millimetres.
+  const [unitMetric, setUnitMetric] = useState(dimMilliMeter);
   const { setLoading } = useContext(LoaderContext);
   const [showLoader, setShowLoader] = useState(false);
   const [showClearConfirmModal, setShowClearConfirmModal] = useState(false);

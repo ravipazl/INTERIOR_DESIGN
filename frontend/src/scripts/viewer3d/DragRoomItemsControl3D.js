@@ -246,6 +246,40 @@ export class DragRoomItemsControl3D extends EventDispatcher {
 
   // The VISIBLE wall/floor meshes (correct shape) — NOT the giant invisible
   // click-planes. Walls: each Edge3D.planes; floors: each Floor3D.floorPlane.
+  /**
+   * ONLY WHAT THE USER CAN ACTUALLY ACT ON IS PICKABLE.
+   *
+   * Two separate reasons something must not be clickable, because the engine
+   * has two separate kinds of object here:
+   *
+   * 1. DRAWN meshes (furniture, the wall and floor surfaces you see). three.js
+   *    does not skip invisible objects when raycasting — Raycaster's
+   *    intersectObject tests `layers` and nothing else (three 0.118) — so a
+   *    hidden room's furniture still showed a pointer cursor and a hover
+   *    outline over what looked like empty floor. Parents are walked too,
+   *    because hiding a Physical3DItem leaves its children visible=true: they
+   *    are invisible only by inheritance, which raycasting does not follow.
+   *
+   * 2. PICKING planes (room.floorPlane, halfEdge.plane). These are NOT the
+   *    meshes you see; they are invisible by material and marked visible=true
+   *    on purpose so the raycaster finds them. No visibility test can ever
+   *    exclude them, so they are judged on which room they belong to instead.
+   *
+   * With no room focused both tests pass everything they did before.
+   */
+  __pickable(list) {
+    if (!Array.isArray(list)) return [];
+    return list.filter((o) => {
+      if (!o) return false;
+      let node = o;
+      while (node) {
+        if (node.visible === false) return false;
+        node = node.parent;
+      }
+      return BlueprintInterface?.pickableUnderFocus?.(o) !== false;
+    });
+  }
+
   __getSurfaceMeshes() {
     const bp = BlueprintInterface && BlueprintInterface.blueprint3d;
     // The Viewer3D instance is `roomplanner` (see blueprint.js). Fall back to
@@ -263,7 +297,7 @@ export class DragRoomItemsControl3D extends EventDispatcher {
     (v.floors3d || []).forEach((f) => {
       if (f && f.floorPlane) meshes.push(f.floorPlane);
     });
-    return meshes;
+    return this.__pickable(meshes);
   }
 
   // Remove any wall/floor hover outline.
@@ -537,12 +571,12 @@ export class DragRoomItemsControl3D extends EventDispatcher {
       evt = evt.changedTouches !== undefined ? evt.changedTouches[0] : evt;
       this.__raycaster.setFromCamera(this.__mouse, this.__camera);
       let wallPlanesThatIntersect = this.__raycaster.intersectObjects(
-        this.__walls,
+        this.__pickable(this.__walls),
         false
       );
       console.debug("Release Listener: floors", this.__floors);
       let floorPlanesThatIntersect = this.__raycaster.intersectObjects(
-        this.__floors,
+        this.__pickable(this.__floors),
         false
       );
       //if (deltaTime < 300) {
@@ -960,8 +994,11 @@ export class DragRoomItemsControl3D extends EventDispatcher {
 
     this.__intersections.length = 0;
     this.__raycaster.setFromCamera(this.__mouse, this.__camera);
+    // The press handler already filters by visibility; hover did not, so a
+    // hidden room's furniture still showed a pointer cursor and a hover outline
+    // over what looked like empty floor.
     this.__raycaster.intersectObjects(
-      this.__draggableItems,
+      this.__pickable(this.__draggableItems),
       false,
       this.__intersections
     );

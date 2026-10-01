@@ -25,7 +25,10 @@ import "./itemToolbar3D.css";
  * toolbar is ordinary HTML on top of the canvas.
  */
 
-type Point = { x: number; y: number } | null;
+// x is the item's LEFT edge on screen and x2 its right edge — the bar sits off
+// the left side, and needs the right one to swap sides when the left is tight
+// against the edge of the canvas. y is the item's vertical middle.
+type Point = { x: number; y: number; x2: number } | null;
 
 const roomplanner = () =>
   (BlueprintInterface as any)?.blueprint3d?.roomplanner || null;
@@ -65,11 +68,6 @@ const anchorFor = (item: any): Point => {
     const box = item.worldBox;
     if (!box || !isFinite(box.max.x)) return null;
     const rect = rp.domElement.getBoundingClientRect();
-    const corner = box.min.clone().add(box.max).multiplyScalar(0.5);
-    corner.y = box.max.y;
-    const centre = box.min.clone().add(box.max).multiplyScalar(0.5);
-    // Project the top corner AND the centre: if the corner is behind the
-    // camera (zoomed inside the item) fall back to the centre.
     const project = (p: any) => {
       const v = p.clone().project(rp.camera);
       if (v.z > 1) return null;
@@ -78,28 +76,67 @@ const anchorFor = (item: any): Point => {
         y: rect.top + (-v.y * 0.5 + 0.5) * rect.height,
       };
     };
-    return project(corner) || project(centre);
+
+    // WHERE THE ITEM ENDS ON SCREEN, NOT WHERE ITS CENTRE IS.
+    //
+    // The bar is placed off the item's left side, and which world corner that
+    // is depends entirely on where the camera stands — turn the view and the
+    // box's "min x" corner can end up on the right. So all eight corners of the
+    // box are projected and the screen extents taken from the results. That
+    // holds at any camera angle without caring which corner is which.
+    const pts: Array<{ x: number; y: number }> = [];
+    for (const x of [box.min.x, box.max.x]) {
+      for (const y of [box.min.y, box.max.y]) {
+        for (const z of [box.min.z, box.max.z]) {
+          const p = project(box.min.clone().set(x, y, z));
+          if (p) pts.push(p);
+        }
+      }
+    }
+    if (!pts.length) {
+      // Every corner is behind the camera — zoomed inside the item. Fall back
+      // to its centre so the bar still has somewhere to be.
+      const centre = box.min.clone().add(box.max).multiplyScalar(0.5);
+      const c = project(centre);
+      return c ? { x: c.x, y: c.y, x2: c.x } : null;
+    }
+    const xs = pts.map((p) => p.x);
+    const ys = pts.map((p) => p.y);
+    const minY = Math.min(...ys);
+    const maxY = Math.max(...ys);
+    return {
+      x: Math.min(...xs),
+      x2: Math.max(...xs),
+      y: (minY + maxY) / 2,
+    };
   } catch (e) {
     return null;
   }
 };
 
 /**
- * Centre the bar on the anchor and keep it inside the free part of the canvas.
+ * Put the bar beside the item — off its LEFT side — and keep it inside the free
+ * part of the canvas.
+ *
+ * It used to sit centred above the item, which put it right over whatever was
+ * behind it and, on a wide item, a long way from the thing it acts on. Beside
+ * the item it stays clear of the item itself and of the view behind it.
  *
  * The bar is `position: fixed`, so these are viewport coordinates. Panels that
  * overlay the canvas mark themselves with data-pz-canvas-overlay="right"; their
  * left edge is the right-hand limit here, which is what stops the bar sliding
- * under the object panel. With no room above the item the bar drops below it.
+ * under the object panel.
  */
 const placeToolbar = (
-  point: { x: number; y: number },
+  point: { x: number; y: number; x2: number },
   size: { w: number; h: number }
 ) => {
   const GAP = 12;
   const PAD = 8;
-  let left = point.x - size.w / 2;
-  let top = point.y - size.h - GAP;
+  // Right edge of the bar sits a gap clear of the item's left edge, and the bar
+  // is centred on the item's height.
+  let left = point.x - GAP - size.w;
+  let top = point.y - size.h / 2;
 
   const rect = roomplanner()?.domElement?.getBoundingClientRect();
   let minLeft = PAD;
@@ -120,9 +157,17 @@ const placeToolbar = (
     });
 
   if (size.w > 0) {
+    // An item against the left edge of the canvas leaves no room on that side,
+    // so the bar swaps to the item's right rather than being squeezed on top
+    // of it. Only when neither side fits is it clamped into view.
+    if (left < minLeft && point.x2 + GAP + size.w <= maxRight) {
+      left = point.x2 + GAP;
+    }
     left = Math.min(Math.max(left, minLeft), Math.max(minLeft, maxRight - size.w));
   }
-  if (top < minTop) top = point.y + GAP;
+  // Keep it on screen vertically too — a tall item reaching past the top of the
+  // canvas would otherwise take the bar with it.
+  if (top < minTop) top = minTop;
 
   return { left, top };
 };
@@ -162,6 +207,57 @@ const ItemToolbar3D: React.FC = () => {
       rp.removeRoomplanListener?.(EVENT_ITEM_SELECTED, onSelected);
       rp.removeRoomplanListener?.(EVENT_NO_ITEM_SELECTED, onCleared);
       rp.removeRoomplanListener?.(EVENT_ITEM_REMOVED, onCleared);
+    };
+  }, []);
+
+  // --- OUT OF THE WAY WHILE YOU ARE DRAGGING ------------------------------
+  //
+  // The bar is anchored to the item, so dragging one across the room drags the
+  // bar along with it, right under the cursor and over whatever you are trying
+  // to aim at. It is only ever wanted once the item has come to rest.
+  //
+  // A press alone is not a drag — selecting an item by clicking it must still
+  // bring the bar up — so the bar is only dropped once the pointer has actually
+  // travelled a few pixels while held. That threshold is what separates a click
+  // from a drag; a steady hand clicking still counts as a click.
+  //
+  // Done on the pointer rather than on the engine's move events so that it also
+  // covers a drag which never moves an item — a refused move, or a locked one —
+  // and so the bar comes back on release whatever the engine decided.
+  const [dragging, setDragging] = useState(false);
+  useEffect(() => {
+    const DRAG_SLOP = 4; // px of travel before a press counts as a drag
+    let from: { x: number; y: number } | null = null;
+    const down = (e: PointerEvent) => {
+      // Ignore presses on the bar itself — its own buttons must keep working.
+      if (barRef.current && barRef.current.contains(e.target as Node)) return;
+      from = { x: e.clientX, y: e.clientY };
+    };
+    const move = (e: PointerEvent) => {
+      if (!from) return;
+      if (
+        Math.abs(e.clientX - from.x) > DRAG_SLOP ||
+        Math.abs(e.clientY - from.y) > DRAG_SLOP
+      ) {
+        setDragging(true);
+      }
+    };
+    const up = () => {
+      from = null;
+      setDragging(false);
+    };
+    const el = roomplanner()?.domElement || window;
+    el.addEventListener("pointerdown", down as any);
+    // Move and release go on the window: a drag regularly leaves the canvas,
+    // and a release outside it must still bring the bar back.
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+    window.addEventListener("pointercancel", up);
+    return () => {
+      el.removeEventListener("pointerdown", down as any);
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+      window.removeEventListener("pointercancel", up);
     };
   }, []);
 
@@ -248,7 +344,7 @@ const ItemToolbar3D: React.FC = () => {
     }
   });
 
-  if (!item || !point) return null;
+  if (!item || !point || dragging) return null;
 
   const BI = BlueprintInterface as any;
   const act = (fn: () => void) => (e: React.MouseEvent) => {

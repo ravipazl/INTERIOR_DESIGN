@@ -48,6 +48,7 @@ import GenerateFromPhotoModal from "@pazl/components/GenerateFromPhotoModal";
 import ModelSearchModal from "@pazl/components/ModelSearchModal";
 import SnapControlPanel from "../SnapControlPanel";
 import { EVENT_ITEM_SELECTED, EVENT_ITEM_LOADED } from "@pazl/main/core/events";
+import RoomFocusChip from "./RoomFocusChip";
 
 interface FurnishMenuProps {
   furnishTabData: string[];
@@ -1175,6 +1176,10 @@ const FurnishMenu = ({
                 buttons above, which run handleUndo/handleRedo directly. */}
           </div>
         ))}
+        {/* One room / All rooms. Last in the row so it sits beside Export and
+            adding it cannot shift the existing buttons. It renders nothing
+            until a room has been designed once in this project. */}
+        <RoomFocusChip />
       </div>
       </ToolbarPortal>
     </>

@@ -41,11 +41,16 @@ export class Floor3D extends EventDispatcher {
     __updateReflections() {
         if (this.__floorMaterial3D && this.__floorMaterial3D.isReflective && this.scene.enabled) {
             let floorSize = this.room.floorRectangleSize.clone();
+            // Hide the floor only long enough to render its own reflection, then
+            // put back WHAT IT WAS. This used to force `true`, which switched a
+            // deliberately hidden floor back on — so a room hidden by room-focus
+            // reappeared the next time reflections updated.
+            const wasVisible = this.floorPlane.visible;
             this.floorPlane.visible = false;
             this.__floorMaterial3D.envMapCamera.clear(this.scene.renderer);
             this.__floorMaterial3D.envMapCamera.position.set(floorSize.x, 0, floorSize.y);
             this.__floorMaterial3D.envMapCamera.update(this.scene.renderer, this.scene);
-            this.floorPlane.visible = true;
+            this.floorPlane.visible = wasVisible;
             this.__floorMaterial3D.needsUpdate = true;
         }
     }
@@ -82,8 +87,12 @@ export class Floor3D extends EventDispatcher {
     }
 
     switchWireframe(flag) {
-        this.floorPlane.visible = !flag;
-        this.roofPlane.visible = !flag;
+        // A room hidden by room-focus stays hidden — see __focusHidden, set by
+        // applyRoomFocus3D. Without this the wireframe toggle would bring the
+        // whole house back, the same way the camera-move path used to.
+        const allowed = !flag && !this.__focusHidden;
+        this.floorPlane.visible = allowed;
+        this.roofPlane.visible = allowed;
     }
 
     init() {

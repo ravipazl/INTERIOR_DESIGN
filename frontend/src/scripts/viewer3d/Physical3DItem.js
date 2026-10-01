@@ -2352,13 +2352,44 @@ export class Physical3DItem extends Mesh {
       const hz = Math.abs(this.halfSize.z);
       if (!(hx > 0.01) || !(hz > 0.01)) return out;
 
-      // The footprint is a ROTATED box. Its two local axes in world XZ —
-      // matching getItemPolygon's makeRotationY convention.
-      const angle = this.__itemModel.innerRotation.y;
-      const cos = Math.cos(angle);
-      const sin = Math.sin(angle);
-      const axX = { x: cos, z: -sin };
-      const axZ = { x: sin, z: cos };
+      // THE BOX'S AXES AS IT IS ACTUALLY TURNED ON SCREEN.
+      //
+      // This read `innerRotation.y`, which for a floor item is ZERO: the turn a
+      // user applies with the rotate control lands on `rotation` and reaches
+      // the mesh through `combinedRotation`. So a cabinet standing with its
+      // back to a side wall was measured as though it were still square to the
+      // world — cleared from that wall by half its WIDTH instead of half its
+      // depth.
+      //
+      // The size of the error is the gap between those two numbers, which is
+      // why it showed on some modules and not others. A 1150 sink or double
+      // shutter was held 284 mm off the wall; a 500 single shutter 41 mm, which
+      // nobody notices. One bug, two appearances.
+      //
+      // Reading the drawn mesh's own axes out of its world matrix is proof
+      // against where the turn is stored — on the item, on the mesh, or split
+      // between them, all three give the same answer. Falling back to the old
+      // value keeps the behaviour unchanged if the mesh has not loaded yet.
+      let axX = { x: 1, z: 0 };
+      let axZ = { x: 0, z: 1 };
+      const turned = this.__loadedItem || this;
+      if (turned && turned.matrixWorld) {
+        if (typeof turned.updateMatrixWorld === "function") {
+          turned.updateMatrixWorld(true);
+        }
+        // Columns 0 and 2 of a world matrix are the local X and Z axes.
+        const e = turned.matrixWorld.elements;
+        const lx = Math.hypot(e[0], e[2]);
+        const lz = Math.hypot(e[8], e[10]);
+        if (lx > 1e-6 && lz > 1e-6) {
+          axX = { x: e[0] / lx, z: e[2] / lx };
+          axZ = { x: e[8] / lz, z: e[10] / lz };
+        }
+      } else {
+        const angle = this.__itemModel.innerRotation.y;
+        axX = { x: Math.cos(angle), z: -Math.sin(angle) };
+        axZ = { x: Math.sin(angle), z: Math.cos(angle) };
+      }
 
       const MARGIN = 0.5; // cm of daylight kept off the wall face
       const rooms = this.__itemModel?.__model?.__floorplan?.getRooms?.() || [];

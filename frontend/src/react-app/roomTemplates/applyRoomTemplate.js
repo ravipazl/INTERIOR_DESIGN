@@ -22,6 +22,7 @@ import { ModelsService } from "@pazl/services/ModelsService";
 import { CategoriesService } from "@pazl/services/categoriesService";
 import { EVENT_ITEM_LOADED } from "@pazl/main/core/events";
 import { FurnishedModel } from "@pazl/entities/FurnishedModel";
+import { setFocusedRoom, currentProjectId } from "@pazl/helpers/roomFocus";
 import {
   planStraightRun,
   planLayout,
@@ -301,6 +302,24 @@ export async function applyPlan(room, planned, onProgress) {
   if (!helper || !plan || !plan.slots.length) return { placed: 0, failed: 0 };
   let placed = 0;
   let failed = 0;
+
+  // FURNISHING A ROOM MEANS YOU WANT TO SEE IT.
+  //
+  // The walls are picked on the 2D plan, which shows the whole house, so they
+  // can easily belong to a room other than the one being designed in 3D. The
+  // modules then land correctly and are invisible, because that room is
+  // hidden — indistinguishable from auto-furnish doing nothing at all. So the
+  // focus follows: whichever room was just furnished is the one you are shown.
+  // Does nothing when no room is focused.
+  try {
+    if (BlueprintInterface?.__roomFocusId && room?.roomByCornersId) {
+      if (BlueprintInterface.__roomFocusId !== room.roomByCornersId) {
+        setFocusedRoom(currentProjectId(), room.roomByCornersId);
+      }
+    }
+  } catch (e) {
+    /* placement matters more than the view — never block on this */
+  }
 
   for (let i = 0; i < plan.slots.length; i++) {
     const slot = plan.slots[i];

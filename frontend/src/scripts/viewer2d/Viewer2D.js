@@ -1000,46 +1000,30 @@ export class Viewer2D extends Application {
       this.__dimChainHolder.removeChildren();
       // Always full brightness — no dull state.
       this.__dimChainHolder.alpha = 1.0;
-      if (this.__dimMode === "inner") {
-        this.__drawInnerFaceLabels(); // every wall
+      // INNER AND OUTER NOW DRAW THE SAME WAY.
+      //
+      // Inner used to print a bare number against each wall — no dimension
+      // line, no end markers, no extension lines — while Outer drew a proper
+      // dimension set. Two modes of the same control that looked like different
+      // features. They share this one routine now; all that differs is WHICH
+      // FACE is measured, and that is the `isInner` flag below.
+      const isInner = this.__dimMode === "inner";
+      if (!isInner && this.__dimMode !== "outer") {
+        // Mode off. The SELECTED wall still gets its inner value, so clicking a
+        // wall shows BOTH numbers for it — the built-in full width (drawn
+        // outside the wall) and the inner face (drawn inside it). Passing a
+        // corner/room selection is a harmless no-op (no wall matches).
+        if (this.__currentSelection) {
+          this.__drawInnerFaceLabels(this.__currentSelection);
+        }
         return;
       }
-      // In every other mode the SELECTED wall still gets its inner value, so
-      // clicking a wall shows BOTH numbers for it — the built-in 15.00 (full
-      // width, drawn outside the wall) and 14.02 (inner face, drawn inside it).
-      // Passing a corner/room selection is a harmless no-op (no wall matches).
-      if (this.__currentSelection) {
+      // Outer keeps that per-wall inner number on the selected wall. Inner does
+      // not: its dimension line already gives the inner length, and printing it
+      // twice is exactly the duplicate this overlay had before.
+      if (!isInner && this.__currentSelection) {
         this.__drawInnerFaceLabels(this.__currentSelection);
       }
-      if (this.__dimMode !== "outer") return;
-
-      const corners = (this.__floorplan && this.__floorplan.corners) || [];
-      const xs = [];
-      const ys = [];
-      corners.forEach((c) => {
-        if (!c || typeof c.x !== "number" || typeof c.y !== "number") return;
-        xs.push(c.x);
-        ys.push(c.y);
-      });
-      if (xs.length < 2) return;
-      const minX = Math.min(...xs);
-      const maxX = Math.max(...xs);
-      const minY = Math.min(...ys);
-      const maxY = Math.max(...ys);
-      // The corner box IS the OUTER footprint. Verified against the engine:
-      // a corner sits on the wall's OUTER face, not its centreline — the wall
-      // thickness grows INWARD from the corner line. Measured on a real
-      // 500x400 plan, edge.exteriorStart/End() land exactly on the corners
-      // ((0,0)->(500,0), length 500 === wall.wallSize) for every thickness,
-      // while the interior face is inset by the FULL thickness
-      // (interiorDistance === wallSize - 2 x thickness).
-      // So we add NOTHING here — adding half a thickness would overstate the
-      // footprint by one wall thickness on each axis.
-      const bx0 = minX;
-      const bx1 = maxX;
-      const by0 = minY;
-      const by1 = maxY;
-      if (bx1 - bx0 < 1 || by1 - by0 < 1) return;
 
       const walls =
         (this.__floorplan &&
@@ -1047,10 +1031,71 @@ export class Viewer2D extends Application {
           this.__floorplan.getWalls()) ||
         [];
 
+      // The face endpoints of one wall — exterior or interior, per mode. Every
+      // measurement below goes through this, so the two modes cannot drift.
+      const facePoints = (w) => {
+        const edge = w && (w.frontEdge || w.backEdge);
+        if (!edge) return w && w.start ? [w.start.location, w.end.location] : [];
+        const a = isInner ? edge.interiorStart?.() : edge.exteriorStart?.();
+        const b = isInner ? edge.interiorEnd?.() : edge.exteriorEnd?.();
+        return a && b ? [a, b] : [];
+      };
+
+      const xs = [];
+      const ys = [];
+      if (isInner) {
+        // THE INNER FOOTPRINT, MEASURED — not the outer box minus a guess at
+        // the thickness. Walls can differ in thickness, so the interior faces
+        // are read from the engine and bounded, which is exact for any plan.
+        walls.forEach((w) =>
+          facePoints(w).forEach((p) => {
+            if (!p || typeof p.x !== "number" || typeof p.y !== "number") return;
+            xs.push(p.x);
+            ys.push(p.y);
+          })
+        );
+      } else {
+        // The corner box IS the OUTER footprint. Verified against the engine:
+        // a corner sits on the wall's OUTER face, not its centreline — the wall
+        // thickness grows INWARD from the corner line. Measured on a real
+        // 500x400 plan, edge.exteriorStart/End() land exactly on the corners
+        // ((0,0)->(500,0), length 500 === wall.wallSize) for every thickness,
+        // while the interior face is inset by the FULL thickness
+        // (interiorDistance === wallSize - 2 x thickness).
+        // So we add NOTHING here — adding half a thickness would overstate the
+        // footprint by one wall thickness on each axis.
+        const corners = (this.__floorplan && this.__floorplan.corners) || [];
+        corners.forEach((c) => {
+          if (!c || typeof c.x !== "number" || typeof c.y !== "number") return;
+          xs.push(c.x);
+          ys.push(c.y);
+        });
+      }
+      if (xs.length < 2) return;
+      const bx0 = Math.min(...xs);
+      const bx1 = Math.max(...xs);
+      const by0 = Math.min(...ys);
+      const by1 = Math.max(...ys);
+      if (bx1 - bx0 < 1 || by1 - by0 < 1) return;
+
       // Per-segment lengths already appear as the built-in per-wall labels
       // (WallDimensions2D), so we draw ONLY the overall total here — no
       // duplicate segment chain.
-      const OFF = 70; // cm — how far outside the plan the overall line sits
+      // WHICH SIDE THE DIMENSIONS SIT ON.
+      //
+      // `out` is +1 outward, −1 inward, and every offset below is multiplied by
+      // it — line positions, extension stubs and the side each label sits on.
+      // An INNER dimension measures the space, so drawing it beyond the wall
+      // put the line on the far side of the face it measures from; inside, it
+      // spans the room it is describing.
+      const out = isInner ? -1 : 1;
+      // Inward, the offset has to fit BETWEEN the two opposite faces, so it is
+      // taken from the room's own size and clamped: never wider than the
+      // outward 70, never so thin the line touches the wall, and always leaving
+      // a gap down the middle for the room's name and area.
+      const OFF = isInner
+        ? Math.max(12, Math.min(45, Math.min(bx1 - bx0, by1 - by0) * 0.15))
+        : 70; // cm — how far from the plan edge the overall line sits
       const STUB = 10; // cm — extension stub near the plan edge
       // Use the EXACT same styling as the per-wall dimensions (WallDimensions2D):
       // identical defaults + the same robust three.js colour parsing (not a
@@ -1110,22 +1155,22 @@ export class Viewer2D extends Application {
       };
 
       // TOP — overall width (to the offset faces)
-      const topY = by0 - OFF;
+      const topY = by0 - OFF * out;
       line(bx0, topY, bx1, topY);
-      line(bx0, by0 - STUB, bx0, topY);
-      line(bx1, by0 - STUB, bx1, topY);
-      label(dimUnitWallLabel(bx1 - bx0), (bx0 + bx1) / 2, topY - 10);
+      line(bx0, by0 - STUB * out, bx0, topY);
+      line(bx1, by0 - STUB * out, bx1, topY);
+      label(dimUnitWallLabel(bx1 - bx0), (bx0 + bx1) / 2, topY - 10 * out);
       diamond(bx0, topY);
       diamond(bx1, topY);
 
       // LEFT — overall height (to the offset faces)
-      const leftX = bx0 - OFF;
+      const leftX = bx0 - OFF * out;
       line(leftX, by0, leftX, by1);
-      line(bx0 - STUB, by0, leftX, by0);
-      line(bx0 - STUB, by1, leftX, by1);
+      line(bx0 - STUB * out, by0, leftX, by0);
+      line(bx0 - STUB * out, by1, leftX, by1);
       label(
         dimUnitWallLabel(by1 - by0),
-        leftX - 10,
+        leftX - 10 * out,
         (by0 + by1) / 2,
         -Math.PI / 2
       );
@@ -1133,22 +1178,22 @@ export class Viewer2D extends Application {
       diamond(leftX, by1);
 
       // BOTTOM — overall width (mirrors the top total on the far side)
-      const botY = by1 + OFF;
+      const botY = by1 + OFF * out;
       line(bx0, botY, bx1, botY);
-      line(bx0, by1 + STUB, bx0, botY);
-      line(bx1, by1 + STUB, bx1, botY);
-      label(dimUnitWallLabel(bx1 - bx0), (bx0 + bx1) / 2, botY + 10);
+      line(bx0, by1 + STUB * out, bx0, botY);
+      line(bx1, by1 + STUB * out, bx1, botY);
+      label(dimUnitWallLabel(bx1 - bx0), (bx0 + bx1) / 2, botY + 10 * out);
       diamond(bx0, botY);
       diamond(bx1, botY);
 
       // RIGHT — overall height (mirrors the left total on the far side)
-      const rightX = bx1 + OFF;
+      const rightX = bx1 + OFF * out;
       line(rightX, by0, rightX, by1);
-      line(bx1 + STUB, by0, rightX, by0);
-      line(bx1 + STUB, by1, rightX, by1);
+      line(bx1 + STUB * out, by0, rightX, by0);
+      line(bx1 + STUB * out, by1, rightX, by1);
       label(
         dimUnitWallLabel(by1 - by0),
-        rightX + 10,
+        rightX + 10 * out,
         (by0 + by1) / 2,
         -Math.PI / 2
       );
@@ -1167,12 +1212,16 @@ export class Viewer2D extends Application {
         fontSize: 10,
         fill: textColor,
       };
-      const SEG_OFF = 38; // cm — chain sits inside the overall tier (OFF=70)
+      // Sits between the plan edge and the overall tier, whichever side that
+      // tier is on — 38/70 of the offset, so an inner chain stays inside the
+      // room and never lands on top of the inner total.
+      const SEG_OFF = OFF * (38 / 70); // cm
       // Per PERIMETER wall facing each side. A wall is on the top/bottom/left/
       // right boundary when its exterior points that way — read from the room's
-      // outward normal (room.getWallOutDirection). This is the OUTER overlay, so
-      // we take the EXTERIOR-face endpoints (mitred to the neighbouring walls) —
-      // an OUTER span, which must read LARGER than the centerline. Because
+      // outward normal (room.getWallOutDirection). The face endpoints come from
+      // facePoints() — exterior in Outer mode, interior in Inner — mitred to
+      // the neighbouring walls, so an outer span reads LARGER than the
+      // centreline and an inner span smaller. Because
       // each boundary wall is handled at its OWN position, stepped/irregular
       // edges (a set-back top or right wall) are caught correctly, and interior
       // partitions never project onto an outer wall they don't touch.
@@ -1200,9 +1249,10 @@ export class Viewer2D extends Application {
               ? ox < 0 && Math.abs(ox) >= Math.abs(oy)
               : ox > 0 && Math.abs(ox) >= Math.abs(oy);
           if (!faces) return;
-          const edge = w.frontEdge || w.backEdge;
-          const p1 = edge ? edge.exteriorStart() : w.start.location;
-          const p2 = edge ? edge.exteriorEnd() : w.end.location;
+          // Same face as the footprint above — interior in Inner mode, exterior
+          // in Outer — so a side's chain can never measure a different face
+          // from the total it sits under.
+          const [p1, p2] = facePoints(w);
           if (!p1 || !p2) return;
           const a = horizontal ? p1.x : p1.y;
           const b = horizontal ? p2.x : p2.y;
@@ -1216,8 +1266,22 @@ export class Viewer2D extends Application {
       // chain axis. horizontal: chain runs along X at y=fixed; vertical: along Y
       // at x=fixed. outSign: which side the labels sit (−1 = above/left, +1 =
       // below/right).
-      const drawChain = (segs, horizontal, fixed, planEdge, outSign) => {
+      const drawChain = (segs, horizontal, fixed, planEdge, outSign, total) => {
         if (!segs || !segs.length) return;
+        // A CHAIN OF ONE THAT SPANS THE WHOLE SIDE SAYS NOTHING NEW.
+        //
+        // Tier 1 above has already printed this side's overall length. A chain
+        // exists to show how that length is DIVIDED — so on a plain rectangle,
+        // where each side is one unbroken wall, the single segment is the
+        // overall span and the plan ended up with the same number twice, one
+        // under the other, on all four sides.
+        //
+        // Only the one-segment case is skipped: from two segments up, none can
+        // equal the total, and the chain is doing its job.
+        if (segs.length === 1 && total > 0) {
+          const [lo, hi] = segs[0];
+          if (Math.abs(hi - lo - total) < 1) return; // < 1 cm — the same wall
+        }
         const pt = (t) => (horizontal ? px(t, fixed) : px(fixed, t));
         const TICK = 6;
         segs.forEach(([lo, hi]) => {
@@ -1258,18 +1322,28 @@ export class Viewer2D extends Application {
           this.__dimChainHolder.addChild(tl);
         });
       };
-      drawChain(perimSegs("top"), true, by0 - SEG_OFF, by0, -1);
-      drawChain(perimSegs("bottom"), true, by1 + SEG_OFF, by1, 1);
-      drawChain(perimSegs("left"), false, bx0 - SEG_OFF, bx0, -1);
-      drawChain(perimSegs("right"), false, bx1 + SEG_OFF, bx1, 1);
+      // The last argument is the side's overall length — the number Tier 1
+      // already printed, so the chain can tell when it would only repeat it.
+      const spanX = bx1 - bx0;
+      const spanY = by1 - by0;
+      drawChain(perimSegs("top"), true, by0 - SEG_OFF * out, by0, -out, spanX);
+      drawChain(perimSegs("bottom"), true, by1 + SEG_OFF * out, by1, out, spanX);
+      drawChain(perimSegs("left"), false, bx0 - SEG_OFF * out, bx0, -out, spanY);
+      drawChain(perimSegs("right"), false, bx1 + SEG_OFF * out, bx1, out, spanY);
     } catch (e) {
       console.error("__drawDimensionChains failed", e);
     }
   }
 
-  // "Inner" mode: show ONLY the VALUE on every wall — no dimension line, no
-  // extension lines, no diamond heads. Drawing a full dimension set per wall is
-  // what made this unreadable; the number alone stays clean at any density.
+  // THE SELECTED WALL's inner value — a bare number, no dimension line, no
+  // extension lines, no diamond heads.
+  //
+  // This used to be the whole of "Inner" mode, which is why that mode looked
+  // nothing like "Outer". Inner now goes through __drawDimensionChains with the
+  // rest, and this is left for the one job it is still right for: labelling the
+  // wall you have SELECTED while the overlay is off, or alongside Outer. A
+  // dimension set for that one wall would collide with the built-in per-wall
+  // label already drawn on it.
   //
   // The value is the wall's true INNER-face length, edge.interiorDistance()
   // (e.g. 14.02 where the centerline label reads 15.00), placed just inside the
@@ -1327,6 +1401,26 @@ export class Viewer2D extends Application {
           Dimensioning.cmToPixel(ic.x + inward.x),
           Dimensioning.cmToPixel(ic.y + inward.y)
         );
+        // RUN THE TEXT ALONG THE WALL.
+        //
+        // It was always drawn horizontally. On a horizontal wall that is right
+        // by accident; on a VERTICAL one the text lay across the wall instead
+        // of along it, reached well past the room and landed on top of the
+        // built-in outer label — two numbers overlapping in the same spot.
+        //
+        // The angle comes from the wall itself, so it is right at any angle,
+        // not just the four square ones. Anything pointing left is turned a
+        // further half-turn so the text is never upside down — which is also
+        // why a vertical wall reads bottom-to-top, matching the Outer overlay.
+        try {
+          const s = w.getStart().location;
+          const e = w.getEnd().location;
+          let rot = Math.atan2(e.y - s.y, e.x - s.x);
+          if (rot > Math.PI / 2 || rot < -Math.PI / 2) rot += Math.PI;
+          t.rotation = rot;
+        } catch (err) {
+          /* no corners — leave it horizontal */
+        }
         this.__dimChainHolder.addChild(t);
       });
     } catch (e) {

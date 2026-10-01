@@ -778,6 +778,49 @@ export class Room extends EventDispatcher {
     return this._corners;
   }
 
+  /**
+   * THE CLEAR FLOOR AREA — inside the walls.
+   *
+   * `area` is measured over the room's CORNERS, and a corner sits on the wall's
+   * OUTER face, so that figure is the footprint the room occupies including its
+   * walls. On a 3775 x 2950 room with 115mm walls it reads about 20% more floor
+   * than exists, which is the wrong number to price tiling or flooring from.
+   *
+   * This walks the room's half-edge loop and takes the polygon of INTERIOR face
+   * points instead — the same faces the Inner overlay measures, so the area and
+   * the dimensions drawn on the plan describe the same rectangle.
+   *
+   * Works on any shape, not just rectangles: an L-shaped room has no single
+   * pair of numbers to multiply, but its interior faces still close into a
+   * polygon and the shoelace handles it.
+   *
+   * Returns `area` unchanged if the faces cannot be read, so a caller always
+   * gets a usable number.
+   */
+  get clearArea() {
+    try {
+      const start = this.edgePointer;
+      if (!start) return this.area;
+      const points = [];
+      let edge = start;
+      // A closed loop; the cap is only so a broken `next` chain cannot spin.
+      for (let guard = 0; guard < 1000; guard += 1) {
+        const p = edge.interiorStart();
+        if (!p || typeof p.x !== "number" || typeof p.y !== "number") {
+          return this.area;
+        }
+        points.push(new Vector2(p.x, p.y));
+        edge = edge.next;
+        if (!edge || edge === start) break;
+      }
+      if (points.length < 3) return this.area;
+      const value = Math.abs(new Region(points).area());
+      return isFinite(value) && value > 0 ? value : this.area;
+    } catch (e) {
+      return this.area;
+    }
+  }
+
   get sharedWalls() {
     return this.__walls;
   }

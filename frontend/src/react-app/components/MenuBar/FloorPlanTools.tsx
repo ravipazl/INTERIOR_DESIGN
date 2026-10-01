@@ -152,7 +152,10 @@ const FloorPlanTools: React.FC = () => {
   // Units calls the engine directly — the same call floorPlanMenu made. Safe to
   // hold the display value here because the toolbar's copy is now hidden, so
   // there is only one units control on screen.
-  const [unit, setUnit] = useState<string>("ft");
+  // "mm" to match the engine's default (core/configuration.js). If this said
+  // "ft" while the engine measured in mm, the dropdown would claim feet over a
+  // plan labelled in millimetres until someone touched it.
+  const [unit, setUnit] = useState<string>("mm");
   const changeUnit = (v: string) => {
     setUnit(v);
     try {

@@ -3,6 +3,11 @@ import WallElements from "./wallElements";
 import OpeningFields from "./OpeningFields";
 import { MENU_TABS } from ".";
 import BlueprintInterface from "@pazl/blueprint-interface";
+import {
+  setFocusedRoom,
+  currentProjectId,
+  open3DView,
+} from "@pazl/helpers/roomFocus";
 
 export type SelKind = "wall" | "corner" | "room" | "opening" | null;
 
@@ -115,7 +120,32 @@ const PropertiesPanel = ({
         </div>
       )}
       {kind === "room" && (
-        <div className="px-3 py-2 border-t border-[color:var(--pz-panel-border)]">
+        <div className="px-3 py-2 border-t border-[color:var(--pz-panel-border)] flex flex-col gap-2">
+          {/* DESIGN THIS ROOM — the way into room-by-room working.
+              Placed above Delete, and styled as the positive action, because it
+              is the one you will press constantly while Delete is the one you
+              press once by accident. A room with no id yet (its corners have
+              just changed) cannot be focused, so the button is not offered. */}
+          {item2D?.roomByCornersId && (
+            <button
+              type="button"
+              onClick={() => {
+                setFocusedRoom(currentProjectId(), item2D.roomByCornersId);
+                onClose();
+                // ...and GO THERE. Setting the focus and staying on the plan
+                // meant pressing this appeared to do nothing at all; the room
+                // you chose is only visible once the 3D view is on screen.
+                open3DView();
+              }}
+              className="w-full flex items-center justify-center gap-1.5 py-1.5 px-3 rounded bg-[color:var(--pz-accent-soft)] hover:opacity-90 text-[color:var(--pz-accent)] font-medium text-xs transition"
+              title={`Work on "${item2D?.name || "this room"}" on its own in 3D`}
+            >
+              <span className="material-symbols-outlined text-[16px]">
+                center_focus_strong
+              </span>
+              Design this room
+            </button>
+          )}
           <button
             type="button"
             onClick={() => {
