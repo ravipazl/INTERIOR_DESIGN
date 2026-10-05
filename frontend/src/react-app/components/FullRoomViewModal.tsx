@@ -12,6 +12,7 @@ import {
   buildWorkingDrawingSVG,
   exportWorkingDrawingSVG,
 } from "@pazl/main/drawing2d/Drawing2DExport";
+import { hideModuleFronts } from "@pazl/main/drawing2d/InternalView";
 
 /**
  * FullRoomViewModal — generates a whole-room view from the live 3D model in
@@ -61,6 +62,11 @@ const FullRoomViewModal: React.FC<FullRoomViewModalProps> = ({
   const [wdDrawnBy, setWdDrawnBy] = useState("");
   const [wdCheckedBy, setWdCheckedBy] = useState("");
 
+  // Draw the modules OPEN: fronts and handles off, so the carcass, its shelves
+  // and its divisions are what the sheet shows. Off by default, so the view
+  // everyone has today is the view they still get.
+  const [internalView, setInternalView] = useState(false);
+
   const generate = useCallback(async () => {
     setError(null);
     setSnapWarning(null);
@@ -79,25 +85,44 @@ const FullRoomViewModal: React.FC<FullRoomViewModalProps> = ({
         throw new Error("Open the 3D room view first, then try again.");
       }
 
-      // Line drawing — fatal if it fails.
-      const drawing = generateRoomDrawing(viewer3d, renderer);
-      setResult(drawing);
-      setSvg(buildSVG(drawing));
-
-      // Rendered images — non-fatal: keep the drawing if these fail.
+      // TAKE THE FRONTS OFF FIRST, PUT THEM BACK WHATEVER HAPPENS.
+      //
+      // Everything below reads the LIVE scene, so this is a real change to what
+      // the user is looking at for as long as it takes to generate. The restore
+      // is in a `finally` for that reason: an error in the middle must not
+      // leave the room standing open with its doors gone.
+      const restoreFronts = internalView
+        ? hideModuleFronts(viewer3d)
+        : () => {};
+      let drawing: any;
       try {
-        setSnapshots(renderRoomSnapshots(viewer3d, renderer));
-      } catch (se: any) {
-        setSnapWarning(
-          se?.message || "The rendered images could not be generated."
-        );
+        // Line drawing — fatal if it fails.
+        drawing = generateRoomDrawing(viewer3d, renderer);
+        setResult(drawing);
+        setSvg(buildSVG(drawing));
+
+        // Rendered images — non-fatal: keep the drawing if these fail.
+        try {
+          setSnapshots(renderRoomSnapshots(viewer3d, renderer));
+        } catch (se: any) {
+          setSnapWarning(
+            se?.message || "The rendered images could not be generated."
+          );
+        }
+      } finally {
+        restoreFronts();
+        // The doors are back; ask for a frame so the room on screen is whole
+        // again rather than waiting for the next thing to trigger a redraw.
+        if (viewer3d) viewer3d.shouldRender = true;
       }
     } catch (e: any) {
       setError(e?.message || "Failed to generate the full room view.");
     } finally {
       setLoading(false);
     }
-  }, []);
+    // `internalView` is read above, so it belongs here — without it, toggling
+    // the checkbox would regenerate with the previous setting.
+  }, [internalView]);
 
   useEffect(() => {
     if (show) {
@@ -578,7 +603,33 @@ const FullRoomViewModal: React.FC<FullRoomViewModalProps> = ({
                 ? "Orthographic renders of the whole room"
                 : "Single-wall architectural sheet with legend, key plan and title block"}
           </div>
-          <div style={{ display: "flex", gap: 10 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            {/* Applies to all three tabs — the line drawing, the renders and
+                the working drawing are all built from the same scene. Changing
+                it regenerates, because the fronts have to be off while the
+                geometry is collected. */}
+            <label
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                fontSize: 12,
+                color: "#374151",
+                cursor: loading ? "default" : "pointer",
+                opacity: loading ? 0.5 : 1,
+                userSelect: "none",
+              }}
+              title="Draw the modules with their doors and handles removed, so the carcass and shelves show"
+            >
+              <input
+                type="checkbox"
+                checked={internalView}
+                disabled={loading}
+                onChange={(e) => setInternalView(e.target.checked)}
+                style={{ cursor: "inherit" }}
+              />
+              Internal view
+            </label>
             {btn("#6b7280", generate, "Regenerate", !loading)}
             {tab === "working" &&
               btn(
