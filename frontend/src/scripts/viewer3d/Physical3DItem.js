@@ -2780,7 +2780,28 @@ export class Physical3DItem extends Mesh {
     this.halfSize = this.objectHalfSize(this.geometry);
   }
 
+  /**
+   * The item's bounding box in WORLD space.
+   *
+   * Measured from the drawn mesh rather than derived from `__box`, because
+   * `__box` is not always in the same space. It is built once at load from
+   * `__loadedItem` while that is detached at the origin — a LOCAL box, which is
+   * why multiplying by the world matrix was right. But refreshSelectionBox
+   * rebuilds it for a door from the mesh WHERE IT STANDS, which is already a
+   * world box; multiplying that by the world matrix applied the item's position
+   * a second time and sent the box far from the door. Anything positioning
+   * itself from this then went with it — a selected door's toolbar flew off to
+   * the far side of the screen.
+   *
+   * Measuring the mesh directly is correct however `__box` was last built, and
+   * for an ordinary item returns the same box as before. The fallback covers
+   * the moment before the GLB has loaded, when there is no mesh to measure.
+   */
   get worldBox() {
+    if (this.__loadedItem) {
+      this.updateMatrixWorld(true);
+      return new Box3().setFromObject(this.__loadedItem);
+    }
     return this.box.clone().applyMatrix4(this.matrixWorld);
   }
 
