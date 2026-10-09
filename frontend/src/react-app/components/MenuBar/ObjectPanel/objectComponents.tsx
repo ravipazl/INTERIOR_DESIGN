@@ -414,12 +414,50 @@ function ObjectComponents({
     }
   };
 
+  /**
+   * CACHE FIRST FOR SPEED, THEN ALWAYS ASK THE SERVER.
+   *
+   * The materials used to come from localStorage and stop there. That cache is
+   * written in ONE place — fetchRequiredData, when the drawing page loads — so
+   * anything added or changed in the master data afterwards was invisible
+   * here, indefinitely and silently: the picker showed a copy of the catalogue
+   * from some earlier session while the database had moved on.
+   *
+   * It cost a whole afternoon. Tile sizes were written to all 626 materials,
+   * every check against the database confirmed them, and the 3D went on
+   * drawing untiled textures because its copy of each material predated the
+   * change and carried no tile size at all. Nothing failed; the console was
+   * clean; the data was simply old.
+   *
+   * So the cache now only decides how fast the panel paints: it renders at
+   * once from whatever is stored, the server is asked every time regardless,
+   * and the fresh list replaces it and is written back for next time.
+   */
   const getFinishings = async () => {
-    const list = await TexturesService.getFinishingsFromLocalStorage();
-    if (list?.length) {
-      setFinishingsList(list);
-    } else {
-      setFinishingsList([]);
+    let shown: any[] = [];
+    try {
+      const cached = await TexturesService.getFinishingsFromLocalStorage();
+      if (cached?.length) {
+        setFinishingsList(cached);
+        shown = cached;
+      }
+    } catch (error) {
+      console.error(error);
+    }
+    try {
+      const resp = await TexturesService.getAllFinishings();
+      const fresh = Array.isArray(resp) ? resp : resp?.data;
+      if (!fresh?.length) return;
+      TexturesService.saveFinishingsToLocalStorage(fresh);
+      // Replacing the list re-runs the grouping that watches it, so an
+      // unchanged catalogue is left alone. Compared by id AND by tile size:
+      // the ids do not change when a material is merely re-scaled, and that
+      // is exactly the change this needs to notice.
+      const sig = (l: any[]) =>
+        l.map((f: any) => `${f?._id}:${f?.tileCm ?? ""}`).join("|");
+      if (sig(shown) !== sig(fresh)) setFinishingsList(fresh);
+    } catch (error) {
+      console.error(error);
     }
   };
 
@@ -740,11 +778,21 @@ function ObjectComponents({
     }
   };
 
+  /**
+   * Looked up by id, and FIRST among the grades actually on offer.
+   *
+   * By name it could not tell Merino's Patterns from Greenlam's, and
+   * resolved to whichever came first in the master list. Searching the
+   * offered list first also means the choice can only ever be something the
+   * dropdown was showing — a stale id from elsewhere cannot slip in.
+   */
   const handleSelectedStyle = (event: any) => {
-    const style = allFinishingCategories?.find(
-      (category) => category.name === event.target.value
-    );
+    const id = event.target.value;
+    const style =
+      gradesForPicker.find((g: any) => g._id === id) ??
+      allFinishingCategories?.find((c: any) => c._id === id);
     if (style) setSelectedStyle(style);
+    else console.warn("handleSelectedStyle: no grade with id", id);
   };
 
   const handleSelectedBrand = async (event: any) => {
@@ -804,12 +852,68 @@ function ObjectComponents({
     }
   };
 
-  const handleSelectedGrainDirection = (event: any) => {
+  /**
+   * Grain Direction.
+   *
+   * This used to set a local state variable and stop. Nothing else read that
+   * variable: the dropdown's value is bound to the part's SAVED direction, so
+   * the choice was never written, never repainted, and the control snapped
+   * straight back to Horizontal. It looked like only Vertical was broken —
+   * in fact neither option did anything; Horizontal just happened to be what
+   * it was already showing.
+   *
+   * Now it saves and repaints, like every other control in this panel: one
+   * part when a part is open, otherwise every part in the group, which is how
+   * the material swatches above it already behave.
+   */
+  const handleSelectedGrainDirection = async (event: any) => {
+    const direction = event?.target?.value;
     console.debug(
-      "objectComponents.tsx ~ handleSelectedGrainDirection ~ event",
-      event
+      "objectComponents.tsx ~ handleSelectedGrainDirection ~",
+      direction
     );
-    setSelectedGrainDirection(event.target.value);
+    if (!direction) return;
+    setSelectedGrainDirection(direction);
+
+    const isExterior = selectedFinishingType === Finishing_Types.EXTERIOR;
+    const field = isExterior
+      ? "externalFinishGrainDirection"
+      : "internalFinishGrainDirection";
+
+    const targets: any[] = selectedChildComponent
+      ? [selectedChildComponent]
+      : selectedComponentGroup?.components ?? [];
+    if (!targets.length) return;
+
+    // Repaint the panel from the new value immediately — awaiting the save
+    // first leaves the dropdown showing the old direction for as long as the
+    // write takes, which reads as the control having ignored the click.
+    if (selectedChildComponent) {
+      setSelectedChildComponent({
+        ...selectedChildComponent,
+        [field]: direction,
+      } as FurnishedModelComponent);
+    }
+    const updated = targets.map((c: any) => ({ ...c, [field]: direction }));
+    if (selectedComponentGroup?.components?.length) {
+      setGroupedModelComponents(
+        groupedModelComponents.map((item) =>
+          item.name === selectedComponentGroup?.name
+            ? { ...item, components: updated }
+            : item
+        )
+      );
+      setSelectedComponentGroup({
+        ...selectedComponentGroup,
+        components: updated,
+      });
+    }
+
+    await BlueprintInterface.ProjectManagerService.onFurnishModelComponentGrainDirectionChange(
+      targets,
+      direction,
+      isExterior
+    );
   };
 
   const handleNodeSelection = async (componentGroup: any) => {
@@ -1287,19 +1391,144 @@ function ObjectComponents({
 
   // Same brand list the popup's Brand dropdown builds: brands priced for the
   // selected style, else any priced brand, else the full master. Keeping this
-  // in one place so the auto-default picks EXACTLY what the dropdown shows.
+  /**
+   * THE GRADES WORTH OFFERING — two tests, both about not wasting a click.
+   *
+   * 1. IT MUST CONTAIN SOMETHING. A grade with no materials is a dead end:
+   *    choosing it only produces "Sorry, no finishings available", which tells
+   *    a designer nothing they can act on. Fourteen grades are empty today —
+   *    the finish-type ones added by hand, and the paint and glass ones that
+   *    have always been so. They stay in the database and in the Rate Card,
+   *    where they can be filled; they simply stop being offered until they
+   *    are. Materials with no picture do not count: they cannot be applied.
+   *
+   * 2. IT MUST HAVE A RATE, as before — a grade priced at nothing would be
+   *    applied and then billed at ₹0.
+   */
+  /**
+   * The brand the part currently carries — derived here exactly as the panel
+   * derives it for its own dropdown, so the two can never disagree about what
+   * is selected. The id is what is stored; the brand object is not always
+   * attached (a part picked in 3D arrives without it).
+   */
+  const pickedBrandId = (() => {
+    const side =
+      selectedFinishingType === Finishing_Types.EXTERIOR
+        ? "external"
+        : "internal";
+    const of = (c: any) =>
+      c?.[`${side}FinishBrandId`] || c?.[`${side}FinishBrand`]?._id || "";
+    return (
+      of(selectedChildComponent) ||
+      of(selectedComponentGroup?.components?.[0]) ||
+      ""
+    );
+  })();
+
+  const gradesForPicker = (() => {
+    const pictured = (finishingsList || []).filter(
+      (f: any) => f?.texture?.fileUrl
+    );
+    /**
+     * THE GRADE MUST CONTAIN SOMETHING *FROM THIS BRAND*.
+     *
+     * Grades belong to brands. Merino's catalogue is Woodgrains, Metalam,
+     * Patterns and the rest; Greenlam's is its own. Offering the whole list
+     * whatever the brand let a designer pick a combination that does not
+     * exist and land on "Sorry, no finishings available" — a dead end they
+     * had to back out of themselves. Narrowing to the chosen brand makes that
+     * combination unreachable rather than merely discouraged.
+     *
+     * Derived from the materials, not from a list written here: add a brand,
+     * a grade or a material tomorrow and this follows with no code change.
+     */
+    /**
+     * STRICT: no widening when a brand owns nothing.
+     *
+     * This first fell back to every pictured material, so that a brand with
+     * no catalogue still had something to show. It showed the wrong thing.
+     * Three of the four brands own no materials at all — the original
+     * catalogue carries no brand — so picking Greenlam listed the brandless
+     * originals' styles, and applying one recorded the part as Greenlam while
+     * the material was a generic. The BOQ would then price it as Greenlam.
+     *
+     * An empty list is the truthful answer, and the panel says which brand is
+     * empty rather than leaving a blank space.
+     */
+    const source = pickedBrandId
+      ? pictured.filter((f: any) => String(f.brandId) === String(pickedBrandId))
+      : pictured;
+    const stocked = new Set(source.map((f: any) => String(f.categoryId)));
+
+    const withStock = (styles || []).filter((s: any) => stocked.has(String(s._id)));
+    /**
+     * "NOTHING LOADED YET" AND "THIS BRAND OWNS NOTHING" ARE DIFFERENT, and
+     * the empty set alone cannot tell them apart. Judged on whether ANY
+     * pictured material exists: none at all means the list is still arriving,
+     * and showing nothing then would look like the catalogue had vanished;
+     * some, but none for this brand, is a real and final answer.
+     */
+    const loaded = pictured.length > 0;
+    const base = loaded ? withStock : styles || [];
+    if (!loaded || !pricedCoatingCatIds.length) return base;
+    const priced = base.filter((s: any) => pricedCoatingCatIds.includes(s._id));
+    // The pricing fallback stays: a grade this brand really has, but which
+    // nobody has priced yet, is still the brand's own grade — unlike the
+    // widening above, this cannot offer another brand's styles.
+    return priced.length ? priced : base;
+  })();
+
+  /**
+   * Keep Style on something the chosen brand actually has.
+   *
+   * Switching brand can strand the current style — "Glossy laminate" selected,
+   * brand switched to Merino, which has no such grade. Left alone the picker
+   * shows a style that is no longer in its own list and a grid with nothing in
+   * it. A style still valid for the new brand is deliberately kept, so merely
+   * re-picking the same brand does not throw away the designer's choice.
+   */
+  const gradeSignature = gradesForPicker.map((g: any) => g._id).join("|");
+  useEffect(() => {
+    if (!gradesForPicker.length) {
+      // The brand owns nothing. Leaving the previous style selected would
+      // leave the previous brand's swatches on screen under the new brand's
+      // name — a part could then be applied from a catalogue the designer is
+      // no longer looking at.
+      if (selectedStyle) setSelectedStyle(null);
+      return;
+    }
+    if (selectedStyle && gradesForPicker.some((g: any) => g._id === selectedStyle._id))
+      return;
+    setSelectedStyle(gradesForPicker[0]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gradeSignature, selectedStyle?._id]);
+
+  /**
+   * The brands worth offering for the chosen TYPE — in one place, so the
+   * auto-default picks exactly what the dropdown shows.
+   *
+   * It used to narrow by the chosen STYLE, which only made sense while Style
+   * came first. The order is Type → Brand → Style now, because a grade
+   * belongs to a brand and not the other way round, so narrowing by style
+   * here would make each dropdown wait on the other.
+   *
+   * The type's grades are `styles`; a brand is offered if it is priced for
+   * any of them. Fallbacks widen rather than empty: any priced brand, then
+   * the full master list.
+   */
   const getBrandListForPicker = () => {
     if (coatingRates.length && finishingBrandsMaster.length) {
-      const forStyle = selectedStyle
+      const gradeIds = new Set((styles || []).map((s: any) => String(s._id)));
+      const forType = gradeIds.size
         ? finishingBrandsMaster.filter((b: any) =>
             coatingRates.some(
               (r: any) =>
-                r.finishingCategoryId === selectedStyle._id &&
+                gradeIds.has(String(r.finishingCategoryId)) &&
                 r.finishingBrandId === b._id
             )
           )
         : [];
-      if (forStyle.length) return forStyle;
+      if (forType.length) return forType;
       return finishingBrandsMaster.filter((b: any) =>
         coatingRates.some((r: any) => r.finishingBrandId === b._id)
       );
@@ -1916,38 +2145,13 @@ function ObjectComponents({
           handleSelectedType={handleSelectedType}
           selectedStyle={selectedStyle}
           selectedType={selectedType}
-          styles={
-            pricedCoatingCatIds.length
-              ? styles.filter((s: any) =>
-                  pricedCoatingCatIds.includes(s._id)
-                )
-              : styles
-          }
+          styles={gradesForPicker}
           handleSelectedStyle={handleSelectedStyle}
           handleSelectedBrand={handleSelectedBrand}
-          finishingBrands={
-            coatingRates.length && finishingBrandsMaster.length
-              ? // Show every brand that has a coating rate (priced), and — when
-                // a style is selected — prefer brands priced for that style, but
-                // never fall back to an empty list (the style-match depends on
-                // LocalStorage category ids that can lag/mismatch).
-                (() => {
-                  const forStyle = selectedStyle
-                    ? finishingBrandsMaster.filter((b: any) =>
-                        coatingRates.some(
-                          (r: any) =>
-                            r.finishingCategoryId === selectedStyle._id &&
-                            r.finishingBrandId === b._id
-                        )
-                      )
-                    : [];
-                  if (forStyle.length) return forStyle;
-                  return finishingBrandsMaster.filter((b: any) =>
-                    coatingRates.some((r: any) => r.finishingBrandId === b._id)
-                  );
-                })()
-              : finishingBrandsMaster
-          }
+          // The helper, not a second copy of its logic. The copy that used to
+          // sit here had already drifted from it, which is how the dropdown
+          // and the auto-default could disagree about which brands exist.
+          finishingBrands={getBrandListForPicker()}
           allFinishingBrands={finishingBrandsMaster}
           finishingsList={finishingsList}
           handleSelectedGrainDirection={handleSelectedGrainDirection}

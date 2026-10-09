@@ -122,7 +122,16 @@ export class Material3D extends MeshPhongMaterial {
 
   __updateTextures() {
     this.needsUpdate = true;
-    this.__scene.needsUpdate = true;
+    // A MISSING SCENE IS NOT A REASON TO THROW.
+    //
+    // This runs on every texture load and on every rescale, so a caller that
+    // has no scene to hand brings the whole viewer down with "Cannot set
+    // properties of null" — from an image finishing its download, which is
+    // about the least recoverable moment to fail in. The material still
+    // updates itself; only the redraw hint is skipped.
+    //
+    // Floors and walls always pass a scene, so this changes nothing for them.
+    if (this.__scene) this.__scene.needsUpdate = true;
   }
 
   __applyNewTextures() {

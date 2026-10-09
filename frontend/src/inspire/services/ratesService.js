@@ -76,6 +76,94 @@ export const getFinishingBrands = async () => {
   }
 };
 
+// ---- maintaining the dropdown sources themselves ----
+//
+// The four lists above have only ever been readable. Adding a board, a grade or
+// a brand meant editing the database by hand, which is why the catalogue drifts
+// from what the showroom actually sells. These are the same Feathers services,
+// with create / patch / remove.
+//
+// A GRADE has no service of its own: grades live in the `grades` array on a
+// core material type, so adding one is a patch of that type. That is why the
+// screen nests grades under their material rather than listing them beside it.
+
+// WHY THESE THROW INSTEAD OF RETURNING null.
+//
+// The read helpers above swallow their errors and return [] — right for a list
+// that can simply render empty. A WRITE is different: swallowing it leaves the
+// screen saying only "that could not be saved", which tells the user nothing
+// they can act on. An expired session, a duplicate name and a server fault all
+// look identical, and the one that matters most — "sign in again" — is the one
+// the user can actually fix. So a failed write carries the backend's own
+// message up to the screen.
+const writeError = (label, e) => {
+  console.error(`ratesService.${label}`, e);
+  const status = e?.response?.status;
+  // Feathers answers an expired or missing token with 401 Not authenticated.
+  // The page keeps showing the lists it loaded earlier, so nothing LOOKS wrong
+  // until the first write — name it plainly rather than leaving them retrying.
+  if (status === 401) {
+    return new Error("Your session has expired. Please sign in again.");
+  }
+  const msg =
+    e?.response?.data?.message ||
+    e?.response?.data?.error ||
+    (status ? `Server returned ${status}.` : null) ||
+    e?.message ||
+    "Unknown error";
+  return new Error(msg);
+};
+
+const crud = (path, label) => ({
+  create: async (data) => {
+    try {
+      const r = await axios.post(`${DESIGN}/${path}`, data, authCfg());
+      if (!ok(r)) throw new Error(`Server returned ${r?.status}.`);
+      return r.data;
+    } catch (e) {
+      throw writeError(`create ${label}`, e);
+    }
+  },
+  update: async (id, data) => {
+    try {
+      const r = await axios.patch(`${DESIGN}/${path}/${id}`, data, authCfg());
+      if (!ok(r)) throw new Error(`Server returned ${r?.status}.`);
+      return r.data;
+    } catch (e) {
+      throw writeError(`update ${label}`, e);
+    }
+  },
+  remove: async (id) => {
+    try {
+      const r = await axios.delete(`${DESIGN}/${path}/${id}`, authCfg());
+      if (!ok(r)) throw new Error(`Server returned ${r?.status}.`);
+      return true;
+    } catch (e) {
+      throw writeError(`remove ${label}`, e);
+    }
+  },
+});
+
+export const coreMaterialTypes = crud("corematerialtypes", "core material type");
+export const coreMaterialBrands = crud("corematerialbrands", "core material brand");
+export const finishingCategories = crud("finishingcategories", "finishing category");
+export const finishingBrands = crud("finishingbrands", "finishing brand");
+
+/**
+ * Add or remove a grade on one core material type.
+ *
+ * Reads the type's current grades and writes the whole array back, because a
+ * grade is a string in a list rather than a record with an id. Duplicates are
+ * dropped: two identical grades would appear twice in every dropdown and price
+ * differently depending on which one was picked.
+ */
+export const setGrades = async (typeId, grades) => {
+  const clean = Array.from(
+    new Set((grades || []).map((g) => String(g).trim()).filter(Boolean))
+  );
+  return coreMaterialTypes.update(typeId, { grades: clean });
+};
+
 // ---- material rates (corematerialpricing) ----
 
 export const listMaterialRates = async () => {
@@ -146,6 +234,50 @@ export const updateCoatingRate = async (id, data) => {
 
 export const removeCoatingRate = async (id) => {
   const res = await axios.delete(`${DESIGN}/finishingpricing/${id}`, authCfg());
+  return ok(res);
+};
+
+// ---- interior rates (interiorpricing) ----
+//
+// A SEPARATE TABLE FROM THE COATING RATES. The inside of a carcass is lined
+// with inner lamination — white paper at a few tens of rupees a square foot —
+// while the outside carries a decorative laminate at several hundred. Both used
+// to be read from the one coating table, so an interior could only be priced by
+// giving it a laminate's rate.
+//
+// The CATALOGUE is shared: a row names the same finish type / grade / brand the
+// coating rates use. Only the price lives somewhere else.
+
+export const listInteriorRates = async () => {
+  try {
+    return asArray(
+      await axios.get(
+        `${DESIGN}/interiorpricing`,
+        authCfg({ params: { $limit: 1000 } })
+      )
+    );
+  } catch (e) {
+    console.error("ratesService.listInteriorRates", e);
+    return [];
+  }
+};
+
+export const createInteriorRate = async (data) => {
+  const res = await axios.post(`${DESIGN}/interiorpricing`, data, authCfg());
+  return ok(res) ? res.data : null;
+};
+
+export const updateInteriorRate = async (id, data) => {
+  const res = await axios.patch(
+    `${DESIGN}/interiorpricing/${id}`,
+    data,
+    authCfg()
+  );
+  return ok(res) ? res.data : null;
+};
+
+export const removeInteriorRate = async (id) => {
+  const res = await axios.delete(`${DESIGN}/interiorpricing/${id}`, authCfg());
   return ok(res);
 };
 

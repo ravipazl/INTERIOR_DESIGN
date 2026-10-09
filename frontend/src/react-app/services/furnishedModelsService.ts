@@ -138,6 +138,179 @@ export const FurnishedModelsService = {
     }
   },
 
+  /**
+   * CHANGE ONE ITEM'S FINISH FROM THE BOQ.
+   *
+   * A finish is stored per PART, not per item — a single unit has a dozen, and
+   * the shutter can differ from the carcass on purpose. So "the material of
+   * this row" has to be written somewhere specific, and `scope` is that
+   * decision:
+   *
+   *   exposed — only the parts marked `exposed`, which are the ones you see.
+   *             An inside/outside difference set in 3D survives.
+   *   all     — every part. Simpler, and it flattens that difference.
+   *
+   * Each part is patched on its own rather than through one bulk call, because
+   * the service patches by id and a partial failure must leave the parts that
+   * did save alone. Returns how many were written, so the caller can say what
+   * actually happened instead of claiming success.
+   */
+  /**
+   * WRITE THE SAME FIELDS TO EVERY PART OF ONE ITEM.
+   *
+   * What the BOQ's room-level controls need: the board and the inner lamination
+   * are properties of the whole unit, not of one panel, so there is nothing to
+   * filter on. `updateItemFinish` below does the same job but returns only a
+   * count; this returns the ids that saved, because the caller has to merge the
+   * same change into the browser's own copy of those records. Without that the
+   * editor's next sync writes its untouched copy back over this one and the
+   * change disappears on reload, with no error anywhere.
+   */
+  /**
+   * Patch ONE component.
+   *
+   * The narrowest write there is — used by the BOQ's per-mesh exterior editor,
+   * where the whole point is to change a single panel and leave every other
+   * part of the item exactly as it was.
+   */
+  updateOnePart: async (
+    componentId: string,
+    patch: Record<string, any>
+  ): Promise<boolean> => {
+    try {
+      const accessToken = AuthService.getAccessToken();
+      const r = await axios.patch(
+        `/furnishedmodelcomponents/${componentId}`,
+        patch,
+        { headers: { Authorization: `Bearer ${accessToken}` } }
+      );
+      return r?.status >= 200 && r?.status < 300;
+    } catch (e) {
+      console.error("FurnishedModelsService.updateOnePart", e);
+      return false;
+    }
+  },
+
+  updateAllParts: async (
+    furnishedModelId: string,
+    patch: Record<string, any>
+  ): Promise<{ matched: number; written: number; writtenIds: string[] }> => {
+    const accessToken = AuthService.getAccessToken();
+    const headers = { Authorization: `Bearer ${accessToken}` };
+    let parts: any[] = [];
+    try {
+      const list = await axios.get("/furnishedmodelcomponents", {
+        params: { furnishedModelId },
+        headers,
+      });
+      // Paginated body is { data: [...] }; an unpaginated one is the array.
+      const body = list?.data;
+      parts = Array.isArray(body)
+        ? body
+        : Array.isArray(body?.data)
+        ? body.data
+        : [];
+    } catch (e) {
+      console.error("FurnishedModelsService.updateAllParts: load", e);
+      return { matched: 0, written: 0, writtenIds: [] };
+    }
+    const targets = parts.filter((p) => p && p._id);
+    let written = 0;
+    const writtenIds: string[] = [];
+    for (const part of targets) {
+      try {
+        // eslint-disable-next-line no-await-in-loop
+        const r = await axios.patch(
+          `/furnishedmodelcomponents/${part._id}`,
+          patch,
+          { headers }
+        );
+        if (r?.status >= 200 && r?.status < 300) {
+          written += 1;
+          writtenIds.push(part._id);
+        }
+      } catch (pe) {
+        console.error("updateAllParts: part failed", part._id, pe);
+      }
+    }
+    return { matched: targets.length, written, writtenIds };
+  },
+
+  updateItemFinish: async (
+    furnishedModelId: string,
+    patch: {
+      externalFinishFinishingId?: string | null;
+      externalFinishBrandId?: string | null;
+      externalFinishClassification?: string;
+    },
+    scope: "exposed" | "all" = "exposed"
+  ): Promise<number> => {
+    try {
+      const accessToken = AuthService.getAccessToken();
+      const headers = { Authorization: `Bearer ${accessToken}` };
+      const list = await axios.get("/furnishedmodelcomponents", {
+        params: { furnishedModelId },
+        headers,
+      });
+      // Paginated body is { data: [...] }; an unpaginated one is the array.
+      // Checked rather than assumed — `a || b` would hand back the pagination
+      // wrapper itself whenever `data` happened to be an empty array.
+      const body = list?.data;
+      const all: any[] = Array.isArray(body)
+        ? body
+        : Array.isArray(body?.data)
+        ? body.data
+        : [];
+      const targets =
+        scope === "all" ? all : all.filter((c: any) => c && c.exposed);
+      // Nothing marked exposed — a model whose parts were never flagged. Fall
+      // back to all of them rather than silently writing to nothing, which
+      // would look exactly like a broken save.
+      const parts = targets.length ? targets : all;
+      let written = 0;
+      for (const part of parts) {
+        if (!part?._id) continue;
+        try {
+          // eslint-disable-next-line no-await-in-loop
+          const r = await axios.patch(
+            `/furnishedmodelcomponents/${part._id}`,
+            patch,
+            { headers }
+          );
+          if (r?.status >= 200 && r?.status < 300) written += 1;
+        } catch (pe) {
+          console.error("updateItemFinish: part failed", part._id, pe);
+        }
+      }
+      return written;
+    } catch (e) {
+      console.error("FurnishedModelsService.updateItemFinish", e);
+      return 0;
+    }
+  },
+
+  /**
+   * Set the BOARD on every part of one item — type, brand and grade.
+   *
+   * Always every part, never just the exposed ones: the carcass, the back and
+   * the shelves are all the same sheet, and a cabinet built from two different
+   * boards is not something anyone orders. That is the difference from a
+   * finish, where the inside and the outside genuinely do differ.
+   */
+  updateItemCoreMaterial: async (
+    furnishedModelId: string,
+    patch: {
+      coreMaterialTypeId?: string;
+      coreMaterialBrandId?: string;
+      coreMaterialGrade?: string;
+    }
+  ): Promise<number> =>
+    FurnishedModelsService.updateItemFinish(
+      furnishedModelId,
+      patch as any,
+      "all"
+    ),
+
   getFurnishedModelsByProjectIdAndFloorPlanId: async (
     projectId: string,
     floorPlanId: string

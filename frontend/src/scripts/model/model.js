@@ -323,6 +323,15 @@ export class Model extends EventDispatcher {
               color.texture
             );
             roomItem.meshmap[index].texture = color.texture;
+            // Carried with the texture so a RELOAD paints it the same way.
+            // The scene's meshmap is what Physical3DItem reads when a design
+            // is opened; without this the part was tiled correctly on the
+            // click and reverted to a stretched single copy on the next load.
+            roomItem.meshmap[index].tileCm = color.tileCm;
+            // Which way the grain runs, carried for the same reason as tileCm
+            // above: the reload paints from this meshmap, so without it a part
+            // set to Vertical came back Horizontal on the next open.
+            roomItem.meshmap[index].grain = color.grain;
           }
         });
         roomItem.metadata.meshmap.map((mesh, index) => {
@@ -337,6 +346,8 @@ export class Model extends EventDispatcher {
               color.texture
             );
             roomItem.metadata.meshmap[index].texture = color.texture;
+            roomItem.metadata.meshmap[index].tileCm = color.tileCm;
+            roomItem.metadata.meshmap[index].grain = color.grain;
           }
         });
       }

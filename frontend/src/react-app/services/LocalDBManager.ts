@@ -209,6 +209,63 @@ export class LocalDBManager {
     });
   }
 
+  /**
+   * MERGE CHANGES INTO RECORDS THE BROWSER ALREADY HOLDS.
+   *
+   * WHY THIS EXISTS. This local store is the source of truth for the sync: it
+   * POSTs its own copy of every changed record to the server. So a change
+   * written STRAIGHT to the API — as the BOQ's room-level board and interior
+   * are, since the BOQ never loads the 3D scene — lands in Mongo and is then
+   * quietly overwritten the next time the editor syncs its untouched copy back
+   * over it.
+   *
+   * The symptom is the worst kind: the change applies, the bill reprices, and
+   * it is all gone on reload, with nothing having reported an error.
+   *
+   * So anything written directly to the API is merged in here too, and the sync
+   * then carries the same values rather than reverting them.
+   *
+   * A record the browser does not hold is SKIPPED, not created: its absence
+   * means this session never loaded that item, so there is no stale copy to
+   * overwrite it and nothing to keep in step.
+   */
+  async patchLocalRecords(
+    storeName: string,
+    patch: Record<string, any>,
+    ids: string[]
+  ): Promise<number> {
+    if (!this.db) {
+      await this.initLocalDB();
+    }
+    const unique = Array.from(new Set((ids || []).filter(Boolean)));
+    if (!unique.length) return 0;
+    return new Promise((resolve) => {
+      let written = 0;
+      try {
+        const transaction = this.db.transaction([storeName], "readwrite");
+        const store = transaction.objectStore(storeName);
+        unique.forEach((id) => {
+          const read = store.get(id);
+          read.onsuccess = () => {
+            const existing = read.result;
+            if (!existing) return;
+            store.put({ ...existing, ...patch }, id);
+            written += 1;
+          };
+        });
+        transaction.oncomplete = () => {
+          // Only ask for a sync when something actually changed locally.
+          if (written) requestSyncSoon();
+          resolve(written);
+        };
+        transaction.onerror = () => resolve(written);
+      } catch (e) {
+        console.error("LocalDBManager.patchLocalRecords", e);
+        resolve(written);
+      }
+    });
+  }
+
   protected async deleteFromLocalDB(
     data: any,
     storeName: string

@@ -37,6 +37,11 @@ import { convertAngleToEulersUnit } from "@pazl/utils/unitsUtils";
 import BlueprintInterface from "@pazl/blueprint-interface";
 import { ModelsService } from "@pazl/services/ModelsService";
 import { MODEL_TYPES } from "@pazl/entities/Model";
+import {
+  ensureTileableUV,
+  applyGrainDirection,
+  projectPerFaceUV,
+} from "./tileUV.js";
 
 export class Physical3DItem extends Mesh {
   constructor(itemModel, opts) {
@@ -1542,14 +1547,73 @@ export class Physical3DItem extends Mesh {
         if (obj) {
           // The finish is already baked into this part's GLB material → keep
           // the file's own material: no texture download, no repaint.
-          if (Physical3DItem.isBakedFinish(o, obj.texture)) {
+          // Skipped when the material states a tile size — see the matching
+          // note in Viewer3d. The baked material is one copy stretched over
+          // the whole door, which is the flat look we are correcting.
+          if (
+            !(Number(obj.tileCm) > 0) &&
+            Physical3DItem.isBakedFinish(o, obj.texture)
+          ) {
             o.material = o.__origMaterial;
             return;
           }
           if (obj.texture != "") {
             let txt = new TextureLoader().load(obj.texture);
             let size = obj.size;
-            txt.repeat.set(Math.round(this.__itemModel.__scale.x), 1);
+
+            /**
+             * THE SAME TILING THE CLICK USES — OR THE LOOK CHANGES ON RELOAD.
+             *
+             * Applying a finish paints the mesh in Viewer3d; opening a saved
+             * design paints it here. The two had different rules, so a part
+             * tiled correctly when it was chosen and reverted to one stretched
+             * copy the next time the project was opened. The tile size now
+             * travels with the texture in the meshmap, and both paths read it.
+             *
+             * No tile size — every material that predates this — keeps the
+             * original behaviour exactly, including its one quirk below.
+             */
+            const tileCm = Number(obj.tileCm) || 0;
+            if (tileCm > 0) {
+              const b = new Box3().setFromObject(o);
+              const s = b.getSize(new Vector3());
+              const dims = [s.x, s.y, s.z].sort((a, b2) => b2 - a);
+              if (isFinite(dims[0]) && isFinite(dims[1])) {
+                // Plain material, same as the click path. Material3D was tried
+                // and reverted — see the note in Viewer3d's paint path.
+                //
+                // UVs first, then repeats taken from the axes they were built
+                // on — the same order and the same reasoning as the click path,
+                // so a reopened design is drawn exactly as it was left.
+                // Not forced — see the note in Viewer3d's paint path. The
+                // model's own UV map covers every face; ours covers one pair
+                // of directions and smears the rest.
+                // Per face first, falling back to the old handling only for a
+                // mesh that must not be touched — the same order and the same
+                // reasoning as the click path, so a reopened design is drawn
+                // exactly as it was left.
+                const perFace = projectPerFaceUV(o);
+                const uv = perFace.cmUV ? null : ensureTileableUV(o);
+                const ownUV = !uv || uv.uLen == null;
+                applyGrainDirection(
+                  txt,
+                  perFace.cmUV ? 1 / tileCm : ownUV ? 1 : Math.max(uv.uLen / tileCm, 1),
+                  perFace.cmUV ? 1 / tileCm : ownUV ? 1 : Math.max(uv.vLen / tileCm, 1),
+                  obj.grain
+                );
+              }
+            } else {
+              // ROUNDING COULD REACH ZERO. An item scaled below half rounds to
+              // 0, and a repeat of 0 collapses every pixel onto one texel —
+              // the texture renders as a single flat colour. Kept as it was
+              // otherwise, so nothing that looks right today changes.
+              const rx = Math.round(this.__itemModel.__scale.x) || 1;
+              applyGrainDirection(txt, rx, 1, obj.grain);
+              // As in the click path: a panel with no UVs shows one texel
+              // whether it is tiled or not. No-op where the UVs are good.
+              ensureTileableUV(o);
+            }
+
             txt.encoding = sRGBEncoding;
             txt.wrapS = RepeatWrapping;
             txt.wrapT = RepeatWrapping;

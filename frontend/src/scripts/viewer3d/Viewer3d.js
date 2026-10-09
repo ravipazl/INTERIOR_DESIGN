@@ -12,6 +12,7 @@ import {
   LinearMipmapLinearFilter,
   sRGBEncoding,
   Vector3,
+  Vector2,
   Box3,
   Matrix4,
   MeshPhongMaterial,
@@ -69,6 +70,12 @@ import {
 } from "../core/events.js";
 
 import { Skybox } from "./skybox.js";
+import {
+  ensureTileableUV,
+  applyGrainDirection,
+  projectPerFaceUV,
+  toCleanNonIndexed,
+} from "./tileUV.js";
 
 /**
  * How close the orbit camera may get to straight-up or straight-down.
@@ -1790,7 +1797,16 @@ export class Viewer3D extends Scene {
       // Picking the finish that is already baked into this part's GLB → put
       // the file's own material back instead of repainting it.
       let bakedPart = null;
-      if (colors.texture != "") {
+      // THE SHORTCUT IS SKIPPED WHEN THE MATERIAL HAS A TILE SIZE.
+      //
+      // Restoring the GLB's own material avoids a download when the chosen
+      // finish is already baked in. But the bake covers a whole door with ONE
+      // copy of the image (auto-wood's tileM 2.1, "no repeat seam"), so a part
+      // taking this path can never be tiled — it is flat by construction, and
+      // every tiling fix upstream of it is simply never reached. A material
+      // that states its real size is asking to be drawn at that size, so it
+      // goes through the texture path instead.
+      if (colors.texture != "" && !(Number(colors.tileCm) > 0)) {
         evt.item.traverse((o) => {
           if (
             o.isMesh &&
@@ -1809,6 +1825,10 @@ export class Viewer3D extends Scene {
         let size = colors.size;
         console.debug("Viewer3d.js ~ __itemUpdate ~ size", size);
         txt.repeat.set(1, 1, 1);
+        // Grain direction applies to the untiled materials too — otherwise the
+        // control would work on Merino's décors and do nothing on the library
+        // woods, which from the panel looks like it is simply broken.
+        applyGrainDirection(txt, 1, 1, colors.grain);
         txt.encoding = sRGBEncoding;
         txt.wrapS = RepeatWrapping;
         txt.wrapT = RepeatWrapping;
@@ -1817,10 +1837,173 @@ export class Viewer3D extends Scene {
           flatShading: true,
         });
         console.debug("Viewer3d.js ~ __itemUpdate ~ INITIAL_MTL", INITIAL_MTL);
+
+        /**
+         * HOW BIG ONE COPY OF THE PICTURE SHOULD BE, IN CENTIMETRES.
+         *
+         * A texture was always stretched so that exactly one copy covered the
+         * whole panel. That is right for the library tiles, which are drawn at
+         * door scale — Pazl's own bake even says so (tileM 2.1, "one image
+         * covers a whole door → no repeat seam").
+         *
+         * It is wrong for a picture taken from a supplier's catalogue: that is
+         * a close photograph of a small piece of the laminate, so stretching
+         * one copy over a 60 × 200 cm door magnifies it until the grain
+         * flattens into a plain brown wash. A designer picks Tiger Crown Oak
+         * and gets a solid colour.
+         *
+         * A material may therefore say what one copy of it measures, and the
+         * picture is tiled to that. Say nothing — which is every material that
+         * existed before — and the behaviour is exactly as it was.
+         *
+         * UNITS DIFFER BETWEEN A FLOOR AND A CABINET, which is a trap.
+         * Material3D's comment calls its repeat "every x centimeters", and
+         * for a floor that is wrong: floor plans are in MILLIMETRES, so its
+         * 300 means one copy per 300 mm — 30 cm, which is why a floor looks
+         * right. An item's mesh is in CENTIMETRES (a 600 mm base unit
+         * measures 60). So a tile size for furniture is read in centimetres,
+         * and the number that matches the floor's appearance is 30, not 300.
+         *
+         * Setting it to 60 on a 60 cm door gives exactly one copy — which is
+         * what no tiling at all gives, and is how a correctly applied setting
+         * managed to change nothing at all.
+         */
+        const tileCm = Number(colors.tileCm) || 0;
+        // Says in one line whether this material is being tiled and by how
+        // much. Without it a flat-looking panel is indistinguishable from a
+        // tiled one that is simply too dense to read.
+        console.debug(
+          "Viewer3d.js ~ __itemUpdate ~ TILING tileCm =",
+          tileCm,
+          tileCm > 0 ? "(tiled)" : "(NOT tiled — material has no tileCm)"
+        );
+
         evt.item.traverse((o) => {
           if (o.isMesh && o.name != null) {
             if (o.name == colors.name) {
-              o.material = INITIAL_MTL;
+              let mtl = INITIAL_MTL;
+              if (tileCm > 0) {
+                const box = new Box3().setFromObject(o);
+                const s = box.getSize(new Vector3());
+                // A panel is flat, so its two largest dimensions are the face
+                // the texture is seen on; the thickness is ignored.
+                const dims = [s.x, s.y, s.z].sort((a, b) => b - a);
+                if (isFinite(dims[0]) && isFinite(dims[1])) {
+                  /**
+                   * A PLAIN MATERIAL, LOADED PER MESH.
+                   *
+                   * Material3D — the class the floor uses — was tried here and
+                   * had to come back out. Setting its `dimensions` runs
+                   * __scaleUV immediately, which assigns `map` and
+                   * needsUpdate on a texture the loader has not filled yet, and
+                   * the renderer then repeats "Texture marked for update but
+                   * image is undefined" every frame and draws nothing. Its
+                   * PBR maps would have been worth having; not at that price.
+                   *
+                   * Its own TextureLoader call per mesh, NOT a clone of the
+                   * one above: repeat belongs to the texture, so parts of
+                   * different sizes need their own, and cloning before the
+                   * image arrives produces exactly the blank-material bug
+                   * described above. A second load is free — the browser
+                   * serves it from cache.
+                   */
+                  const t = new TextureLoader().load(colors.texture);
+                  t.encoding = sRGBEncoding;
+                  t.wrapS = RepeatWrapping;
+                  t.wrapT = RepeatWrapping;
+                  // UVs FIRST, then the repeats — and the repeats come from the
+                  // same axes the UVs were built on. Sizing the tile from the
+                  // sorted dimensions while the UVs ran along different axes is
+                  // what made one setting look different on every part.
+                  //
+                  // NOT forced, deliberately. Overriding a model's own UV map
+                  // replaces a layout that covers every face of the part with
+                  // one flat projection that can only cover a single pair of
+                  // directions — so a carcass kept its grain on the back and
+                  // smeared on both sides. The modeller unwrapped the whole
+                  // box; that is worth more than anything derivable here.
+                  //
+                  // Rotating for Vertical works on whatever layout is present,
+                  // so the grain control does not depend on owning the UVs. A
+                  // map is still built where one is missing or collapsed —
+                  // that is the flat-colour fix, and it stays.
+                  /**
+                   * PER FACE FIRST — see projectPerFaceUV for why the model's
+                   * own atlas cannot serve this. It reports cmUV when it has
+                   * mapped the part, and the tile is then one number for
+                   * every face.
+                   *
+                   * It declines only for a mesh it must not touch (several
+                   * materials drawn through geometry groups, or no geometry
+                   * at all), and the original handling below is kept for
+                   * exactly those.
+                   */
+                  const perFace = projectPerFaceUV(o);
+                  const uv = perFace.cmUV
+                    ? { note: perFace.note, uLen: null, vLen: null }
+                    : ensureTileableUV(o);
+                  /**
+                   * A MODEL'S OWN UV MAP IS AN ATLAS, AND TILING BREAKS IT.
+                   *
+                   * The modeller packs every face into its own rectangle
+                   * inside the 0..1 square — back here, left there, top in the
+                   * corner. That packing is the whole point of the map, and a
+                   * repeat above 1 destroys it: at 2.8 the square is laid down
+                   * 2.8 times over, so each face stops sampling its own
+                   * rectangle and starts reading across its neighbours'. The
+                   * picture on the back face is then an arbitrary slice of the
+                   * atlas, and turning it 90° just selects a different
+                   * arbitrary slice — which is exactly the back panel that
+                   * stayed vertical whatever the control said.
+                   *
+                   * Repeat 1 is what the code did before any of this work, and
+                   * what is running in production today. Restored here, so a
+                   * well-made model is drawn exactly as it has always been and
+                   * the only thing the grain control changes is the rotation.
+                   *
+                   * Tiling to a real-world size still applies to the other
+                   * case — a model with no usable map, where the projection
+                   * below was built here and is a plain 0..1 over one face,
+                   * with no atlas to break.
+                   */
+                  const ownUV = uv.uLen == null;
+                  const repeatU = perFace.cmUV
+                    ? 1 / tileCm
+                    : ownUV
+                    ? 1
+                    : Math.max(uv.uLen / tileCm, 1);
+                  const repeatV = perFace.cmUV
+                    ? 1 / tileCm
+                    : ownUV
+                    ? 1
+                    : Math.max(uv.vLen / tileCm, 1);
+                  const grainState = applyGrainDirection(
+                    t,
+                    repeatU,
+                    repeatV,
+                    colors.grain
+                  );
+                  console.debug(
+                    "Viewer3d.js ~ __itemUpdate ~ TILING mesh",
+                    o.name,
+                    "size",
+                    dims.map((d) => Math.round(d)),
+                    "repeat",
+                    [+repeatU.toFixed(2), +repeatV.toFixed(2)],
+                    "—",
+                    uv.note,
+                    "—",
+                    grainState
+                  );
+                  mtl = new MeshPhongMaterial({ map: t, flatShading: true });
+                }
+              } else {
+                // Untiled materials need usable UVs just as much — one copy
+                // stretched over a panel with no UVs is still one texel, and
+                // still a flat colour. A no-op where the UVs are already good.
+                ensureTileableUV(o);
+              }
+              o.material = mtl;
               o.material.encoding = sRGBEncoding;
             }
           }
@@ -3074,36 +3257,11 @@ export class Viewer3D extends Scene {
   // (packed) buffers. Three's toNonIndexed() reads interleaved data WRONG in this
   // old build (raw array index arithmetic), which scrambled the merge. This is the
   // fix: de-index AND de-interleave through the safe accessors, same as folders.
+  // Moved to tileUV.js so the texture path can use it too — the per-face
+  // projection needs exactly this, and a second copy would be free to drift
+  // from the one the merge depends on. Same code, same behaviour.
   __toCleanNonIndexed(geom) {
-    const idx = geom.index;
-    const pos = geom.attributes.position;
-    const nor = geom.attributes.normal;
-    const uv = geom.attributes.uv;
-    const count = idx ? idx.count : pos.count;
-    const outPos = new Float32Array(count * 3);
-    const outNor = new Float32Array(count * 3);
-    const outUv = new Float32Array(count * 2);
-    for (let i = 0; i < count; i++) {
-      const v = idx ? idx.getX(i) : i;
-      outPos[i * 3] = pos.getX(v);
-      outPos[i * 3 + 1] = pos.getY(v);
-      outPos[i * 3 + 2] = pos.getZ(v);
-      if (nor) {
-        outNor[i * 3] = nor.getX(v);
-        outNor[i * 3 + 1] = nor.getY(v);
-        outNor[i * 3 + 2] = nor.getZ(v);
-      }
-      if (uv) {
-        outUv[i * 2] = uv.getX(v);
-        outUv[i * 2 + 1] = uv.getY(v);
-      }
-    }
-    const g = new BufferGeometry();
-    g.setAttribute("position", new Float32BufferAttribute(outPos, 3));
-    g.setAttribute("normal", new Float32BufferAttribute(outNor, 3));
-    g.setAttribute("uv", new Float32BufferAttribute(outUv, 2));
-    if (!nor) g.computeVertexNormals();
-    return g;
+    return toCleanNonIndexed(geom);
   }
 
   // Total triangle surface area of a NON-INDEXED geometry (every 3 verts = one

@@ -12,6 +12,11 @@ import "./index.css";
 import { ProjectsService } from "@pazl/services/projectsService";
 import { FurnishedModelsService } from "@pazl/services/furnishedModelsService";
 import { RatesService } from "@pazl/services/RatesService";
+import { TexturesService } from "@pazl/services/texturesService";
+import {
+  LocalDBManager,
+  LocalDBObjectStores,
+} from "@pazl/services/LocalDBManager";
 import { ProjectWorkspaceService } from "@pazl/services/ProjectWorkspaceService";
 import { SyncService } from "@pazl/services/syncService";
 import { Autocomplete } from "@mui/material";
@@ -48,6 +53,22 @@ interface TableRowType {
     fromMaster?: boolean;
   }[];
   furnishedModelId?: string;
+  /**
+   * What the BOARD and the INSIDE are set to on this item right now, read off
+   * its parts. The room's dropdowns show it, so opening a project tells you
+   * what the room is made of instead of empty boxes above rows that plainly
+   * say Plywood · Century · BWP.
+   */
+  applied?: {
+    typeId: string;
+    brandId: string;
+    grade: string;
+    intCatId: string;
+    intBrandId: string;
+    // The outside, when every mesh of the item carries the same one.
+    extFinishId?: string;
+    extBrandId?: string;
+  };
   area?: number;
   installationExcluded?: boolean;
   /** Calculated price per unit (parts + hardware + other costs). */
@@ -655,6 +676,582 @@ const HardwareEditor: React.FC<{
   );
 };
 
+/**
+ * THE ROOM'S BOARD — type, brand and grade.
+ *
+ * Plywood · Century · BWP. Separate from the finish above: the finish is the
+ * surface you see, this is the sheet underneath, and the two come from
+ * different suppliers and different catalogues.
+ *
+ * Grade belongs to the TYPE — each core material type carries its own list, so
+ * BWP is offered under plywood and not under something that has no such grade.
+ */
+export interface RoomMatChoice {
+  // the board
+  typeId: string;
+  brandId: string;
+  grade: string;
+  // the inside
+  intCatId: string;
+  intBrandId: string;
+  // the outside
+  extTypeId: string;
+  extStyleId: string;
+  extFinishId: string;
+  extBrandId: string;
+  /**
+   * WHICH SECTIONS "APPLY TO ALL" WRITES.
+   *
+   * It used to be "whichever sections are filled in" — and the dialog opens
+   * already filled in with what the room has. So changing only the board
+   * grade also rewrote the interior and, worse, the exterior on every mesh,
+   * wiping out finishes set one by one in the 3D view. Nothing on screen said
+   * so. A filled field now means only "this is the current value"; a tick
+   * means "write this".
+   */
+  applyCore: boolean;
+  applyInt: boolean;
+  applyExt: boolean;
+}
+export const blankRoomMat: RoomMatChoice = {
+  // Unticked to start with: nothing is written unless it was chosen.
+  applyCore: false,
+  applyInt: false,
+  applyExt: false,
+  typeId: "",
+  brandId: "",
+  grade: "",
+  intCatId: "",
+  intBrandId: "",
+  extTypeId: "",
+  extStyleId: "",
+  extFinishId: "",
+  extBrandId: "",
+};
+
+/**
+ * WHAT A ROOM IS ALREADY MADE OF, read off its items.
+ *
+ * A field is filled only when every item in the room agrees on it. Showing the
+ * first item's value where they differ would state as fact something true of
+ * one cabinet out of ten — and the dialog overwrites all of them, so a wrong
+ * reading here becomes a wrong write. Where they disagree the box stays empty,
+ * which is honest: there is no single answer.
+ *
+ * Core and interior only. The exterior is a per-mesh choice, so a room rarely
+ * has one, and the dialog's exterior cascade is picked from the top anyway.
+ */
+const appliedMatFor = (lines: BoqLine[]): RoomMatChoice => {
+  const all = lines
+    .flatMap((l) => l.units.map((u) => u.applied))
+    .filter(Boolean) as NonNullable<BoqLine["units"][number]["applied"]>[];
+  if (!all.length) return blankRoomMat;
+  const agreed = (k: keyof (typeof all)[number]) => {
+    const first = all[0][k] || "";
+    return all.every((a) => (a[k] || "") === first) ? first : "";
+  };
+  return {
+    ...blankRoomMat,
+    typeId: agreed("typeId"),
+    brandId: agreed("brandId"),
+    grade: agreed("grade"),
+    intCatId: agreed("intCatId"),
+    intBrandId: agreed("intBrandId"),
+    // Type and style are not stored on a part — only the finish is — so the
+    // dialog works them out from the finish once its lists have loaded.
+    extFinishId: agreed("extFinishId"),
+    extBrandId: agreed("extBrandId"),
+  };
+};
+
+/**
+ * CHANGE ONE MESH'S EXTERIOR, FROM THE BILL.
+ *
+ * The exterior is a per-MESH decision — a shutter in oak, a side panel
+ * laminated only where it is seen — and the 3D view remains the place it is
+ * designed, because there you click the thing you can see. This is for the
+ * parts that were not done there, and for a correction made while reading the
+ * bill.
+ *
+ * Type -> Style -> Finish -> Brand, each list derived from the one above, so a
+ * combination that does not exist cannot be chosen.
+ */
+const MeshFinishPicker: React.FC<{
+  label: string;
+  busy: boolean;
+  /** What the part is finished in now, so the form opens showing it. */
+  currentFinishingId?: string | null;
+  currentBrandId?: string | null;
+  onCancel: () => void;
+  onApply: (choice: {
+    finishingId: string;
+    brandId: string | null;
+    classification: string;
+  }) => void;
+}> = ({
+  label,
+  busy,
+  currentFinishingId,
+  currentBrandId,
+  onCancel,
+  onApply,
+}) => {
+  const [cats, setCats] = useState<any[]>([]);
+  const [finishes, setFinishes] = useState<any[]>([]);
+  const [brands, setBrands] = useState<any[]>([]);
+  const [typeId, setTypeId] = useState("");
+  const [styleId, setStyleId] = useState("");
+  const [finishId, setFinishId] = useState("");
+  const [brandId, setBrandId] = useState("");
+
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        const [c, f, b] = await Promise.all([
+          TexturesService.getAllFinishingCategories(),
+          TexturesService.getAllFinishings(),
+          TexturesService.getAllFinishingBrands?.() ?? Promise.resolve([]),
+        ]);
+        if (!alive) return;
+        // Paginated bodies — { total, limit, skip, data: [...] }, not the array.
+        const list = (r: any): any[] =>
+          Array.isArray(r) ? r : Array.isArray(r?.data) ? r.data : [];
+        setCats(list(c));
+        setFinishes(list(f));
+        setBrands(list(b));
+      } catch (e) {
+        /* an empty picker beats a broken row */
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  const types = cats.filter((c) => c && !c.parentCategoryId);
+  const styles = cats.filter((c) => c && c.parentCategoryId === typeId);
+
+  /**
+   * OPEN ON WHAT THE PART ALREADY HAS.
+   *
+   * Reopening Edit on a finished part showed four empty boxes, which reads as
+   * "nothing is set" on a part that plainly costs ₹550/sq.ft — and to change
+   * only the brand you had to re-pick the type, style and swatch from memory.
+   *
+   * The part knows its finishing id; the type and style are derived from it:
+   * the finishing names its category (the style), and that category's parent is
+   * the type. Done once, when the catalogue arrives, and only while the user
+   * has not touched anything — re-running it would fight every selection.
+   */
+  const seeded = useRef(false);
+  useEffect(() => {
+    if (seeded.current || !cats.length || !finishes.length) return;
+    seeded.current = true;
+    if (currentBrandId) setBrandId(currentBrandId);
+    const fin = currentFinishingId
+      ? finishes.find((f) => f && f._id === currentFinishingId)
+      : null;
+    if (!fin) return;
+    const style = cats.find((c) => c && c._id === fin.categoryId);
+    // A finishing hangs off a STYLE, whose parent is the type. Where it hangs
+    // off a top-level category directly, that category is the type and there is
+    // no style to select.
+    if (style?.parentCategoryId) {
+      setTypeId(style.parentCategoryId);
+      setStyleId(style._id);
+    } else if (style) {
+      setTypeId(style._id);
+    }
+    setFinishId(fin._id);
+  }, [cats, finishes, currentFinishingId, currentBrandId]);
+
+  // ONE OPTION IS NOT A CHOICE. The catalogue has a single top-level category,
+  // so waiting for it to be "chosen" leaves Style and Finish empty on arrival,
+  // which reads as a broken form rather than a cascade.
+  useEffect(() => {
+    if (!typeId && types.length === 1) setTypeId(types[0]._id);
+  }, [typeId, types]);
+  const inStyle = finishes.filter((f) => f && f.categoryId === styleId);
+  const chosen = inStyle.find((f) => f._id === finishId) || null;
+
+  const sel = (
+    text: string,
+    value: string,
+    onChange: (v: string) => void,
+    list: any[],
+    waitingFor?: string
+  ) => (
+    <label className="bq-mesh-field">
+      <span className="bq-mesh-lab">{text}</span>
+      <select
+        className="bq-input"
+        value={value}
+        disabled={busy || !list.length}
+        onChange={(e) => onChange(e.target.value)}
+      >
+        <option value="">
+          {list.length ? `Select ${text.toLowerCase()}` : waitingFor || "None"}
+        </option>
+        {list.map((o) => (
+          <option key={o._id} value={o._id}>
+            {o.name}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+
+  return (
+    <div className="bq-mesh-edit">
+      <span className="bq-mesh-target">{label}</span>
+      {sel("Type", typeId, (v) => {
+        setTypeId(v);
+        setStyleId("");
+        setFinishId("");
+      }, types)}
+      {sel("Style", styleId, (v) => {
+        setStyleId(v);
+        setFinishId("");
+      }, styles, "Choose a type first")}
+      {sel("Finish", finishId, setFinishId, inStyle, "Choose a style first")}
+      {sel("Brand", brandId, setBrandId, brands)}
+      <button type="button" className="bq-link" onClick={onCancel} disabled={busy}>
+        Cancel
+      </button>
+      <button
+        type="button"
+        className="bq-primary"
+        disabled={busy || !chosen}
+        onClick={() =>
+          chosen &&
+          onApply({
+            finishingId: chosen._id,
+            // "" would be stored as an empty string and never match a rate
+            // lookup; null is the value that means "no brand".
+            brandId: brandId || null,
+            classification: types.find((t) => t._id === typeId)?.name || "",
+          })
+        }
+      >
+        {busy ? "Saving…" : "Apply to this part"}
+      </button>
+    </div>
+  );
+};
+
+/**
+ * ONE POPUP FOR EVERYTHING A ROOM IS MADE OF.
+ *
+ * The board, the lining and the outside finish used to be six dropdowns strung
+ * across the room header, with the exterior missing entirely because there was
+ * no width left for it. Three sections in a dialog give each one the room to
+ * show its own cascade, and the header goes back to being a header.
+ *
+ * EACH SECTION IS OPTIONAL. Fill one and only that one is written, so changing
+ * a room's board does not mean restating its finishes. Apply enables as soon as
+ * anything is set.
+ *
+ * The three cascades differ because the materials do:
+ *
+ *   Core      Material -> Board brand -> Grade   (grades belong to the material:
+ *             plywood has BWP, MR and Commercial; WPC has none)
+ *   Interior  Finish type -> Brand               (no grade — the inside is white
+ *             inner lamination, there is no decor to choose)
+ *   Exterior  Type -> Style -> Finish -> Brand   (an actual swatch is picked)
+ */
+const RoomMaterialModal: React.FC<{
+  room: string;
+  items: number;
+  busy: boolean;
+  value: RoomMatChoice;
+  onChange: (next: RoomMatChoice) => void;
+  onCancel: () => void;
+  onApply: () => void;
+}> = ({ room, items, busy, value, onChange, onCancel, onApply }) => {
+  const [coreTypes, setCoreTypes] = useState<any[]>([]);
+  const [coreBrands, setCoreBrands] = useState<any[]>([]);
+  const [finCats, setFinCats] = useState<any[]>([]);
+  const [finBrands, setFinBrands] = useState<any[]>([]);
+  const [finishes, setFinishes] = useState<any[]>([]);
+
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        const [ct, cb, fc, fb, fn] = await Promise.all([
+          TexturesService.getAllCoreMaterialTypes(),
+          TexturesService.getAllCoreMaterialBrands(),
+          TexturesService.getAllFinishingCategories(),
+          TexturesService.getAllFinishingBrands?.() ?? Promise.resolve([]),
+          TexturesService.getAllFinishings(),
+        ]);
+        if (!alive) return;
+        // Paginated bodies — { total, limit, skip, data: [...] }, not the array.
+        const list = (r: any): any[] =>
+          Array.isArray(r) ? r : Array.isArray(r?.data) ? r.data : [];
+        setCoreTypes(list(ct));
+        setCoreBrands(list(cb));
+        setFinCats(list(fc));
+        setFinBrands(list(fb));
+        setFinishes(list(fn));
+      } catch (e) {
+        /* an empty dialog beats a broken page */
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  // Changing a field ticks its own section: whoever picks a different board
+  // meant to apply it, and making them also find the checkbox is a step that
+  // only ever gets forgotten. It never UNticks anything, and it never touches
+  // another section's tick.
+  const set = (patch: Partial<RoomMatChoice>) => {
+    const keys = Object.keys(patch);
+    const touched = (...names: string[]) => keys.some((k) => names.includes(k));
+    onChange({
+      ...value,
+      ...patch,
+      applyCore: value.applyCore || touched("typeId", "brandId", "grade"),
+      applyInt: value.applyInt || touched("intCatId", "intBrandId"),
+      applyExt:
+        value.applyExt ||
+        touched("extTypeId", "extStyleId", "extFinishId", "extBrandId"),
+    });
+  };
+  // The tick itself is set directly, so it can be cleared again.
+  const tick = (patch: Partial<RoomMatChoice>) => onChange({ ...value, ...patch });
+
+  /**
+   * Show the exterior the room already has, as Core and Interior do.
+   *
+   * A part stores only its FINISH. The Type and Style dropdowns above it are
+   * the finish's own grade and that grade's parent, so they are read back from
+   * the finish once the lists have arrived — without them the saved finish
+   * could not be displayed at all, since each dropdown only lists what the one
+   * above it allows, and the section opened blank after every apply.
+   *
+   * Through onChange, NOT set(): this is the dialog describing what is there,
+   * not the user choosing something, so it must not tick the section.
+   */
+  useEffect(() => {
+    if (!value.extFinishId || value.extStyleId) return;
+    const fin = finishes.find((f) => f && f._id === value.extFinishId);
+    const style = fin && finCats.find((c) => c && c._id === fin.categoryId);
+    if (!style) return;
+    onChange({
+      ...value,
+      extStyleId: style._id,
+      extTypeId: style.parentCategoryId || style._id,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value.extFinishId, value.extStyleId, finishes.length, finCats.length]);
+
+  // Grades hang off the chosen board.
+  const grades: string[] =
+    coreTypes.find((t) => t._id === value.typeId)?.grades || [];
+
+  const topCats = finCats.filter((c) => c && !c.parentCategoryId);
+  // THE INSIDE IS LAMINATE, AND ONLY LAMINATE. Offering Paint and Glass here
+  // would be two choices that can only price a surface that does not exist.
+  // Matched on the name so a type added later is picked up without a change;
+  // falls back to every type rather than leaving an empty dropdown.
+  const interiorTypes = (() => {
+    const lam = topCats.filter((c) => /lamina/i.test(c.name || ""));
+    return lam.length ? lam : topCats;
+  })();
+  const extStyles = finCats.filter(
+    (c) => c && c.parentCategoryId && c.parentCategoryId === value.extTypeId
+  );
+  const extFinishes = finishes.filter(
+    (f) => f && f.categoryId === value.extStyleId
+  );
+
+  const coreReady =
+    !!value.typeId && !!value.brandId && (!!value.grade || grades.length === 0);
+  const interiorReady = !!value.intCatId;
+  const exteriorReady = !!value.extFinishId;
+  // A section is applied only when it is BOTH ticked and complete. A ticked
+  // section that is half filled in blocks the button rather than being
+  // skipped quietly — skipping it would look like it had been applied.
+  const willCore = value.applyCore && coreReady;
+  const willInt = value.applyInt && interiorReady;
+  const willExt = value.applyExt && exteriorReady;
+  const incomplete = [
+    value.applyCore && !coreReady ? "Core material" : null,
+    value.applyInt && !interiorReady ? "Interior" : null,
+    value.applyExt && !exteriorReady ? "Exterior" : null,
+  ].filter(Boolean) as string[];
+  const anything = (willCore || willInt || willExt) && !incomplete.length;
+
+  // Heading with its checkbox. Any combination may be ticked — one section or
+  // several — and ticking one never clears another.
+  const section = (
+    title: string,
+    on: boolean,
+    key: "applyCore" | "applyInt" | "applyExt"
+  ) => (
+    <label className="bq-modal-sec bq-rm-sec">
+      <input
+        type="checkbox"
+        checked={on}
+        disabled={busy}
+        onChange={(e) => tick({ [key]: e.target.checked })}
+      />
+      <span>{title}</span>
+      {!on ? <span className="bq-rm-skip">not applied</span> : null}
+    </label>
+  );
+
+  const field = (
+    label: string,
+    v: string,
+    onPick: (next: string) => void,
+    list: any[],
+    display: (o: any) => string,
+    placeholder: string,
+    waitingFor?: string
+  ) => (
+    <label className="bq-rm-field">
+      <span className="bq-rm-lab">{label}</span>
+      <select
+        className="bq-input"
+        value={v}
+        disabled={busy || !list.length}
+        onChange={(e) => onPick(e.target.value)}
+      >
+        <option value="">{list.length ? placeholder : waitingFor || "None"}</option>
+        {list.map((o) => (
+          <option key={o._id ?? o} value={o._id ?? o}>
+            {display(o)}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+
+  const name = (o: any) => o?.name ?? String(o);
+
+  return (
+    <div className="bq-modal-back" onClick={busy ? undefined : onCancel}>
+      <div className="bq-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="bq-modal-head">
+          <b>Material configuration</b>
+          <div className="bq-modal-sub">
+            {room || "Room"} · applies to every part of {items} item
+            {items === 1 ? "" : "s"}
+          </div>
+        </div>
+
+        <div className="bq-modal-body">
+          {section("Core material", value.applyCore, "applyCore")}
+          <div className={`bq-rm-grid3${value.applyCore ? "" : " bq-rm-off"}`}>
+            {field(
+              "Material",
+              value.typeId,
+              // The grade belongs to the OLD board, so it is cleared with it.
+              (v) => set({ typeId: v, grade: "" }),
+              coreTypes,
+              (o) => o.type || o.name,
+              "Leave unchanged"
+            )}
+            {field("Board brand", value.brandId, (v) => set({ brandId: v }), coreBrands, name, "Select brand")}
+            {field(
+              "Grade",
+              value.grade,
+              (v) => set({ grade: v }),
+              grades,
+              (g) => String(g),
+              "Select grade",
+              value.typeId ? "No grades for this material" : "Choose a material first"
+            )}
+          </div>
+
+          {section("Interior", value.applyInt, "applyInt")}
+          <div className={`bq-rm-grid2${value.applyInt ? "" : " bq-rm-off"}`}>
+            {field("Finish type", value.intCatId, (v) => set({ intCatId: v }), interiorTypes, name, "Leave unchanged")}
+            {field("Brand", value.intBrandId, (v) => set({ intBrandId: v }), finBrands, name, "Any brand")}
+          </div>
+
+          {section("Exterior", value.applyExt, "applyExt")}
+          <div className={`bq-rm-grid2${value.applyExt ? "" : " bq-rm-off"}`}>
+            {field(
+              "Type",
+              value.extTypeId,
+              // Style and swatch belong to the old type.
+              (v) => set({ extTypeId: v, extStyleId: "", extFinishId: "" }),
+              topCats,
+              name,
+              "Leave unchanged"
+            )}
+            {field(
+              "Style",
+              value.extStyleId,
+              (v) => set({ extStyleId: v, extFinishId: "" }),
+              extStyles,
+              name,
+              "Select style",
+              "Choose a type first"
+            )}
+            {field("Finish", value.extFinishId, (v) => set({ extFinishId: v }), extFinishes, name, "Select finish", "Choose a style first")}
+            {field("Brand", value.extBrandId, (v) => set({ extBrandId: v }), finBrands, name, "Select brand")}
+          </div>
+          {willExt ? (
+            /* THE ONE DESTRUCTIVE CHOICE HERE. The exterior is a per-mesh
+               property — a shutter in oak beside a plain carcass — so writing
+               it at room level replaces every mesh, including anything set in
+               the 3D view. Said before it is pressed, not discovered after. */
+            <div className="bq-rm-warn">
+              Replaces the exterior on every mesh, including any set in the 3D view
+            </div>
+          ) : null}
+        </div>
+
+        <div className="bq-modal-foot">
+          <span className="bq-modal-sub">
+            {incomplete.length
+              ? `Finish choosing: ${incomplete.join(", ")}`
+              : [
+              willCore
+                ? [
+                    coreTypes.find((t) => t._id === value.typeId)?.type,
+                    coreBrands.find((b) => b._id === value.brandId)?.name,
+                    value.grade,
+                  ]
+                    .filter(Boolean)
+                    .join(" ")
+                : null,
+              willInt
+                ? interiorTypes.find((c) => c._id === value.intCatId)?.name
+                : null,
+              willExt
+                ? finishes.find((f) => f._id === value.extFinishId)?.name
+                : null,
+            ]
+              .filter(Boolean)
+              .join("  +  ") || "Tick a section to apply it"}
+          </span>
+          <button type="button" className="bq-link" onClick={onCancel} disabled={busy}>
+            Cancel
+          </button>
+          <button
+            type="button"
+            className="bq-primary"
+            // Either section is enough: changing a room's board should not mean
+            // restating its finishes.
+            disabled={busy || !anything}
+            onClick={onApply}
+          >
+            {busy ? "Applying…" : "Apply to all"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const BoqTable: React.FC<BoqTableProps> = ({
   projectId,
   activeTab,
@@ -778,6 +1375,18 @@ const BoqTable: React.FC<BoqTableProps> = ({
   );
   const [descSaving, setDescSaving] = useState<string | null>(null);
 
+  // Which room's board is being written, so only that header shows "Applying…".
+  const [coreSaving, setCoreSaving] = useState<string | null>(null);
+  // Which single mesh is open for an exterior change, by component id.
+  const [meshEdit, setMeshEdit] = useState<string | null>(null);
+  const [meshSaving, setMeshSaving] = useState(false);
+  // What each room's dialog is showing, keyed by room name. Held here rather
+  // than in the dialog so a choice survives the re-render that applying causes
+  // (fetchData flips isLoading, which would unmount it mid-apply).
+  const [roomMat, setRoomMat] = useState<Record<string, RoomMatChoice>>({});
+  // Which room's material dialog is open, by room name.
+  const [roomModal, setRoomModal] = useState<string | null>(null);
+
   const toggleRoom = (room: string) =>
     setCollapsedRooms((prev) =>
       prev.includes(room) ? prev.filter((r) => r !== room) : [...prev, room]
@@ -886,6 +1495,172 @@ const BoqTable: React.FC<BoqTableProps> = ({
       patchUnits(line.ids, { boqDescription: prev });
       alert("The description could not be saved. Please try again.");
     }
+  };
+
+  /**
+   * Set the board and/or the inside for every item in one room.
+   *
+   * Confirmed first, because it overwrites a value on every part of every item
+   * in the room — including anything set by hand in 3D. Both are specifications
+   * rather than looks: the carcass, the back and the shelves are one sheet, and
+   * the inside of a unit is one lining. A cabinet built from two different
+   * boards, or lined two different ways, is not a thing anyone orders — which
+   * is why these are offered at room level at all.
+   *
+   * ALWAYS EVERY PART, for the same reason, and with no `exposed` test: the
+   * inside of a panel is lined whether or not its outside is on show.
+   */
+  const applyRoomCoreMaterial = async (
+    room: string,
+    lines: BoqLine[],
+    choice: {
+      core: {
+        coreMaterialTypeId: string;
+        coreMaterialBrandId: string;
+        coreMaterialGrade: string;
+      } | null;
+      interior: {
+        internalFinishCategoryId: string;
+        internalFinishBrandId: string | null;
+        internalFinishClassification: string;
+      } | null;
+      exterior: {
+        externalFinishFinishingId: string;
+        externalFinishBrandId: string | null;
+        externalFinishClassification: string;
+      } | null;
+    }
+  ) => {
+    const ids = Array.from(
+      new Set(
+        lines
+          .flatMap((l) => l.units.map((u) => u.furnishedModelId))
+          .filter(Boolean) as string[]
+      )
+    );
+    if (!ids.length) return;
+    // NO CONFIRM. Pressing Apply IS the deliberate act — the controls do
+    // nothing until it is pressed — so a dialog asking the same question again
+    // only adds a click. The button says what it will do, and the figures
+    // reprice in front of you afterwards.
+    setCoreSaving(room);
+
+    // Mirror every API write into the browser's own copy. The editor syncs that
+    // copy to the server, so a change made only through the API is overwritten
+    // by the stale local record and disappears on reload — with no error.
+    const mirror = async (patch: Record<string, any>, partIds: string[]) => {
+      if (!partIds.length) return;
+      try {
+        const localDB = new LocalDBManager();
+        await localDB.initLocalDB();
+        await localDB.patchLocalRecords(
+          LocalDBObjectStores.FURNINSHED_MODEL_COMPONENT,
+          patch,
+          partIds
+        );
+      } catch (e) {
+        console.error("applyRoomCoreMaterial: local mirror failed", e);
+      }
+    };
+
+    let matched = 0;
+    let written = 0;
+    for (const id of ids) {
+      if (choice.core) {
+        // eslint-disable-next-line no-await-in-loop
+        const r = await FurnishedModelsService.updateAllParts(id, choice.core);
+        matched += r.matched;
+        written += r.written;
+        // eslint-disable-next-line no-await-in-loop
+        await mirror(choice.core, r.writtenIds);
+      }
+      if (choice.interior) {
+        // eslint-disable-next-line no-await-in-loop
+        const r = await FurnishedModelsService.updateAllParts(id, choice.interior);
+        matched += r.matched;
+        written += r.written;
+        // eslint-disable-next-line no-await-in-loop
+        await mirror(choice.interior, r.writtenIds);
+      }
+      if (choice.exterior) {
+        // EVERY MESH, which is what makes this the destructive one: the
+        // exterior is normally a per-mesh choice and this replaces all of them,
+        // including anything set in the 3D view. The dialog says so before it
+        // is pressed; the per-mesh editor below is how an exception is restored.
+        // eslint-disable-next-line no-await-in-loop
+        const r = await FurnishedModelsService.updateAllParts(id, choice.exterior);
+        matched += r.matched;
+        written += r.written;
+        // eslint-disable-next-line no-await-in-loop
+        await mirror(choice.exterior, r.writtenIds);
+      }
+    }
+    setCoreSaving(null);
+
+    if (!matched) {
+      alert(`No item in "${room}" has any parts recorded, so nothing changed.`);
+      return;
+    }
+    if (written < matched) {
+      alert(`Saved on ${written} of ${matched} parts. Please check the rest.`);
+    }
+
+    // REBUILD THE BILL, do not just redraw the header. Both the board and the
+    // lining carry a rate, so this changes every amount and every total under
+    // it — and those numbers are computed by the server from the saved parts.
+    // Leaving them stale would show the new material beside the old price.
+    await fetchData();
+  };
+
+  /**
+   * Write an exterior finish to ONE mesh.
+   *
+   * The narrowest write in the BOQ: one component, one field set, every other
+   * part of the item untouched.
+   *
+   * The browser's own copy is updated too. The editor syncs that copy to the
+   * server, so a change made only through the API is overwritten by the stale
+   * local record and disappears on reload — with no error anywhere.
+   */
+  const applyMeshFinish = async (
+    componentId: string,
+    choice: {
+      finishingId: string;
+      brandId: string | null;
+      classification: string;
+    }
+  ) => {
+    if (!componentId) return;
+    setMeshSaving(true);
+    const patch = {
+      externalFinishFinishingId: choice.finishingId,
+      externalFinishBrandId: choice.brandId,
+      externalFinishClassification: choice.classification,
+    };
+    const ok = await FurnishedModelsService.updateOnePart(componentId, patch);
+    if (ok) {
+      try {
+        const localDB = new LocalDBManager();
+        await localDB.initLocalDB();
+        await localDB.patchLocalRecords(
+          LocalDBObjectStores.FURNINSHED_MODEL_COMPONENT,
+          patch,
+          [componentId]
+        );
+      } catch (e) {
+        console.error("applyMeshFinish: local mirror failed", e);
+      }
+    }
+    setMeshSaving(false);
+    setMeshEdit(null);
+    if (!ok) {
+      alert("That finish could not be saved. Please try again.");
+      return;
+    }
+    // The exterior carries a rate, so this item's amount and every total above
+    // it move. Rebuild the bill from the server rather than relabelling the
+    // row, or the new material would sit beside the old price.
+    await fetchData();
   };
 
   const deleteDescription = (line: BoqLine) => {
@@ -1097,6 +1872,43 @@ const BoqTable: React.FC<BoqTableProps> = ({
                 thumbnail: item.model?.model?.thumbnail ?? "",
                 flag,
                 parts: item.parts || [],
+                // Read from the first part that carries each value: a room-level
+                // apply writes the same thing to every part, so the first part
+                // that has it speaks for the whole item.
+                applied: (() => {
+                  const comps: any[] = item.components || [];
+                  const core = comps.find((c: any) => c?.coreMaterialTypeId);
+                  const int = comps.find((c: any) => c?.internalFinishCategoryId);
+                  /**
+                   * THE OUTSIDE IS REPORTED ONLY WHEN EVERY MESH AGREES.
+                   *
+                   * Unlike the board and the lining, the exterior is a
+                   * per-mesh choice — a shutter in oak beside a plain carcass
+                   * — so "the first part that has one" would be wrong here: it
+                   * would show the dialog one mesh's finish as though it were
+                   * the whole unit's, and a careless Apply would then paint
+                   * that over the rest. One distinct value across the meshes
+                   * that carry any, or nothing.
+                   */
+                  const one = (field: string) => {
+                    const seen = new Set(
+                      comps.map((c: any) => c?.[field]).filter(Boolean)
+                    );
+                    return seen.size === 1 ? String(Array.from(seen)[0]) : "";
+                  };
+                  const extFinishId = one("externalFinishFinishingId");
+                  return {
+                    extFinishId,
+                    // A brand only means something beside the finish it
+                    // belongs to.
+                    extBrandId: extFinishId ? one("externalFinishBrandId") : "",
+                    typeId: core?.coreMaterialTypeId || "",
+                    brandId: core?.coreMaterialBrandId || "",
+                    grade: core?.coreMaterialGrade || "",
+                    intCatId: int?.internalFinishCategoryId || "",
+                    intBrandId: int?.internalFinishBrandId || "",
+                  };
+                })(),
                 otherCosts: item.otherCosts || [],
                 hardwareItems: item.hardwareItems || [],
                 furnishedModelId: item.model?._id,
@@ -1461,6 +2273,8 @@ const BoqTable: React.FC<BoqTableProps> = ({
                   const open =
                     forceExpand || !collapsedRooms.includes(group.room);
                   const RoomIcon = roomIconFor(group.room);
+                  // What the room is already made of is read by the dialog
+                  // itself — appliedMatFor, beside blankRoomMat.
                   return (
                     <div className="bq-room" key={index}>
                       <div
@@ -1473,31 +2287,56 @@ const BoqTable: React.FC<BoqTableProps> = ({
                           </span>
                           <span>{group.room || "Room"}</span>
                         </div>
+                        {/* ONE BUTTON, NOT SIX DROPDOWNS.
+                            The board, the lining and the outside finish each
+                            have their own cascade, and strung across the header
+                            they left no width for the room's figures — nor any
+                            for the exterior at all. They open in a dialog now.
+                            The click guard stops the header collapsing the room
+                            when the button is pressed. */}
+                        {hideActions ? null : (
+                          <button
+                            type="button"
+                            className="bq-room-mat"
+                            disabled={coreSaving === group.room}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setRoomModal(group.room);
+                            }}
+                          >
+                            {coreSaving === group.room
+                              ? "Applying…"
+                              : "Material configuration"}
+                          </button>
+                        )}
                         <div className="bq-room-stats">
-                          <span>Items: {lines.length}</span>
-                          <span className="bq-sep">|</span>
-                          <span>
-                            Qty:{" "}
-                            {formatQty(
-                              round2(lines.reduce((q, l) => q + l.qty, 0))
-                            )}
-                          </span>
-                          {roomArea > 0 ? (
-                            <>
-                              <span className="bq-sep">|</span>
-                              <span>Area: {plain(roomArea)} sq.ft</span>
-                            </>
-                          ) : null}
-                          <span className="bq-sep">|</span>
-                          <span>
-                            Amount: <b>{money(groupAmount(group))}</b>
-                          </span>
                           {forceExpand ? null : open ? (
                             <KeyboardArrowUpIcon style={{ fontSize: 18 }} />
                           ) : (
                             <KeyboardArrowDownIcon style={{ fontSize: 18 }} />
                           )}
                         </div>
+                      </div>
+                      {/* The room's figures, under the controls rather than
+                          beside them — see the note above. */}
+                      <div className="bq-room-figs">
+                        <span>Items: {lines.length}</span>
+                        <span className="bq-sep">|</span>
+                        <span>
+                          Qty:{" "}
+                          {formatQty(
+                            round2(lines.reduce((q, l) => q + l.qty, 0))
+                          )}
+                        </span>
+                        {roomArea > 0 ? (
+                          <>
+                            <span className="bq-sep">|</span>
+                            <span>Area: {plain(roomArea)} sq.ft</span>
+                          </>
+                        ) : null}
+                        <span className="bq-figs-amt">
+                          Amount: <b>{money(groupAmount(group))}</b>
+                        </span>
                       </div>
                       {open ? (
                         <table className="bq-table">
@@ -1691,7 +2530,82 @@ const BoqTable: React.FC<BoqTableProps> = ({
                                         </button>
                                       )}
                                     </td>
-                                    <td>{item.material || "—"}</td>
+                                    {/* MATERIAL — shown as chips, changed in place.
+                                        `item.material` arrives from the server as
+                                        "Type · Brand" strings, one per finish type on the
+                                        item. Split for display so each part of it reads as
+                                        the separate field it is. */}
+                                    <td
+                                      className="bq-mat"
+                                      onClick={(e) =>
+                                        !hideActions && e.stopPropagation()
+                                      }
+                                    >
+                                      {/* THE CELL ONLY EVER SHOWS. The editor
+                                          opens as its own full-width row below
+                                          — this column is 11% of the table, and
+                                          three dropdowns plus two buttons
+                                          squeezed into it spilled over Qty and
+                                          broke "Cancel" and "Apply" one letter
+                                          to a line. */}
+                                      <span className="bq-mat-view">
+                                        {item.material ? (
+                                          item.material
+                                            .split(";")
+                                            .map((part, pi) => {
+                                              // "Core: Plywood · Century · BWP"
+                                              // The side is set apart from the
+                                              // material it labels, so three
+                                              // chips on one row are told apart
+                                              // at a glance instead of being
+                                              // read word by word — and each
+                                              // gets its own colour, because
+                                              // "which one is the board" is the
+                                              // first question anyone asks of
+                                              // this column.
+                                              const txt = part.trim();
+                                              const at = txt.indexOf(": ");
+                                              const side =
+                                                at > 0 ? txt.slice(0, at) : "";
+                                              const rest =
+                                                at > 0 ? txt.slice(at + 2) : txt;
+                                              return (
+                                                <span
+                                                  className={`bq-chip${
+                                                    side
+                                                      ? ` bq-chip-${side.toLowerCase()}`
+                                                      : ""
+                                                  }`}
+                                                  key={pi}
+                                                  title={txt}
+                                                >
+                                                  {side ? (
+                                                    <b className="bq-chip-side">
+                                                      {side}
+                                                    </b>
+                                                  ) : null}
+                                                  {rest}
+                                                </span>
+                                              );
+                                            })
+                                        ) : (
+                                          <span className="bq-muted">—</span>
+                                        )}
+                                        {/* NO PER-ITEM EDIT HERE.
+                                            The exterior is a decision per MESH —
+                                            a shutter in oak, a side panel
+                                            laminated only where it is seen — and
+                                            an item-level control could only
+                                            write one finish to every part at
+                                            once, flattening that in a single
+                                            press. The core and the interior are
+                                            whole-unit choices and belong in the
+                                            room header; the exterior is changed
+                                            per mesh in the expanded row below.
+                                            This column REPORTS what the item
+                                            carries; nothing is edited from it. */}
+                                      </span>
+                                    </td>
                                     <td className="r">
                                       {isEditing ? (
                                         <input
@@ -1892,6 +2806,124 @@ const BoqTable: React.FC<BoqTableProps> = ({
                                                 Unit {ui + 1} of {line.units.length}
                                               </div>
                                             ) : null}
+
+                                            {/* THE MESHES THIS UNIT IS MADE OF.
+                                                Exterior only. Core and interior
+                                                are one choice for the whole unit,
+                                                made in the room header above —
+                                                a cabinet is not built from two
+                                                different boards, nor lined two
+                                                different ways.
+                                                The AREA is how you tell the
+                                                panels apart: the mesh names come
+                                                from the 3D file and say nothing,
+                                                so the 5.28 sq.ft row is the
+                                                shutter and the 0.03 sq.ft one is
+                                                a handle rail. */}
+                                            {(unit.parts || []).filter(
+                                              (pt: any) => pt && !pt.isHardware
+                                            ).length ? (
+                                              <table className="bq-mesh-tbl">
+                                                <thead>
+                                                  <tr>
+                                                    <th>Part</th>
+                                                    <th className="r">Area</th>
+                                                    <th>Exterior finish</th>
+                                                    <th className="r">Exterior</th>
+                                                    <th />
+                                                  </tr>
+                                                </thead>
+                                                <tbody>
+                                                  {(unit.parts || [])
+                                                    .filter(
+                                                      (pt: any) => pt && !pt.isHardware
+                                                    )
+                                                    .map((pt: any, pi: number) => (
+                                                      <React.Fragment
+                                                        key={pt._id || pi}
+                                                      >
+                                                        <tr>
+                                                          <td>{pt.name}</td>
+                                                          <td className="r">
+                                                            {plain(pt.area)} sq.ft
+                                                          </td>
+                                                          <td>
+                                                            {pt.exteriorRate ? (
+                                                              `${money(
+                                                                pt.exteriorRate
+                                                              )} / sq.ft`
+                                                            ) : (
+                                                              <span className="bq-muted">
+                                                                not finished
+                                                              </span>
+                                                            )}
+                                                          </td>
+                                                          <td className="r">
+                                                            {pt.exteriorCost
+                                                              ? money(pt.exteriorCost)
+                                                              : "-"}
+                                                          </td>
+                                                          <td className="r">
+                                                            {/* No id means the
+                                                                row can be shown
+                                                                but not changed —
+                                                                offering Edit
+                                                                would be a button
+                                                                that cannot work. */}
+                                                            {hideActions ||
+                                                            !pt._id ? null : (
+                                                              <button
+                                                                type="button"
+                                                                className="bq-link"
+                                                                onClick={() =>
+                                                                  setMeshEdit(
+                                                                    meshEdit === pt._id
+                                                                      ? null
+                                                                      : pt._id
+                                                                  )
+                                                                }
+                                                              >
+                                                                {meshEdit === pt._id
+                                                                  ? "Close"
+                                                                  : "Edit"}
+                                                              </button>
+                                                            )}
+                                                          </td>
+                                                        </tr>
+                                                        {meshEdit === pt._id ? (
+                                                          <tr>
+                                                            <td colSpan={5}>
+                                                              <MeshFinishPicker
+                                                                label={`${
+                                                                  pt.name
+                                                                } - ${plain(
+                                                                  pt.area
+                                                                )} sq.ft`}
+                                                                busy={meshSaving}
+                                                                currentFinishingId={
+                                                                  pt.externalFinishFinishingId
+                                                                }
+                                                                currentBrandId={
+                                                                  pt.externalFinishBrandId
+                                                                }
+                                                                onCancel={() =>
+                                                                  setMeshEdit(null)
+                                                                }
+                                                                onApply={(choice) => {
+                                                                  void applyMeshFinish(
+                                                                    pt._id,
+                                                                    choice
+                                                                  );
+                                                                }}
+                                                              />
+                                                            </td>
+                                                          </tr>
+                                                        ) : null}
+                                                      </React.Fragment>
+                                                    ))}
+                                                </tbody>
+                                              </table>
+                                            ) : null}
                                             <div className="bq-install">
                                               <input
                                                 type="checkbox"
@@ -1981,6 +3013,76 @@ const BoqTable: React.FC<BoqTableProps> = ({
                 });
               })()}
             </div>
+            {/* Mounted once, outside the room loop: a dialog belongs to the
+                page, not to a row that may re-render under it mid-choice. */}
+            {roomModal
+              ? (() => {
+                  const g = groupedData.find((x) => x.room === roomModal);
+                  const roomLines = g
+                    ? buildLines(g.items).filter((l) => !l.excluded)
+                    : [];
+                  // The room's own material until someone touches a field;
+                  // their choice then takes over for as long as it is open.
+                  const value = roomMat[roomModal] || appliedMatFor(roomLines);
+                  return (
+                    <RoomMaterialModal
+                      room={roomModal}
+                      items={roomLines.length}
+                      busy={coreSaving === roomModal}
+                      value={value}
+                      onChange={(next) =>
+                        setRoomMat((prev) => ({ ...prev, [roomModal]: next }))
+                      }
+                      onCancel={() => setRoomModal(null)}
+                      onApply={() => {
+                        void applyRoomCoreMaterial(roomModal, roomLines, {
+                          // Each section is written only when it is TICKED and
+                          // filled in. An unticked section is sent as null and
+                          // applyRoomCoreMaterial skips it entirely — no write,
+                          // not even of the values it already has.
+                          core:
+                            value.applyCore && value.typeId && value.brandId
+                              ? {
+                                  coreMaterialTypeId: value.typeId,
+                                  coreMaterialBrandId: value.brandId,
+                                  coreMaterialGrade: value.grade,
+                                }
+                              : null,
+                          interior: value.applyInt && value.intCatId
+                            ? {
+                                internalFinishCategoryId: value.intCatId,
+                                // "" would be stored as an empty string and
+                                // never match a rate lookup; null means "any
+                                // brand", which is a real rate row.
+                                internalFinishBrandId: value.intBrandId || null,
+                                internalFinishClassification: "",
+                              }
+                            : null,
+                          exterior: value.applyExt && value.extFinishId
+                            ? {
+                                externalFinishFinishingId: value.extFinishId,
+                                externalFinishBrandId: value.extBrandId || null,
+                                externalFinishClassification: "",
+                              }
+                            : null,
+                        }).then(() => {
+                          // Forget this room's draft, ticks included. Kept, it
+                          // would reopen with the same sections already
+                          // ticked, and the next "Apply to all" would rewrite
+                          // them without anyone having chosen to. It reopens
+                          // from what the room actually has, unticked.
+                          setRoomMat((prev) => {
+                            const next = { ...prev };
+                            delete next[roomModal];
+                            return next;
+                          });
+                          setRoomModal(null);
+                        });
+                      }}
+                    />
+                  );
+                })()
+              : null}
             <div className="gsw-totals">
               <div className="gsw-breakdown">
                 <div className="gsw-tl">

@@ -1,0 +1,3384 @@
+{
+ "at": "2026-10-08T09:24:41.921Z",
+ "categoryIds": [
+  "3a184612-aa4b-4704-99b0-0f6c00ee4650",
+  "bfc6cce0-e6b6-44d4-a1e5-1a577c047af7",
+  "ad99c405-a437-4bf0-a286-4b31a769a35e",
+  "09589147-3797-4ba5-8d71-174a885f8426",
+  "e887ca93-eef5-4346-9e7a-638d21f55cd1",
+  "28f76039-7a32-4caf-a813-a1cb19080214",
+  "8929a435-9b3c-4774-a708-07d1d237e251",
+  "7886c007-35f6-4afe-9775-c5611c97dd91",
+  "461498a4-4de1-4eb8-ac1f-31d92570440f",
+  "5ba3f6e9-9b59-46df-b684-d2c0be5c8bff"
+ ],
+ "materials": [
+  {
+   "_id": "7f9535c4-e07d-4621-8b43-e9ea64bcc509",
+   "categoryId": "0c613615-9fee-45b4-818f-baaabb504429",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/27151.png"
+   }
+  },
+  {
+   "_id": "e19ea4b3-95f2-4e36-8a3f-389394949f56",
+   "categoryId": "0c613615-9fee-45b4-818f-baaabb504429",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/27131.png"
+   }
+  },
+  {
+   "_id": "c76217dc-1aa5-4b1f-9b51-cd9d48a43a88",
+   "categoryId": "0c613615-9fee-45b4-818f-baaabb504429",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/27111.png"
+   }
+  },
+  {
+   "_id": "857a74e1-c855-402d-be8f-d830cf621810",
+   "categoryId": "0c613615-9fee-45b4-818f-baaabb504429",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/27121.png"
+   }
+  },
+  {
+   "_id": "69504488-40ab-45f4-b0b8-f1b0ea0b1e36",
+   "categoryId": "0c613615-9fee-45b4-818f-baaabb504429",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/27249.png"
+   }
+  },
+  {
+   "_id": "d1e83cd9-528e-4117-b57a-6588141f34d5",
+   "categoryId": "0c613615-9fee-45b4-818f-baaabb504429",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/27181.png"
+   }
+  },
+  {
+   "_id": "0f36c054-5796-488f-bea9-d826fb8885be",
+   "categoryId": "0c613615-9fee-45b4-818f-baaabb504429",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/37313.jpeg"
+   }
+  },
+  {
+   "_id": "785f1357-de9e-4481-8c7d-ccbd8e7e80dc",
+   "categoryId": "0c613615-9fee-45b4-818f-baaabb504429",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/37311.jpeg"
+   }
+  },
+  {
+   "_id": "3faa1628-83c2-46f2-a914-e33d64e9c988",
+   "categoryId": "0c613615-9fee-45b4-818f-baaabb504429",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/37312.jpeg"
+   }
+  },
+  {
+   "_id": "de9cd3ab-c729-47e0-b846-3ae3be959156",
+   "categoryId": "0c613615-9fee-45b4-818f-baaabb504429",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/37305.jpeg"
+   }
+  },
+  {
+   "_id": "2e5afd45-0267-45ad-a74a-2cd45d83b732",
+   "categoryId": "0c613615-9fee-45b4-818f-baaabb504429",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/37301.jpeg"
+   }
+  },
+  {
+   "_id": "d6d3df54-506f-4f36-a47c-512bb33547a7",
+   "categoryId": "0c613615-9fee-45b4-818f-baaabb504429",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/37326.jpeg"
+   }
+  },
+  {
+   "_id": "3cdacba4-8714-44a3-974e-371033692be9",
+   "categoryId": "0c613615-9fee-45b4-818f-baaabb504429",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/37325.jpeg"
+   }
+  },
+  {
+   "_id": "6f2fed4d-278e-4567-afb5-a31a9d1ca65d",
+   "categoryId": "0c613615-9fee-45b4-818f-baaabb504429",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/37307.jpeg"
+   }
+  },
+  {
+   "_id": "b8a4857d-3e18-4bb1-b1d9-a773740f70cf",
+   "categoryId": "0c613615-9fee-45b4-818f-baaabb504429",
+   "texture": {
+    "fileUrl": ""
+   }
+  },
+  {
+   "_id": "c4246537-398e-4926-982c-4431c501d018",
+   "categoryId": "0c613615-9fee-45b4-818f-baaabb504429",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/37382.jpeg"
+   }
+  },
+  {
+   "_id": "f38d94dd-74ad-455b-b733-24a972fe6823",
+   "categoryId": "0c613615-9fee-45b4-818f-baaabb504429",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/37383.png"
+   }
+  },
+  {
+   "_id": "1f1ffdec-e270-49cb-a6ae-65ce4f0fbdc9",
+   "categoryId": "0c613615-9fee-45b4-818f-baaabb504429",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/37377.jpeg"
+   }
+  },
+  {
+   "_id": "e3fea57a-a75e-4484-8f49-4c2206da4df0",
+   "categoryId": "0c613615-9fee-45b4-818f-baaabb504429",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/37378.jpeg"
+   }
+  },
+  {
+   "_id": "22218726-9f3c-414b-828f-1a6da2be7295",
+   "categoryId": "0c613615-9fee-45b4-818f-baaabb504429",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/27209.png"
+   }
+  },
+  {
+   "_id": "39195ecd-6aa4-4f02-ac5e-051e967839db",
+   "categoryId": "0c613615-9fee-45b4-818f-baaabb504429",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/27189.png"
+   }
+  },
+  {
+   "_id": "e55d4ceb-c711-4280-acb9-4a768bd32e26",
+   "categoryId": "0c613615-9fee-45b4-818f-baaabb504429",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/27272.png"
+   }
+  },
+  {
+   "_id": "6b5e93e8-feb7-4e5c-8a8b-d70bda2c8853",
+   "categoryId": "0c613615-9fee-45b4-818f-baaabb504429",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/27247.png"
+   }
+  },
+  {
+   "_id": "7d7d2619-7a56-4b65-a23f-3243d2b1ddc3",
+   "categoryId": "0c613615-9fee-45b4-818f-baaabb504429",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/27292.png"
+   }
+  },
+  {
+   "_id": "00d3f34a-4761-4cbc-a62e-858768df7fa1",
+   "categoryId": "0c613615-9fee-45b4-818f-baaabb504429",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/27184.png"
+   }
+  },
+  {
+   "_id": "3dc82809-642f-4174-986a-1e3d4e651329",
+   "categoryId": "0c613615-9fee-45b4-818f-baaabb504429",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/27127.png"
+   }
+  },
+  {
+   "_id": "3844fc3c-9772-4b37-82ad-c8245935dba8",
+   "categoryId": "0c613615-9fee-45b4-818f-baaabb504429",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/27112.png"
+   }
+  },
+  {
+   "_id": "8f6eb562-be3d-406b-a45c-37d266ae465d",
+   "categoryId": "0c613615-9fee-45b4-818f-baaabb504429",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/27132.png"
+   }
+  },
+  {
+   "_id": "94de1383-787c-4240-95a0-7929928b4879",
+   "categoryId": "0c613615-9fee-45b4-818f-baaabb504429",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/27172.png"
+   }
+  },
+  {
+   "_id": "54475eb4-7bb1-4921-9599-45d26e66647a",
+   "categoryId": "0c613615-9fee-45b4-818f-baaabb504429",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/27252.png"
+   }
+  },
+  {
+   "_id": "c16298a0-9948-4e82-a009-c29bb0c0a796",
+   "categoryId": "0c613615-9fee-45b4-818f-baaabb504429",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/27175.png"
+   }
+  },
+  {
+   "_id": "fde0408a-8bd1-4f6b-94f0-b06cfb8f75fc",
+   "categoryId": "0c613615-9fee-45b4-818f-baaabb504429",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/27107.png"
+   }
+  },
+  {
+   "_id": "8f85e4f9-5d88-47a4-a8f3-a6dff7acd545",
+   "categoryId": "0c613615-9fee-45b4-818f-baaabb504429",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/27185.png"
+   }
+  },
+  {
+   "_id": "138ac7c5-8ca0-4691-84b6-48c231b16607",
+   "categoryId": "0c613615-9fee-45b4-818f-baaabb504429",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/27108.png"
+   }
+  },
+  {
+   "_id": "aad1c8cc-5ae7-4f4f-96e8-a38490b15eb3",
+   "categoryId": "0c613615-9fee-45b4-818f-baaabb504429",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/27143.png"
+   }
+  },
+  {
+   "_id": "9d4cca1c-0d0b-4403-b7bf-9f922544fdb8",
+   "categoryId": "0c613615-9fee-45b4-818f-baaabb504429",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/27153.png"
+   }
+  },
+  {
+   "_id": "52d86a95-3680-4993-a2c4-cc4d2b973315",
+   "categoryId": "0c613615-9fee-45b4-818f-baaabb504429",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/27167.png"
+   }
+  },
+  {
+   "_id": "73727459-572c-4266-991d-c995dedf8305",
+   "categoryId": "0c613615-9fee-45b4-818f-baaabb504429",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/27113.png"
+   }
+  },
+  {
+   "_id": "45c9ecf7-7249-4f8a-816b-cccb8e1c16a0",
+   "categoryId": "0c613615-9fee-45b4-818f-baaabb504429",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/27164.png"
+   }
+  },
+  {
+   "_id": "66cc5dff-8a17-4cd3-a9eb-3958b7410471",
+   "categoryId": "0c613615-9fee-45b4-818f-baaabb504429",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/27169.png"
+   }
+  },
+  {
+   "_id": "82397b3d-7ea6-4431-baf9-db3265a8ab21",
+   "categoryId": "0c613615-9fee-45b4-818f-baaabb504429",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/27183.png"
+   }
+  },
+  {
+   "_id": "ef39e551-fde2-4bc5-a36e-06b0dbb5b394",
+   "categoryId": "0c613615-9fee-45b4-818f-baaabb504429",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/27173.png"
+   }
+  },
+  {
+   "_id": "8ea29b09-fdfa-482f-a4fa-665a9367b84a",
+   "categoryId": "0c613615-9fee-45b4-818f-baaabb504429",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/27139.png"
+   }
+  },
+  {
+   "_id": "31177808-4f4d-4bbf-a12f-db778e31359c",
+   "categoryId": "0c613615-9fee-45b4-818f-baaabb504429",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/27106.png"
+   }
+  },
+  {
+   "_id": "547b2a0e-2c7d-4919-a618-40097dc23d6c",
+   "categoryId": "0c613615-9fee-45b4-818f-baaabb504429",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/27179.png"
+   }
+  },
+  {
+   "_id": "986e50ed-28c3-4156-9829-687fb88b39ff",
+   "categoryId": "0c613615-9fee-45b4-818f-baaabb504429",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/27282.png"
+   }
+  },
+  {
+   "_id": "aba32c6c-faf5-4722-bdfd-24692a3b9cfc",
+   "categoryId": "0c613615-9fee-45b4-818f-baaabb504429",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/27262.png"
+   }
+  },
+  {
+   "_id": "cff92d9e-8478-4c29-bcd6-c0cb24d4da18",
+   "categoryId": "0c613615-9fee-45b4-818f-baaabb504429",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/85106.png"
+   }
+  },
+  {
+   "_id": "1b690672-4e17-47e3-99af-bbaa8416fcc1",
+   "categoryId": "0c613615-9fee-45b4-818f-baaabb504429",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/85105.png"
+   }
+  },
+  {
+   "_id": "ea8d100c-5a09-4256-adc2-ccbe1a3643f0",
+   "categoryId": "0c613615-9fee-45b4-818f-baaabb504429",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/85103.png"
+   }
+  },
+  {
+   "_id": "f3a36799-1957-4c9a-afc9-3ffc6684f75a",
+   "categoryId": "0c613615-9fee-45b4-818f-baaabb504429",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/85104.png"
+   }
+  },
+  {
+   "_id": "08f058d0-c681-464c-9fac-e8b96c0dd432",
+   "categoryId": "0c613615-9fee-45b4-818f-baaabb504429",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/85117.png"
+   }
+  },
+  {
+   "_id": "6811fdae-801b-4800-bdc7-5a446bab439b",
+   "categoryId": "0c613615-9fee-45b4-818f-baaabb504429",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/85107.png"
+   }
+  },
+  {
+   "_id": "7007d9d0-ae5d-4b75-8b41-6e3a2c083e19",
+   "categoryId": "0c613615-9fee-45b4-818f-baaabb504429",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/85111.png"
+   }
+  },
+  {
+   "_id": "0286d37d-66ee-4bf2-8c0d-bee0ca290a08",
+   "categoryId": "0c613615-9fee-45b4-818f-baaabb504429",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/85112.png"
+   }
+  },
+  {
+   "_id": "c404de75-94c2-4808-9283-8778de1b55e1",
+   "categoryId": "0c613615-9fee-45b4-818f-baaabb504429",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/85110.png"
+   }
+  },
+  {
+   "_id": "e64a4f72-4652-4d13-aeb6-3cc5ecbe9f9d",
+   "categoryId": "0c613615-9fee-45b4-818f-baaabb504429",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/85109.png"
+   }
+  },
+  {
+   "_id": "7ce3a519-a9c5-499f-af6b-c6719905edb6",
+   "categoryId": "0c613615-9fee-45b4-818f-baaabb504429",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/85108.png"
+   }
+  },
+  {
+   "_id": "a3ee400d-86a2-4cdb-8a24-dced79365f24",
+   "categoryId": "0c613615-9fee-45b4-818f-baaabb504429",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/85113.png"
+   }
+  },
+  {
+   "_id": "7dbb5d43-c4ed-4f7f-836b-90336be1aa7b",
+   "categoryId": "0c613615-9fee-45b4-818f-baaabb504429",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/85114.png"
+   }
+  },
+  {
+   "_id": "f37dea7b-7ccf-4064-b2db-3327ed8825a8",
+   "categoryId": "0c613615-9fee-45b4-818f-baaabb504429",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/85116.png"
+   }
+  },
+  {
+   "_id": "210e733a-a4e7-4a5b-b7eb-426436a1d5fd",
+   "categoryId": "0c613615-9fee-45b4-818f-baaabb504429",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/85115.png"
+   }
+  },
+  {
+   "_id": "44b02c64-b862-4833-8294-94e3d7da11d4",
+   "categoryId": "0c613615-9fee-45b4-818f-baaabb504429",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/21362.png"
+   }
+  },
+  {
+   "_id": "57e8fd98-50ce-45c4-9eb3-9876755f7eea",
+   "categoryId": "0c613615-9fee-45b4-818f-baaabb504429",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/22174.png"
+   }
+  },
+  {
+   "_id": "dfc4a69c-5fdc-4490-959a-2bd5bb0c7f89",
+   "categoryId": "0c613615-9fee-45b4-818f-baaabb504429",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/22109.png"
+   }
+  },
+  {
+   "_id": "bae95f25-bfc8-40d6-8c68-22feb5c3be11",
+   "categoryId": "0c613615-9fee-45b4-818f-baaabb504429",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/14039.png"
+   }
+  },
+  {
+   "_id": "9e84732d-82b5-4f90-b6fa-0f81655eca99",
+   "categoryId": "0c613615-9fee-45b4-818f-baaabb504429",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/46246.png"
+   }
+  },
+  {
+   "_id": "826d3782-7162-432d-904f-1c486c048d0c",
+   "categoryId": "0c613615-9fee-45b4-818f-baaabb504429",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/46247.png"
+   }
+  },
+  {
+   "_id": "99c4043a-aa91-4690-a216-52acc948c2ca",
+   "categoryId": "0c613615-9fee-45b4-818f-baaabb504429",
+   "texture": {
+    "fileUrl": ""
+   }
+  },
+  {
+   "_id": "468526af-4596-4d82-9969-adde95cbe022",
+   "categoryId": "0c613615-9fee-45b4-818f-baaabb504429",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/46249.jpeg"
+   }
+  },
+  {
+   "_id": "e30eca31-74e5-4139-a404-7e6b832524cc",
+   "categoryId": "0c613615-9fee-45b4-818f-baaabb504429",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/49937.png"
+   }
+  },
+  {
+   "_id": "d0c3936c-8078-43c7-8c12-6a6980cb235a",
+   "categoryId": "0c613615-9fee-45b4-818f-baaabb504429",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/49936.jpeg"
+   }
+  },
+  {
+   "_id": "4e11deaa-03c3-4477-923f-e2f49ddb4803",
+   "categoryId": "0c613615-9fee-45b4-818f-baaabb504429",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/21061.png"
+   }
+  },
+  {
+   "_id": "92885d54-7cf6-4c7b-8804-dfde4cb94677",
+   "categoryId": "0c613615-9fee-45b4-818f-baaabb504429",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/21103.png"
+   }
+  },
+  {
+   "_id": "69c7e742-b8a4-4510-ade7-6e833e92b1ee",
+   "categoryId": "0c613615-9fee-45b4-818f-baaabb504429",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/22122.png"
+   }
+  },
+  {
+   "_id": "27e361c2-1035-463b-a346-fb608a34e256",
+   "categoryId": "0c613615-9fee-45b4-818f-baaabb504429",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/21138.png"
+   }
+  },
+  {
+   "_id": "0ba886ab-4f91-4e92-8fea-38e075fa52f7",
+   "categoryId": "0c613615-9fee-45b4-818f-baaabb504429",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/21125.png"
+   }
+  },
+  {
+   "_id": "8b9ae1f2-a84b-4316-b9bf-4786e464ad8d",
+   "categoryId": "0c613615-9fee-45b4-818f-baaabb504429",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/22157.png"
+   }
+  },
+  {
+   "_id": "cc78def3-ef2a-4cfe-b69a-e0b623a9c3be",
+   "categoryId": "0c613615-9fee-45b4-818f-baaabb504429",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/22017.png"
+   }
+  },
+  {
+   "_id": "b567ffcc-9ec4-42e6-bdcb-ab2d2f1d6f1b",
+   "categoryId": "0c613615-9fee-45b4-818f-baaabb504429",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/14033.jpeg"
+   }
+  },
+  {
+   "_id": "3d9a253f-8d72-4c3a-ab21-59fdf5fa629a",
+   "categoryId": "0c613615-9fee-45b4-818f-baaabb504429",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/16035.jpeg"
+   }
+  },
+  {
+   "_id": "736d6d16-84ec-4eca-a8fe-ff9b62ba8006",
+   "categoryId": "0c613615-9fee-45b4-818f-baaabb504429",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/14032.jpeg"
+   }
+  },
+  {
+   "_id": "58cc76c5-88ab-44b8-9b1b-f08ab0249bef",
+   "categoryId": "0c613615-9fee-45b4-818f-baaabb504429",
+   "texture": {
+    "fileUrl": ""
+   }
+  },
+  {
+   "_id": "f7cbd57c-2a65-436c-8018-180ed75fea70",
+   "categoryId": "0c613615-9fee-45b4-818f-baaabb504429",
+   "texture": {
+    "fileUrl": ""
+   }
+  },
+  {
+   "_id": "36f3cc54-c4dd-4c6f-b2af-90f15b866564",
+   "categoryId": "0c613615-9fee-45b4-818f-baaabb504429",
+   "texture": {
+    "fileUrl": ""
+   }
+  },
+  {
+   "_id": "0ab0a8fa-e971-4779-ba6f-60779dff11d5",
+   "categoryId": "0c613615-9fee-45b4-818f-baaabb504429",
+   "texture": {
+    "fileUrl": ""
+   }
+  },
+  {
+   "_id": "e7356a53-0d3c-4155-8b52-4f24e91fea9a",
+   "categoryId": "0c613615-9fee-45b4-818f-baaabb504429",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/21091.png"
+   }
+  },
+  {
+   "_id": "02b22d9c-a6d1-4669-ada1-4d6755ffbe30",
+   "categoryId": "0c613615-9fee-45b4-818f-baaabb504429",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/22107.png"
+   }
+  },
+  {
+   "_id": "8286ce53-714b-4611-9d5a-f176700266d4",
+   "categoryId": "0c613615-9fee-45b4-818f-baaabb504429",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/21162.png"
+   }
+  },
+  {
+   "_id": "76d197a4-d81a-4a1c-86b1-974ccf48f1e7",
+   "categoryId": "0c613615-9fee-45b4-818f-baaabb504429",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/22099.png"
+   }
+  },
+  {
+   "_id": "ba99c0b9-6a43-40ef-bfac-ef7e4e45f288",
+   "categoryId": "0c613615-9fee-45b4-818f-baaabb504429",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/21302.png"
+   }
+  },
+  {
+   "_id": "d0569f27-9ffe-4bb3-9789-264c9acdc106",
+   "categoryId": "0c613615-9fee-45b4-818f-baaabb504429",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/21352.png"
+   }
+  },
+  {
+   "_id": "0961b3a4-c194-4cd8-9ef2-9d6bb5159006",
+   "categoryId": "0c613615-9fee-45b4-818f-baaabb504429",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/22062.png"
+   }
+  },
+  {
+   "_id": "1acd2250-f46c-4ed3-8c54-8d6f62a79b35",
+   "categoryId": "0c613615-9fee-45b4-818f-baaabb504429",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/22091.png"
+   }
+  },
+  {
+   "_id": "09b8dfd2-549f-4f10-9584-26a4dd98eae3",
+   "categoryId": "0c613615-9fee-45b4-818f-baaabb504429",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/22119.png"
+   }
+  },
+  {
+   "_id": "1bc8a1de-6013-4c41-9ca5-46a8ffd40dd2",
+   "categoryId": "0c613615-9fee-45b4-818f-baaabb504429",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/22059.png"
+   }
+  },
+  {
+   "_id": "2e1d0b24-ac02-4233-aa35-3fb9170d1727",
+   "categoryId": "0c613615-9fee-45b4-818f-baaabb504429",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/21069.png"
+   }
+  },
+  {
+   "_id": "51431ef5-2665-4bdf-bd4d-2e534a9e4169",
+   "categoryId": "0c613615-9fee-45b4-818f-baaabb504429",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/21066.png"
+   }
+  },
+  {
+   "_id": "378f863b-fe61-4617-b697-d54c3cd15523",
+   "categoryId": "0c613615-9fee-45b4-818f-baaabb504429",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/21187.png"
+   }
+  },
+  {
+   "_id": "ca5382f9-7001-43ac-99e6-afd58791089d",
+   "categoryId": "0c613615-9fee-45b4-818f-baaabb504429",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/21039.png"
+   }
+  },
+  {
+   "_id": "d12fd215-90fc-4cc3-a2ed-e2bbb552df4a",
+   "categoryId": "0c613615-9fee-45b4-818f-baaabb504429",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/21028.png"
+   }
+  },
+  {
+   "_id": "13a6f225-9e4b-43fb-aa77-cf7390dff0ee",
+   "categoryId": "0c613615-9fee-45b4-818f-baaabb504429",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/21055.png"
+   }
+  },
+  {
+   "_id": "10cf7682-fa5a-4c07-b4fe-9321a67e73e0",
+   "categoryId": "0c613615-9fee-45b4-818f-baaabb504429",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/21127.png"
+   }
+  },
+  {
+   "_id": "bf083758-cd80-4afa-adc1-0cf1d50a4963",
+   "categoryId": "0c613615-9fee-45b4-818f-baaabb504429",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/21077.png"
+   }
+  },
+  {
+   "_id": "5e1a847d-e442-4c11-ad0e-13110d45729c",
+   "categoryId": "0c613615-9fee-45b4-818f-baaabb504429",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/21941.png"
+   }
+  },
+  {
+   "_id": "2755ebe5-5bc5-46e6-9278-1038fe6f6de5",
+   "categoryId": "0c613615-9fee-45b4-818f-baaabb504429",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/46022.jpeg"
+   }
+  },
+  {
+   "_id": "6f224b55-b237-492c-838d-c60e6ee57f45",
+   "categoryId": "0c613615-9fee-45b4-818f-baaabb504429",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/46021.jpeg"
+   }
+  },
+  {
+   "_id": "957ee6f0-b904-4333-9eb1-758424030546",
+   "categoryId": "0c613615-9fee-45b4-818f-baaabb504429",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/46024.jpeg"
+   }
+  },
+  {
+   "_id": "735f4d41-0119-447a-9c2a-7599efe2d6a0",
+   "categoryId": "0c613615-9fee-45b4-818f-baaabb504429",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/10510.jpeg"
+   }
+  },
+  {
+   "_id": "6b921b4b-2960-4602-8ad9-c03d6ce43dfa",
+   "categoryId": "0c613615-9fee-45b4-818f-baaabb504429",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/10841.jpeg"
+   }
+  },
+  {
+   "_id": "f7a2cb1c-fd50-4e00-8623-c467ec7f0b25",
+   "categoryId": "0c613615-9fee-45b4-818f-baaabb504429",
+   "texture": {
+    "fileUrl": ""
+   }
+  },
+  {
+   "_id": "be19bba7-0c51-46d2-820e-51339a579fd0",
+   "categoryId": "0c613615-9fee-45b4-818f-baaabb504429",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/10803.jpeg"
+   }
+  },
+  {
+   "_id": "ea838b4f-b75d-41f1-8bd8-581c6322cfc0",
+   "categoryId": "0c613615-9fee-45b4-818f-baaabb504429",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/14538.jpeg"
+   }
+  },
+  {
+   "_id": "3ffa996e-aefb-43dc-b253-9a471b2cfc0d",
+   "categoryId": "0c613615-9fee-45b4-818f-baaabb504429",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/14037.jpeg"
+   }
+  },
+  {
+   "_id": "e32cc116-a56f-456b-8b3d-e7cef8818908",
+   "categoryId": "0c613615-9fee-45b4-818f-baaabb504429",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/14036.jpeg"
+   }
+  },
+  {
+   "_id": "f58d274b-c5c7-4a8f-940c-febf7d795411",
+   "categoryId": "0c613615-9fee-45b4-818f-baaabb504429",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/14026.jpeg"
+   }
+  },
+  {
+   "_id": "2ab7219d-9a78-4dcd-b7d6-07e2f8751f67",
+   "categoryId": "0c613615-9fee-45b4-818f-baaabb504429",
+   "texture": {
+    "fileUrl": ""
+   }
+  },
+  {
+   "_id": "6209da30-3d1b-4655-bef2-22b05b2a0313",
+   "categoryId": "0c613615-9fee-45b4-818f-baaabb504429",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/16040.jpeg"
+   }
+  },
+  {
+   "_id": "415157f1-3318-4267-8b28-754c729e34a7",
+   "categoryId": "0e59600b-0d4e-44b7-a4af-862595966047",
+   "texture": {
+    "fileUrl": ""
+   }
+  },
+  {
+   "_id": "baeb27f3-f40b-460b-9002-405f8822d56b",
+   "categoryId": "0e59600b-0d4e-44b7-a4af-862595966047",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/99998.jpeg"
+   }
+  },
+  {
+   "_id": "402d68cd-4697-4003-8dbc-eea2bd035fd0",
+   "categoryId": "0e59600b-0d4e-44b7-a4af-862595966047",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/99988.jpeg"
+   }
+  },
+  {
+   "_id": "728e4fc0-9bba-4ba3-bfcb-971d4b290e4f",
+   "categoryId": "0e59600b-0d4e-44b7-a4af-862595966047",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/99999.jpeg"
+   }
+  },
+  {
+   "_id": "3475cb2a-2770-422a-90b4-2ed687e4d9d8",
+   "categoryId": "0e59600b-0d4e-44b7-a4af-862595966047",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/99989.png"
+   }
+  },
+  {
+   "_id": "082cf1c2-f241-4c0f-ad54-45eb9802f733",
+   "categoryId": "0e59600b-0d4e-44b7-a4af-862595966047",
+   "texture": {
+    "fileUrl": ""
+   }
+  },
+  {
+   "_id": "d86a11ab-e303-4d61-b1b3-2fed035022de",
+   "categoryId": "0e59600b-0d4e-44b7-a4af-862595966047",
+   "texture": {
+    "fileUrl": ""
+   }
+  },
+  {
+   "_id": "aba9ff9e-875b-4cd8-93ec-763c1bd17d47",
+   "categoryId": "0e59600b-0d4e-44b7-a4af-862595966047",
+   "texture": {
+    "fileUrl": ""
+   }
+  },
+  {
+   "_id": "46f96c3a-c8df-4577-82c3-aa8a370bd69c",
+   "categoryId": "0e59600b-0d4e-44b7-a4af-862595966047",
+   "texture": {
+    "fileUrl": ""
+   }
+  },
+  {
+   "_id": "638fbd42-57f7-4b18-bca6-dcb2a56ae4d3",
+   "categoryId": "eff24cce-7d01-4b6b-b0d6-12a5c683750d",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/16031.jpeg"
+   }
+  },
+  {
+   "_id": "c9d5ffcb-6439-4697-b4e2-48734dcb40ea",
+   "categoryId": "eff24cce-7d01-4b6b-b0d6-12a5c683750d",
+   "texture": {
+    "fileUrl": ""
+   }
+  },
+  {
+   "_id": "11bab9c9-f21f-49eb-8729-b205a297f715",
+   "categoryId": "eff24cce-7d01-4b6b-b0d6-12a5c683750d",
+   "texture": {
+    "fileUrl": ""
+   }
+  },
+  {
+   "_id": "d5906698-6de1-4670-a768-8752f370d7e0",
+   "categoryId": "eff24cce-7d01-4b6b-b0d6-12a5c683750d",
+   "texture": {
+    "fileUrl": ""
+   }
+  },
+  {
+   "_id": "f6e78655-05bc-4cad-be44-4c43708f56a0",
+   "categoryId": "eff24cce-7d01-4b6b-b0d6-12a5c683750d",
+   "texture": {
+    "fileUrl": ""
+   }
+  },
+  {
+   "_id": "38dbb391-eab7-4f05-b846-1ce9d180bff4",
+   "categoryId": "eff24cce-7d01-4b6b-b0d6-12a5c683750d",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/14668.jpeg"
+   }
+  },
+  {
+   "_id": "01b5e4e1-6ceb-481d-94a7-917340f5a6c9",
+   "categoryId": "eff24cce-7d01-4b6b-b0d6-12a5c683750d",
+   "texture": {
+    "fileUrl": ""
+   }
+  },
+  {
+   "_id": "e2d118b8-3c3f-4642-a4e3-9a02b0a68da7",
+   "categoryId": "eff24cce-7d01-4b6b-b0d6-12a5c683750d",
+   "texture": {
+    "fileUrl": ""
+   }
+  },
+  {
+   "_id": "a1c82ab1-868c-4dd5-ae42-349c72b0883c",
+   "categoryId": "eff24cce-7d01-4b6b-b0d6-12a5c683750d",
+   "texture": {
+    "fileUrl": ""
+   }
+  },
+  {
+   "_id": "5a3711c7-1220-4515-946c-47f1fdf34a97",
+   "categoryId": "eff24cce-7d01-4b6b-b0d6-12a5c683750d",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/14190.jpeg"
+   }
+  },
+  {
+   "_id": "b194ce43-5d36-46dd-b222-3b2c0ae0c9c7",
+   "categoryId": "eff24cce-7d01-4b6b-b0d6-12a5c683750d",
+   "texture": {
+    "fileUrl": ""
+   }
+  },
+  {
+   "_id": "904b004d-abe3-4891-ae84-1e3cfbe13a40",
+   "categoryId": "eff24cce-7d01-4b6b-b0d6-12a5c683750d",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/14183.jpeg"
+   }
+  },
+  {
+   "_id": "109239f1-ee01-4622-b7cb-4d022a1d9e1f",
+   "categoryId": "eff24cce-7d01-4b6b-b0d6-12a5c683750d",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/40268.jpeg"
+   }
+  },
+  {
+   "_id": "19cdba1d-c053-4eca-b701-33a26d72eff4",
+   "categoryId": "eff24cce-7d01-4b6b-b0d6-12a5c683750d",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/40006.jpeg"
+   }
+  },
+  {
+   "_id": "702e206a-7afa-4d97-8119-6a39a7d1c338",
+   "categoryId": "eff24cce-7d01-4b6b-b0d6-12a5c683750d",
+   "texture": {
+    "fileUrl": ""
+   }
+  },
+  {
+   "_id": "198f1493-305d-4ef0-8d06-7fea89198193",
+   "categoryId": "a54a4ab5-e291-4510-964f-296c3c49f9d9",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/21481.png"
+   }
+  },
+  {
+   "_id": "332f1789-77dd-4751-b246-bbd9bb425ecd",
+   "categoryId": "210e8571-5278-4791-9da6-1e7dc4507c53",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/21081.png"
+   }
+  },
+  {
+   "_id": "8c3735f7-e516-43f4-8a0e-91f8e31cca71",
+   "categoryId": "210e8571-5278-4791-9da6-1e7dc4507c53",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/21109.png"
+   }
+  },
+  {
+   "_id": "889ed1ba-3203-4e52-9b05-3273d3b68a47",
+   "categoryId": "210e8571-5278-4791-9da6-1e7dc4507c53",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/22067.png"
+   }
+  },
+  {
+   "_id": "6ea38d93-930c-47ad-8445-93607e544070",
+   "categoryId": "210e8571-5278-4791-9da6-1e7dc4507c53",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/21184.png"
+   }
+  },
+  {
+   "_id": "80a03592-dfbd-4757-80b6-605dd4bedfc2",
+   "categoryId": "210e8571-5278-4791-9da6-1e7dc4507c53",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/21135.png"
+   }
+  },
+  {
+   "_id": "bbdecce4-dde9-4ea5-b1f6-9cd62d05644a",
+   "categoryId": "210e8571-5278-4791-9da6-1e7dc4507c53",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/21037.png"
+   }
+  },
+  {
+   "_id": "847f1e30-2735-4c47-a290-4fddc7baa247",
+   "categoryId": "210e8571-5278-4791-9da6-1e7dc4507c53",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/21163.png"
+   }
+  },
+  {
+   "_id": "cbc5160c-7f77-407f-876a-4f06d9fadfb7",
+   "categoryId": "210e8571-5278-4791-9da6-1e7dc4507c53",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/21023.png"
+   }
+  },
+  {
+   "_id": "9b5c65f2-084b-45a8-942f-77787b611613",
+   "categoryId": "210e8571-5278-4791-9da6-1e7dc4507c53",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/21143.png"
+   }
+  },
+  {
+   "_id": "91c73cbd-1486-4d66-b48c-f084a1ffa1fe",
+   "categoryId": "210e8571-5278-4791-9da6-1e7dc4507c53",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/21027.png"
+   }
+  },
+  {
+   "_id": "0ae99eed-1a7b-4462-ac75-caf9217785e1",
+   "categoryId": "210e8571-5278-4791-9da6-1e7dc4507c53",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/21317.png"
+   }
+  },
+  {
+   "_id": "b1a60697-1138-43da-9c49-fe197f34d832",
+   "categoryId": "210e8571-5278-4791-9da6-1e7dc4507c53",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/21038.png"
+   }
+  },
+  {
+   "_id": "bc42979d-ed65-4835-ae7c-e879d4497aee",
+   "categoryId": "210e8571-5278-4791-9da6-1e7dc4507c53",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/22115.png"
+   }
+  },
+  {
+   "_id": "514de1cd-92de-442e-80bb-3afbecf5be74",
+   "categoryId": "210e8571-5278-4791-9da6-1e7dc4507c53",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/22172.png"
+   }
+  },
+  {
+   "_id": "82677dfe-e829-4b63-9929-7984a5074ed4",
+   "categoryId": "210e8571-5278-4791-9da6-1e7dc4507c53",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/21172.png"
+   }
+  },
+  {
+   "_id": "514fdd4a-64d6-4bad-93bf-0b73b0100976",
+   "categoryId": "210e8571-5278-4791-9da6-1e7dc4507c53",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/22105.png"
+   }
+  },
+  {
+   "_id": "f23f9d9c-6460-47a2-be74-34248f9ce003",
+   "categoryId": "210e8571-5278-4791-9da6-1e7dc4507c53",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/22104.png"
+   }
+  },
+  {
+   "_id": "b92a1757-daa4-4437-afe7-a42417c6c9ed",
+   "categoryId": "210e8571-5278-4791-9da6-1e7dc4507c53",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/22134.png"
+   }
+  },
+  {
+   "_id": "4b5ed4f7-016e-4707-b8cd-f68cee371efe",
+   "categoryId": "210e8571-5278-4791-9da6-1e7dc4507c53",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/21114.png"
+   }
+  },
+  {
+   "_id": "fceb08e7-0e69-4aaf-8ffa-60b4dba43013",
+   "categoryId": "210e8571-5278-4791-9da6-1e7dc4507c53",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/21105.png"
+   }
+  },
+  {
+   "_id": "b06b0217-e2f1-44a5-b627-713638e64425",
+   "categoryId": "210e8571-5278-4791-9da6-1e7dc4507c53",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/21342.png"
+   }
+  },
+  {
+   "_id": "fd2f73d3-bf45-4029-9e99-8b465b80e427",
+   "categoryId": "210e8571-5278-4791-9da6-1e7dc4507c53",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/22129.png"
+   }
+  },
+  {
+   "_id": "b6c02455-1ef2-4a91-91f7-7c33d8ff6b01",
+   "categoryId": "210e8571-5278-4791-9da6-1e7dc4507c53",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/22112.png"
+   }
+  },
+  {
+   "_id": "fc8e1ba3-defb-4710-888b-9ab13c637924",
+   "categoryId": "210e8571-5278-4791-9da6-1e7dc4507c53",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/21142.png"
+   }
+  },
+  {
+   "_id": "1702792c-515b-45f8-9da2-4bb3e3448f80",
+   "categoryId": "210e8571-5278-4791-9da6-1e7dc4507c53",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/22102.png"
+   }
+  },
+  {
+   "_id": "b4edeb8f-d111-4fa0-a879-7447f4e162cf",
+   "categoryId": "210e8571-5278-4791-9da6-1e7dc4507c53",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/21022.png"
+   }
+  },
+  {
+   "_id": "85656fdb-b3c6-4b48-b0e2-ba789b6e6ba1",
+   "categoryId": "210e8571-5278-4791-9da6-1e7dc4507c53",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/21303.png"
+   }
+  },
+  {
+   "_id": "3a5e1956-322e-4103-a37b-1da0df16576f",
+   "categoryId": "210e8571-5278-4791-9da6-1e7dc4507c53",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/21313.png"
+   }
+  },
+  {
+   "_id": "2ba7e651-38ed-486d-9420-bd676035aca7",
+   "categoryId": "210e8571-5278-4791-9da6-1e7dc4507c53",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/22153.png"
+   }
+  },
+  {
+   "_id": "5454e3d4-0dfb-4a44-a6ea-da19a3b176d2",
+   "categoryId": "210e8571-5278-4791-9da6-1e7dc4507c53",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/22133.png"
+   }
+  },
+  {
+   "_id": "a41d389c-f312-4334-83e9-096fe47e6ba1",
+   "categoryId": "210e8571-5278-4791-9da6-1e7dc4507c53",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/22212.png"
+   }
+  },
+  {
+   "_id": "118674ea-437d-4819-ad3e-e8693cf02232",
+   "categoryId": "210e8571-5278-4791-9da6-1e7dc4507c53",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/21332.png"
+   }
+  },
+  {
+   "_id": "84ca52a7-5be7-4baa-a990-fde892c81672",
+   "categoryId": "210e8571-5278-4791-9da6-1e7dc4507c53",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/40478.jpeg"
+   }
+  },
+  {
+   "_id": "fff95ec9-e57b-4244-acea-41edf4d11386",
+   "categoryId": "210e8571-5278-4791-9da6-1e7dc4507c53",
+   "texture": {
+    "fileUrl": ""
+   }
+  },
+  {
+   "_id": "c54213ec-8317-4832-a787-5150e4369246",
+   "categoryId": "210e8571-5278-4791-9da6-1e7dc4507c53",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/40023.jpeg"
+   }
+  },
+  {
+   "_id": "48f0fb6c-6e62-4ae5-9228-64fcac00ea3e",
+   "categoryId": "210e8571-5278-4791-9da6-1e7dc4507c53",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/40412.jpeg"
+   }
+  },
+  {
+   "_id": "eed88c85-b8be-47bc-878d-df8b70fc6f68",
+   "categoryId": "210e8571-5278-4791-9da6-1e7dc4507c53",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/40413.jpeg"
+   }
+  },
+  {
+   "_id": "3426901d-58a5-4d30-b338-44e99347b48d",
+   "categoryId": "210e8571-5278-4791-9da6-1e7dc4507c53",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/44722.jpeg"
+   }
+  },
+  {
+   "_id": "63ec0098-acf9-4a02-9dd4-6097f1f89801",
+   "categoryId": "210e8571-5278-4791-9da6-1e7dc4507c53",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/44773.jpeg"
+   }
+  },
+  {
+   "_id": "5fe954b6-713a-4b5f-aad9-31e42acc3b5f",
+   "categoryId": "210e8571-5278-4791-9da6-1e7dc4507c53",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/44503.jpeg"
+   }
+  },
+  {
+   "_id": "5fb152ce-5c05-4416-9988-0e16cfc9925e",
+   "categoryId": "210e8571-5278-4791-9da6-1e7dc4507c53",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/40475.jpeg"
+   }
+  },
+  {
+   "_id": "90448be5-53a8-4aa7-9721-b147a1897ff9",
+   "categoryId": "210e8571-5278-4791-9da6-1e7dc4507c53",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/40232.jpeg"
+   }
+  },
+  {
+   "_id": "182de563-3015-497c-9544-4d6816f3744c",
+   "categoryId": "210e8571-5278-4791-9da6-1e7dc4507c53",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/11005.jpeg"
+   }
+  },
+  {
+   "_id": "7b2a4f9b-3d40-45b2-9a06-c34afaa3e04d",
+   "categoryId": "210e8571-5278-4791-9da6-1e7dc4507c53",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/14661.jpeg"
+   }
+  },
+  {
+   "_id": "a5b0e795-8844-4f8f-b76b-c99086c1ea53",
+   "categoryId": "210e8571-5278-4791-9da6-1e7dc4507c53",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/14613.jpeg"
+   }
+  },
+  {
+   "_id": "c3bacd1c-946a-46bb-8b30-3b24154a151c",
+   "categoryId": "210e8571-5278-4791-9da6-1e7dc4507c53",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/14588.jpeg"
+   }
+  },
+  {
+   "_id": "c050fac7-c9ec-4863-9e3a-cb386d698c93",
+   "categoryId": "210e8571-5278-4791-9da6-1e7dc4507c53",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/14018.jpeg"
+   }
+  },
+  {
+   "_id": "8ca4cc34-01ba-4f8b-be57-c9950b4c5d3b",
+   "categoryId": "210e8571-5278-4791-9da6-1e7dc4507c53",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/14670.jpeg"
+   }
+  },
+  {
+   "_id": "b0e2a8ef-58f6-4479-8b9d-67c92d41e69d",
+   "categoryId": "210e8571-5278-4791-9da6-1e7dc4507c53",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/14675.jpeg"
+   }
+  },
+  {
+   "_id": "4d466f16-0147-46a5-a195-08d70d902039",
+   "categoryId": "210e8571-5278-4791-9da6-1e7dc4507c53",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/14009.jpeg"
+   }
+  },
+  {
+   "_id": "c8fdf176-9879-46b7-9b56-b1c472f46090",
+   "categoryId": "210e8571-5278-4791-9da6-1e7dc4507c53",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/14602.jpeg"
+   }
+  },
+  {
+   "_id": "daf7d86f-7f15-4013-9c1e-211f6f59ff10",
+   "categoryId": "210e8571-5278-4791-9da6-1e7dc4507c53",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/10502.jpeg"
+   }
+  },
+  {
+   "_id": "f53a5c84-ac1e-4232-8673-1f24f80df3d1",
+   "categoryId": "210e8571-5278-4791-9da6-1e7dc4507c53",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/14178.jpeg"
+   }
+  },
+  {
+   "_id": "065c646e-5226-4db1-a3bf-1f7e5ae618f6",
+   "categoryId": "210e8571-5278-4791-9da6-1e7dc4507c53",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/14662.jpeg"
+   }
+  },
+  {
+   "_id": "8f58ac2a-ea86-4ea1-a9ae-84810938c4fa",
+   "categoryId": "210e8571-5278-4791-9da6-1e7dc4507c53",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/14016.jpeg"
+   }
+  },
+  {
+   "_id": "c31a6709-b68a-45b5-8935-a8a8f5784646",
+   "categoryId": "210e8571-5278-4791-9da6-1e7dc4507c53",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/14177.jpeg"
+   }
+  },
+  {
+   "_id": "0b7d0061-dc00-45bc-bb49-112d5104a5bd",
+   "categoryId": "210e8571-5278-4791-9da6-1e7dc4507c53",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/10019.jpeg"
+   }
+  },
+  {
+   "_id": "8860eac0-fb8d-4c76-8a32-c3edba846270",
+   "categoryId": "210e8571-5278-4791-9da6-1e7dc4507c53",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/10592.jpeg"
+   }
+  },
+  {
+   "_id": "d823d7ca-cad2-413e-bdb4-389c041e481f",
+   "categoryId": "210e8571-5278-4791-9da6-1e7dc4507c53",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/10515.jpeg"
+   }
+  },
+  {
+   "_id": "10525cd2-4dce-445b-9ea8-2279792956b4",
+   "categoryId": "210e8571-5278-4791-9da6-1e7dc4507c53",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/10659.jpeg"
+   }
+  },
+  {
+   "_id": "ca0a946f-084b-459f-8f61-561d6b10f23c",
+   "categoryId": "210e8571-5278-4791-9da6-1e7dc4507c53",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/44281.jpeg"
+   }
+  },
+  {
+   "_id": "2b895b79-0696-4ba6-a551-1dae916facf3",
+   "categoryId": "210e8571-5278-4791-9da6-1e7dc4507c53",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/14650.jpeg"
+   }
+  },
+  {
+   "_id": "45b9d8a1-3154-4763-b419-ae5c541a9682",
+   "categoryId": "210e8571-5278-4791-9da6-1e7dc4507c53",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/14589.jpeg"
+   }
+  },
+  {
+   "_id": "3bcd0588-2cb9-47d7-969d-1c562e6eb7bd",
+   "categoryId": "210e8571-5278-4791-9da6-1e7dc4507c53",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/14011.jpeg"
+   }
+  },
+  {
+   "_id": "a5a0e045-8065-45d2-b6a7-abc3fc5b2893",
+   "categoryId": "210e8571-5278-4791-9da6-1e7dc4507c53",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/22127.png"
+   }
+  },
+  {
+   "_id": "1f4506bf-a0df-46ad-a8fb-37548fa4886d",
+   "categoryId": "210e8571-5278-4791-9da6-1e7dc4507c53",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/21132.png"
+   }
+  },
+  {
+   "_id": "ecce47c3-93f0-49fa-a58b-cdab7cac976f",
+   "categoryId": "210e8571-5278-4791-9da6-1e7dc4507c53",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/22223.png"
+   }
+  },
+  {
+   "_id": "56a48d93-6247-4472-a8f3-e2f74c973f10",
+   "categoryId": "210e8571-5278-4791-9da6-1e7dc4507c53",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/21155.png"
+   }
+  },
+  {
+   "_id": "996c747c-babe-4bd0-bd46-680c5d6098c7",
+   "categoryId": "210e8571-5278-4791-9da6-1e7dc4507c53",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/21071.png"
+   }
+  },
+  {
+   "_id": "f7432d4c-bff9-4e52-aa88-f288b57cb7d0",
+   "categoryId": "210e8571-5278-4791-9da6-1e7dc4507c53",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/21057.png"
+   }
+  },
+  {
+   "_id": "a220be9a-974d-4d02-b698-c0df5a838f85",
+   "categoryId": "03f9cc0c-a4f2-4f7b-a510-89797096b383",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/21024.png"
+   }
+  },
+  {
+   "_id": "4a0bdb64-0293-4be3-95d7-4783d452816b",
+   "categoryId": "03f9cc0c-a4f2-4f7b-a510-89797096b383",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/21004.png"
+   }
+  },
+  {
+   "_id": "2809153f-0eb2-4dd7-a69a-d860f7ab4532",
+   "categoryId": "03f9cc0c-a4f2-4f7b-a510-89797096b383",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/21075.png"
+   }
+  },
+  {
+   "_id": "bed51a7d-a54c-4f55-8656-24d538679af8",
+   "categoryId": "03f9cc0c-a4f2-4f7b-a510-89797096b383",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/21065.png"
+   }
+  },
+  {
+   "_id": "74db2e6d-fd51-4ac5-8f0d-000aa73fb87f",
+   "categoryId": "03f9cc0c-a4f2-4f7b-a510-89797096b383",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/22137.png"
+   }
+  },
+  {
+   "_id": "8c7adfd2-142d-4a90-9273-e83cedeca9ad",
+   "categoryId": "03f9cc0c-a4f2-4f7b-a510-89797096b383",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/21003.png"
+   }
+  },
+  {
+   "_id": "e1f8358e-8590-448d-a7e5-c91b6b7e9254",
+   "categoryId": "03f9cc0c-a4f2-4f7b-a510-89797096b383",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/21307.png"
+   }
+  },
+  {
+   "_id": "f8ca0d82-853a-4177-ac66-4b9dc0c24482",
+   "categoryId": "03f9cc0c-a4f2-4f7b-a510-89797096b383",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/21087.png"
+   }
+  },
+  {
+   "_id": "5bcfb270-7d34-4cce-9aa0-2852b245e573",
+   "categoryId": "03f9cc0c-a4f2-4f7b-a510-89797096b383",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/21387.png"
+   }
+  },
+  {
+   "_id": "1ec4b2ac-eb14-49fe-940e-702ca6ef179b",
+   "categoryId": "03f9cc0c-a4f2-4f7b-a510-89797096b383",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/21017.png"
+   }
+  },
+  {
+   "_id": "ca8c0435-9793-45cd-a4bf-2b394ba2ac93",
+   "categoryId": "03f9cc0c-a4f2-4f7b-a510-89797096b383",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/21054.png"
+   }
+  },
+  {
+   "_id": "7ad684dd-b9b6-4a29-8854-0e0e940e7589",
+   "categoryId": "03f9cc0c-a4f2-4f7b-a510-89797096b383",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/21051.png"
+   }
+  },
+  {
+   "_id": "dac75eb3-3c93-4d30-8168-fbd4b8722c8a",
+   "categoryId": "03f9cc0c-a4f2-4f7b-a510-89797096b383",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/21007.png"
+   }
+  },
+  {
+   "_id": "95030c59-1260-4cf2-969e-b118259d9ef9",
+   "categoryId": "03f9cc0c-a4f2-4f7b-a510-89797096b383",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/21097.png"
+   }
+  },
+  {
+   "_id": "96a08822-941a-4b89-b8ef-8ec49a951716",
+   "categoryId": "03f9cc0c-a4f2-4f7b-a510-89797096b383",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/21341.png"
+   }
+  },
+  {
+   "_id": "7010bc29-4841-4cd5-9fa9-ce644e7ef9c8",
+   "categoryId": "03f9cc0c-a4f2-4f7b-a510-89797096b383",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/24087.png"
+   }
+  },
+  {
+   "_id": "79a975f9-d077-4233-8140-cd0894a4447d",
+   "categoryId": "03f9cc0c-a4f2-4f7b-a510-89797096b383",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/21581.png"
+   }
+  },
+  {
+   "_id": "a59da2cd-712a-4de3-b3bf-0f0626f5d228",
+   "categoryId": "03f9cc0c-a4f2-4f7b-a510-89797096b383",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/21141.png"
+   }
+  },
+  {
+   "_id": "a7e26c9b-0331-4758-b46e-44709d3f8523",
+   "categoryId": "03f9cc0c-a4f2-4f7b-a510-89797096b383",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/21161.png"
+   }
+  },
+  {
+   "_id": "9147d799-ac4c-4d1b-a341-e762f71bfe6a",
+   "categoryId": "03f9cc0c-a4f2-4f7b-a510-89797096b383",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/21029.png"
+   }
+  },
+  {
+   "_id": "2e56608e-6632-4d39-bf91-88443a342178",
+   "categoryId": "03f9cc0c-a4f2-4f7b-a510-89797096b383",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/21369.png"
+   }
+  },
+  {
+   "_id": "ac7d672f-1537-45aa-b4c7-9a95012624e0",
+   "categoryId": "03f9cc0c-a4f2-4f7b-a510-89797096b383",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/21059.png"
+   }
+  },
+  {
+   "_id": "23db5aed-50d7-4e70-a250-c910100e60ac",
+   "categoryId": "03f9cc0c-a4f2-4f7b-a510-89797096b383",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/21019.png"
+   }
+  },
+  {
+   "_id": "81e76d76-c47d-4d9f-90c2-79bb97fe2ed7",
+   "categoryId": "03f9cc0c-a4f2-4f7b-a510-89797096b383",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/22169.png"
+   }
+  },
+  {
+   "_id": "5f918570-58d3-4292-b484-a14cba7591bb",
+   "categoryId": "03f9cc0c-a4f2-4f7b-a510-89797096b383",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/21099.png"
+   }
+  },
+  {
+   "_id": "d5e18a00-3d44-45c7-af56-1028fa2bdd0f",
+   "categoryId": "03f9cc0c-a4f2-4f7b-a510-89797096b383",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/21089.png"
+   }
+  },
+  {
+   "_id": "16978126-43c3-40fb-88f2-1c36ec0ad1d2",
+   "categoryId": "03f9cc0c-a4f2-4f7b-a510-89797096b383",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/21321.png"
+   }
+  },
+  {
+   "_id": "e86f8e19-8a0c-49e5-ac27-7871f5ca4e34",
+   "categoryId": "03f9cc0c-a4f2-4f7b-a510-89797096b383",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/21009.png"
+   }
+  },
+  {
+   "_id": "f45e1029-8e08-4d25-a136-f103aafa5d61",
+   "categoryId": "03f9cc0c-a4f2-4f7b-a510-89797096b383",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/22079.png"
+   }
+  },
+  {
+   "_id": "332f7710-5714-4b05-9689-8d1121202797",
+   "categoryId": "03f9cc0c-a4f2-4f7b-a510-89797096b383",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/21014.png"
+   }
+  },
+  {
+   "_id": "5721e9c5-35c7-4d08-9798-6c19c7cd18cc",
+   "categoryId": "03f9cc0c-a4f2-4f7b-a510-89797096b383",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/21067.png"
+   }
+  },
+  {
+   "_id": "1951c433-d4a2-4958-bcbf-68090359f837",
+   "categoryId": "03f9cc0c-a4f2-4f7b-a510-89797096b383",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/21074.png"
+   }
+  },
+  {
+   "_id": "1bc7e8a1-1fba-4036-bc43-5b4bc3c328db",
+   "categoryId": "03f9cc0c-a4f2-4f7b-a510-89797096b383",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/22074.png"
+   }
+  },
+  {
+   "_id": "b2bd3cbb-8307-407c-9210-ab1ec3d88b3a",
+   "categoryId": "03f9cc0c-a4f2-4f7b-a510-89797096b383",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/22084.png"
+   }
+  },
+  {
+   "_id": "d88ccf39-e6cc-40ab-9add-56d0ffedc4dd",
+   "categoryId": "03f9cc0c-a4f2-4f7b-a510-89797096b383",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/22103.png"
+   }
+  },
+  {
+   "_id": "ae059753-6bb5-41f3-a7e1-05f8ed0d23e6",
+   "categoryId": "03f9cc0c-a4f2-4f7b-a510-89797096b383",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/22142.png"
+   }
+  },
+  {
+   "_id": "781411a1-6ef4-493c-9f76-113efab0936e",
+   "categoryId": "03f9cc0c-a4f2-4f7b-a510-89797096b383",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/21193.png"
+   }
+  },
+  {
+   "_id": "61129b70-9640-4ace-83df-5fd37e74de22",
+   "categoryId": "03f9cc0c-a4f2-4f7b-a510-89797096b383",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/21063.png"
+   }
+  },
+  {
+   "_id": "20623af5-7de2-4eb1-a372-137425326bd2",
+   "categoryId": "03f9cc0c-a4f2-4f7b-a510-89797096b383",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/21082.png"
+   }
+  },
+  {
+   "_id": "46f4ac11-9980-44c7-857b-7776feac823b",
+   "categoryId": "03f9cc0c-a4f2-4f7b-a510-89797096b383",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/21042.png"
+   }
+  },
+  {
+   "_id": "4fd74cff-ed5e-4bd5-95b2-bb3b01afa566",
+   "categoryId": "03f9cc0c-a4f2-4f7b-a510-89797096b383",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/21012.png"
+   }
+  },
+  {
+   "_id": "311baa8c-31c9-460e-8af2-11cb7ed2fc83",
+   "categoryId": "03f9cc0c-a4f2-4f7b-a510-89797096b383",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/21092.png"
+   }
+  },
+  {
+   "_id": "dfaeb4a1-6ccd-4546-b70e-78448a5bba08",
+   "categoryId": "03f9cc0c-a4f2-4f7b-a510-89797096b383",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/21122.png"
+   }
+  },
+  {
+   "_id": "6dce8cdd-2f66-44ea-8b11-972dbdc956bc",
+   "categoryId": "03f9cc0c-a4f2-4f7b-a510-89797096b383",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/21032.png"
+   }
+  },
+  {
+   "_id": "a895e7ed-27f8-4d55-8402-4445d6fa85d2",
+   "categoryId": "243087c7-e947-43ac-867e-5ccede815e70",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/49949.png"
+   }
+  },
+  {
+   "_id": "870ef21a-f874-46c2-9751-cce1ee3dfcc7",
+   "categoryId": "243087c7-e947-43ac-867e-5ccede815e70",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/49947.png"
+   }
+  },
+  {
+   "_id": "5f75c60a-b29f-46a3-a15a-4ad79e902445",
+   "categoryId": "243087c7-e947-43ac-867e-5ccede815e70",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/49916.png"
+   }
+  },
+  {
+   "_id": "3d0e3961-3ba7-49c2-9c2d-83eba4eb4793",
+   "categoryId": "243087c7-e947-43ac-867e-5ccede815e70",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/49944.png"
+   }
+  },
+  {
+   "_id": "99cbf119-ac75-4161-92f9-b97971946716",
+   "categoryId": "243087c7-e947-43ac-867e-5ccede815e70",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/49946.png"
+   }
+  },
+  {
+   "_id": "6b53f05e-e197-450c-9437-4836a42b52b8",
+   "categoryId": "243087c7-e947-43ac-867e-5ccede815e70",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/49948.png"
+   }
+  },
+  {
+   "_id": "2909bc96-b57d-4ada-a00f-b1f885dac545",
+   "categoryId": "243087c7-e947-43ac-867e-5ccede815e70",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/49931.png"
+   }
+  },
+  {
+   "_id": "e93850f6-b1a6-43d5-bbdd-dbe9c1556456",
+   "categoryId": "243087c7-e947-43ac-867e-5ccede815e70",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/49790.png"
+   }
+  },
+  {
+   "_id": "e101b14a-5bc8-4957-938a-cd499b4a9cb0",
+   "categoryId": "243087c7-e947-43ac-867e-5ccede815e70",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/49951.png"
+   }
+  },
+  {
+   "_id": "6c0c7404-7fa5-43ac-93de-8b85c1b80a40",
+   "categoryId": "243087c7-e947-43ac-867e-5ccede815e70",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/22281.png"
+   }
+  },
+  {
+   "_id": "9536367a-efe9-460d-a6c9-f063ea3a53a8",
+   "categoryId": "243087c7-e947-43ac-867e-5ccede815e70",
+   "texture": {
+    "fileUrl": ""
+   }
+  },
+  {
+   "_id": "290a42f4-9526-4ea5-b5e6-c1f7ee832a29",
+   "categoryId": "56634659-e1f4-42a0-895b-a47dfa934853",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/14012.jpeg"
+   }
+  },
+  {
+   "_id": "bb9792da-118c-40d1-811d-e62e44a3f66a",
+   "categoryId": "56634659-e1f4-42a0-895b-a47dfa934853",
+   "texture": {
+    "fileUrl": ""
+   }
+  },
+  {
+   "_id": "c307e205-ecca-4f5c-afdb-7d8876807709",
+   "categoryId": "56634659-e1f4-42a0-895b-a47dfa934853",
+   "texture": {
+    "fileUrl": ""
+   }
+  },
+  {
+   "_id": "b9a3dab1-59ea-471c-8752-e7207d42f930",
+   "categoryId": "56634659-e1f4-42a0-895b-a47dfa934853",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/14973.jpeg"
+   }
+  },
+  {
+   "_id": "d0c1b67e-db38-41b1-ba75-b5e78bffe5a5",
+   "categoryId": "56634659-e1f4-42a0-895b-a47dfa934853",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/14971.jpeg"
+   }
+  },
+  {
+   "_id": "1e60b987-f193-4805-ab5d-498d95a817ff",
+   "categoryId": "56634659-e1f4-42a0-895b-a47dfa934853",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/14970.jpeg"
+   }
+  },
+  {
+   "_id": "6138dcb6-f195-4176-9a4c-fe7ff2c283cf",
+   "categoryId": "56634659-e1f4-42a0-895b-a47dfa934853",
+   "texture": {
+    "fileUrl": ""
+   }
+  },
+  {
+   "_id": "a32548aa-fdca-48f2-bed0-672de7fd291d",
+   "categoryId": "56634659-e1f4-42a0-895b-a47dfa934853",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/14974.jpeg"
+   }
+  },
+  {
+   "_id": "34e2d310-04d9-4ac9-b638-f16fd1ccaa38",
+   "categoryId": "56634659-e1f4-42a0-895b-a47dfa934853",
+   "texture": {
+    "fileUrl": ""
+   }
+  },
+  {
+   "_id": "94b1d3fa-e4f8-4335-a290-62e99d167daf",
+   "categoryId": "56634659-e1f4-42a0-895b-a47dfa934853",
+   "texture": {
+    "fileUrl": ""
+   }
+  },
+  {
+   "_id": "f7ea347a-e252-47e7-a4d3-1fa21ea0305f",
+   "categoryId": "56634659-e1f4-42a0-895b-a47dfa934853",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/10838.jpeg"
+   }
+  },
+  {
+   "_id": "77136d22-fd84-47d3-896c-09af1d2acd94",
+   "categoryId": "56634659-e1f4-42a0-895b-a47dfa934853",
+   "texture": {
+    "fileUrl": ""
+   }
+  },
+  {
+   "_id": "4c2285c1-2b39-403a-95c1-0989379100f4",
+   "categoryId": "56634659-e1f4-42a0-895b-a47dfa934853",
+   "texture": {
+    "fileUrl": ""
+   }
+  },
+  {
+   "_id": "505f56a1-4f51-4e45-bdd6-ca851acddaee",
+   "categoryId": "56634659-e1f4-42a0-895b-a47dfa934853",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/10839.jpeg"
+   }
+  },
+  {
+   "_id": "7dc27760-da73-45fd-830b-ece3965ddebf",
+   "categoryId": "56634659-e1f4-42a0-895b-a47dfa934853",
+   "texture": {
+    "fileUrl": ""
+   }
+  },
+  {
+   "_id": "a8b0173b-c501-4046-866a-3c080a00d3d3",
+   "categoryId": "56634659-e1f4-42a0-895b-a47dfa934853",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/14133.jpeg"
+   }
+  },
+  {
+   "_id": "6b1c38ce-acfc-46c5-aa10-b76a0578e827",
+   "categoryId": "56634659-e1f4-42a0-895b-a47dfa934853",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/11682.jpeg"
+   }
+  },
+  {
+   "_id": "dd3a8d15-68f0-4899-85db-bec074e38b25",
+   "categoryId": "56634659-e1f4-42a0-895b-a47dfa934853",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/14644.jpeg"
+   }
+  },
+  {
+   "_id": "ca3d3d0e-7c6d-4781-a3a8-0cab91001adb",
+   "categoryId": "56634659-e1f4-42a0-895b-a47dfa934853",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/14643.jpeg"
+   }
+  },
+  {
+   "_id": "14ccc544-5d90-492a-b7d4-f5cee16636a7",
+   "categoryId": "56634659-e1f4-42a0-895b-a47dfa934853",
+   "texture": {
+    "fileUrl": ""
+   }
+  },
+  {
+   "_id": "52575a99-cb36-4ccb-a545-8102419e0b3d",
+   "categoryId": "56634659-e1f4-42a0-895b-a47dfa934853",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/14642.jpeg"
+   }
+  },
+  {
+   "_id": "9e086dd8-c2ea-4840-a3bd-ef8d46766827",
+   "categoryId": "56634659-e1f4-42a0-895b-a47dfa934853",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/10516.jpeg"
+   }
+  },
+  {
+   "_id": "347c68de-eefc-4e2d-bd40-1c488c859d51",
+   "categoryId": "56634659-e1f4-42a0-895b-a47dfa934853",
+   "texture": {
+    "fileUrl": ""
+   }
+  },
+  {
+   "_id": "39bc846f-5576-4aa0-aa01-3c79ba02d7d5",
+   "categoryId": "56634659-e1f4-42a0-895b-a47dfa934853",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/10517.jpeg"
+   }
+  },
+  {
+   "_id": "6f53ee9a-db61-4fdb-8b1f-6f8e2fbbd084",
+   "categoryId": "56634659-e1f4-42a0-895b-a47dfa934853",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/14143.jpeg"
+   }
+  },
+  {
+   "_id": "82b7603e-5db8-44e7-9d2e-37ecd47881cf",
+   "categoryId": "56634659-e1f4-42a0-895b-a47dfa934853",
+   "texture": {
+    "fileUrl": ""
+   }
+  },
+  {
+   "_id": "07a348ac-3409-49de-b590-d1c5dfb801c1",
+   "categoryId": "56634659-e1f4-42a0-895b-a47dfa934853",
+   "texture": {
+    "fileUrl": ""
+   }
+  },
+  {
+   "_id": "300c0f0b-bc28-44c5-9f61-b2933390390a",
+   "categoryId": "56634659-e1f4-42a0-895b-a47dfa934853",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/10511.jpeg"
+   }
+  },
+  {
+   "_id": "908a5e14-a7fd-429c-a128-af35fcc95f27",
+   "categoryId": "56634659-e1f4-42a0-895b-a47dfa934853",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/10528.jpeg"
+   }
+  },
+  {
+   "_id": "fb05d186-0ff7-45cf-b205-b3a625ab334b",
+   "categoryId": "56634659-e1f4-42a0-895b-a47dfa934853",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/14532.jpeg"
+   }
+  },
+  {
+   "_id": "5481af9f-01f5-4eae-ad98-8f1b6ef21b7a",
+   "categoryId": "56634659-e1f4-42a0-895b-a47dfa934853",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/14533.jpeg"
+   }
+  },
+  {
+   "_id": "5bc53bd1-2856-4568-a08a-349a662a8a0f",
+   "categoryId": "56634659-e1f4-42a0-895b-a47dfa934853",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/14530.jpeg"
+   }
+  },
+  {
+   "_id": "28efc16a-72f1-4367-807b-762f10a8e7b6",
+   "categoryId": "56634659-e1f4-42a0-895b-a47dfa934853",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/14531.jpeg"
+   }
+  },
+  {
+   "_id": "551c87b6-ed33-4bd6-8a0c-73797c14c07c",
+   "categoryId": "56634659-e1f4-42a0-895b-a47dfa934853",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/14603.jpeg"
+   }
+  },
+  {
+   "_id": "5c4be778-461c-4c70-af3a-90c008e7020a",
+   "categoryId": "56634659-e1f4-42a0-895b-a47dfa934853",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/14020.jpeg"
+   }
+  },
+  {
+   "_id": "c1bee7c0-6772-4c5a-8045-d7381e1bcfb5",
+   "categoryId": "56634659-e1f4-42a0-895b-a47dfa934853",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/11655.jpeg"
+   }
+  },
+  {
+   "_id": "166b3af3-e2ce-4fad-b3c6-24969bae9aa8",
+   "categoryId": "56634659-e1f4-42a0-895b-a47dfa934853",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/11660.jpeg"
+   }
+  },
+  {
+   "_id": "4d175d0a-ceda-4151-937f-1479f13b5242",
+   "categoryId": "56634659-e1f4-42a0-895b-a47dfa934853",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/11656.jpeg"
+   }
+  },
+  {
+   "_id": "5455c4e2-be52-4418-8286-260b6bbfca63",
+   "categoryId": "56634659-e1f4-42a0-895b-a47dfa934853",
+   "texture": {
+    "fileUrl": ""
+   }
+  },
+  {
+   "_id": "aee6ee3e-8604-4bf9-89a9-6ac05042af10",
+   "categoryId": "56634659-e1f4-42a0-895b-a47dfa934853",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/14542.jpeg"
+   }
+  },
+  {
+   "_id": "43ffee2f-5011-4633-b8c8-81a0d34f4237",
+   "categoryId": "56634659-e1f4-42a0-895b-a47dfa934853",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/14583.jpeg"
+   }
+  },
+  {
+   "_id": "97811397-6780-4117-84e9-91f59bed0302",
+   "categoryId": "56634659-e1f4-42a0-895b-a47dfa934853",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/14540.jpeg"
+   }
+  },
+  {
+   "_id": "4e589e06-abaf-4670-b736-dd90cc31dd01",
+   "categoryId": "56634659-e1f4-42a0-895b-a47dfa934853",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/14539.jpeg"
+   }
+  },
+  {
+   "_id": "bc4619f5-ae4e-40d7-923e-6ea385f68d24",
+   "categoryId": "56634659-e1f4-42a0-895b-a47dfa934853",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/14545.jpeg"
+   }
+  },
+  {
+   "_id": "5bab46c3-a857-4a50-a67b-86f14999a722",
+   "categoryId": "56634659-e1f4-42a0-895b-a47dfa934853",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/14014.jpeg"
+   }
+  },
+  {
+   "_id": "de5596be-8fc1-46e0-9dd6-6b27c597a169",
+   "categoryId": "56634659-e1f4-42a0-895b-a47dfa934853",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/14015.jpeg"
+   }
+  },
+  {
+   "_id": "96d8aa55-f0f4-42cf-bc9a-a25526de3f80",
+   "categoryId": "56634659-e1f4-42a0-895b-a47dfa934853",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/14618.jpeg"
+   }
+  },
+  {
+   "_id": "be4f77a0-75f0-40bc-9cd3-afefbbddf429",
+   "categoryId": "56634659-e1f4-42a0-895b-a47dfa934853",
+   "texture": {
+    "fileUrl": ""
+   }
+  },
+  {
+   "_id": "943bb33d-0943-4465-bac3-1fc495d51271",
+   "categoryId": "56634659-e1f4-42a0-895b-a47dfa934853",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/10884.jpeg"
+   }
+  },
+  {
+   "_id": "71b19b90-2b4d-427e-9b04-eb42ef060b3d",
+   "categoryId": "56634659-e1f4-42a0-895b-a47dfa934853",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/14620.jpeg"
+   }
+  },
+  {
+   "_id": "9c02d69d-7b82-4a8c-8a72-ac18d4c2470c",
+   "categoryId": "56634659-e1f4-42a0-895b-a47dfa934853",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/14621.jpeg"
+   }
+  },
+  {
+   "_id": "3d7e3378-1604-4f9d-8300-cbe24d0a584a",
+   "categoryId": "56634659-e1f4-42a0-895b-a47dfa934853",
+   "texture": {
+    "fileUrl": ""
+   }
+  },
+  {
+   "_id": "8d2f3324-1441-49c0-b3ce-c8d471823900",
+   "categoryId": "56634659-e1f4-42a0-895b-a47dfa934853",
+   "texture": {
+    "fileUrl": ""
+   }
+  },
+  {
+   "_id": "8a880a48-1c16-4cb7-bd24-23c9b355ecff",
+   "categoryId": "56634659-e1f4-42a0-895b-a47dfa934853",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/14019.jpeg"
+   }
+  },
+  {
+   "_id": "cd6ce5ee-e24e-49ed-96d2-38fdb73176c7",
+   "categoryId": "56634659-e1f4-42a0-895b-a47dfa934853",
+   "texture": {
+    "fileUrl": ""
+   }
+  },
+  {
+   "_id": "bfdd0015-a62f-4f16-8223-f0add25d6b16",
+   "categoryId": "56634659-e1f4-42a0-895b-a47dfa934853",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/14811.jpeg"
+   }
+  },
+  {
+   "_id": "e66948b3-8d13-4edc-900c-7d2b10fa248a",
+   "categoryId": "56634659-e1f4-42a0-895b-a47dfa934853",
+   "texture": {
+    "fileUrl": ""
+   }
+  },
+  {
+   "_id": "eff573d5-6c9a-4833-9e58-fb52074c1818",
+   "categoryId": "56634659-e1f4-42a0-895b-a47dfa934853",
+   "texture": {
+    "fileUrl": ""
+   }
+  },
+  {
+   "_id": "c125615e-f8cc-4d9f-8886-bcf503b1e56f",
+   "categoryId": "56634659-e1f4-42a0-895b-a47dfa934853",
+   "texture": {
+    "fileUrl": ""
+   }
+  },
+  {
+   "_id": "a5798b36-ccf6-43d9-986b-735f1ee1167c",
+   "categoryId": "56634659-e1f4-42a0-895b-a47dfa934853",
+   "texture": {
+    "fileUrl": ""
+   }
+  },
+  {
+   "_id": "106ed385-1412-4543-8d43-71ea2a6898a3",
+   "categoryId": "56634659-e1f4-42a0-895b-a47dfa934853",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/14636.jpeg"
+   }
+  },
+  {
+   "_id": "167d06c9-bb2d-4dab-a620-83bb20a029d9",
+   "categoryId": "56634659-e1f4-42a0-895b-a47dfa934853",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/14635.jpeg"
+   }
+  },
+  {
+   "_id": "23610faa-18a5-4dd6-ac3a-af93e6b5d71f",
+   "categoryId": "56634659-e1f4-42a0-895b-a47dfa934853",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/14660.jpeg"
+   }
+  },
+  {
+   "_id": "ff68f951-ffa6-45f5-8df0-4fe58aef4f8b",
+   "categoryId": "56634659-e1f4-42a0-895b-a47dfa934853",
+   "texture": {
+    "fileUrl": ""
+   }
+  },
+  {
+   "_id": "51aad5ce-7f7c-4355-992b-634380200383",
+   "categoryId": "56634659-e1f4-42a0-895b-a47dfa934853",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/14626.jpeg"
+   }
+  },
+  {
+   "_id": "114e4407-7234-4f06-b8da-e3d38ba9bbb5",
+   "categoryId": "56634659-e1f4-42a0-895b-a47dfa934853",
+   "texture": {
+    "fileUrl": ""
+   }
+  },
+  {
+   "_id": "e4f4904a-2823-419f-ac19-f4b45990809a",
+   "categoryId": "56634659-e1f4-42a0-895b-a47dfa934853",
+   "texture": {
+    "fileUrl": ""
+   }
+  },
+  {
+   "_id": "8b72893c-a7ec-4700-8363-35db7864deee",
+   "categoryId": "56634659-e1f4-42a0-895b-a47dfa934853",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/14649.jpeg"
+   }
+  },
+  {
+   "_id": "8eb395f5-9b5c-42e1-90a5-f9419f5d1275",
+   "categoryId": "56634659-e1f4-42a0-895b-a47dfa934853",
+   "texture": {
+    "fileUrl": ""
+   }
+  },
+  {
+   "_id": "5faf3bec-9743-4cf1-87f6-01951cd32cdb",
+   "categoryId": "56634659-e1f4-42a0-895b-a47dfa934853",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/14554.jpeg"
+   }
+  },
+  {
+   "_id": "a1763c97-d831-44e3-bad5-332648e09563",
+   "categoryId": "56634659-e1f4-42a0-895b-a47dfa934853",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/14552.jpeg"
+   }
+  },
+  {
+   "_id": "f5f4809b-e854-46c1-9c76-fea96e218292",
+   "categoryId": "56634659-e1f4-42a0-895b-a47dfa934853",
+   "texture": {
+    "fileUrl": ""
+   }
+  },
+  {
+   "_id": "2250dec0-1a87-4d55-930c-a36e8318f348",
+   "categoryId": "56634659-e1f4-42a0-895b-a47dfa934853",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/10174.jpeg"
+   }
+  },
+  {
+   "_id": "adb56f97-dd5b-4291-94a3-2240f4743a69",
+   "categoryId": "56634659-e1f4-42a0-895b-a47dfa934853",
+   "texture": {
+    "fileUrl": ""
+   }
+  },
+  {
+   "_id": "31e5a53e-dc00-487f-8afc-f9deb66a76df",
+   "categoryId": "56634659-e1f4-42a0-895b-a47dfa934853",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/10845.jpeg"
+   }
+  },
+  {
+   "_id": "e8aef981-2cf5-4646-a932-23e64989df79",
+   "categoryId": "56634659-e1f4-42a0-895b-a47dfa934853",
+   "texture": {
+    "fileUrl": ""
+   }
+  },
+  {
+   "_id": "93553e31-d978-434d-9d9f-671764e7dbaa",
+   "categoryId": "56634659-e1f4-42a0-895b-a47dfa934853",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/14689.jpeg"
+   }
+  },
+  {
+   "_id": "c98ecf3a-1ad4-4275-b77d-07f03737060e",
+   "categoryId": "56634659-e1f4-42a0-895b-a47dfa934853",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/14687.jpeg"
+   }
+  },
+  {
+   "_id": "c43ef3bb-6d29-4f99-b15b-30c0fbca4f27",
+   "categoryId": "56634659-e1f4-42a0-895b-a47dfa934853",
+   "texture": {
+    "fileUrl": ""
+   }
+  },
+  {
+   "_id": "d53fad1f-6175-468e-a4ac-671463de69df",
+   "categoryId": "56634659-e1f4-42a0-895b-a47dfa934853",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/14938.jpeg"
+   }
+  },
+  {
+   "_id": "2a70a5d2-2f02-40c7-b110-6d18a7847a17",
+   "categoryId": "56634659-e1f4-42a0-895b-a47dfa934853",
+   "texture": {
+    "fileUrl": ""
+   }
+  },
+  {
+   "_id": "d9cc62db-ac73-4bd1-ba8c-51a41df8f6c7",
+   "categoryId": "56634659-e1f4-42a0-895b-a47dfa934853",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/14584.jpeg"
+   }
+  },
+  {
+   "_id": "8f04dc90-1a51-4d68-9d32-be9c0c0b23f5",
+   "categoryId": "56634659-e1f4-42a0-895b-a47dfa934853",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/14585.jpeg"
+   }
+  },
+  {
+   "_id": "f1a0cd01-200f-44dc-8adb-509bd3be14e0",
+   "categoryId": "56634659-e1f4-42a0-895b-a47dfa934853",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/14546.jpeg"
+   }
+  },
+  {
+   "_id": "211cf09a-02e5-460e-b0bf-032140303885",
+   "categoryId": "56634659-e1f4-42a0-895b-a47dfa934853",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/14624.jpeg"
+   }
+  },
+  {
+   "_id": "b298eb68-ba57-44f5-b67f-6f7627538a2c",
+   "categoryId": "56634659-e1f4-42a0-895b-a47dfa934853",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/14625.jpeg"
+   }
+  },
+  {
+   "_id": "3454c625-1be5-4346-9837-bafeaa6a8ef0",
+   "categoryId": "56634659-e1f4-42a0-895b-a47dfa934853",
+   "texture": {
+    "fileUrl": ""
+   }
+  },
+  {
+   "_id": "30a95777-91b9-4e74-937f-aa33b2b70ace",
+   "categoryId": "56634659-e1f4-42a0-895b-a47dfa934853",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/14930.jpeg"
+   }
+  },
+  {
+   "_id": "76e27092-487b-4556-bf65-87f1a18d8a9f",
+   "categoryId": "56634659-e1f4-42a0-895b-a47dfa934853",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/14924.jpeg"
+   }
+  },
+  {
+   "_id": "74424e31-5dbc-48e0-b668-50cc298e225b",
+   "categoryId": "56634659-e1f4-42a0-895b-a47dfa934853",
+   "texture": {
+    "fileUrl": ""
+   }
+  },
+  {
+   "_id": "410506ff-7ca8-4b0a-acfe-3ded17e1eca1",
+   "categoryId": "56634659-e1f4-42a0-895b-a47dfa934853",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/14666.jpeg"
+   }
+  },
+  {
+   "_id": "bc9e0455-8557-459e-8c1a-566c9c56ec8a",
+   "categoryId": "56634659-e1f4-42a0-895b-a47dfa934853",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/14664.jpeg"
+   }
+  },
+  {
+   "_id": "91ce605d-6322-4c41-aac1-60d9a67d66ad",
+   "categoryId": "56634659-e1f4-42a0-895b-a47dfa934853",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/14663.jpeg"
+   }
+  },
+  {
+   "_id": "0f514aaf-0b0e-449e-80a0-af30a4115628",
+   "categoryId": "56634659-e1f4-42a0-895b-a47dfa934853",
+   "texture": {
+    "fileUrl": ""
+   }
+  },
+  {
+   "_id": "70aefa7e-e84d-47ce-b170-504299861fc2",
+   "categoryId": "56634659-e1f4-42a0-895b-a47dfa934853",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/14637.jpeg"
+   }
+  },
+  {
+   "_id": "b629242c-b3f6-4fb3-8027-c91ec11f0c16",
+   "categoryId": "56634659-e1f4-42a0-895b-a47dfa934853",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/14638.jpeg"
+   }
+  },
+  {
+   "_id": "28d9184d-8238-4058-a5cb-ef8ec5d40053",
+   "categoryId": "56634659-e1f4-42a0-895b-a47dfa934853",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/14180.jpeg"
+   }
+  },
+  {
+   "_id": "2f93fde3-a3a0-458b-be50-5d95630db22f",
+   "categoryId": "56634659-e1f4-42a0-895b-a47dfa934853",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/14690.jpeg"
+   }
+  },
+  {
+   "_id": "0c31ba46-2495-4c70-8b71-40d12cfe0748",
+   "categoryId": "56634659-e1f4-42a0-895b-a47dfa934853",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/14673.jpeg"
+   }
+  },
+  {
+   "_id": "cfbc0097-0370-4c6f-ba70-123e048ba42c",
+   "categoryId": "56634659-e1f4-42a0-895b-a47dfa934853",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/14674.jpeg"
+   }
+  },
+  {
+   "_id": "57cb058a-439c-4186-85b2-24792fd6e6e1",
+   "categoryId": "56634659-e1f4-42a0-895b-a47dfa934853",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/14940.jpeg"
+   }
+  },
+  {
+   "_id": "20441741-f45f-4b21-83c1-f2d556feea8e",
+   "categoryId": "56634659-e1f4-42a0-895b-a47dfa934853",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/15126.jpeg"
+   }
+  },
+  {
+   "_id": "46f22cc2-8bc6-4447-9c26-a091840d9819",
+   "categoryId": "56634659-e1f4-42a0-895b-a47dfa934853",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/15123.jpeg"
+   }
+  },
+  {
+   "_id": "4bd8ac46-0e66-44db-9e99-8098e9ab21bb",
+   "categoryId": "56634659-e1f4-42a0-895b-a47dfa934853",
+   "texture": {
+    "fileUrl": ""
+   }
+  },
+  {
+   "_id": "7e21b35a-42b4-4b7f-a614-4ac0a6c13c82",
+   "categoryId": "56634659-e1f4-42a0-895b-a47dfa934853",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/15129.jpeg"
+   }
+  },
+  {
+   "_id": "d4d588ca-a00a-4268-b137-a2609e6a1a84",
+   "categoryId": "56634659-e1f4-42a0-895b-a47dfa934853",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/15114.jpeg"
+   }
+  },
+  {
+   "_id": "d5ffb2c9-2cd4-43f2-80b2-cd55256db9f9",
+   "categoryId": "56634659-e1f4-42a0-895b-a47dfa934853",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/15132.jpeg"
+   }
+  },
+  {
+   "_id": "56851f4c-be79-46d2-bfc8-b69fff254db5",
+   "categoryId": "56634659-e1f4-42a0-895b-a47dfa934853",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/15108.jpeg"
+   }
+  },
+  {
+   "_id": "7155aa5b-3492-4dc0-b1ad-e0e50cfb3a9a",
+   "categoryId": "1dd820eb-5046-4c5d-99a8-7e7daef85aed",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/40013.jpeg"
+   }
+  },
+  {
+   "_id": "c95e4512-e50b-45fe-993d-dd4e3a54e9b8",
+   "categoryId": "1dd820eb-5046-4c5d-99a8-7e7daef85aed",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/40214.jpeg"
+   }
+  },
+  {
+   "_id": "6239fb84-7040-4ab1-9d69-9dd057bb933c",
+   "categoryId": "1dd820eb-5046-4c5d-99a8-7e7daef85aed",
+   "texture": {
+    "fileUrl": ""
+   }
+  },
+  {
+   "_id": "b51086a3-02ca-453a-be1d-987e8c144722",
+   "categoryId": "1dd820eb-5046-4c5d-99a8-7e7daef85aed",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/40265.jpeg"
+   }
+  },
+  {
+   "_id": "f4c43780-dc2c-455a-abb2-ba833653cfb3",
+   "categoryId": "1dd820eb-5046-4c5d-99a8-7e7daef85aed",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/40001.jpeg"
+   }
+  },
+  {
+   "_id": "8d83b9e1-8b82-495e-bfa3-b53743f074ca",
+   "categoryId": "1dd820eb-5046-4c5d-99a8-7e7daef85aed",
+   "texture": {
+    "fileUrl": ""
+   }
+  },
+  {
+   "_id": "b150ed7c-9e9f-4f86-9ab9-78ac45582c38",
+   "categoryId": "1dd820eb-5046-4c5d-99a8-7e7daef85aed",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/40003.jpeg"
+   }
+  },
+  {
+   "_id": "de1a5fe6-cf40-42fc-bd67-5c6a9f269c3e",
+   "categoryId": "1dd820eb-5046-4c5d-99a8-7e7daef85aed",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/40499.jpeg"
+   }
+  },
+  {
+   "_id": "fba9ba3e-a409-4c3f-9b10-900546d12a13",
+   "categoryId": "644ff0cc-56c8-46f2-a0d4-3c912d0ca771",
+   "texture": {
+    "fileUrl": ""
+   }
+  },
+  {
+   "_id": "1ce209ed-edc1-4447-af9a-82051ba755c4",
+   "categoryId": "644ff0cc-56c8-46f2-a0d4-3c912d0ca771",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/44504.jpeg"
+   }
+  },
+  {
+   "_id": "94ff8433-8b07-4ca4-ab79-f6f68ecc41dc",
+   "categoryId": "644ff0cc-56c8-46f2-a0d4-3c912d0ca771",
+   "texture": {
+    "fileUrl": ""
+   }
+  },
+  {
+   "_id": "d838c630-8908-416c-9ac3-b0072f4af894",
+   "categoryId": "644ff0cc-56c8-46f2-a0d4-3c912d0ca771",
+   "texture": {
+    "fileUrl": ""
+   }
+  },
+  {
+   "_id": "48c7cf42-0bc2-4e74-9322-ccbba95e738d",
+   "categoryId": "644ff0cc-56c8-46f2-a0d4-3c912d0ca771",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/44785.jpeg"
+   }
+  },
+  {
+   "_id": "2c1ef258-79cf-4fa6-8ce2-a2c7b9e93b17",
+   "categoryId": "644ff0cc-56c8-46f2-a0d4-3c912d0ca771",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/44783.jpeg"
+   }
+  },
+  {
+   "_id": "24b4d92c-a2ea-4464-8e52-c97d847cc4c9",
+   "categoryId": "644ff0cc-56c8-46f2-a0d4-3c912d0ca771",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/44784.jpeg"
+   }
+  },
+  {
+   "_id": "9dd725b5-180a-4862-922b-e513d15c8e17",
+   "categoryId": "644ff0cc-56c8-46f2-a0d4-3c912d0ca771",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/44774.jpeg"
+   }
+  },
+  {
+   "_id": "afe278a1-942d-43e6-9a5b-842d5fc0f0ab",
+   "categoryId": "644ff0cc-56c8-46f2-a0d4-3c912d0ca771",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/44755.jpeg"
+   }
+  },
+  {
+   "_id": "ac84b3bb-50a5-4ac4-ba47-c4b2168e6b7c",
+   "categoryId": "644ff0cc-56c8-46f2-a0d4-3c912d0ca771",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/44754.png"
+   }
+  },
+  {
+   "_id": "48d77956-ea99-4330-9cdf-f3ca0128bb74",
+   "categoryId": "644ff0cc-56c8-46f2-a0d4-3c912d0ca771",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/44752.jpeg"
+   }
+  },
+  {
+   "_id": "a2fcac5f-e625-4ff4-b01c-f4408be42c81",
+   "categoryId": "644ff0cc-56c8-46f2-a0d4-3c912d0ca771",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/44753.jpeg"
+   }
+  },
+  {
+   "_id": "88713fce-3cd4-4a1b-b691-375ce613c27d",
+   "categoryId": "644ff0cc-56c8-46f2-a0d4-3c912d0ca771",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/49907.jpeg"
+   }
+  },
+  {
+   "_id": "2ed891ed-5f5b-47d7-b2e9-a1711b843321",
+   "categoryId": "644ff0cc-56c8-46f2-a0d4-3c912d0ca771",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/49908.jpeg"
+   }
+  },
+  {
+   "_id": "98450cc0-ce51-447b-8db4-4fcb9c9cb1d0",
+   "categoryId": "644ff0cc-56c8-46f2-a0d4-3c912d0ca771",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/44708.jpeg"
+   }
+  },
+  {
+   "_id": "d0fc334d-f0d3-40b3-97ae-cabb8a407788",
+   "categoryId": "644ff0cc-56c8-46f2-a0d4-3c912d0ca771",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/44704.jpeg"
+   }
+  },
+  {
+   "_id": "6af4c8ff-ab82-4448-90b9-fb82d6f0f79a",
+   "categoryId": "644ff0cc-56c8-46f2-a0d4-3c912d0ca771",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/49962.jpeg"
+   }
+  },
+  {
+   "_id": "20d04375-8af1-4aa9-b622-69563b6ffdc4",
+   "categoryId": "644ff0cc-56c8-46f2-a0d4-3c912d0ca771",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/49961.png"
+   }
+  },
+  {
+   "_id": "f6281110-1778-4833-8d3b-f1ade2afa6fa",
+   "categoryId": "644ff0cc-56c8-46f2-a0d4-3c912d0ca771",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/49938.jpeg"
+   }
+  },
+  {
+   "_id": "df57f570-dfe1-4c46-b725-055927e2e446",
+   "categoryId": "644ff0cc-56c8-46f2-a0d4-3c912d0ca771",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/49939.jpeg"
+   }
+  },
+  {
+   "_id": "0d3ba9f5-4608-4ef5-bb65-f5866ccfda4c",
+   "categoryId": "644ff0cc-56c8-46f2-a0d4-3c912d0ca771",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/44796.png"
+   }
+  },
+  {
+   "_id": "5d1a0727-6133-44b8-8d25-37bea406e6f2",
+   "categoryId": "644ff0cc-56c8-46f2-a0d4-3c912d0ca771",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/44795.png"
+   }
+  },
+  {
+   "_id": "7014dd58-04d7-49fd-a1c9-eb7c5927a06e",
+   "categoryId": "644ff0cc-56c8-46f2-a0d4-3c912d0ca771",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/49912.jpeg"
+   }
+  },
+  {
+   "_id": "6c44d992-42ef-4ffc-91d6-044dec51fa99",
+   "categoryId": "644ff0cc-56c8-46f2-a0d4-3c912d0ca771",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/44793.jpeg"
+   }
+  },
+  {
+   "_id": "9cc22440-4a58-4501-a929-a5cb60d56c5f",
+   "categoryId": "644ff0cc-56c8-46f2-a0d4-3c912d0ca771",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/44723.jpeg"
+   }
+  },
+  {
+   "_id": "13851238-cf7c-4a5f-8e56-9a30d533d888",
+   "categoryId": "644ff0cc-56c8-46f2-a0d4-3c912d0ca771",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/49929.jpeg"
+   }
+  },
+  {
+   "_id": "fcc870ed-6ebe-43f4-859b-48de68c83839",
+   "categoryId": "644ff0cc-56c8-46f2-a0d4-3c912d0ca771",
+   "texture": {
+    "fileUrl": ""
+   }
+  },
+  {
+   "_id": "6b148fb7-500d-418e-b6ef-e3832816900d",
+   "categoryId": "644ff0cc-56c8-46f2-a0d4-3c912d0ca771",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/44761.jpeg"
+   }
+  },
+  {
+   "_id": "9879e9d1-d1db-462d-b36f-2133bab28254",
+   "categoryId": "644ff0cc-56c8-46f2-a0d4-3c912d0ca771",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/44760.jpeg"
+   }
+  },
+  {
+   "_id": "6608254b-4090-47b5-ad8f-75d33e8aea49",
+   "categoryId": "644ff0cc-56c8-46f2-a0d4-3c912d0ca771",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/44762.jpeg"
+   }
+  },
+  {
+   "_id": "81d2a423-4071-4c5c-95ca-f29ed0de9db5",
+   "categoryId": "644ff0cc-56c8-46f2-a0d4-3c912d0ca771",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/40756.jpeg"
+   }
+  },
+  {
+   "_id": "d71ed85a-4802-4107-a001-f45a46536b31",
+   "categoryId": "644ff0cc-56c8-46f2-a0d4-3c912d0ca771",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/44775.jpeg"
+   }
+  },
+  {
+   "_id": "23769e02-2613-4cce-8353-bebe1d9ae22e",
+   "categoryId": "644ff0cc-56c8-46f2-a0d4-3c912d0ca771",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/44757.jpeg"
+   }
+  },
+  {
+   "_id": "6b781459-3734-44e5-bf36-f0073fe27634",
+   "categoryId": "644ff0cc-56c8-46f2-a0d4-3c912d0ca771",
+   "texture": {
+    "fileUrl": ""
+   }
+  },
+  {
+   "_id": "7ec043a6-e2aa-4e3e-927a-8cbc65d18ca3",
+   "categoryId": "644ff0cc-56c8-46f2-a0d4-3c912d0ca771",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/44790.jpeg"
+   }
+  },
+  {
+   "_id": "2c714a2a-3b9e-465a-9c22-af3ed6595a29",
+   "categoryId": "644ff0cc-56c8-46f2-a0d4-3c912d0ca771",
+   "texture": {
+    "fileUrl": ""
+   }
+  },
+  {
+   "_id": "6a45831d-dcf0-4543-bb54-6a9b5a0c83db",
+   "categoryId": "644ff0cc-56c8-46f2-a0d4-3c912d0ca771",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/44789.jpeg"
+   }
+  },
+  {
+   "_id": "a183a734-f65c-40f6-b526-04e62cdf5828",
+   "categoryId": "644ff0cc-56c8-46f2-a0d4-3c912d0ca771",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/40267.jpeg"
+   }
+  },
+  {
+   "_id": "ed62e9ca-6b37-4b6a-9e5d-361e5db27e73",
+   "categoryId": "644ff0cc-56c8-46f2-a0d4-3c912d0ca771",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/49953.jpeg"
+   }
+  },
+  {
+   "_id": "2ce9f247-f319-482f-8ec5-90ec45eae2f3",
+   "categoryId": "644ff0cc-56c8-46f2-a0d4-3c912d0ca771",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/49952.jpeg"
+   }
+  },
+  {
+   "_id": "d48008d8-604b-47c8-b384-ae4e8e4adce8",
+   "categoryId": "644ff0cc-56c8-46f2-a0d4-3c912d0ca771",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/44279.jpeg"
+   }
+  },
+  {
+   "_id": "11d6173f-7712-4030-b86f-dd0460670e97",
+   "categoryId": "644ff0cc-56c8-46f2-a0d4-3c912d0ca771",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/10514.jpeg"
+   }
+  },
+  {
+   "_id": "183bcb11-9ac2-427b-b25d-913680bcef37",
+   "categoryId": "644ff0cc-56c8-46f2-a0d4-3c912d0ca771",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/10609.jpeg"
+   }
+  },
+  {
+   "_id": "0e3e8e5b-6b22-450f-a9b0-c82bc71caabe",
+   "categoryId": "644ff0cc-56c8-46f2-a0d4-3c912d0ca771",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/10853.jpeg"
+   }
+  },
+  {
+   "_id": "dc9e40db-77ba-4072-8182-1a040b5e215e",
+   "categoryId": "644ff0cc-56c8-46f2-a0d4-3c912d0ca771",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/10007.jpeg"
+   }
+  },
+  {
+   "_id": "57d325ea-8308-4e10-bd9f-c275ac4efd37",
+   "categoryId": "644ff0cc-56c8-46f2-a0d4-3c912d0ca771",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/10593.jpeg"
+   }
+  },
+  {
+   "_id": "6e67b54c-b174-4ad3-a779-5e0af6b6af72",
+   "categoryId": "644ff0cc-56c8-46f2-a0d4-3c912d0ca771",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/10157.jpeg"
+   }
+  },
+  {
+   "_id": "17dc9888-010c-4f4b-b804-ffbfab6c0e6f",
+   "categoryId": "644ff0cc-56c8-46f2-a0d4-3c912d0ca771",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/10291.jpeg"
+   }
+  },
+  {
+   "_id": "8a73e978-d0c6-4efd-8903-e4b1c0efa2b4",
+   "categoryId": "644ff0cc-56c8-46f2-a0d4-3c912d0ca771",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/10870.jpeg"
+   }
+  },
+  {
+   "_id": "11899e4f-979f-4cd9-8afc-0d1f6bcec03c",
+   "categoryId": "644ff0cc-56c8-46f2-a0d4-3c912d0ca771",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/10459.jpeg"
+   }
+  },
+  {
+   "_id": "3794b82f-06ff-426d-a62a-aa28bb28d888",
+   "categoryId": "644ff0cc-56c8-46f2-a0d4-3c912d0ca771",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/11103.jpeg"
+   }
+  },
+  {
+   "_id": "568c6ea7-aa96-419b-a13e-0c80ee4edd5f",
+   "categoryId": "644ff0cc-56c8-46f2-a0d4-3c912d0ca771",
+   "texture": {
+    "fileUrl": ""
+   }
+  },
+  {
+   "_id": "52603cff-143c-4eca-8453-8b86df102fcf",
+   "categoryId": "644ff0cc-56c8-46f2-a0d4-3c912d0ca771",
+   "texture": {
+    "fileUrl": ""
+   }
+  },
+  {
+   "_id": "c29e0270-a73b-47ad-b143-0448b2c21a1a",
+   "categoryId": "644ff0cc-56c8-46f2-a0d4-3c912d0ca771",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/10867.jpeg"
+   }
+  },
+  {
+   "_id": "e737c09c-2943-4db2-bccc-0afd38f3c5ad",
+   "categoryId": "644ff0cc-56c8-46f2-a0d4-3c912d0ca771",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/10036.jpeg"
+   }
+  },
+  {
+   "_id": "3027125d-4f40-4bf3-b3a9-e16632c6d2a3",
+   "categoryId": "644ff0cc-56c8-46f2-a0d4-3c912d0ca771",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/10039.jpeg"
+   }
+  },
+  {
+   "_id": "44ceef66-3982-45ad-bf0c-435192e4f512",
+   "categoryId": "644ff0cc-56c8-46f2-a0d4-3c912d0ca771",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/10002.jpeg"
+   }
+  },
+  {
+   "_id": "bce8d276-fee3-43f1-b85a-a03e46ac44ff",
+   "categoryId": "644ff0cc-56c8-46f2-a0d4-3c912d0ca771",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/11192.jpeg"
+   }
+  },
+  {
+   "_id": "7582509f-dd4d-43ac-a0ea-dee43d6ebc74",
+   "categoryId": "644ff0cc-56c8-46f2-a0d4-3c912d0ca771",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/10016.jpeg"
+   }
+  },
+  {
+   "_id": "1adb2882-a106-4b16-9fb7-5a0522eed8b4",
+   "categoryId": "644ff0cc-56c8-46f2-a0d4-3c912d0ca771",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/10175.jpeg"
+   }
+  },
+  {
+   "_id": "bba6edf7-104c-42ee-96fe-4051ee50588c",
+   "categoryId": "644ff0cc-56c8-46f2-a0d4-3c912d0ca771",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/10077.jpeg"
+   }
+  },
+  {
+   "_id": "788e4a1c-e3f9-431d-9348-70e081e779ec",
+   "categoryId": "644ff0cc-56c8-46f2-a0d4-3c912d0ca771",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/10241.jpeg"
+   }
+  },
+  {
+   "_id": "2f1e4cb0-c319-454a-ab22-bf76c05aeed8",
+   "categoryId": "644ff0cc-56c8-46f2-a0d4-3c912d0ca771",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/10042.jpeg"
+   }
+  },
+  {
+   "_id": "b1716362-15f6-4508-9ac9-59351a7f6a85",
+   "categoryId": "644ff0cc-56c8-46f2-a0d4-3c912d0ca771",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/10164.jpeg"
+   }
+  },
+  {
+   "_id": "296bb094-40dc-48a0-89b0-b33ecdd49ee2",
+   "categoryId": "644ff0cc-56c8-46f2-a0d4-3c912d0ca771",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/10122.jpeg"
+   }
+  },
+  {
+   "_id": "df69815d-5b74-41f4-aefd-fa55ba511efc",
+   "categoryId": "644ff0cc-56c8-46f2-a0d4-3c912d0ca771",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/10854.jpeg"
+   }
+  },
+  {
+   "_id": "968ddd3f-c03c-40f0-be62-3c250e78f482",
+   "categoryId": "644ff0cc-56c8-46f2-a0d4-3c912d0ca771",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/10852.jpeg"
+   }
+  },
+  {
+   "_id": "211ee25b-0d17-47d3-a55d-c02233db7c4e",
+   "categoryId": "644ff0cc-56c8-46f2-a0d4-3c912d0ca771",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/10882.jpeg"
+   }
+  },
+  {
+   "_id": "1cac2b53-8391-4303-a7d8-8f40116e1121",
+   "categoryId": "644ff0cc-56c8-46f2-a0d4-3c912d0ca771",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/10844.jpeg"
+   }
+  },
+  {
+   "_id": "799f23fd-b164-47e6-a1ae-846e3173366c",
+   "categoryId": "644ff0cc-56c8-46f2-a0d4-3c912d0ca771",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/10159.jpeg"
+   }
+  },
+  {
+   "_id": "8bfbddba-17fd-4120-8cd1-d8620b61fc28",
+   "categoryId": "644ff0cc-56c8-46f2-a0d4-3c912d0ca771",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/10851.jpeg"
+   }
+  },
+  {
+   "_id": "eadb02b7-abc1-463a-b3b4-e29db80bcb51",
+   "categoryId": "644ff0cc-56c8-46f2-a0d4-3c912d0ca771",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/10879.jpeg"
+   }
+  },
+  {
+   "_id": "9b137d2c-2a37-4cb8-87ac-dea418481722",
+   "categoryId": "644ff0cc-56c8-46f2-a0d4-3c912d0ca771",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/10881.jpeg"
+   }
+  },
+  {
+   "_id": "618a8629-7f2e-403d-abe9-3471f3d6617e",
+   "categoryId": "644ff0cc-56c8-46f2-a0d4-3c912d0ca771",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/10865.jpeg"
+   }
+  },
+  {
+   "_id": "ea66a3c3-f478-4eba-9401-fb287ad0cc0b",
+   "categoryId": "644ff0cc-56c8-46f2-a0d4-3c912d0ca771",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/10880.jpeg"
+   }
+  },
+  {
+   "_id": "f3f76630-e5bb-4bc0-9910-c94a3288b818",
+   "categoryId": "644ff0cc-56c8-46f2-a0d4-3c912d0ca771",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/10866.jpeg"
+   }
+  },
+  {
+   "_id": "2300d4bb-362c-4e8f-a83d-928a8924f365",
+   "categoryId": "644ff0cc-56c8-46f2-a0d4-3c912d0ca771",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/10188.jpeg"
+   }
+  },
+  {
+   "_id": "8d459c10-4521-463a-b42d-2900ef4e469b",
+   "categoryId": "644ff0cc-56c8-46f2-a0d4-3c912d0ca771",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/10243.jpeg"
+   }
+  },
+  {
+   "_id": "41f8857f-33b5-4aa6-a7f4-bd2e6c4f581b",
+   "categoryId": "644ff0cc-56c8-46f2-a0d4-3c912d0ca771",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/10843.jpeg"
+   }
+  },
+  {
+   "_id": "ec85680f-cb6f-4bfe-b46c-d1e8682f7ddc",
+   "categoryId": "644ff0cc-56c8-46f2-a0d4-3c912d0ca771",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/10858.jpeg"
+   }
+  },
+  {
+   "_id": "2b8af6ce-a3ad-40d0-ad88-a5ad3ed5fe27",
+   "categoryId": "644ff0cc-56c8-46f2-a0d4-3c912d0ca771",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/10078.jpeg"
+   }
+  },
+  {
+   "_id": "68abd689-e599-47df-b715-82e4d7e0fbc1",
+   "categoryId": "644ff0cc-56c8-46f2-a0d4-3c912d0ca771",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/10848.jpeg"
+   }
+  },
+  {
+   "_id": "f5eb46cd-e1d8-4d24-b90a-5f64f7c659ae",
+   "categoryId": "644ff0cc-56c8-46f2-a0d4-3c912d0ca771",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/10699.jpeg"
+   }
+  },
+  {
+   "_id": "7927ef01-a746-4a1e-a6ff-1cde74a67500",
+   "categoryId": "644ff0cc-56c8-46f2-a0d4-3c912d0ca771",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/10013.jpeg"
+   }
+  },
+  {
+   "_id": "82718853-5188-462f-9e39-b65ff9957867",
+   "categoryId": "644ff0cc-56c8-46f2-a0d4-3c912d0ca771",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/10197.jpeg"
+   }
+  },
+  {
+   "_id": "7b9f4c67-bb62-451f-9470-a99af197cdde",
+   "categoryId": "644ff0cc-56c8-46f2-a0d4-3c912d0ca771",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/10099.jpeg"
+   }
+  },
+  {
+   "_id": "c55c27a0-a396-443d-a766-9c3a9972c6d6",
+   "categoryId": "644ff0cc-56c8-46f2-a0d4-3c912d0ca771",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/10856.jpeg"
+   }
+  },
+  {
+   "_id": "79e53335-d1a7-421e-8e75-73107a38e251",
+   "categoryId": "644ff0cc-56c8-46f2-a0d4-3c912d0ca771",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/10098.jpeg"
+   }
+  },
+  {
+   "_id": "7b443a9a-75e8-49ef-992b-e92b891bb1e0",
+   "categoryId": "644ff0cc-56c8-46f2-a0d4-3c912d0ca771",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/10145.jpeg"
+   }
+  },
+  {
+   "_id": "1109e0e4-49d8-42a0-b0e9-77163ec0937e",
+   "categoryId": "644ff0cc-56c8-46f2-a0d4-3c912d0ca771",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/10012.jpeg"
+   }
+  },
+  {
+   "_id": "ba8e1372-f0df-4de7-9022-f696b7bde4a6",
+   "categoryId": "644ff0cc-56c8-46f2-a0d4-3c912d0ca771",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/10195.jpeg"
+   }
+  },
+  {
+   "_id": "c1d067c0-c551-46d3-8752-0a956de5fc1f",
+   "categoryId": "644ff0cc-56c8-46f2-a0d4-3c912d0ca771",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/10031.jpeg"
+   }
+  },
+  {
+   "_id": "14e751fe-d6c0-4b13-87b1-dc9468ab33d4",
+   "categoryId": "644ff0cc-56c8-46f2-a0d4-3c912d0ca771",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/10185.jpeg"
+   }
+  },
+  {
+   "_id": "d88cbfba-43af-417d-8606-23fb8108d27b",
+   "categoryId": "644ff0cc-56c8-46f2-a0d4-3c912d0ca771",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/10091.jpeg"
+   }
+  },
+  {
+   "_id": "f64255a5-ae3a-489e-b8bc-a56f48cb18db",
+   "categoryId": "644ff0cc-56c8-46f2-a0d4-3c912d0ca771",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/10184.jpeg"
+   }
+  },
+  {
+   "_id": "90d9423a-36cb-457d-b5b4-3c6d590768f7",
+   "categoryId": "644ff0cc-56c8-46f2-a0d4-3c912d0ca771",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/10448.jpeg"
+   }
+  },
+  {
+   "_id": "dbe40edb-524f-415a-8e70-6dd5a569ac94",
+   "categoryId": "644ff0cc-56c8-46f2-a0d4-3c912d0ca771",
+   "texture": {
+    "fileUrl": "/assets/rooms/textures/library/merino/10894.jpeg"
+   }
+  }
+ ]
+}

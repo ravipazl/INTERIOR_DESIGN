@@ -321,3 +321,245 @@
   .bq-rooms { margin: 16px 0; overflow-x: auto; }
   .bq-table { min-width: 980px; }
 }
+
+/* MATERIAL — chips in the cell, the editor on its own row.
+   Type, Style and Brand are three fields the user edits independently; run
+   together as one string they read as a single value. */
+.bq-mat-view { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
+.bq-chip {
+  border: 1px solid #d6d8e0; border-radius: 4px; padding: 1px 6px;
+  font-size: 11px; background: #fff; white-space: nowrap;
+}
+.bq-muted { color: #8a8d99; font-size: 11.5px; }
+
+/* The editor spans the whole table. In the 11% Material column its three
+   dropdowns overflowed into Qty and the buttons wrapped a letter to a line. */
+.bq-mat-row > td { background: #fafbff; }
+.bq-mat-edit {
+  display: flex; align-items: flex-end; flex-wrap: wrap; gap: 12px;
+  padding: 10px 12px;
+}
+.bq-mat-field { display: flex; flex-direction: column; gap: 3px; min-width: 150px; }
+.bq-mat-label { font-size: 10.5px; color: #8a8d99; }
+.bq-mat-edit select.bq-input {
+  max-width: none; width: 100%; text-align: left; height: 28px; font-size: 12px;
+}
+.bq-mat-now { font-size: 11.5px; color: #8a8d99; width: 100%; }
+.bq-mat-actions { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+.bq-mat-actions .bq-link { white-space: nowrap; font-size: 12px; }
+/* Its OWN class, not a variant of .bq-link. As a link variant it had to beat
+   that rule's colour, background, padding and underline one by one, and a
+   single miss left an unreadable button — which is exactly what happened: the
+   label came out invisible against its own background. */
+button.bq-primary {
+  font: inherit; font-size: 12px; font-weight: 600; line-height: 1;
+  text-decoration: none; white-space: nowrap; cursor: pointer;
+  border: 1px solid #414063; border-radius: 5px; padding: 6px 14px;
+  background: #414063; color: #ffffff;
+}
+button.bq-primary:disabled { opacity: .45; cursor: default; }
+
+/* Room-level core material, in the room header. */
+.bq-core {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  padding: 5px 10px; border: 1px solid #d6d8e0; border-radius: 7px;
+  background: #fafbff;
+}
+.bq-core-lab { font-size: 10.5px; font-weight: 600; color: #414063; letter-spacing: .02em; }
+.bq-core select.bq-input {
+  max-width: none; width: auto; min-width: 104px; text-align: left;
+  height: 26px; font-size: 12px;
+}
+
+/* ---- ROOM HEADER: board and lining on one line ----
+ *
+ * Six controls and one button. They fit because the room's figures moved to
+ * their own strip underneath — with both on one line the controls wrapped at
+ * laptop width, and a wrapped control row reads as broken rather than dense.
+ */
+.bq-grp-lab {
+  font-size: 9.5px; font-weight: 700; letter-spacing: .05em;
+  color: #6f6d8c; line-height: 1.15; white-space: nowrap;
+}
+/* A hairline between the two groups, so "BWP" and "Laminates" do not read as
+   one run of five dropdowns. */
+.bq-grp-sep {
+  width: 1px; align-self: stretch; background: #e3e2ee; margin: 0 2px;
+}
+.bq-room-figs {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  padding: 6px 12px; border-top: 1px solid #ecebf3; background: #fbfbfd;
+  font-size: 11px; color: #6f6d8c;
+}
+.bq-room-figs .bq-figs-amt { margin-left: auto; }
+.bq-room-figs b { color: #2d2c45; }
+
+/* With two groups on the line the dropdowns need to be narrower than the
+   104px a single group could afford, or the row wraps on a 1366px laptop. */
+.bq-core { gap: 6px; padding: 5px 8px; }
+.bq-core select.bq-input { min-width: 84px; height: 26px; }
+.bq-core .bq-primary { white-space: nowrap; }
+
+/* ---- MATERIAL COLUMN: three labelled chips ----
+ *
+ * Core / Exterior / Interior. The label is set apart from the material it
+ * names, and each layer gets its own quiet tint, because "which one is the
+ * board" is the first question anyone asks of this column — and three
+ * identical grey chips make it the hardest to answer.
+ */
+.bq-chip-side {
+  display: inline-block; font-size: 9px; font-weight: 700;
+  letter-spacing: .04em; text-transform: uppercase;
+  margin-right: 5px; opacity: .75;
+}
+.bq-chip-core     { background: #f3f1fb; border-color: #ddd8f2; color: #3f3a63; }
+.bq-chip-exterior { background: #eef6f1; border-color: #cfe4d8; color: #2d5742; }
+.bq-chip-interior { background: #fdf4ea; border-color: #f0ddc3; color: #70501f; }
+/* Three chips do not fit across an 11% column on one line, and `nowrap` on the
+   chip only keeps each one intact — the cell has to let them stack, and a chip
+   longer than the column has to give rather than push the table wide. */
+.bq-mat-view .bq-chip {
+  white-space: normal; max-width: 100%; line-height: 1.35;
+}
+
+/* ---- PER-MESH TABLE inside an expanded BOQ row ----
+ *
+ * One line per panel: what it is, how big, what its exterior costs. The AREA
+ * carries the identification — the mesh names come from the 3D file and say
+ * nothing, so the big number is the shutter and the tiny one is a handle rail.
+ */
+.bq-mesh-tbl {
+  width: 100%; border-collapse: collapse; margin: 6px 0 2px; font-size: 11.5px;
+}
+.bq-mesh-tbl th {
+  text-align: left; font-weight: 600; color: #8b89a3; font-size: 10px;
+  letter-spacing: .03em; text-transform: uppercase;
+  padding: 3px 8px; border-bottom: 1px solid #ecebf3;
+}
+.bq-mesh-tbl th.r, .bq-mesh-tbl td.r { text-align: right; }
+.bq-mesh-tbl td { padding: 4px 8px; border-bottom: 1px solid #f4f3f9; }
+.bq-mesh-tbl tr:last-child td { border-bottom: 0; }
+
+/* the one-mesh picker, opened under its row */
+.bq-mesh-edit {
+  display: flex; flex-wrap: wrap; align-items: flex-end; gap: 8px;
+  padding: 8px 10px; background: #fafbff;
+  border: 1px solid #e3e2ee; border-radius: 7px;
+}
+.bq-mesh-target { font-size: 11.5px; font-weight: 600; color: #414063; align-self: center; }
+.bq-mesh-field { display: flex; flex-direction: column; gap: 3px; }
+.bq-mesh-lab { font-size: 10px; color: #8b89a3; }
+.bq-mesh-edit select.bq-input {
+  max-width: none; width: auto; min-width: 118px; text-align: left; height: 26px;
+}
+.bq-mesh-edit .bq-primary, .bq-mesh-edit .bq-link { align-self: center; white-space: nowrap; }
+
+/* ---- MATERIAL CONFIGURATION DIALOG ----
+ *
+ * The board, the lining and the outside finish, one section each. They used to
+ * be dropdowns strung across the room header, where there was no width left
+ * for the exterior at all; in a dialog each cascade gets a full row and the
+ * header goes back to being a header.
+ */
+/* Beside the room's name, not floating in the middle of the header: the header
+   is space-between, so the auto margin keeps the button with the title it
+   belongs to and leaves the chevron at the far right. */
+.bq-room-mat {
+  margin-right: auto;
+  font: inherit; font-size: 11.5px; font-weight: 600; line-height: 1;
+  white-space: nowrap; cursor: pointer; text-decoration: none;
+  border: 1px solid #d6d8e0; border-radius: 6px; padding: 6px 12px;
+  background: #ffffff; color: #414063;
+}
+.bq-room-mat:hover:not(:disabled) { background: #f4f5fb; border-color: #c3c5d4; }
+.bq-room-mat:disabled { opacity: .5; cursor: default; }
+
+.bq-modal-back {
+  position: fixed; inset: 0; z-index: 1300;
+  display: flex; align-items: center; justify-content: center;
+  padding: 24px; background: rgba(23, 23, 27, .38);
+}
+.bq-modal {
+  width: 100%; max-width: 560px; max-height: calc(100vh - 48px);
+  display: flex; flex-direction: column;
+  background: #ffffff; border-radius: 10px;
+  box-shadow: 0 18px 48px rgba(23, 23, 27, .22);
+  cursor: default;
+}
+.bq-modal-head {
+  padding: 14px 18px 10px; border-bottom: 1px solid #ecebf3;
+  font-size: 13.5px; color: #17171b;
+}
+.bq-modal-sub { font-size: 11px; font-weight: 400; color: #8b89a3; margin-top: 2px; }
+
+/* The sections scroll, not the dialog: Apply and Cancel stay reachable however
+   long the lists get. */
+.bq-modal-body { padding: 4px 18px 14px; overflow-y: auto; }
+.bq-modal-sec {
+  font-size: 10px; font-weight: 700; letter-spacing: .05em;
+  text-transform: uppercase; color: #6f6d8c;
+  margin: 14px 0 7px; padding-bottom: 4px; border-bottom: 1px solid #f1f0f7;
+}
+
+.bq-rm-grid2, .bq-rm-grid3 { display: grid; gap: 10px; }
+.bq-rm-grid2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.bq-rm-grid3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.bq-rm-field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.bq-rm-lab { font-size: 10px; color: #8b89a3; }
+/* .bq-input is sized for a right-aligned number in a table cell; a dropdown
+   here has to fill its column and read left to right. */
+.bq-rm-field select.bq-input {
+  width: 100%; max-width: none; text-align: left; height: 30px; font-size: 12px;
+}
+.bq-rm-field select.bq-input:disabled { background: #f7f7fa; color: #9a9aa2; }
+
+/* Said before Apply is pressed, not discovered after it. */
+.bq-rm-warn {
+  margin-top: 9px; padding: 7px 10px; font-size: 11px; line-height: 1.4;
+  color: #70501f; background: #fdf4ea;
+  border: 1px solid #f0ddc3; border-radius: 6px;
+}
+
+.bq-modal-foot {
+  display: flex; align-items: center; gap: 10px;
+  padding: 11px 18px; border-top: 1px solid #ecebf3; background: #fbfbfd;
+  border-radius: 0 0 10px 10px;
+}
+/* The summary of what is about to be written takes the slack, so the two
+   buttons sit together at the right where they are looked for. */
+.bq-modal-foot .bq-modal-sub {
+  flex: 1; min-width: 0; margin: 0; overflow-wrap: anywhere;
+}
+
+@media (max-width: 620px) {
+  .bq-rm-grid2, .bq-rm-grid3 { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* Material configuration: a checkbox per section. Only ticked sections are
+   written by "Apply to all". */
+.bq-rm-sec {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  user-select: none;
+}
+.bq-rm-sec input {
+  width: 15px;
+  height: 15px;
+  margin: 0;
+  cursor: pointer;
+}
+.bq-rm-skip {
+  margin-left: auto;
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+  opacity: 0.55;
+}
+/* Dimmed, not disabled: the fields still show what the room has, and
+   changing one ticks its section. */
+.bq-rm-off {
+  opacity: 0.5;
+}
