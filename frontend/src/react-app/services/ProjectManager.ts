@@ -1512,6 +1512,61 @@ export class ProjectManager {
     }
   }
 
+  /**
+   * Turn the wood grain on one or more parts.
+   *
+   * Takes a list because the panel's dropdown acts on whatever is open — a
+   * single part, or every part in a group — and both must behave the same.
+   *
+   * Shaped exactly like onFurnishModelComponentsExtFinishChange above: update
+   * the in-memory copy, re-hydrate each stored row into a real entity so it
+   * has its methods, then save the floor plan once at the end so the change
+   * lands in history as one step rather than one per part.
+   */
+  async onFurnishModelComponentGrainDirectionChange(
+    components: FurnishedModelComponent[],
+    direction: string,
+    isExterior: boolean
+  ) {
+    let furnishedModelId = "";
+    await Promise.all(
+      (components || []).map(async (component: FurnishedModelComponent) => {
+        const existing = this.getFurnishedModelComponentById(component._id);
+        if (!existing) return;
+        const field = isExterior
+          ? "externalFinishGrainDirection"
+          : "internalFinishGrainDirection";
+        this.furnishedModelComponents = this.furnishedModelComponents.map(
+          (furnishedModelComponent) =>
+            furnishedModelComponent._id === existing._id
+              ? // Spreading drops the entity's methods, so the result is a
+                // plain row — which is what this list holds anyway, and what
+                // the finish-change methods above put in it. The entity is
+                // rebuilt from it below when one is needed.
+                ({
+                  ...furnishedModelComponent,
+                  [field]: direction,
+                } as FurnishedModelComponent)
+              : furnishedModelComponent
+        );
+        await new FurnishedModelComponent({
+          ...existing,
+        }).updateFinishGrainDirection(direction, isExterior);
+        furnishedModelId = existing.furnishedModelId;
+      })
+    );
+    const existingFurnishedModel = furnishedModelId
+      ? this.getFurnishedModelById(furnishedModelId)
+      : null;
+    if (existingFurnishedModel) {
+      const title =
+        existingFurnishedModel?.model?.type === MODEL_TYPES.FLOOR_UNIT
+          ? HISTORY_TITLES.FLOOR_ITEM_TEXTURE_CHANGED
+          : HISTORY_TITLES.WALL_ITEM_TEXTURE_CHANGED;
+      await this.updateFloorPlan(title);
+    }
+  }
+
   async onFurnishModelComponentIntFinishChange(
     component: FurnishedModelComponent,
     selectedFinishing: Finishing

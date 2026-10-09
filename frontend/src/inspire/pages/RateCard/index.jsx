@@ -27,6 +27,10 @@ import {
   createCoatingRate,
   updateCoatingRate,
   removeCoatingRate,
+  listInteriorRates,
+  createInteriorRate,
+  updateInteriorRate,
+  removeInteriorRate,
   listHardware,
   createHardware,
   updateHardware,
@@ -34,6 +38,7 @@ import {
   getInstallationRate,
   setInstallationRate as saveInstallationRate,
 } from "../../services/ratesService";
+import ManageLists from "./ManageLists";
 
 /**
  * Rate Card (Masters) — admin screen to maintain BOQ pricing.
@@ -44,8 +49,19 @@ import {
  * BOQ. Only the screen moved; no backend or 3D-editor behaviour changed.
  *
  * Four tabs: Material rates (type + grade + brand), Coating rates
- * (category + brand), Hardware, and a single global Installation rate.
- * Admin / super-admin only.
+ * (finish type + grade + brand), Hardware, and a single global Installation
+ * rate. Admin / super-admin only.
+ *
+ * COATING IS PICKED THE SAME WAY AS MATERIAL. A finish category is already a
+ * two-level tree — Laminates > Wood Grain, Paint Finishes > PU Finish — but the
+ * form offered one flat dropdown of every child, so "Wood Grain" and "PU
+ * Finish" sat side by side with nothing saying which family each belonged to.
+ * Splitting it into Finish type > Grade narrows the second list to the chosen
+ * family, exactly as Grade narrows to the chosen material above.
+ *
+ * The STORED rate is unchanged: `finishingCategoryId` still holds the child,
+ * and the finish type is read back from that child's `parentCategoryId`. No
+ * migration, and the 3D editor keeps reading these rows as before.
  */
 
 const blankMaterial = {
@@ -55,6 +71,19 @@ const blankMaterial = {
   pricePerSqft: 0,
 };
 const blankCoating = {
+  // UI only — it narrows the Grade dropdown and is NOT part of the stored rate.
+  // `finishingpricing` sets additionalProperties:false, so saveCoating strips
+  // it; sending it is a 400.
+  finishingTypeId: "",
+  finishingCategoryId: "",
+  finishingBrandId: "",
+  pricePerSqft: 0,
+};
+// The INSIDE of a carcass — inner lamination, priced from its own table. Same
+// three fields as a coating rate, because it names the same catalogue; only the
+// price is separate. See interior_pricing.class.js on the server.
+const blankInterior = {
+  finishingTypeId: "",
   finishingCategoryId: "",
   finishingBrandId: "",
   pricePerSqft: 0,
@@ -67,6 +96,9 @@ const RateCard = () => {
     user?.permissions === USER_ROLES.SUPER_ADMIN;
 
   const [tab, setTab] = useState("material");
+  // The catalogue drawer — closed by default, because the common job on this
+  // page is pricing a combination that already exists, not inventing one.
+  const [showLists, setShowLists] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [editId, setEditId] = useState(null);
@@ -80,12 +112,14 @@ const RateCard = () => {
   // rate rows
   const [materialRates, setMaterialRates] = useState([]);
   const [coatingRates, setCoatingRates] = useState([]);
+  const [interiorRates, setInteriorRates] = useState([]);
   const [hardware, setHardware] = useState([]);
   const [installationRate, setInstallationRateState] = useState("");
 
   // drafts
   const [matDraft, setMatDraft] = useState(blankMaterial);
   const [coatDraft, setCoatDraft] = useState(blankCoating);
+  const [intDraft, setIntDraft] = useState(blankInterior);
   const [hwDraft, setHwDraft] = useState({ name: "", price: "" });
 
   // Installation is a single global number, so it uses an explicit Edit/Save
@@ -101,7 +135,7 @@ const RateCard = () => {
 
   const loadAll = async () => {
     setLoading(true);
-    const [types, cBrands, cats, fBrands, mRates, cRates, hw] =
+    const [types, cBrands, cats, fBrands, mRates, cRates, iRates, hw] =
       await Promise.all([
         getCoreMaterialTypes(),
         getCoreMaterialBrands(),
@@ -109,6 +143,7 @@ const RateCard = () => {
         getFinishingBrands(),
         listMaterialRates(),
         listCoatingRates(),
+        listInteriorRates(),
         listHardware(),
       ]);
     getInstallationRate().then((r) => setInstallationRateState(r || ""));
@@ -118,6 +153,7 @@ const RateCard = () => {
     setFinishBrands(fBrands);
     setMaterialRates(mRates);
     setCoatingRates(cRates);
+    setInteriorRates(iRates);
     setHardware(hw);
     setLoading(false);
   };
@@ -136,10 +172,48 @@ const RateCard = () => {
     return t?.grades ?? [];
   }, [materialTypes, matDraft.coreMaterialTypeId]);
 
+  // A finish category with no parent IS a finish type; its children are the
+  // grades sold under it. One collection, read two ways.
+  const finishTypes = useMemo(
+    () => finishCategories.filter((c) => !c.parentCategoryId),
+    [finishCategories]
+  );
+  const finishGradesForType = useMemo(
+    () =>
+      finishCategories.filter(
+        (c) => c.parentCategoryId && c.parentCategoryId === coatDraft.finishingTypeId
+      ),
+    [finishCategories, coatDraft.finishingTypeId]
+  );
+  /**
+   * INTERIOR IS LAMINATE, AND ONLY LAMINATE.
+   *
+   * The inside of a carcass is lined with inner lamination. It is never
+   * painted and never glass, so offering Paint Finishes and Glass Finishes
+   * here would be three choices where only one is real — and two of them would
+   * price a surface that does not exist.
+   *
+   * Matched on the name rather than an id so a type added later ("Inner
+   * lamination") is picked up without a code change. If nothing matches, every
+   * type is offered rather than leaving the screen with an empty dropdown.
+   */
+  const interiorTypes = useMemo(() => {
+    const lam = finishTypes.filter((c) => /lamina/i.test(c.name || ""));
+    return lam.length ? lam : finishTypes;
+  }, [finishTypes]);
+  // A stored rate names only the grade, so the type is read back from it.
+  const typeIdOfGrade = (gradeId) =>
+    finishCategories.find((c) => c._id === gradeId)?.parentCategoryId ?? "";
+  const finishTypeNameOfGrade = (gradeId) => {
+    const parentId = typeIdOfGrade(gradeId);
+    return parentId ? nameOf(finishCategories, parentId) : "—";
+  };
+
   const cancelEdit = () => {
     setEditId(null);
     setMatDraft(blankMaterial);
     setCoatDraft(blankCoating);
+    setIntDraft(blankInterior);
     setHwDraft({ name: "", price: "" });
   };
 
@@ -187,12 +261,16 @@ const RateCard = () => {
       !coatDraft.finishingBrandId ||
       !coatDraft.pricePerSqft
     ) {
-      alert("Pick a coating, a brand, and enter a rate.");
+      alert("Pick a finish type and grade, a brand, and enter a rate.");
       return;
     }
     setSaving(true);
+    // `finishingTypeId` is a UI field only — the grade already identifies its
+    // type. finishingpricing refuses unknown properties, so it is dropped here
+    // rather than spread into the payload.
+    const { finishingTypeId, ...stored } = coatDraft;
     const payload = {
-      ...coatDraft,
+      ...stored,
       pricePerSqft: Number(coatDraft.pricePerSqft),
     };
     if (editId) await updateCoatingRate(editId, payload);
@@ -206,6 +284,8 @@ const RateCard = () => {
   const editCoating = (row) => {
     setEditId(row._id);
     setCoatDraft({
+      // Re-derived so the Grade dropdown opens on the right family.
+      finishingTypeId: typeIdOfGrade(row.finishingCategoryId),
       finishingCategoryId: row.finishingCategoryId,
       finishingBrandId: row.finishingBrandId,
       pricePerSqft: row.pricePerSqft,
@@ -215,6 +295,56 @@ const RateCard = () => {
   const deleteCoating = async (id) => {
     if (!window.confirm("Delete this coating rate?")) return;
     await removeCoatingRate(id);
+    loadAll();
+  };
+
+  // ---- interior rate actions ----
+  //
+  // The inside of a carcass. Same three catalogue fields as a coating rate, and
+  // the same `finishingTypeId` that exists only to narrow the Grade list and is
+  // stripped before saving.
+  //
+  // The BRAND IS OPTIONAL here, unlike a coating rate: inner lamination is
+  // routinely quoted without naming one, and a rate saved with no brand is the
+  // fallback the BOQ uses when a part names a brand nothing is priced for.
+  const saveInterior = async () => {
+    if (!intDraft.finishingCategoryId || !intDraft.pricePerSqft) {
+      alert("Pick a finish type and enter a rate.");
+      return;
+    }
+    setSaving(true);
+    // `finishingCategoryId` holds the TYPE here, not a grade — there is no
+    // grade on an interior rate. `finishingTypeId` is a leftover of the shared
+    // draft shape and is never sent.
+    const { finishingTypeId, ...stored } = intDraft;
+    const payload = {
+      ...stored,
+      // "" would be stored as an empty string and never match a lookup; null is
+      // the value that means "any brand".
+      finishingBrandId: stored.finishingBrandId || null,
+      pricePerSqft: Number(intDraft.pricePerSqft),
+    };
+    if (editId) await updateInteriorRate(editId, payload);
+    else await createInteriorRate(payload);
+    setIntDraft(blankInterior);
+    setEditId(null);
+    setSaving(false);
+    loadAll();
+  };
+
+  const editInterior = (row) => {
+    setEditId(row._id);
+    setIntDraft({
+      finishingTypeId: "",
+      finishingCategoryId: row.finishingCategoryId,
+      finishingBrandId: row.finishingBrandId || "",
+      pricePerSqft: row.pricePerSqft,
+    });
+  };
+
+  const deleteInterior = async (id) => {
+    if (!window.confirm("Delete this interior rate?")) return;
+    await removeInteriorRate(id);
     loadAll();
   };
 
@@ -280,9 +410,21 @@ const RateCard = () => {
       <Container fluid className="py-4 px-4">
       <div className="d-flex align-items-center justify-content-between mb-3">
         <h4 className="mb-0 fw-semibold">Masters · Rate Card</h4>
-        <Button variant="outline-secondary" size="sm" onClick={loadAll}>
-          Refresh
-        </Button>
+        <div className="d-flex gap-2">
+          {tab === "material" || tab === "coating" || tab === "interior" ? (
+            <Button
+              variant={showLists ? "secondary" : "outline-secondary"}
+              size="sm"
+              onClick={() => setShowLists((v) => !v)}
+              title="Add, rename or remove the materials, grades and brands these dropdowns offer"
+            >
+              Manage lists
+            </Button>
+          ) : null}
+          <Button variant="outline-secondary" size="sm" onClick={loadAll}>
+            Refresh
+          </Button>
+        </div>
       </div>
       <p className="text-muted" style={{ fontSize: 13 }}>
         These rates feed the 3D editor’s material / coating pickers and price the
@@ -294,6 +436,8 @@ const RateCard = () => {
           <Spinner animation="border" size="sm" /> Loading rate card…
         </div>
       ) : (
+        <div className="d-flex gap-3 align-items-start">
+        <div className="flex-grow-1" style={{ minWidth: 0 }}>
         <Tabs
           activeKey={tab}
           onSelect={(k) => {
@@ -435,26 +579,35 @@ const RateCard = () => {
           {/* ---------------- COATING ---------------- */}
           <Tab eventKey="coating" title="Coating rates">
             <Row className="g-2 align-items-end mb-3">
-              <Col md={4}>
-                <Form.Label className="small fw-semibold">Coating</Form.Label>
+              <Col md={3}>
+                <Form.Label className="small fw-semibold">
+                  Finish type
+                </Form.Label>
                 <Form.Select
-                  value={coatDraft.finishingCategoryId}
+                  value={coatDraft.finishingTypeId}
                   onChange={(e) =>
                     setCoatDraft({
                       ...coatDraft,
-                      finishingCategoryId: e.target.value,
+                      finishingTypeId: e.target.value,
+                      // The chosen grade belongs to the OLD type, so it is
+                      // cleared — leaving it would save a Laminates grade
+                      // under Paint Finishes.
+                      finishingCategoryId: "",
                     })
                   }
                 >
                   <option value="">Select…</option>
-                  {finishCategories.map((c) => (
+                  {finishTypes.map((c) => (
                     <option key={c._id} value={c._id}>
                       {c.name}
                     </option>
                   ))}
                 </Form.Select>
               </Col>
-              <Col md={3}>
+              {/* Finish type → Brand → Grade. Brand sits between the two
+                  catalogue fields it is independent of; only Grade cascades
+                  from Finish type, and it still does. */}
+              <Col md={2}>
                 <Form.Label className="small fw-semibold">Brand</Form.Label>
                 <Form.Select
                   value={coatDraft.finishingBrandId}
@@ -473,6 +626,32 @@ const RateCard = () => {
                   ))}
                 </Form.Select>
               </Col>
+              <Col md={3}>
+                <Form.Label className="small fw-semibold">Grade</Form.Label>
+                <Form.Select
+                  value={coatDraft.finishingCategoryId}
+                  disabled={!coatDraft.finishingTypeId}
+                  onChange={(e) =>
+                    setCoatDraft({
+                      ...coatDraft,
+                      finishingCategoryId: e.target.value,
+                    })
+                  }
+                >
+                  <option value="">
+                    {coatDraft.finishingTypeId
+                      ? finishGradesForType.length
+                        ? "Select…"
+                        : "No grades under this type"
+                      : "Pick a finish type first"}
+                  </option>
+                  {finishGradesForType.map((c) => (
+                    <option key={c._id} value={c._id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </Form.Select>
+              </Col>
               <Col md={2}>
                 <Form.Label className="small fw-semibold">₹ / sqft</Form.Label>
                 <Form.Control
@@ -486,7 +665,7 @@ const RateCard = () => {
                   }
                 />
               </Col>
-              <Col md={3} className="d-flex gap-2">
+              <Col md={2} className="d-flex gap-2">
                 <Button variant="primary" onClick={saveCoating} disabled={saving}>
                   {editId ? "Update" : "Add"}
                 </Button>
@@ -501,8 +680,9 @@ const RateCard = () => {
             <Table hover responsive size="sm" className="align-middle">
               <thead>
                 <tr>
-                  <th>Coating</th>
+                  <th>Finish type</th>
                   <th>Brand</th>
+                  <th>Grade</th>
                   <th className="text-end">₹ / sqft</th>
                   <th className="text-end">Actions</th>
                 </tr>
@@ -511,8 +691,9 @@ const RateCard = () => {
                 {coatingRates.length ? (
                   coatingRates.map((r) => (
                     <tr key={r._id}>
-                      <td>{catName(r.finishingCategoryId)}</td>
+                      <td>{finishTypeNameOfGrade(r.finishingCategoryId)}</td>
                       <td>{finBrandName(r.finishingBrandId)}</td>
+                      <td>{catName(r.finishingCategoryId)}</td>
                       <td className="text-end">₹{r.pricePerSqft}</td>
                       <td className="text-end">
                         <Button
@@ -535,8 +716,142 @@ const RateCard = () => {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={4} className="text-center text-muted py-3">
+                    <td colSpan={5} className="text-center text-muted py-3">
                       No coating rates yet.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </Table>
+          </Tab>
+
+          {/* ---------------- INTERIOR ----------------
+              The INSIDE of a carcass — inner lamination. Its own tab and its
+              own table because it is a different material at a different price:
+              white paper at tens of rupees a square foot against a decorative
+              laminate at hundreds. It names the same finish types and grades as
+              the coating rates; only the price is separate. */}
+          <Tab eventKey="interior" title="Interior rates">
+            <Row className="g-2 align-items-end mb-3">
+              {/* NO GRADE HERE. One inner lamination rate covers the whole
+                  type: the inside of a carcass is white paper, not a chosen
+                  decor, so splitting it into Wood Grain / Stone / Solid Colour
+                  would be a distinction nobody prices. The rate is therefore
+                  saved against the TYPE, and the BOQ resolves a part's grade up
+                  to its type when it looks the rate up. */}
+              <Col md={4}>
+                <Form.Label className="small fw-semibold">
+                  Finish type
+                </Form.Label>
+                <Form.Select
+                  value={intDraft.finishingCategoryId}
+                  onChange={(e) =>
+                    setIntDraft({
+                      ...intDraft,
+                      finishingCategoryId: e.target.value,
+                    })
+                  }
+                >
+                  <option value="">Select…</option>
+                  {interiorTypes.map((c) => (
+                    <option key={c._id} value={c._id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </Form.Select>
+              </Col>
+              <Col md={3}>
+                <Form.Label className="small fw-semibold">Brand</Form.Label>
+                <Form.Select
+                  value={intDraft.finishingBrandId}
+                  onChange={(e) =>
+                    setIntDraft({
+                      ...intDraft,
+                      finishingBrandId: e.target.value,
+                    })
+                  }
+                >
+                  {/* Optional, and saying so matters: this is the rate used
+                      when a part names a brand nothing else is priced for. */}
+                  <option value="">Any brand</option>
+                  {finishBrands.map((b) => (
+                    <option key={b._id} value={b._id}>
+                      {b.name}
+                    </option>
+                  ))}
+                </Form.Select>
+              </Col>
+              <Col md={3}>
+                <Form.Label className="small fw-semibold">₹ / sqft</Form.Label>
+                <Form.Control
+                  type="number"
+                  value={intDraft.pricePerSqft || ""}
+                  onChange={(e) =>
+                    setIntDraft({
+                      ...intDraft,
+                      pricePerSqft: e.target.value,
+                    })
+                  }
+                />
+              </Col>
+              <Col md={2} className="d-flex gap-2">
+                <Button variant="primary" onClick={saveInterior} disabled={saving}>
+                  {editId ? "Update" : "Add"}
+                </Button>
+                {editId ? (
+                  <Button variant="outline-secondary" onClick={cancelEdit}>
+                    Cancel
+                  </Button>
+                ) : null}
+              </Col>
+            </Row>
+
+            <Table hover responsive size="sm" className="align-middle">
+              <thead>
+                <tr>
+                  <th>Finish type</th>
+                  <th>Brand</th>
+                  <th className="text-end">₹ / sqft</th>
+                  <th className="text-end">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {interiorRates.length ? (
+                  interiorRates.map((r) => (
+                    <tr key={r._id}>
+                      <td>{catName(r.finishingCategoryId)}</td>
+                      <td>
+                        {r.finishingBrandId ? (
+                          finBrandName(r.finishingBrandId)
+                        ) : (
+                          <span className="text-muted">Any brand</span>
+                        )}
+                      </td>
+                      <td className="text-end">₹{r.pricePerSqft}</td>
+                      <td className="text-end">
+                        <Button
+                          size="sm"
+                          variant="link"
+                          onClick={() => editInterior(r)}
+                        >
+                          Edit
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="link"
+                          className="text-danger"
+                          onClick={() => deleteInterior(r._id)}
+                        >
+                          Delete
+                        </Button>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={4} className="text-center text-muted py-3">
+                      No interior rates yet — the inside of every carcass is
+                      costing ₹0 until one is added.
                     </td>
                   </tr>
                 )}
@@ -679,6 +994,31 @@ const RateCard = () => {
             </div>
           </Tab>
         </Tabs>
+        </div>
+        {/* Only the two tabs that HAVE lists behind them. Hardware is free text
+            and Installation is a single number, so neither has a catalogue to
+            maintain and offering the drawer there would be a dead end. */}
+        {showLists && (tab === "material" || tab === "coating" || tab === "interior") ? (
+          <ManageLists
+            tab={tab}
+            data={{
+              materialTypes,
+              coreBrands,
+              finishCategories,
+              finishBrands,
+              materialRates,
+              coatingRates,
+              interiorRates,
+              // The drawer must list the same types the Interior tab can
+              // actually price, or it offers Paint and Glass beside a dropdown
+              // that will never show them.
+              interiorTypes,
+            }}
+            onClose={() => setShowLists(false)}
+            onChanged={loadAll}
+          />
+        ) : null}
+        </div>
       )}
       </Container>
     </div>

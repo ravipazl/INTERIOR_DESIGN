@@ -29,12 +29,35 @@ export const furnishedModelComponentSchema = {
     coreMaterialBrandId: { type: 'string' },
     coreMaterialThickness: { type: 'number' },
     externalFinishClassification: { type: 'string' },
-    externalFinishBrandId: { type: 'string' },
-    externalFinishFinishingId: { type: 'string' },
+    // NULL IS A REAL VALUE HERE — "no brand chosen", "no finish chosen" — and
+    // the collection is already full of it: 1,888 components store a null
+    // external brand and 1,946 a null internal one. Declaring these
+    // string-only made the service reject its OWN data: any patch clearing a
+    // brand, or setting a finish without one, came back 400 "validation
+    // failed". It stayed hidden only because every write so far happened to
+    // carry a brand.
+    externalFinishBrandId: { type: ['string', 'null'] },
+    externalFinishFinishingId: { type: ['string', 'null'] },
     externalFinishGrainDirection: { type: 'string' },
     internalFinishClassification: { type: 'string' },
-    internalFinishBrandId: { type: 'string' },
-    internalFinishFinishingId: { type: 'string' },
+    internalFinishBrandId: { type: ['string', 'null'] },
+    internalFinishFinishingId: { type: ['string', 'null'] },
+    // THE INSIDE IS PRICED BY TYPE, NOT BY SWATCH.
+    //
+    // `internalFinishFinishingId` names a swatch — "Wood 10002" — because the
+    // 3D editor lets you paint the inside of a part with a specific decor. But
+    // an interior RATE is one price for a whole type: the inside of a carcass
+    // is white inner lamination, and there is no Wood Grain version of it.
+    //
+    // So the BOQ's room-level control writes the TYPE here and the engine
+    // prices from it directly. Without this field a room-level choice would
+    // have no swatch to record, the rate lookup would find nothing, and every
+    // carcass would quietly come out free — the failure that still produces a
+    // believable bill.
+    //
+    // Nothing is replaced: a part that only has a swatch is still priced by
+    // resolving that swatch up to its type.
+    internalFinishCategoryId: { type: ['string', 'null'] },
     internalFinishGrainDirection: { type: 'string' },
     edgeBandThickness: { type: 'number' },
     edgeBandColor: { type: 'string' },

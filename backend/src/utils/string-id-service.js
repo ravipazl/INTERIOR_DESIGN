@@ -37,4 +37,41 @@ export class StringIdMongoService extends MongoDBService {
     if (!doc) throw new NotFound(`No record found for id '${id}'`)
     return doc
   }
+
+  // WRITES MISS THE SAME ROWS READS USED TO.
+  //
+  // `get` was fixed when the BOQ needed it, but `patch` and `remove` still go
+  // through the default adapter and still cast a 24-hex id to an ObjectId —
+  // so editing or deleting a catalog row whose `_id` is the TEXT
+  // "6a0ae3ad80c7795ec04c1213" throws NotFound for a record sitting right
+  // there. Nothing noticed while these lists were read-only; the Rate Card's
+  // Manage lists screen writes to them, and renaming a finish type 404s.
+  //
+  // Resolving the row first and then writing by its ACTUAL stored `_id` keeps
+  // both forms working: a row already stored as a real ObjectId is found by
+  // the same query and written exactly as before.
+
+  async patch(id, data, params = {}) {
+    // A null id is a multi-patch by query — the adapter handles that correctly.
+    if (id === null || id === undefined) return super.patch(id, data, params)
+    const model = await this.getModel(params)
+    const doc = await model.findOne(idQuery(id))
+    if (!doc) throw new NotFound(`No record found for id '${id}'`)
+    // `_id` is immutable in Mongo: including it in $set fails the whole write.
+    const { _id, ...fields } = data || {}
+    if (Object.keys(fields).length) {
+      await model.updateOne({ _id: doc._id }, { $set: fields })
+    }
+    return model.findOne({ _id: doc._id })
+  }
+
+  async remove(id, params = {}) {
+    if (id === null || id === undefined) return super.remove(id, params)
+    const model = await this.getModel(params)
+    const doc = await model.findOne(idQuery(id))
+    if (!doc) throw new NotFound(`No record found for id '${id}'`)
+    await model.deleteOne({ _id: doc._id })
+    // Feathers returns the removed record, so callers can report what went.
+    return doc
+  }
 }

@@ -47,6 +47,9 @@
     "cabinet-finishes:check": "node scripts/production/cabinet-finish-live.mjs",
     "cabinet-finishes:apply": "node scripts/production/cabinet-finish-live.mjs --apply",
     "cabinet-finishes:verify": "node scripts/production/verify-cabinet-finishes.mjs",
+    "laminate-catalogue:check": "node scripts/production/laminate-catalogue-live.mjs",
+    "laminate-catalogue:apply": "node scripts/production/laminate-catalogue-live.mjs --apply",
+    "laminate-catalogue:verify": "node scripts/production/laminate-catalogue-live.mjs --verify",
     "mocha": "cross-env NODE_ENV=test mocha test/ --recursive --exit",
     "test": "npm run mocha",
     "bundle:client": "npm pack --pack-destination ./public"

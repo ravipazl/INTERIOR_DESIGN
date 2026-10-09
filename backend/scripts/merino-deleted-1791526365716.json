@@ -1,0 +1,284 @@
+{
+  "materials": [
+    {
+      "_id": "b8a4857d-3e18-4bb1-b1d9-a773740f70cf",
+      "name": "Antique Walnut 37380",
+      "categoryId": "3a184612-aa4b-4704-99b0-0f6c00ee4650",
+      "brandId": "31e58914-cce1-4091-95eb-0fb5ecb910df",
+      "type": "wall",
+      "texture": {
+        "fileUrl": ""
+      },
+      "color": "",
+      "pricePerSqFt": 0,
+      "decorCode": "37380",
+      "finishCodes": [
+        "LV"
+      ],
+      "createdAt": "2026-10-08T06:43:52.593Z",
+      "updatedAt": "2026-10-08T09:24:41.921Z"
+    },
+    {
+      "_id": "99c4043a-aa91-4690-a216-52acc948c2ca",
+      "name": "Black Reed 46248",
+      "categoryId": "3a184612-aa4b-4704-99b0-0f6c00ee4650",
+      "brandId": "31e58914-cce1-4091-95eb-0fb5ecb910df",
+      "type": "wall",
+      "texture": {
+        "fileUrl": ""
+      },
+      "color": "",
+      "pricePerSqFt": 0,
+      "decorCode": "46248",
+      "finishCodes": [
+        "WVN",
+        "HC",
+        "MR+"
+      ],
+      "createdAt": "2026-10-08T06:43:52.593Z",
+      "updatedAt": "2026-10-08T09:24:41.921Z"
+    },
+    {
+      "_id": "36f3cc54-c4dd-4c6f-b2af-90f15b866564",
+      "name": "Café Kindred 15127",
+      "categoryId": "3a184612-aa4b-4704-99b0-0f6c00ee4650",
+      "brandId": "31e58914-cce1-4091-95eb-0fb5ecb910df",
+      "type": "wall",
+      "texture": {
+        "fileUrl": ""
+      },
+      "color": "",
+      "pricePerSqFt": 0,
+      "decorCode": "15127",
+      "finishCodes": [
+        "PT",
+        "RH"
+      ],
+      "createdAt": "2026-10-08T06:43:52.593Z",
+      "updatedAt": "2026-10-08T09:24:41.921Z"
+    },
+    {
+      "_id": "415157f1-3318-4267-8b28-754c729e34a7",
+      "name": "White Metal 99987",
+      "categoryId": "bfc6cce0-e6b6-44d4-a1e5-1a577c047af7",
+      "brandId": "31e58914-cce1-4091-95eb-0fb5ecb910df",
+      "type": "wall",
+      "texture": {
+        "fileUrl": ""
+      },
+      "color": "",
+      "pricePerSqFt": 0,
+      "decorCode": "99987",
+      "finishCodes": [
+        "MT",
+        "V"
+      ],
+      "createdAt": "2026-10-08T06:43:52.593Z",
+      "updatedAt": "2026-10-08T09:24:41.921Z"
+    },
+    {
+      "_id": "082cf1c2-f241-4c0f-ad54-45eb9802f733",
+      "name": "Cuppric Mirror 98995",
+      "categoryId": "bfc6cce0-e6b6-44d4-a1e5-1a577c047af7",
+      "brandId": "31e58914-cce1-4091-95eb-0fb5ecb910df",
+      "type": "wall",
+      "texture": {
+        "fileUrl": ""
+      },
+      "color": "",
+      "pricePerSqFt": 0,
+      "decorCode": "98995",
+      "finishCodes": [
+        "V"
+      ],
+      "createdAt": "2026-10-08T06:43:52.593Z",
+      "updatedAt": "2026-10-08T09:24:41.921Z"
+    },
+    {
+      "_id": "d86a11ab-e303-4d61-b1b3-2fed035022de",
+      "name": "Steel Mirror 98989",
+      "categoryId": "bfc6cce0-e6b6-44d4-a1e5-1a577c047af7",
+      "brandId": "31e58914-cce1-4091-95eb-0fb5ecb910df",
+      "type": "wall",
+      "texture": {
+        "fileUrl": ""
+      },
+      "color": "",
+      "pricePerSqFt": 0,
+      "decorCode": "98989",
+      "finishCodes": [
+        "V"
+      ],
+      "createdAt": "2026-10-08T06:43:52.593Z",
+      "updatedAt": "2026-10-08T09:24:41.921Z"
+    },
+    {
+      "_id": "aba9ff9e-875b-4cd8-93ec-763c1bd17d47",
+      "name": "Silver Mirror 98999",
+      "categoryId": "bfc6cce0-e6b6-44d4-a1e5-1a577c047af7",
+      "brandId": "31e58914-cce1-4091-95eb-0fb5ecb910df",
+      "type": "wall",
+      "texture": {
+        "fileUrl": ""
+      },
+      "color": "",
+      "pricePerSqFt": 0,
+      "decorCode": "98999",
+      "finishCodes": [
+        "V"
+      ],
+      "createdAt": "2026-10-08T06:43:52.593Z",
+      "updatedAt": "2026-10-08T09:24:41.921Z"
+    },
+    {
+      "_id": "46f96c3a-c8df-4577-82c3-aa8a370bd69c",
+      "name": "Goldy Mirror 98998",
+      "categoryId": "bfc6cce0-e6b6-44d4-a1e5-1a577c047af7",
+      "brandId": "31e58914-cce1-4091-95eb-0fb5ecb910df",
+      "type": "wall",
+      "texture": {
+        "fileUrl": ""
+      },
+      "color": "",
+      "pricePerSqFt": 0,
+      "decorCode": "98998",
+      "finishCodes": [
+        "V"
+      ],
+      "createdAt": "2026-10-08T06:43:52.593Z",
+      "updatedAt": "2026-10-08T09:24:41.921Z"
+    },
+    {
+      "_id": "e2d118b8-3c3f-4642-a4e3-9a02b0a68da7",
+      "name": "Kamet Lavito Walnut 14191",
+      "categoryId": "ad99c405-a437-4bf0-a286-4b31a769a35e",
+      "brandId": "31e58914-cce1-4091-95eb-0fb5ecb910df",
+      "type": "wall",
+      "texture": {
+        "fileUrl": ""
+      },
+      "color": "",
+      "pricePerSqFt": 0,
+      "decorCode": "14191",
+      "finishCodes": [
+        "MNT",
+        "RH"
+      ],
+      "createdAt": "2026-10-08T06:43:52.593Z",
+      "updatedAt": "2026-10-08T09:24:41.921Z"
+    },
+    {
+      "_id": "be4f77a0-75f0-40bc-9cd3-afefbbddf429",
+      "name": "Mansal Ulura Walnut 14619",
+      "categoryId": "7886c007-35f6-4afe-9775-c5611c97dd91",
+      "brandId": "31e58914-cce1-4091-95eb-0fb5ecb910df",
+      "type": "wall",
+      "texture": {
+        "fileUrl": ""
+      },
+      "color": "",
+      "pricePerSqFt": 0,
+      "decorCode": "14619",
+      "finishCodes": [
+        "RH"
+      ],
+      "createdAt": "2026-10-08T06:43:52.593Z",
+      "updatedAt": "2026-10-08T09:24:41.921Z"
+    },
+    {
+      "_id": "3d7e3378-1604-4f9d-8300-cbe24d0a584a",
+      "name": "Canadian Walnut 10544",
+      "categoryId": "7886c007-35f6-4afe-9775-c5611c97dd91",
+      "brandId": "31e58914-cce1-4091-95eb-0fb5ecb910df",
+      "type": "wall",
+      "texture": {
+        "fileUrl": ""
+      },
+      "color": "",
+      "pricePerSqFt": 0,
+      "decorCode": "10544",
+      "finishCodes": [
+        "WV"
+      ],
+      "createdAt": "2026-10-08T06:43:52.593Z",
+      "updatedAt": "2026-10-08T09:24:41.921Z"
+    },
+    {
+      "_id": "e8aef981-2cf5-4646-a932-23e64989df79",
+      "name": "Fondle Samsara Maple 14686",
+      "categoryId": "7886c007-35f6-4afe-9775-c5611c97dd91",
+      "brandId": "31e58914-cce1-4091-95eb-0fb5ecb910df",
+      "type": "wall",
+      "texture": {
+        "fileUrl": ""
+      },
+      "color": "",
+      "pricePerSqFt": 0,
+      "decorCode": "14686",
+      "finishCodes": [
+        "WV",
+        "RH"
+      ],
+      "createdAt": "2026-10-08T06:43:52.593Z",
+      "updatedAt": "2026-10-08T09:24:41.921Z"
+    },
+    {
+      "_id": "3454c625-1be5-4346-9837-bafeaa6a8ef0",
+      "name": "Coal Willowood 14932",
+      "categoryId": "7886c007-35f6-4afe-9775-c5611c97dd91",
+      "brandId": "31e58914-cce1-4091-95eb-0fb5ecb910df",
+      "type": "wall",
+      "texture": {
+        "fileUrl": ""
+      },
+      "color": "",
+      "pricePerSqFt": 0,
+      "decorCode": "14932",
+      "finishCodes": [
+        "HGL",
+        "RH",
+        "V"
+      ],
+      "createdAt": "2026-10-08T06:43:52.593Z",
+      "updatedAt": "2026-10-08T09:24:41.921Z"
+    },
+    {
+      "_id": "6b781459-3734-44e5-bf36-f0073fe27634",
+      "name": "Greige Concreto 44791",
+      "categoryId": "5ba3f6e9-9b59-46df-b684-d2c0be5c8bff",
+      "brandId": "31e58914-cce1-4091-95eb-0fb5ecb910df",
+      "type": "wall",
+      "texture": {
+        "fileUrl": ""
+      },
+      "color": "",
+      "pricePerSqFt": 0,
+      "decorCode": "44791",
+      "finishCodes": [
+        "RH"
+      ],
+      "createdAt": "2026-10-08T06:43:52.593Z",
+      "updatedAt": "2026-10-08T09:24:41.921Z"
+    },
+    {
+      "_id": "2c714a2a-3b9e-465a-9c22-af3ed6595a29",
+      "name": "Bredon 49918",
+      "categoryId": "5ba3f6e9-9b59-46df-b684-d2c0be5c8bff",
+      "brandId": "31e58914-cce1-4091-95eb-0fb5ecb910df",
+      "type": "wall",
+      "texture": {
+        "fileUrl": ""
+      },
+      "color": "",
+      "pricePerSqFt": 0,
+      "decorCode": "49918",
+      "finishCodes": [
+        "HGL",
+        "SH",
+        "V"
+      ],
+      "createdAt": "2026-10-08T06:43:52.593Z",
+      "updatedAt": "2026-10-08T09:24:41.921Z"
+    }
+  ]
+}

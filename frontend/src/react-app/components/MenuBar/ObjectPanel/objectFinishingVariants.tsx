@@ -78,12 +78,25 @@ const ObjectFinishingVariants = React.memo(
                   >
                     <img
                       src={finishing?.texture?.fileUrl}
+                      alt=""
                       className="w-[97px] h-[93px]"
                     />
-                    <div>
+                    <div className="w-[97px]">
                       <p className="text-xs font-normal truncate">
                         {capitalizeText(finishing?.name)}
                       </p>
+                      {/* THE MAKER'S SURFACE CODES — RH, HGL, MR+, VNR.
+                          The same design is sold in several surfaces, and the
+                          catalogue says which on every entry. Shown here
+                          rather than used to sort the materials: a décor
+                          carrying two of them belongs in two places at once,
+                          which no single dropdown can express. As a line of
+                          text it simply tells you what you are looking at. */}
+                      {(finishing as any)?.finishCodes?.length ? (
+                        <p className="text-[10px] font-normal text-[#8b89a3] truncate">
+                          {(finishing as any).finishCodes.join(" · ")}
+                        </p>
+                      ) : null}
                     </div>
                   </div>
                   {/* Per-texture variant picker — only shown when the finishing

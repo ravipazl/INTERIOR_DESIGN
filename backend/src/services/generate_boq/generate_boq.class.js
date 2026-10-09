@@ -119,25 +119,133 @@ export class GenerateBoqServiceService {
         return lookupCache.get(key)
       }
       // One label per type, its brands listed once: ["Laminates · Merino, Greenlam"].
-      const finishLabelsFor = async (componentsList) => {
-        const brandsByType = new Map() // type → brand names (insertion order)
+      /**
+       * One side's labels: a type, with the brands used on it listed once.
+       *
+       * The interior can name its type DIRECTLY (`internalFinishCategoryId`,
+       * set by the BOQ's room control) or through a swatch, so the type is
+       * taken from whichever is present.
+       */
+      /**
+       * `nameFinishes` adds the FINISH ITSELF to the label, and is why the
+       * exterior passes it.
+       *
+       * "Laminates · Greenlam" names the type and the brand and stops. Change
+       * a room from one Greenlam laminate to another and the text is identical
+       * before and after — the save has happened, every part carries the new
+       * finish, the amounts have moved, and the one column that is supposed to
+       * say what the unit is made of reports no change at all. It read as the
+       * button not working.
+       *
+       * The exterior is a choice of a specific décor, so the décor is named.
+       * Up to three are listed; beyond that a count, because a unit finished
+       * part by part can carry many and this is a narrow column. The interior
+       * is priced and chosen by type alone, so it is left as it was.
+       */
+      const labelsForSide = async (
+        componentsList,
+        finishField,
+        brandField,
+        categoryField,
+        nameFinishes = false
+      ) => {
+        const byType = new Map() // type → { brands, finishes } (insertion order)
         for (const comp of componentsList || []) {
-          const finishing = await lookup('finishings', comp?.externalFinishFinishingId)
-          if (!finishing) continue
-          const style = await lookup('finishing_categories', finishing.categoryId)
-          const parent = style?.parentCategoryId
-            ? await lookup('finishing_categories', style.parentCategoryId)
-            : null
-          const type = parent?.name || style?.name || ''
+          let type = ''
+          let finishName = ''
+          const directId = categoryField ? comp?.[categoryField] : null
+          if (directId) {
+            type = (await lookup('finishing_categories', directId))?.name || ''
+          } else {
+            const finishing = await lookup('finishings', comp?.[finishField])
+            if (!finishing) continue
+            const style = await lookup('finishing_categories', finishing.categoryId)
+            const parent = style?.parentCategoryId
+              ? await lookup('finishing_categories', style.parentCategoryId)
+              : null
+            type = parent?.name || style?.name || ''
+            finishName = finishing.name || ''
+          }
           if (!type) continue
-          if (!brandsByType.has(type)) brandsByType.set(type, [])
-          const brand = (await lookup('finishing_brands', comp?.externalFinishBrandId))?.name
-          const brands = brandsByType.get(type)
-          if (brand && !brands.includes(brand)) brands.push(brand)
+          if (!byType.has(type)) byType.set(type, { brands: [], finishes: [] })
+          const entry = byType.get(type)
+          const brand = (await lookup('finishing_brands', comp?.[brandField]))?.name
+          if (brand && !entry.brands.includes(brand)) entry.brands.push(brand)
+          if (finishName && !entry.finishes.includes(finishName)) {
+            entry.finishes.push(finishName)
+          }
         }
-        return [...brandsByType].map(([type, brands]) =>
-          brands.length ? `${type} · ${brands.join(', ')}` : type
-        )
+        return [...byType].map(([type, { brands, finishes }]) => {
+          const parts = [type]
+          if (brands.length) parts.push(brands.join(', '))
+          if (nameFinishes && finishes.length) {
+            parts.push(
+              finishes.length <= 3
+                ? finishes.join(', ')
+                : `${finishes.length} finishes`
+            )
+          }
+          return parts.join(' · ')
+        })
+      }
+
+      /**
+       * BOTH SIDES, EACH SAYING WHICH IT IS.
+       *
+       * Only the exterior was reported, so a unit lined inside and finished
+       * outside read as one unlabelled "Laminates · Merino" — the inside was
+       * priced into the amount but never named, and nothing said the label
+       * described one side rather than the whole unit.
+       *
+       * Every label is prefixed, including when only one side is set: an
+       * unprefixed line beside a prefixed one reads as "the rest", which is
+       * exactly the ambiguity being removed.
+       */
+      /**
+       * The BOARD, named like the finishes beside it.
+       *
+       * It was never reported at all: the Material column listed the laminate
+       * but not the plywood underneath, even though the board is the larger
+       * part of the price and the thing a client queries first. Distinct
+       * combinations are listed once, so a room on one board reads as one line
+       * rather than repeating per panel.
+       */
+      const coreLabelsFor = async (componentsList) => {
+        const seen = new Set()
+        for (const comp of componentsList || []) {
+          if (!comp?.coreMaterialTypeId) continue
+          const type = (await lookup('core_material_types', comp.coreMaterialTypeId))?.type
+          if (!type) continue
+          const brand = (await lookup('core_material_brands', comp.coreMaterialBrandId))?.name
+          seen.add([type, brand, comp.coreMaterialGrade].filter(Boolean).join(' · '))
+        }
+        return [...seen]
+      }
+
+      const finishLabelsFor = async (componentsList) => {
+        const [exterior, interior] = await Promise.all([
+          labelsForSide(
+            componentsList,
+            'externalFinishFinishingId',
+            'externalFinishBrandId',
+            null,
+            true
+          ),
+          labelsForSide(
+            componentsList,
+            'internalFinishFinishingId',
+            'internalFinishBrandId',
+            'internalFinishCategoryId'
+          )
+        ])
+        // Board first: it is what the unit is MADE of, and the finishes are
+        // what is stuck to it.
+        const core = await coreLabelsFor(componentsList)
+        return [
+          ...core.map((l) => `Core: ${l}`),
+          ...exterior.map((l) => `Exterior: ${l}`),
+          ...interior.map((l) => `Interior: ${l}`)
+        ]
       }
 
       await Promise.all(
@@ -225,25 +333,88 @@ export class GenerateBoqServiceService {
                   return null
                 }
               }
-              const rateFor = async (categoryId, brandId) => {
+              /**
+               * INSIDE AND OUTSIDE ARE PRICED FROM DIFFERENT TABLES.
+               *
+               * They used to share `finishingpricing`, which meant the inside
+               * of a carcass could only be priced as if it carried the same
+               * decorative laminate as the outside — hundreds of rupees a
+               * square foot for what is in fact white inner lamination at a few
+               * tens. The catalogue is still shared (same finish type, grade
+               * and brand); only the price now comes from its own table.
+               *
+               * A rate row with NO brand is the fallback: when the part names a
+               * brand and no rate exists for that exact pairing, the rate for
+               * the category alone is used rather than dropping to zero, which
+               * would quietly leave the inside free.
+               */
+              const rateFrom = async (service, categoryId, brandId) => {
                 if (!categoryId) return 0
-                const q = { finishingCategoryId: categoryId }
-                if (brandId) q.finishingBrandId = brandId
-                const r = await this.app.service('finishingpricing').find({ query: q })
-                return r?.data?.length ? r.data[0].pricePerSqft : 0
+                if (brandId) {
+                  const exact = await this.app
+                    .service(service)
+                    .find({ query: { finishingCategoryId: categoryId, finishingBrandId: brandId } })
+                  if (exact?.data?.length) return exact.data[0].pricePerSqft
+                }
+                const any = await this.app
+                  .service(service)
+                  .find({ query: { finishingCategoryId: categoryId } })
+                return any?.data?.length ? any.data[0].pricePerSqft : 0
               }
 
-              // --- Coating rates: interior always; exterior only if exposed ---
+              // --- interior: its own table, and charged on EVERY part ---
+              //
+              // AN INTERIOR RATE IS PRICED PER TYPE, NOT PER GRADE. The inside
+              // of a carcass is white inner lamination — there is no Wood Grain
+              // version of it — so the Rate Card saves one rate against the
+              // type (Laminates) and offers no grade at all.
+              //
+              // A part, though, names a GRADE: its finishing's `categoryId` is
+              // "Wood Grain", whose parent is "Laminates". So the grade is
+              // resolved up to its type before the lookup, or every part would
+              // miss the rate and the inside would silently come out free.
+              // The grade itself is still tried, so a rate saved against one
+              // directly keeps working.
               let interiorRate = 0
-              const intFin = await resolveFinishing(component.internalFinishFinishingId)
-              if (intFin) {
-                interiorRate = await rateFor(intFin.categoryId, component.internalFinishBrandId)
+              if (component.internalFinishCategoryId) {
+                // Set by the BOQ's room-level Interior control: the TYPE
+                // itself, so there is nothing to resolve.
+                interiorRate = await rateFrom(
+                  'interiorpricing',
+                  component.internalFinishCategoryId,
+                  component.internalFinishBrandId
+                )
+              } else {
+                // Set in the 3D editor as a swatch. Resolve it up to its type,
+                // then try the swatch's own grade for any rate saved that way.
+                const intFin = await resolveFinishing(component.internalFinishFinishingId)
+                if (intFin) {
+                  const grade = await lookup('finishing_categories', intFin.categoryId)
+                  const typeId = grade?.parentCategoryId || intFin.categoryId
+                  interiorRate = await rateFrom(
+                    'interiorpricing',
+                    typeId,
+                    component.internalFinishBrandId
+                  )
+                  if (!interiorRate && typeId !== intFin.categoryId) {
+                    interiorRate = await rateFrom(
+                      'interiorpricing',
+                      intFin.categoryId,
+                      component.internalFinishBrandId
+                    )
+                  }
+                }
               }
+              // --- exterior: the coating table, and only if the part is seen ---
               let exteriorRate = 0
               if (component.exposed) {
                 const extFin = await resolveFinishing(component.externalFinishFinishingId)
                 if (extFin) {
-                  exteriorRate = await rateFor(extFin.categoryId, component.externalFinishBrandId)
+                  exteriorRate = await rateFrom(
+                    'finishingpricing',
+                    extFin.categoryId,
+                    component.externalFinishBrandId
+                  )
                 }
               }
 
@@ -264,6 +435,16 @@ export class GenerateBoqServiceService {
               }
               components.push(updated)
               parts.push({
+                // THE COMPONENT'S OWN ID. Without it the BOQ can show a mesh
+                // but never change one — there is nothing to PATCH. It is
+                // already in hand here, so carrying it costs nothing.
+                _id: component._id,
+                // WHAT THIS PART IS CURRENTLY FINISHED IN, as ids. The rate
+                // below says what it costs, but reopening the editor needs the
+                // actual finish and brand to show them again — without these
+                // the form came back empty and looked like nothing was set.
+                externalFinishFinishingId: component.externalFinishFinishingId || null,
+                externalFinishBrandId: component.externalFinishBrandId || null,
                 name: component.name,
                 area: Number(area.toFixed(2)),
                 // Per-sqft rates alongside the extended (rate × area) costs.

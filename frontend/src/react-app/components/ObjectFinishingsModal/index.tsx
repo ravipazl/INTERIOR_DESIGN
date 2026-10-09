@@ -94,6 +94,11 @@ const ObjectFinishingsModal = ({
     return saved ? [...list, saved] : list;
   })();
 
+  // Named so the empty-style message can say WHICH brand has nothing, rather
+  // than leaving the designer to work out why the list went blank.
+  const selectedBrandName =
+    brandOptions.find((b: any) => b._id === selectedBrandId)?.name || "";
+
   const onHideObjectProperties = () => {
     setShowObjectComponentsModal(false);
   };
@@ -293,38 +298,13 @@ const ObjectFinishingsModal = ({
                             ))}
                           </select>
                         </div>
-                        {styles?.length ? (
-                          <div className="min-w-0">
-                            <h6 className="type-pattern-title text-[12px] mb-1">
-                              Style
-                            </h6>
-                            <select
-                              id="dropdown"
-                              value={
-                                selectedStyle
-                                  ? selectedStyle.name
-                                  : selectedFinishingType === "exterior"
-                                  ? externalStyle?.name
-                                  : internalStyle?.name
-                              }
-                              onChange={handleSelectedStyle}
-                              className="type-pattern-dropdown bg-[#F9F9FA] border-0 w-full h-[28px]"
-                            >
-                              {styles?.map((finishing: Finishing) => (
-                                <option
-                                  key={finishing._id}
-                                  value={finishing.name}
-                                >
-                                  {finishing.name}
-                                </option>
-                              ))}
-                            </select>
-                          </div>
-                        ) : (
-                          // Keeps Brand / Grain on the second line when a type
-                          // has no styles.
-                          <div />
-                        )}
+                        {/* BRAND BEFORE STYLE. A grade belongs to a brand —
+                            Woodgrains and Metalam are Merino's — so the brand
+                            has to be known before the style list can mean
+                            anything. Reading Type → Brand → Style down the
+                            grid matches the order the choices actually depend
+                            on, and matches the Coating tab in the Rate Card
+                            where these are priced. */}
                         <div className="min-w-0">
                           <h6 className="type-pattern-title text-[12px] mb-1">
                             Brand
@@ -343,17 +323,96 @@ const ObjectFinishingsModal = ({
                             ))}
                           </select>
                         </div>
+                        {styles?.length ? (
+                          <div className="min-w-0">
+                            <h6 className="type-pattern-title text-[12px] mb-1">
+                              Style
+                            </h6>
+                            <select
+                              id="dropdown"
+                              /**
+                               * IDENTIFIED BY ID, NOT BY NAME.
+                               *
+                               * Two brands can name a grade the same thing
+                               * and do: Merino has a Patterns and Greenlam
+                               * now has its own, and MR+ exists twice over.
+                               * Keyed on the name, choosing Greenlam's
+                               * Patterns resolved to Merino's row — which is
+                               * not in Greenlam's list — so the select could
+                               * not settle and snapped straight back. From
+                               * the outside it looked like one option that
+                               * simply refused to be clicked.
+                               *
+                               * The fallback reads the applied material's
+                               * categoryId, which IS the style. It used to
+                               * read that material's own name, which never
+                               * matched an option at all.
+                               */
+                              value={
+                                selectedStyle?._id ??
+                                (selectedFinishingType === "exterior"
+                                  ? externalStyle?.categoryId
+                                  : internalStyle?.categoryId) ??
+                                ""
+                              }
+                              onChange={handleSelectedStyle}
+                              className="type-pattern-dropdown bg-[#F9F9FA] border-0 w-full h-[28px]"
+                            >
+                              {styles?.map((finishing: Finishing) => (
+                                <option key={finishing._id} value={finishing._id}>
+                                  {finishing.name}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        ) : (
+                          // The chosen brand has no styles under this type.
+                          // Says so, and names the brand: an empty space here
+                          // reads as something having gone wrong, when in fact
+                          // the answer is simply that this brand's catalogue
+                          // has not been loaded. Also keeps Grain Direction on
+                          // the second line, as the empty div it replaces did.
+                          <div className="min-w-0">
+                            <h6 className="type-pattern-title text-[12px] mb-1">
+                              Style
+                            </h6>
+                            <div
+                              className="w-full h-[28px] flex items-center text-[11px] leading-tight text-[#9A9AA5] px-1"
+                              title={
+                                selectedBrandName
+                                  ? `${selectedBrandName} has no materials under this type yet.`
+                                  : "No styles available for this selection."
+                              }
+                            >
+                              {selectedBrandName
+                                ? `No ${selectedBrandName} styles yet`
+                                : "No styles available"}
+                            </div>
+                          </div>
+                        )}
                         <div className="min-w-0">
                           <h6 className="type-pattern-title text-[12px] mb-1">
                             Grain Direction
                           </h6>
                           <select
                             id="dropdown"
-                            value={capitalizeText(
-                              selectedFinishingType === "exterior"
-                                ? externalFinishGrainDirection
-                                : internalFinishGrainDirection
-                            )}
+                            // Fall back to Vertical when the part has no
+                            // direction stored. Left as "" the select matches
+                            // no option and renders blank, so the control
+                            // looks unset on every part that predates this
+                            // field — and Vertical is what such a part is
+                            // actually drawn as, because the décor photographs
+                            // are shot with the grain running down the image
+                            // and nothing rotates them. Showing Horizontal
+                            // here would put the label at right angles to the
+                            // cabinet, which is the bug this pairs with.
+                            value={
+                              capitalizeText(
+                                selectedFinishingType === "exterior"
+                                  ? externalFinishGrainDirection
+                                  : internalFinishGrainDirection
+                              ) || "Vertical"
+                            }
                             onChange={handleSelectedGrainDirection}
                             className="type-pattern-dropdown bg-[#F9F9FA] border-0 w-full h-[28px]"
                           >

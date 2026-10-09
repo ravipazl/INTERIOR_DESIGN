@@ -18,6 +18,7 @@ import { modelDefaultValues } from './model_default_values/model_default_values.
 import { textureCategory } from './texture_categories/texture_categories.js'
 import { coreMaterialPricing } from './core_material_pricing/core_material_pricing.js'
 import { finishingPricing } from './finishing_pricing/finishing_pricing.js'
+import { interiorPricing } from './interior_pricing/interior_pricing.js'
 import { generateBoq } from './generate_boq/generate_boq.js'
 import { shareProject } from './share_project/share_project.js'
 import { modelUpload } from './model-upload/model-upload.js'
@@ -71,6 +72,7 @@ export const services = (app) => {
   app.configure(textureCategory)
   app.configure(coreMaterialPricing)
   app.configure(finishingPricing)
+  app.configure(interiorPricing)
   app.configure(generateBoq)
   app.configure(shareProject)
   app.configure(modelUpload)

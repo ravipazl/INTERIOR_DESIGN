@@ -73,6 +73,33 @@ export const TexturesService = {
       return null;
     }
   },
+  /**
+   * The brands that supply FINISHES — Merino, Greenlam and so on.
+   *
+   * Distinct from getAllCoreMaterialBrands above, which lists the board makers.
+   * A finish and the board behind it are chosen separately and rarely come from
+   * the same supplier, so the two lists are separate collections on the server.
+   */
+  getAllFinishingBrands: async () => {
+    try {
+      const accessToken = AuthService.getAccessToken();
+      const response = await axios.get("/finishingbrands", {
+        headers: {
+          Authorization: `${accessToken}`,
+        },
+      });
+      if (response?.data && response?.status >= 200 && response?.status < 300) {
+        return response.data;
+      }
+      return null;
+    } catch (err) {
+      console.error(
+        "🚀 ~ file: texturesService.ts ~ getAllFinishingBrands ~ err:",
+        err
+      );
+      return null;
+    }
+  },
   getAllFinishingCategories: async () => {
     try {
       const accessToken = AuthService.getAccessToken();
