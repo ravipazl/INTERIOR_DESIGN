@@ -68,6 +68,9 @@ interface TableRowType {
     // The outside, when every mesh of the item carries the same one.
     extFinishId?: string;
     extBrandId?: string;
+    // How many of the item's meshes have an exterior at all — the only ones a
+    // room-level exterior change is written to.
+    extMeshes?: number;
   };
   area?: number;
   installationExcluded?: boolean;
@@ -749,7 +752,8 @@ const appliedMatFor = (lines: BoqLine[]): RoomMatChoice => {
     .flatMap((l) => l.units.map((u) => u.applied))
     .filter(Boolean) as NonNullable<BoqLine["units"][number]["applied"]>[];
   if (!all.length) return blankRoomMat;
-  const agreed = (k: keyof (typeof all)[number]) => {
+  // extMeshes is a count, not a material — there is nothing to agree on.
+  const agreed = (k: Exclude<keyof (typeof all)[number], "extMeshes">) => {
     const first = all[0][k] || "";
     return all.every((a) => (a[k] || "") === first) ? first : "";
   };
@@ -966,12 +970,14 @@ const MeshFinishPicker: React.FC<{
 const RoomMaterialModal: React.FC<{
   room: string;
   items: number;
+  /** Meshes in this room that already have an exterior — what Exterior writes to. */
+  extMeshes: number;
   busy: boolean;
   value: RoomMatChoice;
   onChange: (next: RoomMatChoice) => void;
   onCancel: () => void;
   onApply: () => void;
-}> = ({ room, items, busy, value, onChange, onCancel, onApply }) => {
+}> = ({ room, items, extMeshes, busy, value, onChange, onCancel, onApply }) => {
   // What is typed in the Finish search box. Cleared when the style changes: a
   // number typed for one style would otherwise hide everything in the next,
   // and an empty grid there looks like the style has no finishes.
@@ -1412,12 +1418,18 @@ const RoomMaterialModal: React.FC<{
             ) : null}
           </div>
           {willExt ? (
-            /* THE ONE DESTRUCTIVE CHOICE HERE. The exterior is a per-mesh
-               property — a shutter in oak beside a plain carcass — so writing
-               it at room level replaces every mesh, including anything set in
-               the 3D view. Said before it is pressed, not discovered after. */
+            /* WHAT IT WILL TOUCH, said before it is pressed. The exterior is
+               a per-mesh choice made in the 3D view, so a room-level change
+               replaces it only where one was chosen; a mesh nobody finished
+               is left exactly as it is. */
             <div className="bq-rm-warn">
-              Replaces the exterior on every mesh, including any set in the 3D view
+              {extMeshes > 0
+                ? `Replaces the exterior on the ${extMeshes} mesh${
+                    extMeshes === 1 ? "" : "es"
+                  } that already ${
+                    extMeshes === 1 ? "has" : "have"
+                  } one in the 3D view. Other meshes are not changed.`
+                : "No mesh in this room has an exterior yet, so nothing will change. Assign one in the 3D view first."}
             </div>
           ) : null}
         </div>
@@ -1778,6 +1790,10 @@ const BoqTable: React.FC<BoqTableProps> = ({
 
     let matched = 0;
     let written = 0;
+    // Every part seen, the meshes the exterior applied to, and the ones saved.
+    let parts = 0;
+    let extMatched = 0;
+    const extWritten: any[] = [];
     for (const id of ids) {
       if (choice.core) {
         // eslint-disable-next-line no-await-in-loop
@@ -1796,21 +1812,62 @@ const BoqTable: React.FC<BoqTableProps> = ({
         await mirror(choice.interior, r.writtenIds);
       }
       if (choice.exterior) {
-        // EVERY MESH, which is what makes this the destructive one: the
-        // exterior is normally a per-mesh choice and this replaces all of them,
-        // including anything set in the 3D view. The dialog says so before it
-        // is pressed; the per-mesh editor below is how an exception is restored.
+        // ONLY THE MESHES THAT ALREADY HAVE AN EXTERIOR. It is a per-mesh
+        // choice made in the 3D view, so this replaces what was chosen there
+        // and leaves a mesh nobody finished alone — unlike the board and the
+        // lining above, which belong to the whole unit and go on every part.
         // eslint-disable-next-line no-await-in-loop
-        const r = await FurnishedModelsService.updateAllParts(id, choice.exterior);
+        const r = await FurnishedModelsService.updateAssignedExteriorParts(
+          id,
+          choice.exterior
+        );
+        parts += r.total;
         matched += r.matched;
         written += r.written;
+        extMatched += r.matched;
+        extWritten.push(...r.writtenParts);
         // eslint-disable-next-line no-await-in-loop
-        await mirror(choice.exterior, r.writtenIds);
+        await mirror(
+          choice.exterior,
+          r.writtenParts.map((p: any) => p._id)
+        );
+      }
+    }
+
+    // The same meshes, in the open 3D scene. The saved parts are what a reload
+    // paints from; this is what makes the view agree before one. Never allowed
+    // to fail the apply — the finish is already saved.
+    if (choice.exterior && extWritten.length) {
+      try {
+        const wantedId = choice.exterior.externalFinishFinishingId;
+        const byId = (list: any) =>
+          (Array.isArray(list) ? list : Array.isArray(list?.data) ? list.data : []
+          ).find((f: any) => f && String(f._id) === String(wantedId));
+        const finishing =
+          byId(TexturesService.getFinishingsFromLocalStorage()) ||
+          byId(await TexturesService.getAllFinishings());
+        if (finishing) {
+          await BlueprintInterface?.ProjectManagerService?.onBoqExteriorFinishApplied?.(
+            extWritten,
+            finishing,
+            choice.exterior.externalFinishBrandId
+          );
+        }
+      } catch (e) {
+        console.error("applyRoomCoreMaterial: 3D scene update failed", e);
       }
     }
     setCoreSaving(null);
 
+    if (choice.exterior && !extMatched) {
+      alert(
+        `No mesh in "${room}" has an exterior assigned in the 3D view, so the exterior was not changed. Assign one there first.`
+      );
+    }
     if (!matched) {
+      // Only the exterior was asked for and there was nothing to replace: the
+      // message above has said so, and nothing was written to rebuild from.
+      if (parts || (choice.exterior && !choice.core && !choice.interior)) return;
       alert(`No item in "${room}" has any parts recorded, so nothing changed.`);
       return;
     }
@@ -2115,6 +2172,9 @@ const BoqTable: React.FC<BoqTableProps> = ({
                     // A brand only means something beside the finish it
                     // belongs to.
                     extBrandId: extFinishId ? one("externalFinishBrandId") : "",
+                    extMeshes: comps.filter(
+                      (c: any) => !!c?.externalFinishFinishingId
+                    ).length,
                     typeId: core?.coreMaterialTypeId || "",
                     brandId: core?.coreMaterialBrandId || "",
                     grade: core?.coreMaterialGrade || "",
@@ -3241,6 +3301,15 @@ const BoqTable: React.FC<BoqTableProps> = ({
                     <RoomMaterialModal
                       room={roomModal}
                       items={roomLines.length}
+                      extMeshes={roomLines.reduce(
+                        (n, l) =>
+                          n +
+                          l.units.reduce(
+                            (m, u) => m + (u.applied?.extMeshes || 0),
+                            0
+                          ),
+                        0
+                      )}
                       busy={coreSaving === roomModal}
                       value={value}
                       onChange={(next) =>

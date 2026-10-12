@@ -236,6 +236,73 @@ export const FurnishedModelsService = {
     return { matched: targets.length, written, writtenIds };
   },
 
+  /**
+   * WRITE THE EXTERIOR ONLY TO THE MESHES THAT ALREADY HAVE ONE.
+   *
+   * The outside is a per-mesh choice made in the 3D view: a designer finishes
+   * the shutters and leaves the carcass and the back alone. A room-level change
+   * of that finish is a REPLACEMENT of what was chosen, not a new choice for
+   * meshes nobody picked — so a part with no exterior recorded is not touched.
+   * `updateAllParts` wrote to all of them, and on the next reload the 3D view
+   * (which rebuilds each mesh's texture from its saved part) painted the whole
+   * unit, back and inside faces included.
+   *
+   * Returns the parts that saved, not just their ids: the caller repaints the
+   * same meshes in the open 3D scene and needs each one's mesh name and grain.
+   * `total` is every part of the item, so "none assigned" can be told apart
+   * from "no parts at all".
+   */
+  updateAssignedExteriorParts: async (
+    furnishedModelId: string,
+    patch: Record<string, any>
+  ): Promise<{
+    total: number;
+    matched: number;
+    written: number;
+    writtenParts: any[];
+  }> => {
+    const accessToken = AuthService.getAccessToken();
+    const headers = { Authorization: `Bearer ${accessToken}` };
+    let parts: any[] = [];
+    try {
+      const list = await axios.get("/furnishedmodelcomponents", {
+        params: { furnishedModelId },
+        headers,
+      });
+      // Paginated body is { data: [...] }; an unpaginated one is the array.
+      const body = list?.data;
+      parts = Array.isArray(body)
+        ? body
+        : Array.isArray(body?.data)
+        ? body.data
+        : [];
+    } catch (e) {
+      console.error("FurnishedModelsService.updateAssignedExteriorParts: load", e);
+      return { total: 0, matched: 0, written: 0, writtenParts: [] };
+    }
+    const all = parts.filter((p) => p && p._id);
+    const targets = all.filter((p) => !!p.externalFinishFinishingId);
+    let written = 0;
+    const writtenParts: any[] = [];
+    for (const part of targets) {
+      try {
+        // eslint-disable-next-line no-await-in-loop
+        const r = await axios.patch(
+          `/furnishedmodelcomponents/${part._id}`,
+          patch,
+          { headers }
+        );
+        if (r?.status >= 200 && r?.status < 300) {
+          written += 1;
+          writtenParts.push(part);
+        }
+      } catch (pe) {
+        console.error("updateAssignedExteriorParts: part failed", part._id, pe);
+      }
+    }
+    return { total: all.length, matched: targets.length, written, writtenParts };
+  },
+
   updateItemFinish: async (
     furnishedModelId: string,
     patch: {

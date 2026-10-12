@@ -1513,6 +1513,91 @@ export class ProjectManager {
   }
 
   /**
+   * Bring the open 3D scene in line after the BOQ changed the exterior on
+   * some parts.
+   *
+   * The BOQ writes the finish to the saved parts itself (through the API, and
+   * into the browser's copy). That leaves two things behind that the Material
+   * panel would have done, and this does exactly those, for exactly the parts
+   * the BOQ wrote — never a part it did not:
+   *
+   *   1. the in-memory rows. Every later edit of a part saves from them, so a
+   *      stale row would write the old finish back over the new one;
+   *   2. the scene's meshmap and the mesh on screen, which is what the 3D view
+   *      draws from until the design is reloaded.
+   *
+   * The mesh is found the way updateExternalFinishing finds it — mesh name,
+   * then Mesh_<index> — but the item is taken from the whole scene rather than
+   * from the current selection, because nothing is selected on the BOQ tab.
+   * The floor plan is saved once at the end, as one history step.
+   *
+   * Best-effort by design: the finish is already saved, so a part whose mesh
+   * cannot be found is reported in the console and skipped, never thrown.
+   */
+  async onBoqExteriorFinishApplied(
+    parts: any[],
+    selectedFinishing: Finishing,
+    brandId: string | null
+  ) {
+    if (!selectedFinishing?._id || !parts?.length) return;
+    const ids = new Set(parts.map((p) => String(p?._id)));
+    this.furnishedModelComponents = this.furnishedModelComponents.map(
+      (furnishedModelComponent) =>
+        ids.has(String(furnishedModelComponent._id))
+          ? ({
+              ...furnishedModelComponent,
+              externalFinishFinishing: selectedFinishing,
+              externalFinishFinishingId: selectedFinishing._id,
+              externalFinishBrandId: brandId,
+              externalFinishClassification: "",
+            } as FurnishedModelComponent)
+          : furnishedModelComponent
+    );
+
+    const texture = selectedFinishing?.texture?.fileUrl;
+    const model = BlueprintInterface?.blueprint3d?.model;
+    const liveItems: any[] =
+      BlueprintInterface?.blueprint3d?.roomplanner?.physicalRoomItems || [];
+    if (!texture || !model) return;
+
+    let title = "";
+    for (const part of parts) {
+      const furnishedModelId = String(part?.furnishedModelId || "");
+      const liveItem = liveItems.find(
+        (item: any) => String(item?.itemModel?.id) === furnishedModelId
+      );
+      const meshmap: any[] = liveItem?.itemModel?.meshmap || [];
+      const wanted = String(part?.meshName || part?.name || "");
+      const byIndex = /^Mesh_(\d+)$/.exec(wanted);
+      const meshName =
+        meshmap.find((comp: any) => comp?.name === wanted)?.name ??
+        (byIndex ? meshmap[Number(byIndex[1])]?.name : undefined);
+      if (!liveItem || !meshName) {
+        console.warn(
+          "onBoqExteriorFinishApplied: no live mesh matches",
+          wanted,
+          "— the finish is saved; the 3D view shows it after a reload."
+        );
+        continue;
+      }
+      model.itemTextureColor(liveItem, {
+        name: meshName,
+        texture,
+        size: [1, 1, 1],
+        tileCm: (selectedFinishing as any)?.tileCm,
+        // The part keeps the direction it was turned to, as in the panel.
+        grain: part?.externalFinishGrainDirection,
+      });
+      const existingFurnishedModel = this.getFurnishedModelById(furnishedModelId);
+      title =
+        existingFurnishedModel?.model?.type === MODEL_TYPES.FLOOR_UNIT
+          ? HISTORY_TITLES.FLOOR_ITEM_TEXTURE_CHANGED
+          : HISTORY_TITLES.WALL_ITEM_TEXTURE_CHANGED;
+    }
+    if (title) await this.updateFloorPlan(title);
+  }
+
+  /**
    * Turn the wood grain on one or more parts.
    *
    * Takes a list because the panel's dropdown acts on whatever is open — a
