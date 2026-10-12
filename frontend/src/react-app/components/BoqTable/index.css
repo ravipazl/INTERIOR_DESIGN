@@ -563,3 +563,121 @@ button.bq-primary:disabled { opacity: .45; cursor: default; }
 .bq-rm-off {
   opacity: 0.5;
 }
+
+/* Material configuration → Exterior → Finish, as a grid of swatches. */
+.bq-rm-fin {
+  margin-top: 10px;
+}
+.bq-rm-fin-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+.bq-rm-fin-count {
+  font-size: 11px;
+  opacity: 0.6;
+}
+.bq-rm-fin-search {
+  width: 100%;
+  margin-bottom: 6px;
+}
+/* A fixed height that scrolls inside: one style can hold over a hundred
+   finishes, and the dialog must not grow past the bottom of the screen. */
+.bq-rm-fin-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(92px, 1fr));
+  gap: 8px;
+  max-height: 232px;
+  overflow-y: auto;
+  padding: 8px;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.015);
+}
+.bq-rm-fin-empty {
+  grid-column: 1 / -1;
+  padding: 22px 8px;
+  text-align: center;
+  font-size: 12px;
+  opacity: 0.6;
+}
+.bq-rm-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 3px;
+  border: 2px solid transparent;
+  border-radius: 8px;
+  background: none;
+  cursor: pointer;
+  text-align: left;
+  min-width: 0;
+}
+.bq-rm-tile:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+.bq-rm-tile:focus-visible {
+  outline: 2px solid #5b4bd6;
+  outline-offset: 1px;
+}
+.bq-rm-tile.on {
+  border-color: #5b4bd6;
+  background: rgba(91, 75, 214, 0.08);
+}
+.bq-rm-tile:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+.bq-rm-tile-img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 5 / 3;
+  border-radius: 5px;
+  overflow: hidden;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+.bq-rm-tile-img img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.bq-rm-tile-name {
+  font-size: 11px;
+  line-height: 1.25;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+.bq-rm-tile.on .bq-rm-tile-name {
+  font-weight: 600;
+}
+.bq-rm-fin-picked {
+  margin-top: 6px;
+  font-size: 12px;
+}
+
+/* The finish search box. .bq-input is the BOQ's NUMBER field — capped at 96px
+   and right-aligned, for prices — so both are undone here; with only
+   width:100% the cap still won and the box came out squeezed, its placeholder
+   cut off. Two classes, so this outranks the single-class rule it corrects. */
+.bq-input.bq-rm-fin-search {
+  display: block;
+  width: 100%;
+  max-width: none;
+  box-sizing: border-box;
+  text-align: left;
+  padding: 6px 9px;
+  font-size: 12.5px;
+  margin-bottom: 6px;
+}
+.bq-rm-tile-style {
+  font-size: 10px;
+  line-height: 1.2;
+  opacity: 0.6;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
