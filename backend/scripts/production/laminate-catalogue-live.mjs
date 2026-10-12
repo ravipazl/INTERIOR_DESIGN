@@ -220,6 +220,7 @@ const main = async () => {
   const saveLog = () => fs.writeFileSync(logFile, JSON.stringify(log, null, 1), 'utf8')
   saveLog() // on disk BEFORE the first write, and rewritten as it goes
 
+  let allRates = null // read once, on first need
   const gradeIdByKey = new Map() // "brand::grade" → the grade row on this server
   for (const { b, brand: found } of plan) {
     let brand = found
@@ -305,16 +306,31 @@ const main = async () => {
       for (const r of (data.rates || []).filter((x) => same(x.brand, b.name))) {
         const grade = gradeIdByKey.get(`${r.brand}::${r.grade}`.toLowerCase())
         if (!grade || !(r.pricePerSqft > 0)) continue
-        const has = await P.findOne({ finishingCategoryId: grade._id, finishingBrandId: brand._id })
+        // IDS AS TEXT, both to look and to write. A brand made in the Rate
+        // Card's Manage lists has an ObjectId, but the Rate Card stores it on
+        // a rate as a plain string; matched by database equality the two
+        // never meet, an existing rate looks absent, and it gets a duplicate.
+        // Written as strings, the row is one the BOQ's lookup — handed
+        // strings off the part — can actually find.
+        const has = (allRates || (allRates = await P.find({}).toArray())).some(
+          (x) =>
+            String(x.finishingCategoryId) === String(grade._id) &&
+            String(x.finishingBrandId) === String(brand._id)
+        )
         if (has) continue // a rate already on the server is never overwritten
         const res = await P.insertOne({
-          finishingCategoryId: grade._id,
-          finishingBrandId: brand._id,
+          finishingCategoryId: String(grade._id),
+          finishingBrandId: String(brand._id),
           pricePerSqft: r.pricePerSqft,
           createdAt: now,
           updatedAt: now
         })
         log.createdRateIds.push(String(res.insertedId))
+        // Remembered, so a pair listed twice in the data file is added once.
+        allRates.push({
+          finishingCategoryId: String(grade._id),
+          finishingBrandId: String(brand._id)
+        })
         added++
       }
       saveLog()

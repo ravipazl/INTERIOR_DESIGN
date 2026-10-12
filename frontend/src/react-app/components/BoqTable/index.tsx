@@ -713,6 +713,9 @@ export interface RoomMatChoice {
   applyInt: boolean;
   applyExt: boolean;
 }
+// The Brand entry for the original library, whose materials carry no brand.
+// Saved as null — "no brand" — never as this marker.
+export const NO_BRAND = "__no_brand__";
 export const blankRoomMat: RoomMatChoice = {
   // Unticked to start with: nothing is written unless it was chosen.
   applyCore: false,
@@ -969,6 +972,13 @@ const RoomMaterialModal: React.FC<{
   onCancel: () => void;
   onApply: () => void;
 }> = ({ room, items, busy, value, onChange, onCancel, onApply }) => {
+  // What is typed in the Finish search box. Cleared when the style changes: a
+  // number typed for one style would otherwise hide everything in the next,
+  // and an empty grid there looks like the style has no finishes.
+  const [finQuery, setFinQuery] = useState("");
+  useEffect(() => {
+    setFinQuery("");
+  }, [value.extStyleId]);
   const [coreTypes, setCoreTypes] = useState<any[]>([]);
   const [coreBrands, setCoreBrands] = useState<any[]>([]);
   const [finCats, setFinCats] = useState<any[]>([]);
@@ -1045,6 +1055,11 @@ const RoomMaterialModal: React.FC<{
       ...value,
       extStyleId: style._id,
       extTypeId: style.parentCategoryId || style._id,
+      // The finish's OWN brand, not the one stored on the part. The two can
+      // disagree on parts saved while the brand was a free choice, and the
+      // dropdowns can only show a finish under the brand that really owns it.
+      // Nothing is rewritten by showing it; that still takes a tick.
+      extBrandId: fin.brandId ? String(fin.brandId) : NO_BRAND,
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value.extFinishId, value.extStyleId, finishes.length, finCats.length]);
@@ -1062,12 +1077,88 @@ const RoomMaterialModal: React.FC<{
     const lam = topCats.filter((c) => /lamina/i.test(c.name || ""));
     return lam.length ? lam : topCats;
   })();
-  const extStyles = finCats.filter(
+  /**
+   * EXTERIOR: TYPE → BRAND → STYLE → FINISH, each narrowed by the one before.
+   *
+   * It ran Type → Style → Finish with the brand as a free choice at the end,
+   * unconnected to anything. Two things went wrong with that. The Style list
+   * held every brand's grades at once — about 180 of them, with two called
+   * Patterns and nothing to tell them apart. And because the brand was not
+   * tied to the finish, a Merino décor could be saved under Greenlam; one unit
+   * was, and the bill priced it at Greenlam's rate.
+   *
+   * Everything below is derived from the finishes themselves, so a brand or
+   * grade added tomorrow appears here with no change to this code:
+   *   - a brand is offered if it owns a pictured finish under the type
+   *   - a style is offered if it holds one of that brand's
+   *   - the brand SAVED is therefore always the finish's own
+   *
+   * The original library carries no brand. It gets its own entry rather than
+   * being dropped: with the brand chosen first, those five hundred materials
+   * would otherwise be unreachable from this dialog.
+   */
+  const stylesOfType = finCats.filter(
     (c) => c && c.parentCategoryId && c.parentCategoryId === value.extTypeId
   );
-  const extFinishes = finishes.filter(
-    (f) => f && f.categoryId === value.extStyleId
+  const styleIdsOfType = new Set(stylesOfType.map((c) => String(c._id)));
+  const finishesOfType = finishes.filter(
+    (f) => f && f?.texture?.fileUrl && styleIdsOfType.has(String(f.categoryId))
   );
+  const ownedBy = (f: any, brandId: string) =>
+    brandId === NO_BRAND ? !f.brandId : String(f.brandId || "") === brandId;
+
+  const brandsWithStock = new Set(
+    finishesOfType.map((f) => String(f.brandId || ""))
+  );
+  const extBrands: any[] = [
+    ...finBrands.filter((b) => b && brandsWithStock.has(String(b._id))),
+    ...(brandsWithStock.has("")
+      ? [{ _id: NO_BRAND, name: "No brand (original library)" }]
+      : []),
+  ];
+  const extStyles = value.extBrandId
+    ? stylesOfType.filter((c) =>
+        finishesOfType.some(
+          (f) =>
+            String(f.categoryId) === String(c._id) && ownedBy(f, value.extBrandId)
+        )
+      )
+    : [];
+  const extFinishes = value.extBrandId
+    ? finishesOfType.filter(
+        (f) =>
+          String(f.categoryId) === String(value.extStyleId) &&
+          ownedBy(f, value.extBrandId)
+      )
+    : [];
+  // Narrowed by the search box. Matched on the name, which carries the
+  // number too ("Crystal Matty+ 1180"), and on the décor code.
+  /**
+   * A SEARCH LOOKS THROUGH THE WHOLE BRAND, NOT JUST THE OPEN STYLE.
+   *
+   * It first searched only the style on screen. Typing a number then found
+   * nothing unless you had already opened the style that number is filed
+   * under — "21024" returned nothing with Laminature open, because Saffron
+   * 21024 is a Solid. But someone holding a décor number does not know its
+   * style; that is what they are trying to find out.
+   *
+   * With the box empty nothing changes: the grid is the selected style's
+   * finishes. With something typed it is every match the brand has, each tile
+   * naming its style, and choosing one moves the Style dropdown to match so
+   * the three fields above never disagree with the finish below.
+   */
+  const brandFinishes = value.extBrandId
+    ? finishesOfType.filter((f) => ownedBy(f, value.extBrandId))
+    : [];
+  const needle = finQuery.trim().toLowerCase();
+  const searching = !!needle;
+  const shownFinishes = searching
+    ? brandFinishes.filter((f) =>
+        `${f.name || ""} ${f.decorCode || ""}`.toLowerCase().includes(needle)
+      )
+    : extFinishes;
+  const styleNameOf = (f: any) =>
+    stylesOfType.find((c) => String(c._id) === String(f.categoryId))?.name || "";
 
   const coreReady =
     !!value.typeId && !!value.brandId && (!!value.grade || grades.length === 0);
@@ -1176,15 +1267,28 @@ const RoomMaterialModal: React.FC<{
           </div>
 
           {section("Exterior", value.applyExt, "applyExt")}
-          <div className={`bq-rm-grid2${value.applyExt ? "" : " bq-rm-off"}`}>
+          <div className={`bq-rm-grid3${value.applyExt ? "" : " bq-rm-off"}`}>
+            {/* Each change clears everything after it: a style belongs to the
+                brand it was chosen under, and a finish to its style, so
+                leaving them in place would keep a combination that no longer
+                exists. */}
             {field(
               "Type",
               value.extTypeId,
-              // Style and swatch belong to the old type.
-              (v) => set({ extTypeId: v, extStyleId: "", extFinishId: "" }),
+              (v) =>
+                set({ extTypeId: v, extBrandId: "", extStyleId: "", extFinishId: "" }),
               topCats,
               name,
               "Leave unchanged"
+            )}
+            {field(
+              "Brand",
+              value.extBrandId,
+              (v) => set({ extBrandId: v, extStyleId: "", extFinishId: "" }),
+              extBrands,
+              name,
+              "Select brand",
+              value.extTypeId ? "No brand has materials here" : "Choose a type first"
             )}
             {field(
               "Style",
@@ -1193,10 +1297,119 @@ const RoomMaterialModal: React.FC<{
               extStyles,
               name,
               "Select style",
-              "Choose a type first"
+              value.extBrandId ? "This brand has no styles here" : "Choose a brand first"
             )}
-            {field("Finish", value.extFinishId, (v) => set({ extFinishId: v }), extFinishes, name, "Select finish", "Choose a style first")}
-            {field("Brand", value.extBrandId, (v) => set({ extBrandId: v }), finBrands, name, "Select brand")}
+          </div>
+          {/* FINISH AS PICTURES, NOT A LIST OF NAMES.
+
+              A dropdown can only hold text — no browser draws an image inside
+              an <option> — and here the text is "Crystal Matty+ 1180": a
+              number, which says nothing unless you already know the catalogue
+              by heart. Most of this brand's décors have no name at all. So the
+              finish is chosen from its swatch, as it is in the 3D panel.
+
+              Three fields above on one row, this across the full width below:
+              a picture needs the room to be recognisable.
+
+              Clicking a tile sets exactly what the dropdown set, through the
+              same set(), so the tick, the warning and Apply are untouched. */}
+          <div className={`bq-rm-fin${value.applyExt ? "" : " bq-rm-off"}`}>
+            <div className="bq-rm-fin-head">
+              <span className="bq-rm-lab">Finish</span>
+              {searching ? (
+                <span className="bq-rm-fin-count">
+                  {shownFinishes.length} found in this brand
+                </span>
+              ) : extFinishes.length ? (
+                <span className="bq-rm-fin-count">
+                  {extFinishes.length} finish{extFinishes.length === 1 ? "" : "es"}
+                </span>
+              ) : null}
+            </div>
+            {/* Offered as soon as a brand is chosen — before a style — because
+                finding the style is often what the search is for. */}
+            {brandFinishes.length > 8 ? (
+              <input
+                className="bq-input bq-rm-fin-search"
+                type="search"
+                placeholder="Search this brand by name or number"
+                value={finQuery}
+                disabled={busy}
+                onChange={(e) => setFinQuery(e.target.value)}
+              />
+            ) : null}
+            <div className="bq-rm-fin-grid" role="listbox" aria-label="Finish">
+              {searching && !shownFinishes.length ? (
+                <div className="bq-rm-fin-empty">
+                  Nothing in this brand matches “{finQuery}”
+                </div>
+              ) : !searching && !extFinishes.length ? (
+                <div className="bq-rm-fin-empty">
+                  {value.extStyleId
+                    ? "This style has no finishes"
+                    : value.extBrandId
+                    ? "Choose a style, or search this brand"
+                    : "Choose a brand first"}
+                </div>
+              ) : (
+                shownFinishes.map((f) => {
+                  const on = f._id === value.extFinishId;
+                  return (
+                    <button
+                      type="button"
+                      key={f._id}
+                      role="option"
+                      aria-selected={on}
+                      title={f.name}
+                      disabled={busy}
+                      className={`bq-rm-tile${on ? " on" : ""}`}
+                      // The style goes with the finish. From the open style
+                      // it is already that one; from a search result it may
+                      // not be, and leaving the dropdown where it was would
+                      // show a finish under a style it does not belong to.
+                      onClick={() =>
+                        set({ extStyleId: String(f.categoryId), extFinishId: f._id })
+                      }
+                    >
+                      {/* The colour sits behind the picture: it is what shows
+                          while the image loads, and what stays if it fails. */}
+                      <span
+                        className="bq-rm-tile-img"
+                        style={{ background: f.color || "#e9e9ee" }}
+                      >
+                        <img
+                          src={f.texture?.fileUrl}
+                          alt=""
+                          // Only as it scrolls into view: a style can hold over
+                          // a hundred finishes, and opening it should not
+                          // fetch every picture at once.
+                          loading="lazy"
+                          onError={(e) => {
+                            (e.currentTarget as HTMLImageElement).style.visibility =
+                              "hidden";
+                          }}
+                        />
+                      </span>
+                      <span className="bq-rm-tile-name">{f.name}</span>
+                      {/* Only while searching: results come from several
+                          styles, and this says which one each is filed under. */}
+                      {searching ? (
+                        <span className="bq-rm-tile-style">{styleNameOf(f)}</span>
+                      ) : null}
+                    </button>
+                  );
+                })
+              )}
+            </div>
+            {value.extFinishId ? (
+              <div className="bq-rm-fin-picked">
+                Selected:{" "}
+                <b>
+                  {finishes.find((f) => f && f._id === value.extFinishId)?.name ||
+                    "—"}
+                </b>
+              </div>
+            ) : null}
           </div>
           {willExt ? (
             /* THE ONE DESTRUCTIVE CHOICE HERE. The exterior is a per-mesh
@@ -3061,7 +3274,10 @@ const BoqTable: React.FC<BoqTableProps> = ({
                           exterior: value.applyExt && value.extFinishId
                             ? {
                                 externalFinishFinishingId: value.extFinishId,
-                                externalFinishBrandId: value.extBrandId || null,
+                                externalFinishBrandId:
+                                  value.extBrandId && value.extBrandId !== NO_BRAND
+                                    ? value.extBrandId
+                                    : null,
                                 externalFinishClassification: "",
                               }
                             : null,

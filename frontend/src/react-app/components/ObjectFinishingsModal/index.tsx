@@ -99,6 +99,14 @@ const ObjectFinishingsModal = ({
   const selectedBrandName =
     brandOptions.find((b: any) => b._id === selectedBrandId)?.name || "";
 
+  // The swatch search. Cleared whenever the style, brand or side changes: a
+  // number typed for one brand would otherwise carry into the next and empty
+  // its grid, which reads as that brand having nothing.
+  const [finishQuery, setFinishQuery] = useState("");
+  useEffect(() => {
+    setFinishQuery("");
+  }, [selectedStyle?._id, selectedBrandId, selectedFinishingType]);
+
   const onHideObjectProperties = () => {
     setShowObjectComponentsModal(false);
   };
@@ -432,6 +440,25 @@ const ObjectFinishingsModal = ({
                 </div>
                 {selectedStyle ? (
                   <>
+                  {/* SEARCH, above the swatches. A style can hold over a
+                      hundred materials and most are known by a number, so
+                      scrolling for "1180" is slow and hunting for a number
+                      whose style you do not know is impossible. Empty, the
+                      grid is exactly what it was; typing looks through the
+                      whole brand. It sits ABOVE the marker below, so the
+                      measured swatch height already allows for it. */}
+                  <input
+                    type="search"
+                    value={finishQuery}
+                    onChange={(e) => setFinishQuery(e.target.value)}
+                    placeholder={
+                      selectedBrandName
+                        ? `Search ${selectedBrandName} by name or number`
+                        : "Search by name or number"
+                    }
+                    aria-label="Search materials"
+                    className="w-full h-[28px] mb-2 px-2 text-[12px] rounded bg-[#F9F9FA] border border-[#E4E4EC] outline-none focus:border-[#5b4bd6]"
+                  />
                   {/* Zero-height marker: where the swatch area starts. */}
                   <div ref={swatchTopRef} aria-hidden="true" />
                   <div
@@ -451,6 +478,17 @@ const ObjectFinishingsModal = ({
                         handleFinishingTextureSelection
                       }
                       variantsContainerRef={variantsContainerRef}
+                      // Three across, by layout rather than by what fits.
+                      columns={3}
+                      query={finishQuery}
+                      brandId={selectedBrandId}
+                      styles={styles}
+                      // Same handler the Style dropdown uses, so choosing a
+                      // result from another style is one action, not two
+                      // code paths that could disagree.
+                      onPickStyle={(styleId: string) =>
+                        handleSelectedStyle({ target: { value: styleId } })
+                      }
                     />
                   </div>
                   </>
