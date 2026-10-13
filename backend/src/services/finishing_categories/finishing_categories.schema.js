@@ -35,6 +35,24 @@ export const finishingCategorySchema = {
   }
 }
 export const finishingCategoryValidator = getValidator(finishingCategorySchema, dataValidator)
+
+// HOW A GRADE REFLECTS LIGHT — what makes HD Gloss look glossy in the 3D view
+// and a metallic laminate look like metal. Both run 0…1; null clears it, and a
+// grade with none is drawn exactly as it always was.
+//
+// Accepted on create and patch only. It is deliberately NOT part of the base
+// properties above, because those are also turned into the query syntax and
+// nothing filters grades by this.
+const surfaceProperty = {
+  surface: {
+    type: ['object', 'null'],
+    additionalProperties: false,
+    properties: {
+      gloss: { type: 'number', minimum: 0, maximum: 1 },
+      metal: { type: 'number', minimum: 0, maximum: 1 }
+    }
+  }
+}
 export const finishingCategoryResolver = resolve({})
 
 export const finishingCategoryExternalResolver = resolve({})
@@ -45,7 +63,8 @@ export const finishingCategoryDataSchema = {
   additionalProperties: false,
   required: [],
   properties: {
-    ...finishingCategorySchema.properties
+    ...finishingCategorySchema.properties,
+    ...surfaceProperty
   }
 }
 export const finishingCategoryDataValidator = getValidator(finishingCategoryDataSchema, dataValidator)
@@ -57,7 +76,8 @@ export const finishingCategoryPatchSchema = {
   additionalProperties: false,
   required: [],
   properties: {
-    ...finishingCategorySchema.properties
+    ...finishingCategorySchema.properties,
+    ...surfaceProperty
   }
 }
 export const finishingCategoryPatchValidator = getValidator(finishingCategoryPatchSchema, dataValidator)

@@ -16,6 +16,7 @@ import { convertEulersUnitToAngle } from "@pazl/utils/unitsUtils";
 import { EVENT_ITEM_SELECTED } from "@pazl/main/core/events";
 import { Finishing } from "@pazl/entities/Finishing";
 import { TexturesService } from "./texturesService";
+import { surfaceOfFinishing } from "@pazl/main/viewer3d/surfaceFinish";
 
 interface ProjectManagerProps {
   project: Project;
@@ -1587,6 +1588,10 @@ export class ProjectManager {
         tileCm: (selectedFinishing as any)?.tileCm,
         // The part keeps the direction it was turned to, as in the panel.
         grain: part?.externalFinishGrainDirection,
+        surface: surfaceOfFinishing(
+          selectedFinishing,
+          TexturesService.getFinishingCategoriesFromLocalStorage()
+        ),
       });
       const existingFurnishedModel = this.getFurnishedModelById(furnishedModelId);
       title =
