@@ -4,6 +4,8 @@ import { Utils } from '../core/utils.js';
 import { EVENT_REDRAW, EVENT_UPDATE_TEXTURES, EVENT_DELETED, EVENT_MODIFY_TEXTURE_ATTRIBUTE } from '../core/events.js';
 import { WallMaterial3D } from '../materials/WallMaterial3D.js';
 import { TEXTURE_PROPERTY_COLOR } from '../core/constants.js';
+import { cleanRegions, faceOfEdge } from '../model/wallRegions.js';
+import { buildRegionMeshes } from './wallRegionMeshes.js';
 
 export class Edge3D extends EventDispatcher {
     constructor(scene, edge, controls, opts) {
@@ -214,6 +216,7 @@ export class Edge3D extends EventDispatcher {
             plane.material.opacity = 1.0;
             plane.visible = scope.visible;
         });
+        scope.__hideRegionsFromBehind();
 
         this.wall.items.forEach((item) => {
             item.updateEdgeVisibility(scope.visible, scope.front);
@@ -270,7 +273,32 @@ export class Edge3D extends EventDispatcher {
         scope.planes.forEach((plane) => {
             plane.visible = scope.visible;
         });
+        // AREAS FROM THE WALL EDITOR ARE ONLY EVER SEEN FROM THE ROOM.
+        //
+        // The wall's own sheet is one-sided: from behind, it is simply not
+        // there, which is how you look into a room from outside. A flat area
+        // on it behaves the same. A RAISED one has sides, though, and a side
+        // is at right angles to the wall — it faces a camera standing behind
+        // the wall as readily as one in front, so raised panels showed as
+        // slivers hanging in the air outside the room. They are hidden
+        // outright whenever the camera is on the far side of this face.
+        scope.__hideRegionsFromBehind();
         scope.updateObjectVisibility();
+    }
+
+    // See the note in updateVisibility. Also run after showAll(), which turns
+    // every plane of the wall back on.
+    __hideRegionsFromBehind() {
+        if (!this.__regionMeshList || !this.__regionMeshList.length) return;
+        const n = this.edge.__faceNormal;
+        const start = this.edge.interiorStart();
+        const cam = this.controls.object.position;
+        const inFront = n
+            ? (cam.x - start.x) * n.x + (cam.z - start.y) * n.z > 0
+            : true;
+        this.__regionMeshList.forEach((mesh) => {
+            mesh.visible = this.visible && inFront;
+        });
     }
 
     updateObjectVisibility() {
@@ -329,6 +357,23 @@ export class Edge3D extends EventDispatcher {
         // this.planes.push(this.makeWall(interiorStart, interiorEnd, this.edge.interiorTransform, this.edge.invInteriorTransform, wallMaterial));
         this.__wallPlaneMesh = this.makeWall(interiorStart, interiorEnd, this.edge.interiorTransform, this.edge.invInteriorTransform, this.__wallMaterial3D);
         this.planes.push(this.__wallPlaneMesh);
+        // Which way this face looks, left for the Wall Editor to read: it
+        // draws the wall as seen from that side, and needs to know which end
+        // is on the left. A plain note on the edge; nothing else reads it.
+        try {
+            const faceNormal = this.__wallPlaneMesh.geometry.faces[0].normal;
+            this.edge.__faceNormal = { x: faceNormal.x, z: faceNormal.z };
+        } catch (e) {
+            /* a wall with no faces has nothing to edit */
+        }
+        // Areas given a material of their own in the Wall Editor. None on a
+        // wall that was never edited, and a failure here must never cost the
+        // wall itself — it is already built above.
+        try {
+            this.__regionMeshes().forEach((mesh) => this.planes.push(mesh));
+        } catch (e) {
+            console.warn('edge3d: wall regions could not be drawn', e);
+        }
         // bottom
         // put into basePlanes since this is always visible
         this.basePlanes.push(this.buildFillerUniformHeight(this.edge, 0, BackSide, this.baseColor));
@@ -432,6 +477,55 @@ export class Edge3D extends EventDispatcher {
         mesh.castShadow = true;
         mesh.name = 'wall';
         return mesh;
+    }
+
+    /**
+     * THE PANELS FOR THE AREAS DRAWN ON THIS FACE in the Wall Editor.
+     *
+     * The wall's own sheet is left exactly as it is — one mesh, one material,
+     * holes for the doors — and each area is drawn over the part of it that
+     * it covers. Laid over rather than cut in, so a wall with no areas takes
+     * precisely the path it always took, and removing one simply shows the
+     * wall again. The panels themselves are built in wallRegionMeshes.js,
+     * which the editor's preview uses too.
+     */
+    __regionMeshes() {
+        // Geometry from the previous draw; the wall is rebuilt on every redraw.
+        (this.__regionGeometries || []).forEach((g) => g.dispose());
+        this.__regionGeometries = [];
+        const cache = this.__regionMaterials || (this.__regionMaterials = new Map());
+
+        const saved = this.edge.getRegions ? this.edge.getRegions() : [];
+        const face = saved.length ? faceOfEdge(this.edge) : null;
+        // In stack order: a later region lies on top of an earlier one.
+        const regions = face ? cleanRegions(saved, face.width, face.height) : [];
+
+        // Which way the face looks: the wall sheet's own normal, so the
+        // panels sit on the side that is actually drawn.
+        const ref = this.__wallPlaneMesh && this.__wallPlaneMesh.geometry.faces[0]
+            ? this.__wallPlaneMesh.geometry.faces[0].normal
+            : null;
+        const flat = ref ? new Vector3(ref.x, 0, ref.z).normalize() : null;
+        const built = buildRegionMeshes({
+            regions: regions,
+            openings: face ? face.openings : [],
+            frame: {
+                origin: face ? face.start : { x: 0, z: 0 },
+                along: face ? face.along : { x: 1, z: 0 },
+                normal: flat
+                    ? { x: flat.x, z: flat.z }
+                    : face
+                        ? { x: -face.along.z, z: face.along.x }
+                        : { x: 0, z: 1 },
+            },
+            side: (this.wall.isLocked || this.__options.occludedWalls) ? DoubleSide : FrontSide,
+            scene: this.scene,
+            cache: cache,
+        });
+        this.__regionGeometries = built.geometries;
+        // Kept so updateVisibility can hide them from behind the wall.
+        this.__regionMeshList = built.meshes;
+        return built.meshes;
     }
 
     // The other wall at a joint along a curve — the same rule as the 2D view

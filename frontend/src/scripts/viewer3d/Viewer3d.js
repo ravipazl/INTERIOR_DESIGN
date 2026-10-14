@@ -76,6 +76,7 @@ import {
   projectPerFaceUV,
   toCleanNonIndexed,
 } from "./tileUV.js";
+import { makeSurfaceMaterial, setSurfaceRenderer } from "./surfaceFinish.js";
 
 /**
  * How close the orbit camera may get to straight-up or straight-down.
@@ -948,6 +949,8 @@ export class Viewer3D extends Scene {
     scope.__environmentCamera = new CubeCamera(1, 100000, cubeRenderTarget);
     scope.__environmentCamera.renderTarget.texture.encoding = sRGBEncoding;
     scope.renderer = scope.getARenderer();
+    // What a glossy or metallic finish reflects is built from this renderer.
+    setSurfaceRenderer(scope.renderer);
     console.debug("Viewer3d.js ~ init ~ scope.domElement", scope.domElement);
     scope.domElement.appendChild(scope.renderer.domElement);
     //scope.lights = new Lights3D(this, scope.floorplan);
@@ -1806,7 +1809,13 @@ export class Viewer3D extends Scene {
       // every tiling fix upstream of it is simply never reached. A material
       // that states its real size is asking to be drawn at that size, so it
       // goes through the texture path instead.
-      if (colors.texture != "" && !(Number(colors.tileCm) > 0)) {
+      // Skipped too when the finish states how it reflects: the baked material
+      // is the GLB's own, and knows nothing of this finish's gloss or metal.
+      if (
+        colors.texture != "" &&
+        !(Number(colors.tileCm) > 0) &&
+        !colors.surface
+      ) {
         evt.item.traverse((o) => {
           if (
             o.isMesh &&
@@ -1832,10 +1841,15 @@ export class Viewer3D extends Scene {
         txt.encoding = sRGBEncoding;
         txt.wrapS = RepeatWrapping;
         txt.wrapT = RepeatWrapping;
-        let INITIAL_MTL = new MeshPhongMaterial({
-          map: txt,
-          flatShading: true,
-        });
+        // A finish that states its gloss or metal is drawn with a material
+        // that can show it; one that states neither gets null back and keeps
+        // the material it has always had.
+        let INITIAL_MTL =
+          makeSurfaceMaterial(txt, colors.surface) ||
+          new MeshPhongMaterial({
+            map: txt,
+            flatShading: true,
+          });
         console.debug("Viewer3d.js ~ __itemUpdate ~ INITIAL_MTL", INITIAL_MTL);
 
         /**
@@ -1995,7 +2009,9 @@ export class Viewer3D extends Scene {
                     "—",
                     grainState
                   );
-                  mtl = new MeshPhongMaterial({ map: t, flatShading: true });
+                  mtl =
+                    makeSurfaceMaterial(t, colors.surface) ||
+                    new MeshPhongMaterial({ map: t, flatShading: true });
                 }
               } else {
                 // Untiled materials need usable UVs just as much — one copy

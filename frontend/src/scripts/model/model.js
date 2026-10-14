@@ -332,6 +332,9 @@ export class Model extends EventDispatcher {
             // above: the reload paints from this meshmap, so without it a part
             // set to Vertical came back Horizontal on the next open.
             roomItem.meshmap[index].grain = color.grain;
+            // How the finish reflects light (gloss / metal), carried for the
+            // same reason again. Undefined for a finish that states none.
+            roomItem.meshmap[index].surface = color.surface;
           }
         });
         roomItem.metadata.meshmap.map((mesh, index) => {
@@ -348,6 +351,7 @@ export class Model extends EventDispatcher {
             roomItem.metadata.meshmap[index].texture = color.texture;
             roomItem.metadata.meshmap[index].tileCm = color.tileCm;
             roomItem.metadata.meshmap[index].grain = color.grain;
+            roomItem.metadata.meshmap[index].surface = color.surface;
           }
         });
       }

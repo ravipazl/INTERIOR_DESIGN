@@ -147,6 +147,112 @@ const Row = ({
   );
 };
 
+/**
+ * HOW A GRADE LOOKS IN THE 3D VIEW — its gloss and its metal.
+ *
+ * A grade is usually a surface: Matte, Suede, HD Gloss, a metallic series.
+ * The picture of a décor cannot show that — a solid colour photographs the
+ * same in every finish — so the 3D view drew them all alike. Set here, the
+ * grade's materials are drawn with that much shine and that much metal.
+ *
+ * Sits under the grade it belongs to, collapsed to one line. "Not set" is a
+ * real state, not a zero: a grade with no surface is drawn exactly as it was
+ * before this existed, which is why Clear is offered beside Save.
+ */
+const SurfaceEditor = ({ surface, busy, onSave }) => {
+  const pct = (v) => Math.round((Number(v) || 0) * 100);
+  const [open, setOpen] = useState(false);
+  const [gloss, setGloss] = useState(pct(surface?.gloss));
+  const [metal, setMetal] = useState(pct(surface?.metal));
+  const isSet = !!surface && (pct(surface.gloss) > 0 || pct(surface.metal) > 0);
+  const begin = () => {
+    setGloss(pct(surface?.gloss));
+    setMetal(pct(surface?.metal));
+    setOpen(true);
+  };
+  if (!open) {
+    return (
+      <div className="d-flex align-items-center gap-2">
+        <small className="text-muted flex-grow-1">
+          3D look:{" "}
+          {isSet
+            ? `Gloss ${pct(surface.gloss)}% · Metal ${pct(surface.metal)}%`
+            : "not set"}
+        </small>
+        <Button
+          size="sm"
+          variant="link"
+          className="p-0"
+          disabled={busy}
+          onClick={begin}
+        >
+          {isSet ? "Change" : "Set"}
+        </Button>
+      </div>
+    );
+  }
+  const slider = (label, value, set, hint) => (
+    <div className="d-flex align-items-center gap-2">
+      <small style={{ width: 44 }}>{label}</small>
+      <Form.Range
+        min={0}
+        max={100}
+        step={5}
+        value={value}
+        disabled={busy}
+        onChange={(e) => set(Number(e.target.value))}
+      />
+      <small className="text-muted" style={{ width: 120 }}>
+        {value}% {hint(value)}
+      </small>
+    </div>
+  );
+  return (
+    <div className="py-1">
+      {slider("Gloss", gloss, setGloss, (v) =>
+        v >= 85 ? "(mirror)" : v >= 50 ? "(glossy)" : v > 0 ? "(satin)" : "(matte)"
+      )}
+      {slider("Metal", metal, setMetal, (v) => (v >= 50 ? "(metallic)" : ""))}
+      <div className="d-flex gap-3">
+        <Button
+          size="sm"
+          variant="link"
+          className="p-0"
+          disabled={busy}
+          onClick={() => {
+            onSave({ gloss: gloss / 100, metal: metal / 100 });
+            setOpen(false);
+          }}
+        >
+          Save
+        </Button>
+        {isSet ? (
+          <Button
+            size="sm"
+            variant="link"
+            className="p-0 text-danger"
+            disabled={busy}
+            onClick={() => {
+              onSave(null);
+              setOpen(false);
+            }}
+          >
+            Clear
+          </Button>
+        ) : null}
+        <Button
+          size="sm"
+          variant="link"
+          className="p-0 text-muted"
+          onClick={() => setOpen(false)}
+        >
+          Cancel
+        </Button>
+      </div>
+    </div>
+  );
+};
+
 const AddRow = ({ placeholder, onAdd, busy }) => {
   const [text, setText] = useState("");
   const add = () => {
@@ -589,7 +695,17 @@ Delete those first, on the Coating tab.`
                     `Delete the grade "${parent.name} · ${style.name}"?`
                   ) && run(() => finishingCategories.remove(style._id))
                 }
-              />
+              >
+                <SurfaceEditor
+                  surface={style.surface}
+                  busy={busy}
+                  onSave={(surface) =>
+                    run(() =>
+                      finishingCategories.update(style._id, { surface })
+                    )
+                  }
+                />
+              </Row>
             ))
           )}
           <FinishGradeAddRow

@@ -4,6 +4,8 @@ import {
   LocalDBObjectStores,
 } from "../services/LocalDBManager";
 import { Finishing } from "@pazl/entities/Finishing";
+import { TexturesService } from "../services/texturesService";
+import { surfaceOfFinishing } from "@pazl/main/viewer3d/surfaceFinish";
 
 export interface FurnishedModelComponentType {
   _id: string;
@@ -331,6 +333,13 @@ export class FurnishedModelComponent extends LocalDBManager {
             // material is chosen — picking a different wood is not a reason to
             // silently straighten a door the designer deliberately turned.
             grain: this.externalFinishGrainDirection,
+            // How it reflects light — the material's own setting, else its
+            // grade's. Null for a finish that states none, which leaves it
+            // drawn exactly as before.
+            surface: surfaceOfFinishing(
+              selectedExternalFinishing,
+              TexturesService.getFinishingCategoriesFromLocalStorage()
+            ),
           }
         );
       }
@@ -428,6 +437,9 @@ export class FurnishedModelComponent extends LocalDBManager {
         size: [1, 1, 1],
         tileCm,
         grain: direction,
+        // Turning the grain is not a change of material: what is painted
+        // keeps the gloss it was painted with.
+        surface: painted.surface,
       }
     );
   }

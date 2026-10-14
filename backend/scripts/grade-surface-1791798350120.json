@@ -1,0 +1,112 @@
+{
+  "changed": [
+    {
+      "_id": "6a82dece9aa69305d511c807",
+      "oid": false,
+      "name": "Laminates · - · Glass and Mirrors",
+      "set": {
+        "gloss": 0.95,
+        "metal": 0
+      }
+    },
+    {
+      "_id": "6ac4859691fa7ceb4a43f5a8",
+      "oid": true,
+      "name": "Glass  Finishes · - · Plain glass",
+      "set": {
+        "gloss": 0.95,
+        "metal": 0
+      }
+    },
+    {
+      "_id": "6ac485ac91fa7ceb4a43f5a9",
+      "oid": true,
+      "name": "Glass  Finishes · - · Fluted glass",
+      "set": {
+        "gloss": 0.95,
+        "metal": 0
+      }
+    },
+    {
+      "_id": "6ac485be91fa7ceb4a43f5aa",
+      "oid": true,
+      "name": "Glass  Finishes · - · Tinted Glass",
+      "set": {
+        "gloss": 0.95,
+        "metal": 0
+      }
+    },
+    {
+      "_id": "6ac719f286c4f65c190cc227",
+      "oid": true,
+      "name": "Laminates · - · Glossy laminate",
+      "set": {
+        "gloss": 0.7,
+        "metal": 0
+      }
+    },
+    {
+      "_id": "6ac71a0386c4f65c190cc228",
+      "oid": true,
+      "name": "Laminates · - · Acrylic laminate",
+      "set": {
+        "gloss": 0.9,
+        "metal": 0
+      }
+    },
+    {
+      "_id": "6ac71a3286c4f65c190cc22b",
+      "oid": true,
+      "name": "Laminates · - · High Glossy laminate (HGL)",
+      "set": {
+        "gloss": 0.9,
+        "metal": 0
+      }
+    },
+    {
+      "_id": "6ac71a4086c4f65c190cc22c",
+      "oid": true,
+      "name": "Laminates · - · Superlative Glossy laminate (SGL)",
+      "set": {
+        "gloss": 0.9,
+        "metal": 0
+      }
+    },
+    {
+      "_id": "bfc6cce0-e6b6-44d4-a1e5-1a577c047af7",
+      "oid": false,
+      "name": "Laminates · Merino · Metalam",
+      "set": {
+        "gloss": 0.75,
+        "metal": 0.85
+      }
+    },
+    {
+      "_id": "44d5a9dc-9918-42fb-a316-bba254b4c953",
+      "oid": false,
+      "name": "Laminates · Greenlam · HD Gloss",
+      "set": {
+        "gloss": 0.9,
+        "metal": 0
+      }
+    },
+    {
+      "_id": "fdb617ea-9937-4450-ab97-f88488b4c106",
+      "oid": false,
+      "name": "Laminates · Greenlam · Satin",
+      "set": {
+        "gloss": 0.4,
+        "metal": 0
+      }
+    },
+    {
+      "_id": "7b01caa0-a421-4457-8a57-e394808c3db4",
+      "oid": false,
+      "name": "Laminates · Virgo · SHG",
+      "set": {
+        "gloss": 0.9,
+        "metal": 0
+      }
+    }
+  ]
+}

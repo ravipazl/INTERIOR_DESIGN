@@ -42,6 +42,7 @@ import {
   applyGrainDirection,
   projectPerFaceUV,
 } from "./tileUV.js";
+import { makeSurfaceMaterial } from "./surfaceFinish.js";
 
 export class Physical3DItem extends Mesh {
   constructor(itemModel, opts) {
@@ -1550,8 +1551,11 @@ export class Physical3DItem extends Mesh {
           // Skipped when the material states a tile size — see the matching
           // note in Viewer3d. The baked material is one copy stretched over
           // the whole door, which is the flat look we are correcting.
+          // Nor when the finish states its gloss or metal — same reason as in
+          // Viewer3d: the baked material cannot show it.
           if (
             !(Number(obj.tileCm) > 0) &&
+            !obj.surface &&
             Physical3DItem.isBakedFinish(o, obj.texture)
           ) {
             o.material = o.__origMaterial;
@@ -1617,11 +1621,16 @@ export class Physical3DItem extends Mesh {
             txt.encoding = sRGBEncoding;
             txt.wrapS = RepeatWrapping;
             txt.wrapT = RepeatWrapping;
-            let INITIAL_MTL = new MeshPhongMaterial({
-              map: txt,
-              shininess: obj.shininess,
-              flatShading: true,
-            });
+            // The same choice the click path makes, so a reopened design is
+            // as glossy as it was left. No surface stated → the original
+            // material, unchanged.
+            let INITIAL_MTL =
+              makeSurfaceMaterial(txt, obj.surface) ||
+              new MeshPhongMaterial({
+                map: txt,
+                shininess: obj.shininess,
+                flatShading: true,
+              });
             o.material = INITIAL_MTL;
           } else {
             if (obj.color != "") {

@@ -119,7 +119,23 @@ export class RoomPlannerHelper {
       }
       return wall;
     });
-    this.__floorplan.update();
+    // NO FLOOR-PLAN UPDATE HERE.
+    //
+    // Selecting a wall only has to draw the blue outline above. This used to
+    // end with `this.__floorplan.update()`, which tears down and rebuilds every
+    // room, every wall side and every floor in the scene — for a click. Two
+    // things followed from it:
+    //
+    //   · the whole room flashed see-through: every textured floor and wall
+    //     area was given a brand-new material, drawn without its picture
+    //     until the picture had loaded again;
+    //   · the wall side just clicked (`__selectedEdge`, which the Wall
+    //     Properties panel and the Wall Editor act on) was thrown away and
+    //     replaced, so they went on working on a side no longer in the scene.
+    //
+    // Nothing about the plan changes when a wall is selected, so there is
+    // nothing to rebuild. Changing a wall's finish still updates the plan,
+    // from the code that changes it.
   }
 
   __roomSelected(evt) {

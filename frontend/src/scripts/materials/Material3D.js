@@ -50,8 +50,29 @@ export class Material3D extends MeshPhongMaterial {
     this.textureMapPack = textureMapPack;
   }
 
+  /*
+   * ONLY ONCE THE PICTURE HAS ARRIVED.
+   *
+   * Each of these runs twice: when its picture finishes loading, and whenever
+   * the surface is resized (the `dimensions` setter → __scaleUV). The second
+   * one can come first — a wall or floor is sized the moment it is built,
+   * while its picture is still downloading — and it used to flag the texture
+   * for upload and put it on the material regardless. three.js then has a
+   * texture to draw with and no image to draw from: it warns "Texture marked
+   * for update but image is undefined", and every surface using it drew
+   * NOTHING until the image landed.
+   *
+   * That is what a wall click looked like: selecting a wall rebuilds the
+   * scene, every textured floor and wall area got a fresh material, and for a
+   * moment the room was see-through — no floor, no wall finishes, only the
+   * plain edges of the walls.
+   *
+   * The repeat is still recorded (__uRatio / __vRatio) on a resize, and the
+   * load callback applies it, so a surface sized early is drawn at exactly
+   * the size it would have been — just not before it has a picture.
+   */
   __updateColorMap(texture) {
-    if (this.__colorTexture) {
+    if (this.__colorTexture && this.__colorTexture.image) {
       this.__colorTexture.encoding = sRGBEncoding;
       this.__colorTexture.wrapS = this.__colorTexture.wrapT = RepeatWrapping;
       this.__colorTexture.repeat.set(this.__uRatio, this.__vRatio);
@@ -62,7 +83,7 @@ export class Material3D extends MeshPhongMaterial {
   }
 
   __updateNormalMap(texture) {
-    if (this.__normalTexture) {
+    if (this.__normalTexture && this.__normalTexture.image) {
       this.__normalTexture.encoding = sRGBEncoding;
       this.__normalTexture.wrapS = this.__normalTexture.wrapT = RepeatWrapping;
       this.__normalTexture.repeat.set(this.__uRatio, this.__vRatio);
@@ -73,7 +94,7 @@ export class Material3D extends MeshPhongMaterial {
   }
 
   __updateRoughnessMap(texture) {
-    if (this.__roughnessTexture) {
+    if (this.__roughnessTexture && this.__roughnessTexture.image) {
       this.__roughnessTexture.encoding = sRGBEncoding;
       this.__roughnessTexture.wrapS = this.__roughnessTexture.wrapT =
         RepeatWrapping;
@@ -85,7 +106,7 @@ export class Material3D extends MeshPhongMaterial {
   }
 
   __updateAmbientMap(texture) {
-    if (this.__ambientTexture) {
+    if (this.__ambientTexture && this.__ambientTexture.image) {
       this.__ambientTexture.encoding = sRGBEncoding;
       this.__ambientTexture.wrapS = this.__ambientTexture.wrapT =
         RepeatWrapping;
@@ -98,7 +119,7 @@ export class Material3D extends MeshPhongMaterial {
   }
 
   __updateMetallicMap(texture) {
-    if (this.__metalTexture) {
+    if (this.__metalTexture && this.__metalTexture.image) {
       this.__metalTexture.encoding = sRGBEncoding;
       this.__metalTexture.wrapS = this.__metalTexture.wrapT = RepeatWrapping;
       this.__metalTexture.repeat.set(this.__uRatio, this.__vRatio);
@@ -109,7 +130,7 @@ export class Material3D extends MeshPhongMaterial {
   }
 
   __updateBumpMap(texture) {
-    if (this.__bumpTexture) {
+    if (this.__bumpTexture && this.__bumpTexture.image) {
       this.__bumpTexture.encoding = sRGBEncoding;
       this.__bumpTexture.wrapS = this.__bumpTexture.wrapT = RepeatWrapping;
       this.__bumpTexture.repeat.set(this.__uRatio, this.__vRatio);

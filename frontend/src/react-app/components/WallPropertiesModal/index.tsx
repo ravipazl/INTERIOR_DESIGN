@@ -14,6 +14,9 @@ interface WallPropertiesModalProps {
   onSelectedWallFrontTexture: (texture: Texture) => void;
   onSelectedWallBackTexture: (texture: Texture) => void;
   onHideWallPropertiesPanel: () => void;
+  /** Open the Wall Editor for the wall side that is selected. Optional, so
+   *  the panel works unchanged wherever it is used without one. */
+  onOpenWallEditor?: () => void;
 }
 
 function WallPropertiesModal({
@@ -21,6 +24,7 @@ function WallPropertiesModal({
   onSelectedWallFrontTexture,
   onSelectedWallBackTexture,
   onHideWallPropertiesPanel,
+  onOpenWallEditor,
 }: WallPropertiesModalProps) {
   const isDarkMode = localStorage.getItem("isDarkMode") === "true" || false;
   const [allFinishings, setAllFinishings] = useState<Finishing[] | null>(null);
@@ -233,6 +237,19 @@ function WallPropertiesModal({
                   </div>
                 </div>
               </div>
+              {onOpenWallEditor ? (
+                <div className="add-wall-items-container">
+                  <div className="wall-title">Areas &amp; materials</div>
+                  <button
+                    className="flex items-start justify-self-start"
+                    onClick={onOpenWallEditor}
+                  >
+                    <span className="select-items font-normal text-xs ml-1 mt-1">
+                      Wall Editor
+                    </span>
+                  </button>
+                </div>
+              ) : null}
               <div className="add-wall-items-container">
                 <div className="wall-title">Add Wall Items</div>
                 <button
