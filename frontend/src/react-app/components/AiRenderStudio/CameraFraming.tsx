@@ -26,6 +26,19 @@ interface SavedView {
 
 const viewer = () => (BlueprintInterface as any)?.blueprint3d?.roomplanner || null;
 
+/**
+ * The four sides a shot can be taken from. They are the floor plan's sides:
+ * Front stands at the bottom of the plan, Back at the top, Left and Right at
+ * its edges, so "Front" means the same view every time it is picked.
+ */
+type Side = "front" | "back" | "left" | "right";
+const SIDES: { id: Side; label: string }[] = [
+  { id: "front", label: "Front" },
+  { id: "back", label: "Back" },
+  { id: "left", label: "Left" },
+  { id: "right", label: "Right" },
+];
+
 const viewsKey = (projectId: string) => `pazl-render-views:${projectId || "none"}`;
 const loadViews = (projectId: string): SavedView[] => {
   try {
@@ -63,6 +76,9 @@ const CameraFraming: React.FC<{
   const [naming, setNaming] = useState<string | null>(null);
   const [activeView, setActiveView] = useState<string | undefined>(undefined);
   const [error, setError] = useState<string | null>(null);
+  // The side last picked; cleared as soon as the camera is moved by hand, so
+  // a button is never lit for a view that is no longer that side's.
+  const [side, setSide] = useState<Side | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   // Enter framing mode once; the parent ends it when the render screen closes.
@@ -126,6 +142,7 @@ const CameraFraming: React.FC<{
       e.preventDefault();
       e.stopPropagation();
       setActiveView(undefined);
+      setSide(null);
       v.walkRenderCamera(...move[k]);
     };
     const onWheel = (e: WheelEvent) => {
@@ -135,6 +152,7 @@ const CameraFraming: React.FC<{
       e.preventDefault();
       e.stopPropagation();
       setActiveView(undefined);
+      setSide(null);
       v.walkRenderCamera(e.deltaY < 0 ? 25 : -25, 0, 0);
     };
     window.addEventListener("keydown", onKey, true);
@@ -165,6 +183,17 @@ const CameraFraming: React.FC<{
   }, [rect, aspect]);
 
   const eyeCm = cam ? Math.round(cam.heightCm) : 150;
+
+  const lookFrom = (next: Side) => {
+    const v = viewer();
+    if (!v?.setRenderSide || !v.setRenderSide(next)) {
+      setError("Draw a room first — there is no room to stand in.");
+      return;
+    }
+    setError(null);
+    setActiveView(undefined);
+    setSide(next);
+  };
 
   const fixCamera = () => {
     const v = viewer();
@@ -246,6 +275,23 @@ const CameraFraming: React.FC<{
               className={`rounded-full border px-2.5 py-0.5 text-xs ${aspect === a.id ? "border-gray-900 bg-gray-900 text-white" : "border-gray-300 bg-white"}`}
             >
               {a.id}
+            </button>
+          ))}
+        </div>
+        <span className="h-5 w-px bg-gray-200" />
+        <div className="flex items-center gap-1" role="radiogroup" aria-label="Side of the room to shoot from">
+          <span className="px-0.5 text-xs">Side</span>
+          {SIDES.map((s) => (
+            <button
+              key={s.id}
+              type="button"
+              role="radio"
+              aria-checked={side === s.id}
+              title={`Look at the room from the ${s.label.toLowerCase()}`}
+              onClick={() => lookFrom(s.id)}
+              className={`rounded-full border px-2.5 py-0.5 text-xs ${side === s.id ? "border-gray-900 bg-gray-900 text-white" : "border-gray-300 bg-white"}`}
+            >
+              {s.label}
             </button>
           ))}
         </div>
