@@ -1581,10 +1581,6 @@ const WallEditorModal: React.FC<WallEditorModalProps> = ({
 
   const gap = 26 * u;
   const sb = selected ? regionBounds(selected) : null;
-  const selectedOutline: Pt[] | null =
-    selected && selected.points && selected.points.length <= 12
-      ? selected.points
-      : null;
 
   // What is being drawn, before it is finished.
   const draftShape = (() => {
@@ -2032,18 +2028,38 @@ const WallEditorModal: React.FC<WallEditorModalProps> = ({
                 "Show",
                 false,
                 () => setMenu(menu === "show" ? null : "show"),
-                SHOW_OPTIONS.map(([id, name]) => (
-                  <label className="we-menu-item we-check" key={id}>
-                    <input
-                      type="checkbox"
-                      checked={!!show[id]}
-                      onChange={(e) =>
-                        setShow((s) => ({ ...s, [id]: e.target.checked }))
-                      }
-                    />
-                    <span>{name}</span>
-                  </label>
-                ))
+                SHOW_OPTIONS.map(([id, name]) => {
+                  // These two show doors and windows. On a wall with none
+                  // they cannot change anything, and say so rather than
+                  // looking broken.
+                  const idle =
+                    (id === "wallModel" || id === "modelDim") &&
+                    !face.openings.length;
+                  return (
+                    <label
+                      className={"we-menu-item we-check" + (idle ? " is-idle" : "")}
+                      key={id}
+                      title={idle ? "No doors or windows on this wall" : undefined}
+                    >
+                      <input
+                        type="checkbox"
+                        disabled={idle}
+                        checked={!!show[id]}
+                        onChange={(e) =>
+                          setShow((s) => ({ ...s, [id]: e.target.checked }))
+                        }
+                      />
+                      <span>
+                        {name}
+                        {idle ? (
+                          <small className="we-menu-sub">
+                            No doors or windows on this wall
+                          </small>
+                        ) : null}
+                      </span>
+                    </label>
+                  );
+                })
               )}
               {toolButton(
                 "guides",
@@ -2571,10 +2587,17 @@ const WallEditorModal: React.FC<WallEditorModalProps> = ({
                 strokeDasharray={`${8 * u} ${5 * u}`}
                 pointerEvents="none"
               />
-              {dimension([0, H + gap], [W, H + gap], String(mm(W)), "dt")}
-              {dimension([0, -gap], [W, -gap], String(mm(W)), "db")}
-              {dimension([-gap, 0], [-gap, H], String(mm(H)), "dl")}
-              {dimension([W + gap, 0], [W + gap, H], String(mm(H)), "dr")}
+              {/* The wall's own sizes are line lengths like any other, so
+                  "Line length" hides them too — they were drawn whatever it
+                  said, and unticking it seemed to do nothing. */}
+              {show.lineLength ? (
+                <>
+                  {dimension([0, H + gap], [W, H + gap], String(mm(W)), "dt")}
+                  {dimension([0, -gap], [W, -gap], String(mm(W)), "db")}
+                  {dimension([-gap, 0], [-gap, H], String(mm(H)), "dl")}
+                  {dimension([W + gap, 0], [W + gap, H], String(mm(H)), "dr")}
+                </>
+              ) : null}
 
               {selected ? (
                 <g pointerEvents="none">
@@ -2587,22 +2610,6 @@ const WallEditorModal: React.FC<WallEditorModalProps> = ({
                       strokeWidth={2 * u}
                     />
                   ))}
-                  {show.lineLength && selectedOutline
-                    ? selectedOutline.map((p, i) => {
-                        const q =
-                          selectedOutline[(i + 1) % selectedOutline.length];
-                        const len = dist(p, q);
-                        return len * ppc > 46
-                          ? label(
-                              (p[0] + q[0]) / 2,
-                              (p[1] + q[1]) / 2,
-                              String(mm(len)),
-                              "ll" + i,
-                              "#bfe0ff"
-                            )
-                          : null;
-                      })
-                    : null}
                   {show.lineSpacing && sb ? (
                     <g
                       stroke="#ffb454"
@@ -2650,36 +2657,76 @@ const WallEditorModal: React.FC<WallEditorModalProps> = ({
                       )}
                     </g>
                   ) : null}
-                  {show.arcHeight &&
-                  selected.kind === "curve" &&
-                  selected.arcHeight &&
-                  sb
-                    ? label(
-                        sb.x + sb.w / 2,
-                        sb.y + sb.h,
-                        `Arc height ${mm(selected.arcHeight)}`,
-                        "ah",
+                </g>
+              ) : null}
+
+              {/* WHAT THE SHOW MENU ADDS, for the selected area — or, with
+                  nothing selected, for every area on the wall. It used to
+                  be for the selected area only, so with nothing selected
+                  every tick in the menu seemed to do nothing at all. A
+                  region covering the whole wall is left out: its edges are
+                  the wall's own, already measured round the outside. */}
+              {(() => {
+                const wholeWall = (r: Region) => {
+                  const b = regionBounds(r);
+                  return b.x < 0.5 && b.y < 0.5 && b.w > W - 1 && b.h > H - 1;
+                };
+                const targets = selected
+                  ? [selected]
+                  : regions.filter((r) => !wholeWall(r));
+                const marks: React.ReactNode[] = [];
+                targets.forEach((r, ri) => {
+                  const b = regionBounds(r);
+                  if (show.lineLength && r.points && r.points.length <= 12) {
+                    r.points.forEach((pt, i) => {
+                      const q = r.points![(i + 1) % r.points!.length];
+                      const len = dist(pt, q);
+                      // Only where there is room to read it.
+                      if (len * ppc > 46)
+                        marks.push(
+                          label(
+                            (pt[0] + q[0]) / 2,
+                            (pt[1] + q[1]) / 2,
+                            String(mm(len)),
+                            `ll${ri}-${i}`,
+                            "#bfe0ff"
+                          )
+                        );
+                    });
+                  }
+                  if (show.arcHeight && r.kind === "curve" && r.arcHeight) {
+                    marks.push(
+                      label(
+                        b.x + b.w / 2,
+                        b.y + b.h,
+                        `Arc height ${mm(r.arcHeight)}`,
+                        `ah${ri}`,
                         "#c8ffd9",
                         12
                       )
-                    : null}
-                  {show.startingPoint && sb
-                    ? (() => {
-                        // Where the picture starts: the area's bottom-left
-                        // corner as it is seen.
-                        const px = Math.min(X(sb.x), X(sb.x + sb.w));
-                        const py = Y(sb.y);
-                        return (
-                          <g stroke="#ff5d6c" strokeWidth={1.6 * u} fill="none">
-                            <circle cx={px} cy={py} r={5 * u} />
-                            <line x1={px - 9 * u} y1={py} x2={px + 9 * u} y2={py} />
-                            <line x1={px} y1={py - 9 * u} x2={px} y2={py + 9 * u} />
-                          </g>
-                        );
-                      })()
-                    : null}
-                </g>
-              ) : null}
+                    );
+                  }
+                  if (show.startingPoint) {
+                    // Where the picture starts: the area's bottom-left corner
+                    // as it is seen.
+                    const px = Math.min(X(b.x), X(b.x + b.w));
+                    const py = Y(b.y);
+                    marks.push(
+                      <g
+                        key={`sp${ri}`}
+                        stroke="#ff5d6c"
+                        strokeWidth={1.6 * u}
+                        fill="none"
+                      >
+                        <circle cx={px} cy={py} r={5 * u} />
+                        <line x1={px - 9 * u} y1={py} x2={px + 9 * u} y2={py} />
+                        <line x1={px} y1={py - 9 * u} x2={px} y2={py + 9 * u} />
+                      </g>
+                    );
+                  }
+                });
+                return <g pointerEvents="none">{marks}</g>;
+              })()}
 
               {measures.map((m, i) =>
                 dimension(m.a, m.b, `${mm(dist(m.a, m.b))} mm`, "m" + i)

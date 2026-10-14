@@ -467,6 +467,21 @@
   color: #e0e0e2;
 }
 
+.we-menu-item.is-idle {
+  color: var(--we-dim);
+  cursor: default;
+}
+
+.we-menu-item.is-idle:hover {
+  background: none;
+}
+
+.we-menu-sub {
+  display: block;
+  font-size: 12px;
+  color: var(--we-dim);
+}
+
 .we-menu-note {
   padding: 8px 18px;
   font-size: 12px;
