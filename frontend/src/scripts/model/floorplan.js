@@ -628,6 +628,14 @@ export class Floorplan extends EventDispatcher {
           corner2: wall.getEnd().id,
           frontTexture: wall.frontTexture,
           backTexture: wall.backTexture,
+          // Written only when the wall has some, so a floor plan with no
+          // edited walls is saved byte for byte as it always was.
+          ...(wall.frontRegions && wall.frontRegions.length
+            ? { frontRegions: wall.frontRegions }
+            : {}),
+          ...(wall.backRegions && wall.backRegions.length
+            ? { backRegions: wall.backRegions }
+            : {}),
           wallType: wall.wallType.description,
           a: { x: wall.a.x, y: wall.a.y },
           b: { x: wall.b.x, y: wall.b.y },
@@ -777,6 +785,14 @@ export class Floorplan extends EventDispatcher {
           };
         }
       }
+      // Regions drawn in the Wall Editor. Absent on every floor plan saved
+      // before it existed, which leaves the wall with none.
+      if (Array.isArray(wall.frontRegions)) {
+        newWall.frontRegions = wall.frontRegions.map((r) => ({ ...r }));
+      }
+      if (Array.isArray(wall.backRegions)) {
+        newWall.backRegions = wall.backRegions.map((r) => ({ ...r }));
+      }
       if (wall.thickness) {
         newWall.thickness = Dimensioning.cmFromMeasureRaw(wall.thickness);
       }
@@ -902,6 +918,14 @@ export class Floorplan extends EventDispatcher {
             ...(index % 2 === 0 ? defaultWallTexture : defaultWallTexture2),
           };
         }
+      }
+      // Regions drawn in the Wall Editor. Absent on every floor plan saved
+      // before it existed, which leaves the wall with none.
+      if (Array.isArray(wall.frontRegions)) {
+        newWall.frontRegions = wall.frontRegions.map((r) => ({ ...r }));
+      }
+      if (Array.isArray(wall.backRegions)) {
+        newWall.backRegions = wall.backRegions.map((r) => ({ ...r }));
       }
       if (wall.thickness) {
         newWall.thickness = Dimensioning.cmFromMeasureRaw(wall.thickness);

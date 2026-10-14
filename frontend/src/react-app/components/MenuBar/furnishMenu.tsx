@@ -29,6 +29,7 @@ import {
 import { Box3, Vector3 } from "three";
 import { MENU_TABS } from ".";
 import WallPropertiesModal from "../WallPropertiesModal";
+import WallEditorModal from "../WallEditorModal";
 import DoorPropertiesModal from "../DoorPropertiesModal";
 import { Texture } from "@pazl/entities/Texture";
 import Wall from "@pazl/main/model/wall";
@@ -108,6 +109,10 @@ const FurnishMenu = ({
   const [showRoomPanel, setShowRoomPanel] = useState(true);
   const [showObjectPanel, setShowObjectPanel] = useState(false);
   const [showWallPropertiesModal, setShowWallPropertiesModal] = useState(false);
+  // The wall side open in the Wall Editor (a HalfEdge), or null when closed.
+  // Held here rather than read from the 3D selection each time: the page sits
+  // over the scene, and what is selected underneath may change or clear.
+  const [wallEditorEdge, setWallEditorEdge] = useState<any>(null);
   const [showDoorPropertiesModal, setShowDoorPropertiesModal] = useState(false);
   const [selectedDoorClass, setSelectedDoorClass] = useState<any>(null);
   const [showUndoPanel, setShowUndoPanel] = useState(false);
@@ -1050,6 +1055,22 @@ const FurnishMenu = ({
           onSelectedWallFrontTexture={handleWallFrontTextureSelection}
           onSelectedWallBackTexture={handleWallBackTextureSelection}
           onHideWallPropertiesPanel={() => setShowWallPropertiesModal(false)}
+          onOpenWallEditor={() => {
+            const edge =
+              BlueprintInterface?.blueprint3d?.roomplanningHelper
+                ?.__selectedEdge;
+            if (edge) setWallEditorEdge(edge);
+          }}
+        />
+      )}
+      {wallEditorEdge && (
+        <WallEditorModal
+          // A fresh editor per wall side: switching sides ("Select room")
+          // must start from that side's own areas, not carry these over.
+          key={`${wallEditorEdge?.wall?.id}-${wallEditorEdge?.front ? "f" : "b"}`}
+          edge={wallEditorEdge}
+          onClose={() => setWallEditorEdge(null)}
+          onSwitchEdge={(edge: any) => setWallEditorEdge(edge)}
         />
       )}
       {showDoorPropertiesModal && selectedDoorClass && (

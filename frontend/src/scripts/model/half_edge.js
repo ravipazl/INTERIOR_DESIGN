@@ -937,6 +937,31 @@ export class HalfEdge extends EventDispatcher {
     }
 
     /**
+     * The regions drawn on THIS side of the wall in the Wall Editor — front or
+     * back, exactly as getTexture() picks a side.
+     * @return {Array}
+     */
+    getRegions() {
+        const list = this.front ? this.wall.frontRegions : this.wall.backRegions;
+        return Array.isArray(list) ? list : [];
+    }
+
+    /**
+     * Replace this side's regions and redraw the wall.
+     * @param {Array} regions
+     * @emits {EVENT_REDRAW}
+     */
+    setRegions(regions) {
+        const list = Array.isArray(regions) ? regions : [];
+        if (this.front) {
+            this.wall.frontRegions = list;
+        } else {
+            this.wall.backRegions = list;
+        }
+        this.dispatchEvent({ type: EVENT_REDRAW, item: this });
+    }
+
+    /**
      * Two separate textures are used for the walls. Based on which side of the wall this {HalfEdge} refers the texture is returned
      * @return {Object} front/back Two separate textures are used for the walls. Based on which side of the wall this {@link HalfEdge} refers the texture is returned
      */

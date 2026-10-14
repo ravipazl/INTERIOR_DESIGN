@@ -117,6 +117,13 @@ export class Wall extends EventDispatcher {
     /** The back-side texture. Separate clone so front and back are independent. */
     this.backTexture = { ...(texture ? texture : defaultWallTexture) };
 
+    /** Areas of each side that carry a material of their own — drawn in the
+     * Wall Editor (see wallRegions.js). Empty on every wall until someone
+     * draws one, and an empty list changes nothing about how a wall is
+     * drawn or saved. */
+    this.frontRegions = [];
+    this.backRegions = [];
+
     /** Wall thickness. */
     this._thickness = Configuration.getNumericValue(configWallThickness);
 
