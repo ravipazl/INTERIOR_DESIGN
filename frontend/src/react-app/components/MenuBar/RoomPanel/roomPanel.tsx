@@ -804,7 +804,8 @@ function RoomPanel({
 
   const onAddItemToSceneClick = (model: Model | FurnishedModel) => {
     console.debug("roomPanel.tsx ~ onAddItemToSceneClick ~ model", model);
-    handleAddItemsToScene(model);
+    // From the "+ Add" button: a wall unit is hung on the wall at its height.
+    handleAddItemsToScene(model, undefined, undefined, { hangWallUnit: true });
     setShowRoomPanelModal(false);
     onHideRoomPanel();
     onHideObjectPanel();

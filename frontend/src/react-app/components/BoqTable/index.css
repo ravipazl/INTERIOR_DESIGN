@@ -474,6 +474,38 @@ button.bq-primary:disabled { opacity: .45; cursor: default; }
 .bq-room-mat:hover:not(:disabled) { background: #f4f5fb; border-color: #c3c5d4; }
 .bq-room-mat:disabled { opacity: .5; cursor: default; }
 
+/* "In PDF" switch, right after "Material configuration". It takes over the
+   button's auto margin so the two sit together and the arrow stays right. */
+.bq-room-head .bq-room-mat { margin-right: 0; }
+.bq-pdf-toggle {
+  margin-right: auto;
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 11.5px; font-weight: 600; color: #8a8d99;
+  cursor: pointer; user-select: none; white-space: nowrap;
+}
+.bq-pdf-toggle.on { color: #414063; }
+.bq-pdf-toggle input {
+  position: absolute; opacity: 0; width: 1px; height: 1px; pointer-events: none;
+}
+.bq-pdf-switch {
+  position: relative; width: 30px; height: 17px; flex: 0 0 auto;
+  border-radius: 999px; background: #cfd1db; transition: background .15s;
+}
+.bq-pdf-switch::after {
+  content: ""; position: absolute; top: 2px; left: 2px;
+  width: 13px; height: 13px; border-radius: 50%; background: #fff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, .2); transition: transform .15s;
+}
+.bq-pdf-toggle.on .bq-pdf-switch { background: #5b4fe0; }
+.bq-pdf-toggle.on .bq-pdf-switch::after { transform: translateX(13px); }
+.bq-pdf-toggle input:focus-visible + .bq-pdf-switch {
+  outline: 2px solid #5b4fe0; outline-offset: 2px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .bq-pdf-switch, .bq-pdf-switch::after { transition: none; }
+}
+.bq-pdf-hint { align-self: center; font-size: 12px; color: #b4232f; }
+
 .bq-modal-back {
   position: fixed; inset: 0; z-index: 1300;
   display: flex; align-items: center; justify-content: center;
@@ -562,6 +594,38 @@ button.bq-primary:disabled { opacity: .45; cursor: default; }
    changing one ticks its section. */
 .bq-rm-off {
   opacity: 0.5;
+}
+/* The Material cell opens the item's material dialog in one click. */
+.bq-mat-click {
+  position: relative;
+  cursor: pointer;
+  border-radius: 6px;
+  padding-right: 18px;
+}
+.bq-mat-click:hover .bq-chip,
+.bq-mat-click:focus-visible .bq-chip {
+  filter: brightness(0.96);
+}
+.bq-mat-click:focus-visible {
+  outline: 2px solid #5b4fe0;
+  outline-offset: 2px;
+}
+.bq-mat-pen {
+  position: absolute;
+  top: 2px;
+  right: 0;
+  color: #6b6b80;
+  line-height: 1;
+}
+.bq-mat-click:hover .bq-mat-pen {
+  color: #3b2fc9;
+}
+
+/* An unticked section is read-only: say so on hover. */
+.bq-rm-off select,
+.bq-rm-off input,
+.bq-rm-off button {
+  cursor: not-allowed;
 }
 
 /* Material configuration → Exterior → Finish, as a grid of swatches. */

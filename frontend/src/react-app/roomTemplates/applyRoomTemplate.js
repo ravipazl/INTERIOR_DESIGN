@@ -351,7 +351,15 @@ export async function applyPlan(room, planned, onProgress) {
       helper.__selectedEdgeNormal = makeVector3(wall.normal.x, 0, wall.normal.y);
       // Counted as placed only if an item really arrived in the scene — a GLB
       // that fails to load must not be reported as a success.
-      if (await placeOne(model)) {
+      // A wall unit is hung by its TOP at the studio's height, measured on
+      // the model as it really loads — the same rule as "+ Add".
+      if (
+        await placeOne(
+          model,
+          undefined,
+          slot.level === "wall" ? { hangWallUnit: true } : undefined
+        )
+      ) {
         // Turn it to face into the room. A floor item keeps the rotation it was
         // added with, which is only right for one wall — on any other wall the
         // cabinet would stand side-on.
@@ -431,7 +439,7 @@ const HISTORY_TITLES_FLOOR_ITEM_ADDED = "Floor item added";
  * Resolves true when an item really arrived, false when it didn't (a GLB that
  * can't be downloaded, for instance) — the run then carries on with the rest.
  */
-function placeOne(model, timeoutMs = 8000) {
+function placeOne(model, timeoutMs = 8000, addOptions) {
   return new Promise((resolve) => {
     const rp = BlueprintInterface?.blueprint3d?.roomplanner;
     const before = (rp && rp.__physicalRoomItems && rp.__physicalRoomItems.length) || 0;
@@ -463,7 +471,7 @@ function placeOne(model, timeoutMs = 8000) {
       if (arrived()) finish(true);
     }, 150);
     timer = setTimeout(() => finish(arrived()), timeoutMs);
-    handleAddItemsToScene(model);
+    handleAddItemsToScene(model, undefined, undefined, addOptions || {});
   });
 }
 

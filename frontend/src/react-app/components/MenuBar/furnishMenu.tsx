@@ -50,6 +50,8 @@ import ModelSearchModal from "@pazl/components/ModelSearchModal";
 import SnapControlPanel from "../SnapControlPanel";
 import { EVENT_ITEM_SELECTED, EVENT_ITEM_LOADED } from "@pazl/main/core/events";
 import RoomFocusChip from "./RoomFocusChip";
+import FullRoomViewModal from "../FullRoomViewModal";
+import { createPortal } from "react-dom";
 
 interface FurnishMenuProps {
   furnishTabData: string[];
@@ -113,6 +115,9 @@ const FurnishMenu = ({
   // Held here rather than read from the 3D selection each time: the page sits
   // over the scene, and what is selected underneath may change or clear.
   const [wallEditorEdge, setWallEditorEdge] = useState<any>(null);
+  // Full Room View (2D drawings + rendered views of the room), opened from the
+  // toolbar button beside One room / All rooms.
+  const [showRoomView, setShowRoomView] = useState(false);
   const [showDoorPropertiesModal, setShowDoorPropertiesModal] = useState(false);
   const [selectedDoorClass, setSelectedDoorClass] = useState<any>(null);
   const [showUndoPanel, setShowUndoPanel] = useState(false);
@@ -1201,8 +1206,45 @@ const FurnishMenu = ({
             adding it cannot shift the existing buttons. It renders nothing
             until a room has been designed once in this project. */}
         <RoomFocusChip />
+        {/* FULL ROOM VIEW — right after One room / All rooms. It works on the
+            live 3D scene, so it lives here in the 3D editor rather than on
+            the BOQ page where it used to be. Styled like the room button. */}
+        <div className="pr-px">
+          <button
+            type="button"
+            id="fullRoomViewButton"
+            className="min-w-[44px] h-[46px] px-1 rounded flex flex-col items-center justify-center gap-0.5 transition-colors hover:bg-[color:var(--pz-panel-hover)]"
+            style={{ backgroundColor: showRoomView ? "var(--pz-accent-soft)" : "transparent" }}
+            title="Generate 2D drawings and rendered views of the whole room"
+            onClick={() => setShowRoomView(true)}
+          >
+            <span
+              style={{ fontSize: 22, lineHeight: "22px" }}
+              className="material-symbols-outlined font-extralight dark:text-[#ffffff]"
+            >
+              architecture
+            </span>
+            <p
+              style={{ fontSize: 10.5, lineHeight: "12px", margin: 0, whiteSpace: "nowrap" }}
+              className="menu-button-text dark:text-[#ffffff]"
+            >
+              Full Room View
+            </p>
+          </button>
+        </div>
       </div>
       </ToolbarPortal>
+      {/* On the page body, not inside the toolbar, so the dialog is never
+          clipped or offset by the toolbar's own layout. */}
+      {showRoomView
+        ? createPortal(
+            <FullRoomViewModal
+              show={showRoomView}
+              onClose={() => setShowRoomView(false)}
+            />,
+            document.body
+          )
+        : null}
     </>
   );
 };

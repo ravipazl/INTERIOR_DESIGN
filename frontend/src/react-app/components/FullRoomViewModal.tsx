@@ -11,6 +11,8 @@ import {
   exportPDF,
   buildWorkingDrawingSVG,
   exportWorkingDrawingSVG,
+  exportWorkingDrawingDXF,
+  exportWorkingDrawingPDF,
 } from "@pazl/main/drawing2d/Drawing2DExport";
 import { hideModuleFronts } from "@pazl/main/drawing2d/InternalView";
 
@@ -631,18 +633,45 @@ const FullRoomViewModal: React.FC<FullRoomViewModalProps> = ({
               Internal view
             </label>
             {btn("#6b7280", generate, "Regenerate", !loading)}
-            {tab === "working" &&
-              btn(
-                "#1e88e5",
-                () =>
-                  result &&
-                  exportWorkingDrawingSVG(result, {
-                    viewId: wdViewId,
-                    project: buildWdProject(),
-                  }),
-                "Download SVG",
-                !!result && !loading
-              )}
+            {/* The same three exports as Line Drawing, for the working
+                drawing sheet: the wall, sheet details and options shown. */}
+            {tab === "working" && (
+              <>
+                {btn(
+                  "#1e88e5",
+                  () =>
+                    result &&
+                    exportWorkingDrawingSVG(result, {
+                      viewId: wdViewId,
+                      project: buildWdProject(),
+                    }),
+                  "Export SVG",
+                  !!result && !loading
+                )}
+                {btn(
+                  "#21b35a",
+                  () =>
+                    result &&
+                    exportWorkingDrawingDXF(result, {
+                      viewId: wdViewId,
+                      project: buildWdProject(),
+                    }),
+                  "Export DXF",
+                  !!result && !loading
+                )}
+                {btn(
+                  "#e53935",
+                  () =>
+                    result &&
+                    exportWorkingDrawingPDF(result, {
+                      viewId: wdViewId,
+                      project: buildWdProject(),
+                    }),
+                  "Export PDF",
+                  !!result && !loading
+                )}
+              </>
+            )}
             {tab === "drawing" && (
               <>
                 {btn(

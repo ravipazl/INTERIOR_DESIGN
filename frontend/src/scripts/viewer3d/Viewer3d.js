@@ -1531,7 +1531,12 @@ export class Viewer3D extends Scene {
     return degrees * (pi / 180);
   }
 
-  __pasteCopiedItem() {
+  /**
+   * `placeAt` ({ edge, point, itemType }) is given by Duplicate for a wall
+   * item, so the copy lands beside the original on its wall; Ctrl+V passes
+   * nothing and places as before.
+   */
+  __pasteCopiedItem(placeAt) {
     let scope = this;
     console.debug(
       "Viewer3d ~ __pasteCopiedItem ~ __copiedItem",
@@ -1547,7 +1552,7 @@ export class Viewer3D extends Scene {
         furnishedModel
       );
       if (furnishedModel) {
-        handleAddFurnishedModelToScene(furnishedModel);
+        handleAddFurnishedModelToScene(furnishedModel, placeAt);
       }
     }
   }

@@ -1,11 +1,9 @@
-import React, { useRef, useState } from "react";
+import React, { useRef } from "react";
 import "./index.css";
 import BoqTable from "../BoqTable";
-import FullRoomViewModal from "../FullRoomViewModal";
 import RenderHistory from "../RenderHistory";
 
 const ProductionMenu = ({ activeTab, projectId }: any) => {
-  const [showRoomView, setShowRoomView] = useState(false);
   // BoqTable fills this with its "build BOQ PDF" function; RenderHistory calls it
   // when the architect sends for approval, so the BOQ is attached to the email.
   const boqPdfGetter = useRef<(() => Promise<Blob | null>) | null>(null);
@@ -14,31 +12,13 @@ const ProductionMenu = ({ activeTab, projectId }: any) => {
   // submits both as one package, and RenderHistory pulls the BOQ PDF straight
   // from BoqTable below. They were briefly split across two rail items, which
   // meant only one was mounted and the email silently lost its attachment.
+  //
+  // "Full Room View" used to sit at the top of this page. It works on the live
+  // 3D scene, so it moved to the 3D editor's toolbar, beside One room / All
+  // rooms (MenuBar/furnishMenu.tsx).
 
   return (
     <div className="production-container bg-white dark:bg-[#333333]">
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "flex-end",
-          padding: "8px 12px",
-        }}
-      >
-        <button
-          type="button"
-          id="fullRoomViewButton"
-          onClick={() => setShowRoomView(true)}
-          title="Generate 2D drawings and rendered views of the whole room"
-          className="flex flex-row items-center justify-center gap-1 text-[#1e88e5] border border-[#1e88e5] rounded px-3 py-1.5"
-        >
-          <span className="material-symbols-outlined font-extralight">
-            architecture
-          </span>
-          <span className="font-normal text-xs self-center">
-            Full Room View
-          </span>
-        </button>
-      </div>
       <div>
         <BoqTable
           projectId={projectId}
@@ -64,10 +44,6 @@ const ProductionMenu = ({ activeTab, projectId }: any) => {
           }
         />
       </div>
-      <FullRoomViewModal
-        show={showRoomView}
-        onClose={() => setShowRoomView(false)}
-      />
     </div>
   );
 };

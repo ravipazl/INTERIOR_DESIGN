@@ -1959,15 +1959,93 @@ BlueprintInterface.mirrorItem3D = (id) => {
   }
 };
 
+/**
+ * WHERE A WALL ITEM'S COPY GOES: on the same wall, at the same height, right
+ * beside the original — or null for anything that is not a wall-mounted item.
+ *
+ * The copy used to be placed wherever the last click in 3D landed. Selecting a
+ * wall unit is usually a click near the floor, so its copy turned up standing
+ * in the room with its bottom under the floor instead of on the wall. Now it
+ * keeps the original's height (7 ft for a wall unit added with "+ Add", or
+ * whatever was typed) and wall, and takes the first free spot along it — right
+ * of the original, then left, then further out — clear of the other items
+ * hung on that wall. With no free spot it goes as close beside as the wall
+ * allows.
+ */
+const __besideOnWall = (model) => {
+  const edge = model && model.__currentWallEdge;
+  const type = parseInt(model && model.__metadata && model.__metadata.itemType, 10);
+  if (!edge || type !== 2 || !model.position || !model.halfSize) return null;
+  const a = edge.interiorStart();
+  const b = edge.interiorEnd();
+  const length = Math.hypot(b.x - a.x, b.y - a.y);
+  if (!(length > 1)) return null;
+  const ux = (b.x - a.x) / length;
+  const uz = (b.y - a.y) / length;
+  const along = (x, z) => (x - a.x) * ux + (z - a.y) * uz;
+  const p = model.position;
+  const half = model.halfSize;
+  const hw = half.x;
+  const hy = half.y;
+  // The same clearance from the wall's ends that snapToWall keeps.
+  const MARGIN = 5;
+  const others = ((edge.wall && edge.wall.onWallItems) || [])
+    .filter(
+      (o) => o && o !== model && o.__currentWallEdge === edge && o.position && o.halfSize
+    )
+    .map((o) => ({
+      t: along(o.position.x, o.position.z),
+      hw: o.halfSize.x,
+      y: o.position.y,
+      hy: o.halfSize.y,
+    }));
+  const fits = (t) =>
+    t - hw >= MARGIN &&
+    t + hw <= length - MARGIN &&
+    others.every(
+      (o) =>
+        Math.abs(o.t - t) >= o.hw + hw - 0.5 || Math.abs(o.y - p.y) >= o.hy + hy - 0.5
+    );
+  // The copy keeps the original's TOP height, so the tops line up even if it
+  // comes out a touch taller or shorter than the original.
+  const at = (t) => ({
+    edge,
+    itemType: type,
+    topCm: p.y + hy,
+    point: new Vector3(a.x + ux * t, p.y, a.y + uz * t),
+  });
+  const t0 = along(p.x, p.z);
+  const step = 2 * hw;
+  if (step > 0) {
+    const tries = Math.ceil(length / step) + 1;
+    for (let k = 1; k <= tries; k += 1) {
+      if (fits(t0 + k * step)) return at(t0 + k * step);
+      if (fits(t0 - k * step)) return at(t0 - k * step);
+    }
+  }
+  // No free spot: as close beside it as the wall's ends allow.
+  const right = Math.min(t0 + step, length - MARGIN - hw);
+  const left = Math.max(t0 - step, MARGIN + hw);
+  return at(Math.abs(right - t0) >= Math.abs(left - t0) ? right : left);
+};
+
 /** Add a copy of the item beside it (the Ctrl+C / Ctrl+V path, in one step). */
 BlueprintInterface.duplicateItem3D = (id) => {
   const rp = __roomplanner();
   const item = BlueprintInterface.getItem3DById(id);
   if (!rp || !item) return false;
   try {
+    // A wall item's copy goes beside it on the same wall at the same height;
+    // anything else is placed as before.
+    let placeAt = null;
+    try {
+      placeAt = __besideOnWall(item.__itemModel || item.itemModel);
+    } catch (e) {
+      placeAt = null;
+    }
     const previous = rp.__copiedItem;
     rp.__copiedItem = item;
-    rp.__pasteCopiedItem();
+    rp.__pasteCopiedItem(placeAt);
     rp.__copiedItem = previous; // leave the user's own copy alone
     return true;
   } catch (e) {

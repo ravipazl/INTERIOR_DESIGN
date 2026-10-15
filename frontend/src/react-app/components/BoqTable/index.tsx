@@ -977,7 +977,23 @@ const RoomMaterialModal: React.FC<{
   onChange: (next: RoomMatChoice) => void;
   onCancel: () => void;
   onApply: () => void;
-}> = ({ room, items, extMeshes, busy, value, onChange, onCancel, onApply }) => {
+  /**
+   * Opened from a row's edit button for ONE item rather than from the room
+   * header: `room` is then the item's name, and the wording says "this item".
+   * Everything else — the lists, the ticks, what Apply writes — is the same.
+   */
+  forItem?: boolean;
+}> = ({
+  room,
+  items,
+  extMeshes,
+  busy,
+  value,
+  onChange,
+  onCancel,
+  onApply,
+  forItem = false,
+}) => {
   // What is typed in the Finish search box. Cleared when the style changes: a
   // number typed for one style would otherwise hide everything in the next,
   // and an empty grid there looks like the style has no finishes.
@@ -1202,7 +1218,15 @@ const RoomMaterialModal: React.FC<{
     </label>
   );
 
+  // A SECTION'S FIELDS CAN BE CHANGED ONLY ONCE ITS BOX IS TICKED.
+  //
+  // Unticked, a section is shown but read-only: its fields still say what is
+  // chosen, but cannot be opened. Before, they only faded — every dropdown
+  // still opened, and choosing something ticked the section behind the
+  // user's back, so a section that was meant to be left alone got applied.
+  // `on` is the section's tick.
   const field = (
+    on: boolean,
     label: string,
     v: string,
     onPick: (next: string) => void,
@@ -1216,7 +1240,8 @@ const RoomMaterialModal: React.FC<{
       <select
         className="bq-input"
         value={v}
-        disabled={busy || !list.length}
+        disabled={busy || !on || !list.length}
+        title={on ? undefined : "Tick the section to change this"}
         onChange={(e) => onPick(e.target.value)}
       >
         <option value="">{list.length ? placeholder : waitingFor || "None"}</option>
@@ -1237,8 +1262,14 @@ const RoomMaterialModal: React.FC<{
         <div className="bq-modal-head">
           <b>Material configuration</b>
           <div className="bq-modal-sub">
-            {room || "Room"} · applies to every part of {items} item
-            {items === 1 ? "" : "s"}
+            {forItem ? (
+              <>{room || "Item"} · applies to every part of this item only</>
+            ) : (
+              <>
+                {room || "Room"} · applies to every part of {items} item
+                {items === 1 ? "" : "s"}
+              </>
+            )}
           </div>
         </div>
 
@@ -1246,6 +1277,7 @@ const RoomMaterialModal: React.FC<{
           {section("Core material", value.applyCore, "applyCore")}
           <div className={`bq-rm-grid3${value.applyCore ? "" : " bq-rm-off"}`}>
             {field(
+              value.applyCore,
               "Material",
               value.typeId,
               // The grade belongs to the OLD board, so it is cleared with it.
@@ -1254,8 +1286,9 @@ const RoomMaterialModal: React.FC<{
               (o) => o.type || o.name,
               "Leave unchanged"
             )}
-            {field("Board brand", value.brandId, (v) => set({ brandId: v }), coreBrands, name, "Select brand")}
+            {field(value.applyCore, "Board brand", value.brandId, (v) => set({ brandId: v }), coreBrands, name, "Select brand")}
             {field(
+              value.applyCore,
               "Grade",
               value.grade,
               (v) => set({ grade: v }),
@@ -1268,8 +1301,8 @@ const RoomMaterialModal: React.FC<{
 
           {section("Interior", value.applyInt, "applyInt")}
           <div className={`bq-rm-grid2${value.applyInt ? "" : " bq-rm-off"}`}>
-            {field("Finish type", value.intCatId, (v) => set({ intCatId: v }), interiorTypes, name, "Leave unchanged")}
-            {field("Brand", value.intBrandId, (v) => set({ intBrandId: v }), finBrands, name, "Any brand")}
+            {field(value.applyInt, "Finish type", value.intCatId, (v) => set({ intCatId: v }), interiorTypes, name, "Leave unchanged")}
+            {field(value.applyInt, "Brand", value.intBrandId, (v) => set({ intBrandId: v }), finBrands, name, "Any brand")}
           </div>
 
           {section("Exterior", value.applyExt, "applyExt")}
@@ -1279,6 +1312,7 @@ const RoomMaterialModal: React.FC<{
                 leaving them in place would keep a combination that no longer
                 exists. */}
             {field(
+              value.applyExt,
               "Type",
               value.extTypeId,
               (v) =>
@@ -1288,6 +1322,7 @@ const RoomMaterialModal: React.FC<{
               "Leave unchanged"
             )}
             {field(
+              value.applyExt,
               "Brand",
               value.extBrandId,
               (v) => set({ extBrandId: v, extStyleId: "", extFinishId: "" }),
@@ -1297,6 +1332,7 @@ const RoomMaterialModal: React.FC<{
               value.extTypeId ? "No brand has materials here" : "Choose a type first"
             )}
             {field(
+              value.applyExt,
               "Style",
               value.extStyleId,
               (v) => set({ extStyleId: v, extFinishId: "" }),
@@ -1340,7 +1376,7 @@ const RoomMaterialModal: React.FC<{
                 type="search"
                 placeholder="Search this brand by name or number"
                 value={finQuery}
-                disabled={busy}
+                disabled={busy || !value.applyExt}
                 onChange={(e) => setFinQuery(e.target.value)}
               />
             ) : null}
@@ -1367,7 +1403,7 @@ const RoomMaterialModal: React.FC<{
                       role="option"
                       aria-selected={on}
                       title={f.name}
-                      disabled={busy}
+                      disabled={busy || !value.applyExt}
                       className={`bq-rm-tile${on ? " on" : ""}`}
                       // The style goes with the finish. From the open style
                       // it is already that one; from a search result it may
@@ -1429,7 +1465,9 @@ const RoomMaterialModal: React.FC<{
                   } that already ${
                     extMeshes === 1 ? "has" : "have"
                   } one in the 3D view. Other meshes are not changed.`
-                : "No mesh in this room has an exterior yet, so nothing will change. Assign one in the 3D view first."}
+                : `No mesh ${
+                    forItem ? "on this item" : "in this room"
+                  } has an exterior yet, so nothing will change. Assign one in the 3D view first.`}
             </div>
           ) : null}
         </div>
@@ -1501,8 +1539,26 @@ const BoqTable: React.FC<BoqTableProps> = ({
       setInstallationRate(r || 0)
     );
   }, []);
+  // ROOMS IN THE PDF. Every room is in the downloaded / sent BOQ unless its
+  // toggle (beside "Material configuration") is switched off; this lists the
+  // ones switched off, by room name. It only decides what the PDF holds —
+  // nothing in the project or the saved BOQ changes.
+  const [pdfLeftOut, setPdfLeftOut] = useState<string[]>([]);
+  // True only while a PDF is being captured (download or "Send to admin").
+  const [pdfCapture, setPdfCapture] = useState(false);
+  const inPdf = (room: string) => !pdfLeftOut.includes(room);
+  const pdfAllOff =
+    groupedData.length > 0 && groupedData.every((g) => !inPdf(g.room));
+  // While a PDF is captured, its rooms and totals are only the rooms switched
+  // on. On screen everything shows, as before. With every room off the PDF
+  // falls back to all of them — the Download button is disabled then, and an
+  // empty BOQ is never what "Send to admin" means to attach.
+  const pdfOnly = pdfCapture && !pdfAllOff;
+  const totalsGroups = pdfOnly
+    ? groupedData.filter((g) => inPdf(g.room))
+    : groupedData;
   const includedArea = Number(
-    (groupedData || [])
+    (totalsGroups || [])
       .reduce(
         (s, g) =>
           s +
@@ -1570,13 +1626,15 @@ const BoqTable: React.FC<BoqTableProps> = ({
 
   // Items total = every line still in the BOQ, quantity × rate. Derived from
   // groupedData so edits, removals and cost changes all flow into the totals.
+  // While a PDF is captured, only the rooms switched on (totalsGroups).
   useEffect(() => {
     setTotalPrice(
       Number(
-        groupedData.reduce((t, g) => t + groupAmount(g), 0).toFixed(2)
+        totalsGroups.reduce((t, g) => t + groupAmount(g), 0).toFixed(2)
       )
     );
-  }, [groupedData]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [groupedData, pdfCapture, pdfLeftOut]);
 
   // ── Room-wise view state ────────────────────────────────────────────────
   // Rooms are open unless collapsed; forceExpand opens everything and hides
@@ -1611,6 +1669,10 @@ const BoqTable: React.FC<BoqTableProps> = ({
   const [roomMat, setRoomMat] = useState<Record<string, RoomMatChoice>>({});
   // Which room's material dialog is open, by room name.
   const [roomModal, setRoomModal] = useState<string | null>(null);
+  // The same dialog for ONE item, opened from its row while the row is being
+  // edited: the line's id, and that item's draft choice (as roomMat is).
+  const [itemModal, setItemModal] = useState<string | null>(null);
+  const [itemMat, setItemMat] = useState<Record<string, RoomMatChoice>>({});
 
   const toggleRoom = (room: string) =>
     setCollapsedRooms((prev) =>
@@ -1754,7 +1816,10 @@ const BoqTable: React.FC<BoqTableProps> = ({
         externalFinishBrandId: string | null;
         externalFinishClassification: string;
       } | null;
-    }
+    },
+    // What "Applying…" is shown on: the room header by default, or one item's
+    // dialog (`item:<line id>`) when a single item is being changed.
+    busyKey?: string
   ) => {
     const ids = Array.from(
       new Set(
@@ -1768,7 +1833,7 @@ const BoqTable: React.FC<BoqTableProps> = ({
     // nothing until it is pressed — so a dialog asking the same question again
     // only adds a click. The button says what it will do, and the figures
     // reprice in front of you afterwards.
-    setCoreSaving(room);
+    setCoreSaving(busyKey || room);
 
     // Mirror every API write into the browser's own copy. The editor syncs that
     // copy to the server, so a change made only through the API is overwritten
@@ -1881,6 +1946,45 @@ const BoqTable: React.FC<BoqTableProps> = ({
     // Leaving them stale would show the new material beside the old price.
     await fetchData();
   };
+
+  /**
+   * What a material dialog — a room's or one item's — writes, from what it
+   * shows.
+   */
+  const matChoiceOf = (value: RoomMatChoice) => ({
+    // Each section is written only when it is TICKED and
+    // filled in. An unticked section is sent as null and
+    // applyRoomCoreMaterial skips it entirely — no write,
+    // not even of the values it already has.
+    core:
+      value.applyCore && value.typeId && value.brandId
+        ? {
+            coreMaterialTypeId: value.typeId,
+            coreMaterialBrandId: value.brandId,
+            coreMaterialGrade: value.grade,
+          }
+        : null,
+    interior: value.applyInt && value.intCatId
+      ? {
+          internalFinishCategoryId: value.intCatId,
+          // "" would be stored as an empty string and
+          // never match a rate lookup; null means "any
+          // brand", which is a real rate row.
+          internalFinishBrandId: value.intBrandId || null,
+          internalFinishClassification: "",
+        }
+      : null,
+    exterior: value.applyExt && value.extFinishId
+      ? {
+          externalFinishFinishingId: value.extFinishId,
+          externalFinishBrandId:
+            value.extBrandId && value.extBrandId !== NO_BRAND
+              ? value.extBrandId
+              : null,
+          externalFinishClassification: "",
+        }
+      : null,
+  });
 
   /**
    * Write an exterior finish to ONE mesh.
@@ -2333,6 +2437,7 @@ const BoqTable: React.FC<BoqTableProps> = ({
       // expand every room so all items show, then wait a beat for the re-render.
       setClientPdfMode(true);
       setForceExpand(true);
+      setPdfCapture(true);
       await new Promise((resolve) => setTimeout(resolve, 1000));
       // LOW resolution + JPEG on purpose: this runs INSIDE the 3D editor tab,
       // which already holds the WebGL scene in memory. Rasterising a long BOQ at
@@ -2353,6 +2458,7 @@ const BoqTable: React.FC<BoqTableProps> = ({
       // Restore the editing view (the PDF is already captured by now).
       setClientPdfMode(false);
       setForceExpand(false);
+      setPdfCapture(false);
     }
   }, [targetRef]);
 
@@ -2365,6 +2471,7 @@ const BoqTable: React.FC<BoqTableProps> = ({
     // the page is captured.
     setEditing(null);
     setForceExpand(true);
+    setPdfCapture(true);
     await new Promise((resolve) => setTimeout(resolve, 1000));
     const pdfOptions: any = {
       resolution: Resolution.MEDIUM,
@@ -2382,6 +2489,7 @@ const BoqTable: React.FC<BoqTableProps> = ({
       });
     } finally {
       setForceExpand(false);
+      setPdfCapture(false);
     }
     const name = `Quote-${quoteNumber || "BOQ"}.pdf`;
     try {
@@ -2431,7 +2539,15 @@ const BoqTable: React.FC<BoqTableProps> = ({
                   isLoading ? "text-[#aaaaaa]" : "text-[#414063]"
                 }`}
                 onClick={handleExportAsPDF}
-                disabled={isLoading} // Optionally disable the button while loading
+                // Also off when every room is switched out of the PDF.
+                disabled={isLoading || pdfAllOff}
+                title={
+                  pdfAllOff
+                    ? "Select at least one room to download"
+                    : pdfLeftOut.length
+                    ? "Downloads only the rooms switched on"
+                    : undefined
+                }
               >
                 <img
                   height={20}
@@ -2445,6 +2561,9 @@ const BoqTable: React.FC<BoqTableProps> = ({
                 />
                 PDF
               </button>
+              {pdfAllOff ? (
+                <span className="bq-pdf-hint">Select at least one room</span>
+              ) : null}
 
               <button
                 className={
@@ -2537,6 +2656,7 @@ const BoqTable: React.FC<BoqTableProps> = ({
                 let serial = 0;
                 const colCount = hideActions ? 11 : 12;
                 return groupedData.map((group, index) => {
+                  if (pdfOnly && !inPdf(group.room)) return null;
                   const allLines = buildLines(group.items);
                   const lines = allLines.filter((l) => !l.excluded);
                   const removed = allLines.filter((l) => l.excluded);
@@ -2581,6 +2701,42 @@ const BoqTable: React.FC<BoqTableProps> = ({
                               ? "Applying…"
                               : "Material configuration"}
                           </button>
+                        )}
+                        {/* IN THE PDF OR NOT. On by default; switched off,
+                            the room is left out of the downloaded and sent
+                            BOQ, totals included. The room stays here and
+                            stays editable. Not drawn into the PDF itself. */}
+                        {hideActions ? null : (
+                          <label
+                            className={`bq-pdf-toggle${
+                              inPdf(group.room) ? " on" : ""
+                            }`}
+                            title={
+                              inPdf(group.room)
+                                ? "This room is in the BOQ PDF — switch off to leave it out"
+                                : "This room is left out of the BOQ PDF — switch on to include it"
+                            }
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={inPdf(group.room)}
+                              onChange={(e) => {
+                                const on = e.target.checked;
+                                setPdfLeftOut((prev) =>
+                                  on
+                                    ? prev.filter((r) => r !== group.room)
+                                    : prev.includes(group.room)
+                                    ? prev
+                                    : [...prev, group.room]
+                                );
+                              }}
+                            />
+                            <span className="bq-pdf-switch" aria-hidden="true" />
+                            <span className="bq-pdf-label">
+                              {inPdf(group.room) ? "In PDF" : "Not in PDF"}
+                            </span>
+                          </label>
                         )}
                         <div className="bq-room-stats">
                           {forceExpand ? null : open ? (
@@ -2649,6 +2805,11 @@ const BoqTable: React.FC<BoqTableProps> = ({
                                     )
                                   : line;
                               const isDescEditing = descEdit?.id === id;
+                              // The Material cell opens this item's material
+                              // dialog in one click (not in the PDF / client
+                              // view, nor for a line with no saved units).
+                              const canEditMat =
+                                !hideActions && !line.excluded && line.ids.length > 0;
                               const isOpen =
                                 !clientPdfMode && expandedItems.includes(id);
                               // Installation, hardware and other costs per unit
@@ -2821,7 +2982,40 @@ const BoqTable: React.FC<BoqTableProps> = ({
                                           squeezed into it spilled over Qty and
                                           broke "Cancel" and "Apply" one letter
                                           to a line. */}
-                                      <span className="bq-mat-view">
+                                      {/* ONE CLICK EDITS THE ITEM'S MATERIAL.
+                                          The chips and the pencil beside them
+                                          open the Material configuration
+                                          dialog for this one item — no need to
+                                          press the row's own pencil first
+                                          (that one is for Qty, size and rate).
+                                          Not in the PDF / client view. */}
+                                      <span
+                                        className={`bq-mat-view${
+                                          canEditMat ? " bq-mat-click" : ""
+                                        }`}
+                                        role={canEditMat ? "button" : undefined}
+                                        tabIndex={canEditMat ? 0 : undefined}
+                                        title={
+                                          canEditMat
+                                            ? "Change this item's core, interior and exterior"
+                                            : undefined
+                                        }
+                                        onClick={
+                                          canEditMat
+                                            ? () => setItemModal(id)
+                                            : undefined
+                                        }
+                                        onKeyDown={
+                                          canEditMat
+                                            ? (e) => {
+                                                if (e.key === "Enter" || e.key === " ") {
+                                                  e.preventDefault();
+                                                  setItemModal(id);
+                                                }
+                                              }
+                                            : undefined
+                                        }
+                                      >
                                         {item.material ? (
                                           item.material
                                             .split(";")
@@ -2864,19 +3058,20 @@ const BoqTable: React.FC<BoqTableProps> = ({
                                         ) : (
                                           <span className="bq-muted">—</span>
                                         )}
-                                        {/* NO PER-ITEM EDIT HERE.
-                                            The exterior is a decision per MESH —
-                                            a shutter in oak, a side panel
-                                            laminated only where it is seen — and
-                                            an item-level control could only
-                                            write one finish to every part at
-                                            once, flattening that in a single
-                                            press. The core and the interior are
-                                            whole-unit choices and belong in the
-                                            room header; the exterior is changed
-                                            per mesh in the expanded row below.
-                                            This column REPORTS what the item
-                                            carries; nothing is edited from it. */}
+                                        {/* The dialog has the room for three
+                                            sections that this narrow cell does
+                                            not. Its Exterior replaces only the
+                                            meshes that already have one, so a
+                                            per-mesh finish chosen in 3D is not
+                                            flattened onto every part. */}
+                                        {canEditMat ? (
+                                          <span
+                                            className="bq-mat-pen"
+                                            aria-hidden="true"
+                                          >
+                                            <EditOutlined style={{ fontSize: 14 }} />
+                                          </span>
+                                        ) : null}
                                       </span>
                                     </td>
                                     <td className="r">
@@ -3317,40 +3512,11 @@ const BoqTable: React.FC<BoqTableProps> = ({
                       }
                       onCancel={() => setRoomModal(null)}
                       onApply={() => {
-                        void applyRoomCoreMaterial(roomModal, roomLines, {
-                          // Each section is written only when it is TICKED and
-                          // filled in. An unticked section is sent as null and
-                          // applyRoomCoreMaterial skips it entirely — no write,
-                          // not even of the values it already has.
-                          core:
-                            value.applyCore && value.typeId && value.brandId
-                              ? {
-                                  coreMaterialTypeId: value.typeId,
-                                  coreMaterialBrandId: value.brandId,
-                                  coreMaterialGrade: value.grade,
-                                }
-                              : null,
-                          interior: value.applyInt && value.intCatId
-                            ? {
-                                internalFinishCategoryId: value.intCatId,
-                                // "" would be stored as an empty string and
-                                // never match a rate lookup; null means "any
-                                // brand", which is a real rate row.
-                                internalFinishBrandId: value.intBrandId || null,
-                                internalFinishClassification: "",
-                              }
-                            : null,
-                          exterior: value.applyExt && value.extFinishId
-                            ? {
-                                externalFinishFinishingId: value.extFinishId,
-                                externalFinishBrandId:
-                                  value.extBrandId && value.extBrandId !== NO_BRAND
-                                    ? value.extBrandId
-                                    : null,
-                                externalFinishClassification: "",
-                              }
-                            : null,
-                        }).then(() => {
+                        void applyRoomCoreMaterial(
+                          roomModal,
+                          roomLines,
+                          matChoiceOf(value)
+                        ).then(() => {
                           // Forget this room's draft, ticks included. Kept, it
                           // would reopen with the same sections already
                           // ticked, and the next "Apply to all" would rewrite
@@ -3362,6 +3528,61 @@ const BoqTable: React.FC<BoqTableProps> = ({
                             return next;
                           });
                           setRoomModal(null);
+                        });
+                      }}
+                    />
+                  );
+                })()
+              : null}
+            {/* ONE ITEM'S MATERIAL, from a click on its Material cell. The room
+                dialog, scoped to that item's units: Apply writes only them,
+                through the same applyRoomCoreMaterial, and the bill is rebuilt
+                so the row's rate and amount follow. */}
+            {itemModal
+              ? (() => {
+                  let line: BoqLine | null = null;
+                  for (const g of groupedData) {
+                    const found = buildLines(g.items).find(
+                      (l) => l.id === itemModal && !l.excluded
+                    );
+                    if (found) {
+                      line = found;
+                      break;
+                    }
+                  }
+                  if (!line) return null;
+                  const one = line;
+                  const key = `item:${one.id}`;
+                  const value = itemMat[one.id] || appliedMatFor([one]);
+                  return (
+                    <RoomMaterialModal
+                      forItem
+                      room={one.lead.item_name || ""}
+                      items={1}
+                      extMeshes={one.units.reduce(
+                        (m, u) => m + (u.applied?.extMeshes || 0),
+                        0
+                      )}
+                      busy={coreSaving === key}
+                      value={value}
+                      onChange={(next) =>
+                        setItemMat((prev) => ({ ...prev, [one.id]: next }))
+                      }
+                      onCancel={() => setItemModal(null)}
+                      onApply={() => {
+                        void applyRoomCoreMaterial(
+                          one.lead.item_name || "",
+                          [one],
+                          matChoiceOf(value),
+                          key
+                        ).then(() => {
+                          // Reopens from what the item now has, unticked.
+                          setItemMat((prev) => {
+                            const next = { ...prev };
+                            delete next[one.id];
+                            return next;
+                          });
+                          setItemModal(null);
                         });
                       }}
                     />

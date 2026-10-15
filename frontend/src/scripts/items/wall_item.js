@@ -3,6 +3,7 @@ import { Matrix4 } from "three/build/three.module.js";
 import { Utils } from "../core/utils.js";
 import { Item, UP_VECTOR } from "./item.js";
 import BlueprintInterface from "@pazl/blueprint-interface.js";
+import { isWallUnitModel } from "@pazl/react-app/roomTemplates/wallUnitPlacement";
 
 /**
  * A Wall Item is an entity to be placed related to a wall.
@@ -18,6 +19,27 @@ export class WallItem extends Item {
       this.__model.floorplan.wallPlanesForIntersection;
   }
 
+  /**
+   * Is this a kitchen WALL UNIT (its catalogue product in the Wall Unit
+   * category)? Read from the item's record; any other wall item is not.
+   */
+  __isWallUnit() {
+    // Remembered once known: this runs on every drag move. A "no" is not
+    // remembered, because the record may not exist yet the moment an item is
+    // added.
+    if (this.__wallUnitKnown) return true;
+    try {
+      const record =
+        BlueprintInterface?.ProjectManagerService?.getFurnishedModelById?.(
+          this.__id
+        );
+      this.__wallUnitKnown = !!record && isWallUnitModel(record.model || record);
+    } catch (e) {
+      this.__wallUnitKnown = false;
+    }
+    return this.__wallUnitKnown;
+  }
+
   __fitToWallBounds(point, wallEdge) {
     console.debug("DEBUG: wall-item fitToWallBounds", point, wallEdge);
     let point2d = new Vector2(point.x, point.z);
@@ -25,7 +47,10 @@ export class WallItem extends Item {
       .interiorEnd()
       .clone()
       .sub(wallEdge.interiorStart());
-    let sizeX = this.__halfSize.x + 5;
+    // Kept this far from each end of the wall: 5 cm for wall items, none for
+    // a wall unit — cabinets run right into the corner, against the side
+    // wall, and one held 5 cm off it could never read X = 0 / Z = 0.
+    let sizeX = this.__halfSize.x + (this.__isWallUnit() ? 0 : 5);
     let sizeVector = wallEdgeVector.clone().normalize().multiplyScalar(sizeX);
     let positionMinusSize = point2d.clone().sub(sizeVector);
     let positionPlusSize = point2d.clone().add(sizeVector);

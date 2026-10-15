@@ -17,6 +17,10 @@ import { ModelsService } from "@pazl/services/ModelsService";
 import { MODEL_TYPES } from "@pazl/entities/Model";
 import { SnapManager } from "../src/scripts/snap/SnapEngine.js";
 import { Dimensioning } from "../src/scripts/core/dimensioning";
+import {
+  isWallUnitModel,
+  wallUnitTopCm,
+} from "@pazl/react-app/roomTemplates/wallUnitPlacement";
 
 // ---------------------------------------------------------------------------
 // GLB cache — load each model file only ONCE (Coohom-style). The drag ghost and
@@ -80,7 +84,8 @@ try {
 function handleAddItemsToScene(
   currentUnitItem,
   furnishModelId,
-  isExistingModel
+  isExistingModel,
+  options = {}
 ) {
   console.debug("viewer3d-state-interface.js ~ handleAddItemsToScene", {
     currentUnitItem,
@@ -118,10 +123,13 @@ function handleAddItemsToScene(
       helper.__selectedRoom = focusRoom;
       helper.__roomName = focusRoom.name;
       const chosen = helper.__selectedEdge;
+      // …and still part of the plan: a wall kept from before a reload has the
+      // same room id but is no longer in the scene (isLiveEdge).
       const chosenIsHere =
         chosen &&
         chosen.room &&
-        chosen.room.roomByCornersId === focusRoom.roomByCornersId;
+        chosen.room.roomByCornersId === focusRoom.roomByCornersId &&
+        (typeof helper.isLiveEdge !== "function" || helper.isLiveEdge(chosen));
       if (!chosenIsHere) {
         const edge =
           (typeof focusRoom.getDefaultWallEdge === "function"
@@ -464,6 +472,28 @@ function handleAddItemsToScene(
             innerRotation: fitInnerTurn ? [0, Math.PI / 2, 0] : [0, 0, 0],
             meshmap,
           };
+          // "+ ADD" ON A WALL UNIT HANGS IT ON THE WALL, TOP AT 7 FT.
+          //
+          // Wall units are told apart by their catalogue category, so one
+          // uploaded with the Floor placement type still goes on the wall
+          // instead of standing on the floor. The height is the kitchen
+          // template's `wallUnitTopMm` (see roomTemplates/wallUnitPlacement).
+          //
+          // Asked for by "+ Add", by a drop from the catalogue (which keeps
+          // the spot along the wall it was dropped at) and by auto-furnish for
+          // its wall units. Swap (a `__slot`) keeps the opening it fills.
+          if (
+            options.hangWallUnit &&
+            !slot &&
+            isWallUnitModel(currentUnitItem)
+          ) {
+            const t = parseInt(metadata.type, 10);
+            if (t !== MODEL_TYPES.WALL_UNIT && t !== MODEL_TYPES.IN_WALL_UNIT) {
+              metadata.type = MODEL_TYPES.WALL_UNIT;
+            }
+            const topCm = wallUnitTopCm();
+            if (topCm > 0) metadata.hangTopCm = topCm;
+          }
           console.debug(
             "viewer3d-state-interface.js ~ handleAddItemsToScene ~ metadata",
             metadata
@@ -533,7 +563,7 @@ function handleAddItemsToScene(
   }
 }
 
-function handleAddFurnishedModelToScene(furnishedModel) {
+function handleAddFurnishedModelToScene(furnishedModel, placeAt) {
   console.debug(
     "viewer3d-state-interface.js ~ handleAddaFurnishedModelToScene",
     furnishedModel
@@ -664,6 +694,16 @@ function handleAddFurnishedModelToScene(furnishedModel) {
           ],
           meshmap,
         };
+        // DUPLICATE OF A WALL ITEM: beside the original, on its wall, at its
+        // height (blueprint-interface.duplicateItem3D). It is hung the way the
+        // original is hung — a wall unit uploaded as a floor item but placed
+        // on the wall stays on the wall in its copy too.
+        if (placeAt && placeAt.edge && placeAt.point) {
+          metadata.type = placeAt.itemType || MODEL_TYPES.WALL_UNIT;
+          metadata.placeAt = placeAt;
+          // Hung by its top, at the original's (RoomplannerHelper.__hungPoint).
+          if (placeAt.topCm > 0) metadata.hangTopCm = placeAt.topCm;
+        }
         console.debug(
           "viewer3d-state-interface.js ~ handleAddItemsToScene ~ metadata",
           metadata
@@ -1036,6 +1076,14 @@ function handleAddItem() {
  * and the existing "+ Add" behaviour is never affected.
  */
 function handleDropModelAtScreen(model, clientX, clientY) {
+  // A Wall Unit dropped from the catalogue hangs on the wall under the cursor
+  // with its bottom at the studio's height, exactly as "+ Add" hangs it.
+  let dropsAsWallUnit = false;
+  try {
+    dropsAsWallUnit = isWallUnitModel((model && model.model) || model);
+  } catch (e) {
+    dropsAsWallUnit = false;
+  }
   try {
     const bp = BlueprintInterface.blueprint3d;
     const viewer = bp && (bp.roomplanner || bp.viewer3d);
@@ -1067,8 +1115,13 @@ function handleDropModelAtScreen(model, clientX, clientY) {
             (model && model.model && model.model.type) ??
             1
         );
+        // A WALL UNIT goes on the wall whatever its placement type says — one
+        // uploaded as a floor item belongs on the wall all the same.
         const isWallType =
-          dropType === 2 || dropType === 3 || dropType === 7;
+          dropType === 2 ||
+          dropType === 3 ||
+          dropType === 7 ||
+          dropsAsWallUnit;
         let wallHandled = false;
         if (isWallType) {
           const wallPlanes = floorplan.wallPlanesForIntersection || [];
@@ -1186,7 +1239,12 @@ function handleDropModelAtScreen(model, clientX, clientY) {
   }
   // Delegate to the normal add flow (unchanged). If we set a placement point
   // above, addFloorItem uses it; otherwise it falls back to the room centre.
-  handleAddItemsToScene(model);
+  handleAddItemsToScene(
+    model,
+    undefined,
+    undefined,
+    dropsAsWallUnit ? { hangWallUnit: true } : {}
+  );
 }
 
 // ---------------------------------------------------------------------------

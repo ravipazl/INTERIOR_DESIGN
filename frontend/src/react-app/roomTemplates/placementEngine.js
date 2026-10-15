@@ -14,7 +14,8 @@
  * The rules (agreed with the studio):
  *   • base units stand on the floor and are 850 tall — the worktop is the
  *     25 mm slab already modelled on top of each unit, so nothing is added;
- *   • wall units hang with their BOTTOM 600 mm above the worktop → 1450 mm;
+ *   • wall units hang with their TOP at 7 ft (2134 mm) from the floor, the
+ *     same height however a wall unit is placed (+ Add, copy, auto-furnish);
  *   • the sink is centred on a window when the wall has one;
  *   • the tall unit goes at the end furthest from the door;
  *   • a leftover gap of 150–300 mm is filled with an oil pull-out; anything
@@ -23,7 +24,7 @@
 
 export const KITCHEN_DEFAULTS = {
   worktopTopMm: 850, // floor → top of the worktop (the unit includes it)
-  wallUnitGapMm: 600, // worktop → bottom of the wall units
+  wallUnitTopMm: 2134, // floor → TOP of every wall unit (7 ft)
   minRunMm: 1500, // a wall shorter than this can't hold a kitchen
   doorClearanceMm: 100, // keep cabinets this far from a door opening
   windowMarginMm: 50, // wall units keep this clear of a window
@@ -565,9 +566,10 @@ export function slotPlacement(room, plan, slot, sizeMm, options = {}) {
     x: alongX + wall.normal.x * inset,
     y: alongY + wall.normal.y * inset,
   };
-  // Floor units stand on the floor; wall units hang above the worktop.
+  // Floor units stand on the floor; wall units hang with their TOP at the
+  // studio's height (7 ft), so the bottom is that less the unit's height.
   const bottomCm =
-    slot.level === "wall" ? cm(opts.worktopTopMm + opts.wallUnitGapMm) : 0;
+    slot.level === "wall" ? Math.max(0, cm(opts.wallUnitTopMm) - heightCm) : 0;
   return {
     point, // x, y(=world z) in cm
     centreHeightCm: bottomCm + heightCm / 2,

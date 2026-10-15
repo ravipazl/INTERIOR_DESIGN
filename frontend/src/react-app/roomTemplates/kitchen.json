@@ -40,7 +40,7 @@
       },
       "rules": {
         "worktopTopMm": 850,
-        "wallUnitGapMm": 600,
+        "wallUnitTopMm": 2134,
         "minRunMm": 1500,
         "doorClearanceMm": 100,
         "windowMarginMm": 50,

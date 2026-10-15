@@ -732,10 +732,18 @@ function wdEscSvg(s) {
     .replace(/>/g, "&gt;");
 }
 
+// THE SHEET IS ALSO RECORDED AS PLAIN SHAPES (out.prims), so the same sheet
+// can be written as DXF and PDF as well as SVG — one drawing, three formats,
+// never out of step. Each helper below adds its shape there next to its SVG.
+function wdRecord(out, prim) {
+  if (out.prims) out.prims.push(prim);
+}
+
 function wdLine(out, x1, y1, x2, y2, opts = {}) {
   const stroke = opts.stroke || "#000";
   const w = opts.width != null ? opts.width : 0.2;
   const dash = opts.dash ? ` stroke-dasharray="${opts.dash}"` : "";
+  wdRecord(out, { t: "line", x1, y1, x2, y2, stroke, w, dash: opts.dash || "" });
   out.push(
     `<line x1="${x1.toFixed(2)}" y1="${y1.toFixed(2)}" x2="${x2.toFixed(2)}" y2="${y2.toFixed(2)}" stroke="${stroke}" stroke-width="${w.toFixed(3)}"${dash}/>`
   );
@@ -745,6 +753,7 @@ function wdRect(out, x, y, w, h, opts = {}) {
   const stroke = opts.stroke || "#000";
   const sw = opts.width != null ? opts.width : 0.25;
   const fill = opts.fill || "none";
+  wdRecord(out, { t: "rect", x, y, w, h, stroke, sw, fill });
   out.push(
     `<rect x="${x.toFixed(2)}" y="${y.toFixed(2)}" width="${w.toFixed(2)}" height="${h.toFixed(2)}" fill="${fill}" stroke="${stroke}" stroke-width="${sw.toFixed(3)}"/>`
   );
@@ -758,6 +767,16 @@ function wdText(out, x, y, text, opts = {}) {
   const weight = opts.bold ? "bold" : "normal";
   const baseline = opts.baseline || "middle";
   const fill = opts.fill || "#000";
+  wdRecord(out, {
+    t: "text",
+    x,
+    y,
+    text: String(text),
+    h,
+    align,
+    bold: !!opts.bold,
+    fill,
+  });
   out.push(
     `<text x="${x.toFixed(2)}" y="${y.toFixed(2)}" text-anchor="${anchor}" dominant-baseline="${baseline}" font-family="Helvetica, Arial, sans-serif" font-size="${h.toFixed(2)}" font-weight="${weight}" fill="${fill}">${wdEscSvg(text)}</text>`
   );
@@ -767,6 +786,7 @@ function wdCircle(out, cx, cy, r, opts = {}) {
   const stroke = opts.stroke || "#000";
   const sw = opts.width != null ? opts.width : 0.2;
   const fill = opts.fill || "#ffffff";
+  wdRecord(out, { t: "circle", cx, cy, r, stroke, sw, fill });
   out.push(
     `<circle cx="${cx.toFixed(2)}" cy="${cy.toFixed(2)}" r="${r.toFixed(2)}" fill="${fill}" stroke="${stroke}" stroke-width="${sw.toFixed(3)}"/>`
   );
@@ -836,6 +856,11 @@ function wdFmtDate(iso) {
  * @returns {string} self-contained SVG
  */
 export function buildWorkingDrawingSVG(result, options = {}) {
+  return wdCompose(result, options).join("");
+}
+
+/** The working-drawing sheet: its SVG pieces, plus the same sheet as shapes. */
+function wdCompose(result, options = {}) {
   const viewId = options.viewId || "front";
   const project = options.project || {};
   const view = (result.views || []).find((v) => v.id === viewId);
@@ -854,6 +879,7 @@ export function buildWorkingDrawingSVG(result, options = {}) {
   const title = { x: 12, y: 240, w: 400, h: 47 };
 
   const out = [];
+  out.prims = [];
   out.push(
     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}mm" height="${H}mm">`
   );
@@ -1280,7 +1306,202 @@ export function buildWorkingDrawingSVG(result, options = {}) {
   });
 
   out.push("</svg>");
-  return out.join("");
+  return out;
+}
+
+/** "#d00" / "#777" / "#ffffff" → [r, g, b]. */
+function wdRgb(hex) {
+  let h = String(hex || "#000").replace("#", "");
+  if (h.length === 3) h = h.split("").map((c) => c + c).join("");
+  const n = parseInt(h, 16);
+  return Number.isFinite(n) ? [(n >> 16) & 255, (n >> 8) & 255, n & 255] : [0, 0, 0];
+}
+
+/**
+ * The working drawing as DXF (AutoCAD R12 ASCII) — the same A3 sheet, in
+ * sheet millimetres with Y up, on layers by what each line is: the drawing,
+ * the wall hatch, the dimensions, the highlighted wall on the key plan, the
+ * text. Dimension values are the real sizes in mm, as on the sheet.
+ */
+export function buildWorkingDrawingDXF(result, options = {}) {
+  const prims = wdCompose(result, options).prims;
+  const H = WD_SHEET.height;
+  const fy = (y) => H - y;
+  const layerOf = (color) => {
+    const [r, g, b] = wdRgb(color);
+    if (r > 150 && g < 80 && b < 80) return "HIGHLIGHT";
+    if (r === g && g === b && r >= 0x60) return "HATCH";
+    if (r === g && g === b && r >= 0x30) return "DIMENSIONS";
+    return "LINES";
+  };
+
+  let out = "";
+  out += dxfPair(0, "SECTION") + dxfPair(2, "HEADER") + dxfPair(0, "ENDSEC");
+  out += dxfPair(0, "SECTION") + dxfPair(2, "TABLES");
+  out += dxfPair(0, "TABLE") + dxfPair(2, "LTYPE") + dxfPair(70, 1);
+  out +=
+    dxfPair(0, "LTYPE") +
+    dxfPair(2, "CONTINUOUS") +
+    dxfPair(70, 0) +
+    dxfPair(3, "Solid line") +
+    dxfPair(72, 65) +
+    dxfPair(73, 0) +
+    dxfPair(40, 0);
+  out += dxfPair(0, "ENDTAB");
+  const layers = [
+    ["LINES", 7],
+    ["HATCH", 8],
+    ["DIMENSIONS", 5],
+    ["HIGHLIGHT", 1],
+    ["TEXT", 7],
+  ];
+  out += dxfPair(0, "TABLE") + dxfPair(2, "LAYER") + dxfPair(70, layers.length);
+  for (const [name, color] of layers) {
+    out +=
+      dxfPair(0, "LAYER") +
+      dxfPair(2, name) +
+      dxfPair(70, 0) +
+      dxfPair(62, color) +
+      dxfPair(6, "CONTINUOUS");
+  }
+  out += dxfPair(0, "ENDTAB") + dxfPair(0, "ENDSEC");
+
+  out += dxfPair(0, "SECTION") + dxfPair(2, "ENTITIES");
+  const line = (lyr, x1, y1, x2, y2) =>
+    dxfPair(0, "LINE") +
+    dxfPair(8, lyr) +
+    dxfPair(10, x1.toFixed(3)) +
+    dxfPair(20, fy(y1).toFixed(3)) +
+    dxfPair(30, 0) +
+    dxfPair(11, x2.toFixed(3)) +
+    dxfPair(21, fy(y2).toFixed(3)) +
+    dxfPair(31, 0);
+  for (const p of prims) {
+    if (p.t === "line") {
+      out += line(layerOf(p.stroke), p.x1, p.y1, p.x2, p.y2);
+    } else if (p.t === "rect") {
+      const lyr = layerOf(p.stroke);
+      out += line(lyr, p.x, p.y, p.x + p.w, p.y);
+      out += line(lyr, p.x + p.w, p.y, p.x + p.w, p.y + p.h);
+      out += line(lyr, p.x + p.w, p.y + p.h, p.x, p.y + p.h);
+      out += line(lyr, p.x, p.y + p.h, p.x, p.y);
+    } else if (p.t === "circle") {
+      out +=
+        dxfPair(0, "CIRCLE") +
+        dxfPair(8, layerOf(p.stroke)) +
+        dxfPair(10, p.cx.toFixed(3)) +
+        dxfPair(20, fy(p.cy).toFixed(3)) +
+        dxfPair(30, 0) +
+        dxfPair(40, p.r.toFixed(3));
+    } else if (p.t === "text") {
+      // DXF R12 text is plain ASCII: the sheet's "—" (an empty cell) and "…"
+      // would otherwise be dropped, so they are written as "-" and "...".
+      const txt = dxfText(
+        p.text.replace(/[–—]/g, "-").replace(/…/g, "...")
+      );
+      if (!txt.trim()) continue;
+      const halign = p.align === "center" ? 1 : p.align === "right" ? 2 : 0;
+      out +=
+        dxfPair(0, "TEXT") +
+        dxfPair(8, layerOf(p.fill) === "HIGHLIGHT" ? "HIGHLIGHT" : "TEXT") +
+        dxfPair(10, p.x.toFixed(3)) +
+        dxfPair(20, fy(p.y).toFixed(3)) +
+        dxfPair(30, 0) +
+        dxfPair(40, p.h.toFixed(3)) +
+        dxfPair(1, txt) +
+        dxfPair(72, halign) +
+        dxfPair(73, 2) +
+        dxfPair(11, p.x.toFixed(3)) +
+        dxfPair(21, fy(p.y).toFixed(3)) +
+        dxfPair(31, 0);
+    }
+  }
+  out += dxfPair(0, "ENDSEC") + dxfPair(0, "EOF");
+  return out;
+}
+
+/**
+ * The working drawing as a vector PDF, A3 landscape — every line, box, circle
+ * and text of the sheet, in its own colour and weight.
+ */
+export function buildWorkingDrawingPDF(result, options = {}) {
+  const prims = wdCompose(result, options).prims;
+  const doc = new jsPDF({
+    orientation: "landscape",
+    unit: "mm",
+    format: [WD_SHEET.width, WD_SHEET.height],
+  });
+  const stroke = (hex, w) => {
+    doc.setDrawColor(...wdRgb(hex));
+    doc.setLineWidth(w);
+  };
+  for (const p of prims) {
+    if (p.t === "line") {
+      stroke(p.stroke, p.w);
+      if (p.dash) {
+        const parts = String(p.dash)
+          .split(/[ ,]+/)
+          .map(Number)
+          .filter((n) => n > 0);
+        if (parts.length) doc.setLineDashPattern(parts, 0);
+      }
+      doc.line(p.x1, p.y1, p.x2, p.y2);
+      if (p.dash) doc.setLineDashPattern([], 0);
+    } else if (p.t === "rect") {
+      stroke(p.stroke, p.sw);
+      if (p.fill && p.fill !== "none") {
+        doc.setFillColor(...wdRgb(p.fill));
+        doc.rect(p.x, p.y, p.w, p.h, "FD");
+      } else {
+        doc.rect(p.x, p.y, p.w, p.h);
+      }
+    } else if (p.t === "circle") {
+      stroke(p.stroke, p.sw);
+      doc.setFillColor(...wdRgb(p.fill && p.fill !== "none" ? p.fill : "#ffffff"));
+      doc.circle(p.cx, p.cy, p.r, "FD");
+    } else if (p.t === "text") {
+      doc.setFont("helvetica", p.bold ? "bold" : "normal");
+      doc.setFontSize(p.h / MM_PER_PT);
+      doc.setTextColor(...wdRgb(p.fill));
+      doc.text(p.text, p.x, p.y, {
+        align: p.align || "left",
+        baseline: "middle",
+      });
+    }
+  }
+  return doc;
+}
+
+/** File name shared by the three working-drawing downloads. */
+function wdFileBase(result, options = {}) {
+  const base =
+    (options.project && options.project.title) ||
+    result.itemName ||
+    "working_drawing";
+  const safe =
+    String(base)
+      .replace(/[^a-z0-9]+/gi, "_")
+      .replace(/^_+|_+$/g, "")
+      .toLowerCase() || "working_drawing";
+  const code =
+    (options.project && options.project.wallCode) ||
+    String(options.viewId || "front").toUpperCase().slice(0, 1);
+  return `${safe}_at_${code}_working_drawing`;
+}
+
+export function exportWorkingDrawingDXF(result, options = {}) {
+  downloadBlob(
+    `${wdFileBase(result, options)}.dxf`,
+    new Blob([buildWorkingDrawingDXF(result, options)], {
+      type: "application/dxf",
+    })
+  );
+}
+
+export function exportWorkingDrawingPDF(result, options = {}) {
+  buildWorkingDrawingPDF(result, options).save(
+    `${wdFileBase(result, options)}.pdf`
+  );
 }
 
 export function exportWorkingDrawingSVG(result, options = {}) {
