@@ -284,6 +284,39 @@ export class DragRoomItemsControl3D extends EventDispatcher {
     });
   }
 
+  // The room whose CEILING is under the pointer, seen from below — or null.
+  // The ceiling is drawn one-sided, facing down into the room, so the ray
+  // only meets it from inside; from above (the ceiling hidden or not) there
+  // is nothing to hit. Never allowed to break a click.
+  __ceilingRoomAtMouse() {
+    try {
+      const bp = BlueprintInterface && BlueprintInterface.blueprint3d;
+      const v = bp && (bp.roomplanner || bp.viewer3d);
+      const floors = ((v && v.floors3d) || []).filter(
+        (f) => f && f.roofPlane && f.room
+      );
+      if (!floors.length) return null;
+      const roofs = this.__pickable(floors.map((f) => f.roofPlane));
+      if (!roofs.length) return null;
+      this.__raycaster.setFromCamera(this.__mouse, this.__camera);
+      const hits = this.__raycaster.intersectObjects(roofs, true);
+      // Looking UP at it: the camera is under the ceiling.
+      if (!hits.length || !(this.__camera.position.y < hits[0].point.y)) return null;
+      // The panel hit may be one of the ceiling's areas, a child of its roof.
+      let node = hits[0].object;
+      while (node && !roofs.includes(node)) node = node.parent;
+      const floor = floors.find((f) => f.roofPlane === node);
+      if (!floor) return null;
+      return {
+        room: floor.room,
+        point: hits[0].point,
+        normal: hits[0].face ? hits[0].face.normal : null,
+      };
+    } catch (e) {
+      return null;
+    }
+  }
+
   __getSurfaceMeshes() {
     const bp = BlueprintInterface && BlueprintInterface.blueprint3d;
     // The Viewer3D instance is `roomplanner` (see blueprint.js). Fall back to
@@ -598,6 +631,7 @@ export class DragRoomItemsControl3D extends EventDispatcher {
         this.__pickable(this.__floors),
         false
       );
+      let ceilingHit = null;
       //if (deltaTime < 300) {
       if (wallPlanesThatIntersect.length) {
         this.dispatchEvent({
@@ -612,6 +646,17 @@ export class DragRoomItemsControl3D extends EventDispatcher {
           item: floorPlanesThatIntersect[0].object.room,
           point: floorPlanesThatIntersect[0].point,
           normal: floorPlanesThatIntersect[0].face.normal,
+        });
+      } else if ((ceilingHit = this.__ceilingRoomAtMouse())) {
+        // The CEILING, seen from inside the room: it selects that room, so
+        // Room Properties — and its Ceiling Editor — opens for it. Only a
+        // click that used to hit nothing at all comes here.
+        this.dispatchEvent({
+          type: EVENT_ROOM_CLICKED,
+          item: ceilingHit.room,
+          point: ceilingHit.point,
+          normal: ceilingHit.normal,
+          ceiling: true,
         });
       } else {
         // Nothing hit — still announce the click, with no room.

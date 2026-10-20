@@ -30,6 +30,7 @@ import { Box3, Vector3 } from "three";
 import { MENU_TABS } from ".";
 import WallPropertiesModal from "../WallPropertiesModal";
 import WallEditorModal from "../WallEditorModal";
+import { ceilingSurfaceOf } from "@pazl/main/model/ceilingRegions";
 import DoorPropertiesModal from "../DoorPropertiesModal";
 import { Texture } from "@pazl/entities/Texture";
 import Wall from "@pazl/main/model/wall";
@@ -115,6 +116,12 @@ const FurnishMenu = ({
   // Held here rather than read from the 3D selection each time: the page sits
   // over the scene, and what is selected underneath may change or clear.
   const [wallEditorEdge, setWallEditorEdge] = useState<any>(null);
+  // The Ceiling Editor: the Wall Editor opened on one room's ceiling.
+  const [ceilingSurface, setCeilingSurface] = useState<any>(null);
+  const openCeilingEditor = (room: any) => {
+    const surface = ceilingSurfaceOf(room);
+    if (surface) setCeilingSurface(surface);
+  };
   // Full Room View (2D drawings + rendered views of the room), opened from the
   // toolbar button beside One room / All rooms.
   const [showRoomView, setShowRoomView] = useState(false);
@@ -1078,6 +1085,15 @@ const FurnishMenu = ({
           onSwitchEdge={(edge: any) => setWallEditorEdge(edge)}
         />
       )}
+      {ceilingSurface && (
+        <WallEditorModal
+          // A fresh editor per room, as per wall side above.
+          key={`ceiling-${ceilingSurface.room?.getUuid?.() || ""}`}
+          surface={ceilingSurface}
+          onClose={() => setCeilingSurface(null)}
+          onSwitchSurface={(room: any) => openCeilingEditor(room)}
+        />
+      )}
       {showDoorPropertiesModal && selectedDoorClass && (
         <DoorPropertiesModal
           doorClass={selectedDoorClass}
@@ -1099,6 +1115,7 @@ const FurnishMenu = ({
           selectedRoom={selectedRoom}
           onHideRoomPropertiesPanel={() => setShowRoomPropertiesModal(false)}
           handleSelectAllRoomItems={handleSelectAllRoomItems}
+          onOpenCeilingEditor={() => openCeilingEditor(selectedRoom)}
         />
       )}
       {/* Currently unreachable: the only two things that set showUndoPanel true

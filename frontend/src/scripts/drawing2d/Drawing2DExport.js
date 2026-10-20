@@ -825,6 +825,22 @@ function wdDimension(out, x1, x2, y, text, h) {
   });
 }
 
+// Vertical dimension: line, end ticks, value beside its middle — to the left
+// of the line (side "left") or to its right.
+function wdVDimension(out, x, y1, y2, text, h, side) {
+  const tH = h != null ? h : 2.0;
+  wdLine(out, x, y1, x, y2, { stroke: "#333", width: 0.15 });
+  const tick = 0.8;
+  wdLine(out, x - tick, y1 + tick, x + tick, y1 - tick, { stroke: "#333", width: 0.15 });
+  wdLine(out, x - tick, y2 + tick, x + tick, y2 - tick, { stroke: "#333", width: 0.15 });
+  const left = side === "left";
+  wdText(out, left ? x - 1.2 : x + 1.2, (y1 + y2) / 2, text, {
+    align: left ? "right" : "left",
+    h: tH,
+    baseline: "middle",
+  });
+}
+
 function wdFmtDate(iso) {
   if (!iso) return "";
   const d = new Date(iso);
@@ -913,24 +929,42 @@ function wdCompose(result, options = {}) {
   const cx = draw.x + draw.w / 2;
   const cy = (drawTop + drawBottom) / 2;
 
+  // TOP ELEVATION — the room from above, drawn as the sheet's main view so
+  // every item's DEPTH (and width) can be dimensioned at a readable size. The
+  // Key Plan is then the sheet itself, so it is left off.
+  const isPlan = viewId === "top";
+
   // Wall hatching strips at top + bottom of the elevation
   const elevTop = cy - (view.height * s) / 2;
   const elevBottom = cy + (view.height * s) / 2;
-  wdWallHatch(out, draw.x + 4, elevTop - wallStrip - 0.5, draw.w - 8, wallStrip);
-  wdWallHatch(out, draw.x + 4, elevBottom + 0.5, draw.w - 8, wallStrip);
+  if (!isPlan) {
+    wdWallHatch(out, draw.x + 4, elevTop - wallStrip - 0.5, draw.w - 8, wallStrip);
+    wdWallHatch(out, draw.x + 4, elevBottom + 0.5, draw.w - 8, wallStrip);
+  }
 
   // Segments — the working-drawing sheet shows the clean FRONT face only, so we
   // skip hidden (dashed) lines here. On a detailed model those internal edges
   // roughly double the clutter without adding readable information; the external
   // elevation only needs the visible outline. (The Shop Drawing still keeps
   // hidden lines for the technical multi-view.)
+  // From above, a base unit is under the wall unit hung over it: its hidden
+  // edges are kept on the plan, dashed and light, so both outlines read.
   for (const seg of view.segments) {
-    if (seg.hidden) continue;
+    if (seg.hidden && !isPlan) continue;
     const x1 = cx + seg.x1 * s;
     const y1 = cy - seg.y1 * s;
     const x2 = cx + seg.x2 * s;
     const y2 = cy - seg.y2 * s;
-    wdLine(out, x1, y1, x2, y2, { stroke: "#000", width: 0.22 });
+    wdLine(
+      out,
+      x1,
+      y1,
+      x2,
+      y2,
+      seg.hidden
+        ? { stroke: "#888", width: 0.15, dash: "1.2 0.8" }
+        : { stroke: "#000", width: 0.22 }
+    );
   }
 
   // A-codes (A1, A2, …) as balloon callouts
@@ -973,21 +1007,116 @@ function wdCompose(result, options = {}) {
     });
   }
 
-  // Per-item dimension lines (one per tag) below the elevation
+  // EACH ITEM'S OWN DIMENSIONS, from its real outline in this view:
+  //   • WIDTH — base and tall units in the row under the elevation; a WALL
+  //     unit (its foot more than 300 mm off the floor) directly under itself,
+  //     so its width is never read against the unit below it;
+  //   • HEIGHT — a vertical dimension just inside its far-right edge;
+  //   • with Internal view, its SHELVES — the clear gap between one board and
+  //     the next as a chain just inside its left edge, and the height of each
+  //     shelf (its top face, from the item's foot) beside the shelf.
+  // A placement without an outline (an older drawing) keeps the width row.
   const items = result.items || [];
   const itemByNo = new Map(items.map((it) => [it.no, it]));
   const dimY = elevBottom + wallStrip + 5;
+  const floorY = -view.height / 2; // the floor, in view mm
   const sortedTags = [...(view.tags || [])].sort((a, b) => a.x - b.x);
   for (const tag of sortedTags) {
     const item = itemByNo.get(tag.no);
     if (!item) continue;
-    const w_mm =
-      viewId === "front" || viewId === "back" ? item.width : item.depth;
-    if (!w_mm) continue;
-    const halfMm = w_mm / 2;
-    const dx1 = cx + (tag.x - halfMm) * s;
-    const dx2 = cx + (tag.x + halfMm) * s;
-    wdDimension(out, dx1, dx2, dimY, String(Math.round(w_mm)), 2.2);
+    // ON THE TOP ELEVATION: the item's footprint — solid for a floor unit,
+    // dashed for a wall unit hung above (the plan convention) — with its
+    // DEPTH (D, wall face to front) and WIDTH (W, along the wall). A wall
+    // unit's two dimensions sit on the other side of its footprint from a
+    // floor unit's, so a wall unit over a base unit never covers its numbers.
+    if (isPlan) {
+      if (tag.x0 == null) continue;
+      const px0 = cx + tag.x0 * s;
+      const px1 = cx + tag.x1 * s;
+      const pyT = cy - tag.y1 * s;
+      const pyB = cy - tag.y0 * s;
+      const hung = tag.footMm != null && tag.footMm > 300;
+      const edge = hung
+        ? { stroke: "#1a4f8a", width: 0.25, dash: "1.6 1" }
+        : { stroke: "#000", width: 0.3 };
+      wdLine(out, px0, pyT, px1, pyT, edge);
+      wdLine(out, px1, pyT, px1, pyB, edge);
+      wdLine(out, px1, pyB, px0, pyB, edge);
+      wdLine(out, px0, pyB, px0, pyT, edge);
+      const ex = tag.x1 - tag.x0;
+      const ey = tag.y1 - tag.y0;
+      const depth = tag.depthMm || Math.round(Math.min(ex, ey));
+      const depthAcross = Math.abs(ex - depth) <= Math.abs(ey - depth);
+      const widthMm = Math.round(depthAcross ? ey : ex);
+      // Away from the middle, where the A-code balloon sits: a floor unit's
+      // dimensions near its front edge, a wall unit's near the wall.
+      const f = hung ? 0.25 : 0.86;
+      const xAt = px0 + (px1 - px0) * f;
+      const yAt = pyT + (pyB - pyT) * f;
+      if (depthAcross) {
+        wdDimension(out, px0, px1, yAt, `D ${depth}`, 2.0);
+        wdVDimension(out, xAt, pyT, pyB, `W ${widthMm}`, 2.0, hung ? "left" : "right");
+      } else {
+        wdVDimension(out, xAt, pyT, pyB, `D ${depth}`, 2.0, hung ? "left" : "right");
+        wdDimension(out, px0, px1, yAt, `W ${widthMm}`, 2.0);
+      }
+      continue;
+    }
+    if (tag.x0 == null) {
+      const w_mm =
+        viewId === "front" || viewId === "back" ? item.width : item.depth;
+      if (!w_mm) continue;
+      const halfMm = w_mm / 2;
+      wdDimension(out, cx + (tag.x - halfMm) * s, cx + (tag.x + halfMm) * s, dimY, String(Math.round(w_mm)), 2.2);
+      continue;
+    }
+    const px0 = cx + tag.x0 * s;
+    const px1 = cx + tag.x1 * s;
+    const pyBottom = cy - tag.y0 * s;
+    const pyTop = cy - tag.y1 * s;
+    const wMm = Math.round(tag.x1 - tag.x0);
+    const hMm = Math.round(tag.y1 - tag.y0);
+    const wallHung = tag.y0 - floorY > 300;
+
+    // Width.
+    if (wMm > 0) {
+      wdDimension(out, px0, px1, wallHung ? pyBottom + 4 : dimY, String(wMm), 2.2);
+    }
+    // Height, just inside the far-right edge (not drawn on an item too small
+    // on the sheet to carry it).
+    if (hMm > 0 && px1 - px0 >= 7 && pyBottom - pyTop >= 7) {
+      wdVDimension(out, px1 - 1.6, pyTop, pyBottom, String(hMm), 2.0, "left");
+    }
+    // Shelves, with Internal view.
+    const boards = (item.boards || []).slice().sort((p, q) => p.bottom - q.bottom);
+    if (options.internalView && boards.length && px1 - px0 >= 12) {
+      const itemH = hMm || item.height || 0;
+      const chainX = px0 + 1.6;
+      let from = 0;
+      for (const bd of boards) {
+        if (bd.bottom - from > 1) {
+          wdVDimension(out, chainX, pyBottom - bd.bottom * s, pyBottom - from * s, String(bd.bottom - from), 1.7, "right");
+        }
+        from = bd.top;
+      }
+      if (itemH - from > 1) {
+        wdVDimension(out, chainX, pyBottom - itemH * s, pyBottom - from * s, String(itemH - from), 1.7, "right");
+      }
+      // The shelves themselves (not the bottom or top board): their height.
+      for (const bd of boards) {
+        const isBottom = bd.bottom <= 150 && bd === boards[0];
+        const isTop = itemH && bd.top >= itemH - 30;
+        if (isBottom || isTop) continue;
+        // Left of the item's middle, clear of its A-code balloon (centred) and
+        // of the height dimension (right edge); just above the shelf.
+        wdText(out, px0 + 6.5, pyBottom - bd.top * s - 1.4, `h ${bd.top}`, {
+          align: "left",
+          h: 1.7,
+          baseline: "middle",
+          fill: "#1a4f8a",
+        });
+      }
+    }
   }
 
   // ----- LEGENDS panel -----
@@ -1162,7 +1291,8 @@ function wdCompose(result, options = {}) {
     );
   }
 
-  // ----- KEY PLAN -----
+  // ----- KEY PLAN ----- (not on the top elevation, which is the plan itself)
+  if (!isPlan) {
   wdRect(out, keyPlan.x, keyPlan.y, keyPlan.w, keyPlan.h, {
     stroke: "#000",
     width: 0.35
@@ -1219,6 +1349,31 @@ function wdCompose(result, options = {}) {
       wy2 = ky + (kh / 2) * ks;
     }
     wdLine(out, wx1, wy1, wx2, wy2, { stroke: "#d00", width: 0.9 });
+
+    // EACH ITEM'S DEPTH on the plan — its size front to back — as a short
+    // dimension across its outline, in the direction the depth runs.
+    for (const tag of planView.tags || []) {
+      if (tag.x0 == null || !tag.depthMm) continue;
+      const x0 = kx + tag.x0 * ks;
+      const x1 = kx + tag.x1 * ks;
+      const y0 = ky - tag.y1 * ks;
+      const y1 = ky - tag.y0 * ks;
+      const ex = tag.x1 - tag.x0;
+      const ey = tag.y1 - tag.y0;
+      const label = String(tag.depthMm);
+      // A wall unit hangs over the unit below it, so their outlines share the
+      // plan: its depth goes on one side of the outline (a quarter in, value
+      // outward) and a floor unit's on the other, so the two never overlap.
+      const hung = tag.footMm != null && tag.footMm > 300;
+      if (Math.abs(ex - tag.depthMm) <= Math.abs(ey - tag.depthMm)) {
+        const yAt = hung ? y0 + (y1 - y0) * 0.25 : y0 + (y1 - y0) * 0.75;
+        wdDimension(out, x0, x1, hung ? yAt : yAt + 2.2, label, 1.5);
+      } else {
+        const xAt = hung ? x0 + (x1 - x0) * 0.25 : x0 + (x1 - x0) * 0.75;
+        wdVDimension(out, xAt, y0, y1, label, 1.5, hung ? "left" : "right");
+      }
+    }
+
     wdText(
       out,
       (wx1 + wx2) / 2 + (viewId === "left" ? -3 : viewId === "right" ? 3 : 0),
@@ -1227,6 +1382,8 @@ function wdCompose(result, options = {}) {
       `@ ${wallCode}`,
       { align: "center", h: 2.4, bold: true, fill: "#d00", baseline: "middle" }
     );
+  }
+
   }
 
   // ----- TITLE BLOCK -----

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import BlueprintInterface from "@pazl/blueprint-interface";
 import {
   generateRoomDrawing,
@@ -29,6 +29,152 @@ import { hideModuleFronts } from "@pazl/main/drawing2d/InternalView";
  * Self-contained inline styling, same as Drawing2DModal.
  */
 
+/**
+ * THE WORKING-DRAWING PREVIEW, ZOOMABLE. A3 text is about 2.5 mm high —
+ * unreadable at the size the window shows a whole sheet — so the preview opens
+ * FITTED (the whole sheet in view) and zooms with − / + / Fit or the mouse
+ * wheel (at the pointer), and is dragged to move around when zoomed in. Only
+ * the view changes; the exports are built from the drawing, not from this.
+ */
+const ZoomPane: React.FC<{ html: string }> = ({ html }) => {
+  const viewport = useRef<HTMLDivElement>(null);
+  const [zoom, setZoom] = useState(1); // 1 = the whole sheet fitted
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [dragging, setDragging] = useState(false);
+  const drag = useRef<{ x: number; y: number; px: number; py: number } | null>(null);
+  const MIN = 1;
+  const MAX = 8;
+
+  // Zoom by `factor`, keeping the point (mx, my) of the viewport where it is
+  // (the middle when none is given).
+  const zoomAt = useCallback((factor: number, mx?: number, my?: number) => {
+    const el = viewport.current;
+    const cx = mx != null ? mx : el ? el.clientWidth / 2 : 0;
+    const cy = my != null ? my : el ? el.clientHeight / 2 : 0;
+    setZoom((z) => {
+      const nz = Math.min(MAX, Math.max(MIN, z * factor));
+      setPan((p) =>
+        nz === 1
+          ? { x: 0, y: 0 }
+          : { x: cx - (cx - p.x) * (nz / z), y: cy - (cy - p.y) * (nz / z) }
+      );
+      return nz;
+    });
+  }, []);
+
+  // The wheel zooms — a listener rather than onWheel, so it can stop the wheel
+  // from also scrolling the page behind the sheet.
+  useEffect(() => {
+    const el = viewport.current;
+    if (!el) return undefined;
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      const rect = el.getBoundingClientRect();
+      zoomAt(e.deltaY < 0 ? 1.15 : 1 / 1.15, e.clientX - rect.left, e.clientY - rect.top);
+    };
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => el.removeEventListener("wheel", onWheel);
+  }, [zoomAt]);
+
+  const fit = () => {
+    setZoom(1);
+    setPan({ x: 0, y: 0 });
+  };
+  const ctl: React.CSSProperties = {
+    minWidth: 30,
+    height: 28,
+    padding: "0 8px",
+    border: "1px solid #d1d5db",
+    borderRadius: 4,
+    background: "#fff",
+    color: "#222",
+    fontSize: 13,
+    cursor: "pointer",
+    whiteSpace: "nowrap",
+  };
+  const endDrag = () => {
+    drag.current = null;
+    setDragging(false);
+  };
+  return (
+    <div
+      style={{
+        flex: 1,
+        minWidth: 0,
+        minHeight: 0,
+        display: "flex",
+        flexDirection: "column",
+        background: "#fff",
+        borderRadius: 4,
+        overflow: "hidden",
+        boxShadow: "0 2px 12px rgba(0,0,0,0.5)",
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 6,
+          padding: "6px 10px",
+          borderBottom: "1px solid #e5e7eb",
+          background: "#fafafa",
+          fontSize: 12,
+          color: "#555",
+        }}
+      >
+        <button type="button" style={ctl} title="Zoom out" onClick={() => zoomAt(1 / 1.25)}>
+          −
+        </button>
+        <span style={{ minWidth: 44, textAlign: "center", color: "#222" }}>
+          {Math.round(zoom * 100)}%
+        </span>
+        <button type="button" style={ctl} title="Zoom in" onClick={() => zoomAt(1.25)}>
+          +
+        </button>
+        <button type="button" style={ctl} title="Show the whole sheet" onClick={fit}>
+          Fit
+        </button>
+        <span style={{ marginLeft: "auto", whiteSpace: "nowrap" }}>
+          Scroll to zoom · drag to move
+        </span>
+      </div>
+      <div
+        ref={viewport}
+        style={{
+          flex: 1,
+          minHeight: 0,
+          position: "relative",
+          overflow: "hidden",
+          cursor: zoom > 1 ? (dragging ? "grabbing" : "grab") : "default",
+          userSelect: "none",
+        }}
+        onMouseDown={(e) => {
+          if (zoom <= 1) return;
+          drag.current = { x: e.clientX, y: e.clientY, px: pan.x, py: pan.y };
+          setDragging(true);
+        }}
+        onMouseMove={(e) => {
+          const d = drag.current;
+          if (!d) return;
+          setPan({ x: d.px + (e.clientX - d.x), y: d.py + (e.clientY - d.y) });
+        }}
+        onMouseUp={endDrag}
+        onMouseLeave={endDrag}
+      >
+        <div
+          style={{
+            position: "absolute",
+            inset: 8,
+            transformOrigin: "0 0",
+            transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
+          }}
+          dangerouslySetInnerHTML={{ __html: html }}
+        />
+      </div>
+    </div>
+  );
+};
+
 interface FullRoomViewModalProps {
   show: boolean;
   onClose: () => void;
@@ -55,7 +201,7 @@ const FullRoomViewModal: React.FC<FullRoomViewModalProps> = ({
   const [snapWarning, setSnapWarning] = useState<string | null>(null);
 
   // ---- Working Drawing form state (Phase 1) ----
-  const [wdViewId, setWdViewId] = useState<"front" | "left" | "right">("front");
+  const [wdViewId, setWdViewId] = useState<"front" | "left" | "right" | "top">("front");
   const [wdTitle, setWdTitle] = useState("KITCHEN INTERNAL VIEW");
   const [wdViewNumber, setWdViewNumber] = useState("2");
   const [wdWallCode, setWdWallCode] = useState("A");
@@ -451,12 +597,22 @@ const FullRoomViewModal: React.FC<FullRoomViewModalProps> = ({
           )}
 
           {!loading && !error && tab === "working" && result && (
-            <div style={{ width: "100%", display: "flex", gap: 16 }}>
+            <div
+              style={{
+                width: "100%",
+                height: "100%",
+                alignSelf: "stretch",
+                minHeight: 0,
+                display: "flex",
+                gap: 16,
+              }}
+            >
               {/* Project info form */}
               <div
                 style={{
                   width: 220,
                   flexShrink: 0,
+                  overflowY: "auto",
                   background: "#fff",
                   padding: 12,
                   borderRadius: 6,
@@ -477,7 +633,7 @@ const FullRoomViewModal: React.FC<FullRoomViewModalProps> = ({
                     value={wdViewId}
                     onChange={(e) =>
                       setWdViewId(
-                        e.target.value as "front" | "left" | "right"
+                        e.target.value as "front" | "left" | "right" | "top"
                       )
                     }
                     style={fld()}
@@ -485,6 +641,7 @@ const FullRoomViewModal: React.FC<FullRoomViewModalProps> = ({
                     <option value="front">Front elevation</option>
                     <option value="left">Left elevation</option>
                     <option value="right">Right elevation</option>
+                    <option value="top">Top elevation (plan)</option>
                   </select>
                 </label>
 
@@ -554,34 +711,24 @@ const FullRoomViewModal: React.FC<FullRoomViewModalProps> = ({
                 </label>
               </div>
 
-              {/* Live SVG preview */}
-              <div
-                style={{
-                  flex: 1,
-                  background: "#fff",
-                  padding: 8,
-                  boxShadow: "0 2px 12px rgba(0,0,0,0.5)",
-                  alignSelf: "flex-start",
-                  maxHeight: "70vh",
-                  overflow: "auto",
-                }}
-                dangerouslySetInnerHTML={{
-                  __html: (() => {
-                    try {
-                      return buildWorkingDrawingSVG(result, {
-                        viewId: wdViewId,
-                        project: buildWdProject(),
-                      }).replace(
-                        "<svg ",
-                        '<svg style="max-width:100%;max-height:68vh;height:auto;display:block" '
-                      );
-                    } catch (e: any) {
-                      return `<div style="color:#c00;padding:12px">${
-                        e?.message || "Failed to build working drawing"
-                      }</div>`;
-                    }
-                  })(),
-                }}
+              {/* Live SVG preview — zoomable */}
+              <ZoomPane
+                html={(() => {
+                  try {
+                    return buildWorkingDrawingSVG(result, {
+                      viewId: wdViewId,
+                      internalView,
+                      project: buildWdProject(),
+                    }).replace(
+                      "<svg ",
+                      '<svg style="width:100%;height:100%;display:block" '
+                    );
+                  } catch (e: any) {
+                    return `<div style="color:#c00;padding:12px">${
+                      e?.message || "Failed to build working drawing"
+                    }</div>`;
+                  }
+                })()}
               />
             </div>
           )}
@@ -643,6 +790,7 @@ const FullRoomViewModal: React.FC<FullRoomViewModalProps> = ({
                     result &&
                     exportWorkingDrawingSVG(result, {
                       viewId: wdViewId,
+                      internalView,
                       project: buildWdProject(),
                     }),
                   "Export SVG",
@@ -654,6 +802,7 @@ const FullRoomViewModal: React.FC<FullRoomViewModalProps> = ({
                     result &&
                     exportWorkingDrawingDXF(result, {
                       viewId: wdViewId,
+                      internalView,
                       project: buildWdProject(),
                     }),
                   "Export DXF",
@@ -665,6 +814,7 @@ const FullRoomViewModal: React.FC<FullRoomViewModalProps> = ({
                     result &&
                     exportWorkingDrawingPDF(result, {
                       viewId: wdViewId,
+                      internalView,
                       project: buildWdProject(),
                     }),
                   "Export PDF",

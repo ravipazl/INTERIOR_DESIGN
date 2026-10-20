@@ -1001,6 +1001,102 @@ function filterRoomMeshes(boxes) {
   return { keep, bbox };
 }
 
+/**
+ * The horizontal boards inside one item — its bottom, each shelf and its top —
+ * as { bottom, top } in mm from the item's foot, low to high.
+ *
+ * Measured on the model's faces, not its parts: some models carry each shelf
+ * as its own part, others build the shelves into the carcass. A board is two
+ * flat, horizontal faces 3–40 mm apart that each span at least 60% of the
+ * item's width and 40% of its depth, so handles, rails and trims never count.
+ * In the item's own frame (un-rotated, real size), like the part boxes above.
+ */
+function measureItemBoards(physicalItem) {
+  const loadedItem = physicalItem && physicalItem.__loadedItem;
+  if (!loadedItem) return null;
+  physicalItem.updateMatrixWorld(true);
+  const loadedInv = new Matrix4().getInverse(loadedItem.matrixWorld);
+  const scaleM = new Matrix4().makeScale(
+    loadedItem.scale.x,
+    loadedItem.scale.y,
+    loadedItem.scale.z
+  );
+  const overall = new Box3();
+  const levels = new Map(); // 1 mm height bins of flat horizontal faces
+  const a = new Vector3();
+  const b = new Vector3();
+  const c = new Vector3();
+  const ab = new Vector3();
+  const ac = new Vector3();
+  const n = new Vector3();
+  loadedItem.traverse((o) => {
+    if (!o.isMesh || !o.geometry) return;
+    const pos = o.geometry.attributes && o.geometry.attributes.position;
+    if (!pos) return;
+    o.updateWorldMatrix(true, false);
+    const M = new Matrix4().multiplyMatrices(
+      scaleM,
+      new Matrix4().multiplyMatrices(loadedInv, o.matrixWorld)
+    );
+    const index = o.geometry.index;
+    const count = index ? index.count : pos.count;
+    const vertex = (i, v) =>
+      v.fromBufferAttribute(pos, index ? index.getX(i) : i).applyMatrix4(M);
+    for (let i = 0; i + 2 < count; i += 3) {
+      vertex(i, a);
+      vertex(i + 1, b);
+      vertex(i + 2, c);
+      overall.expandByPoint(a);
+      overall.expandByPoint(b);
+      overall.expandByPoint(c);
+      ab.subVectors(b, a);
+      ac.subVectors(c, a);
+      n.crossVectors(ab, ac);
+      const twiceArea = n.length();
+      if (twiceArea < 1e-9 || Math.abs(n.y / twiceArea) < 0.98) continue;
+      const y = (a.y + b.y + c.y) / 3;
+      const key = Math.round(y * 10);
+      let lv = levels.get(key);
+      if (!lv) {
+        lv = { ySum: 0, wSum: 0, minX: Infinity, maxX: -Infinity, minZ: Infinity, maxZ: -Infinity };
+        levels.set(key, lv);
+      }
+      lv.ySum += y * twiceArea;
+      lv.wSum += twiceArea;
+      for (const v of [a, b, c]) {
+        if (v.x < lv.minX) lv.minX = v.x;
+        if (v.x > lv.maxX) lv.maxX = v.x;
+        if (v.z < lv.minZ) lv.minZ = v.z;
+        if (v.z > lv.maxZ) lv.maxZ = v.z;
+      }
+    }
+  });
+  if (overall.isEmpty() || !isFinite(overall.min.x)) return null;
+  const size = overall.getSize(new Vector3());
+  const spanning = [...levels.values()]
+    .filter(
+      (lv) =>
+        lv.wSum > 0 &&
+        lv.maxX - lv.minX >= size.x * 0.6 &&
+        lv.maxZ - lv.minZ >= size.z * 0.4
+    )
+    .map((lv) => lv.ySum / lv.wSum)
+    .sort((p, q) => p - q)
+    .filter((y, i, arr) => i === 0 || y - arr[i - 1] > 0.05);
+  const boards = [];
+  for (let i = 0; i + 1 < spanning.length; i++) {
+    const t = spanning[i + 1] - spanning[i];
+    if (t >= 0.3 && t <= 4) {
+      boards.push({
+        bottom: Math.round((spanning[i] - overall.min.y) * CM_TO_MM),
+        top: Math.round((spanning[i + 1] - overall.min.y) * CM_TO_MM),
+      });
+      i += 1;
+    }
+  }
+  return boards;
+}
+
 // Collect the room's furniture items for the numbered tags + schedule table.
 // Items are grouped by name (Qty = count); each placement keeps its own world
 // centre so a tag can be projected into every view. A placement whose centre
@@ -1027,8 +1123,15 @@ function collectRoomItems(viewer3d, bbox) {
     if (!region.containsPoint(center)) continue; // stray placement — skip
 
     const meta = item.__itemModel || item.itemModel || null;
+    // The catalogue name is kept as `itemName`; reading only `name` gave every
+    // item "Furniture Item", so all were grouped as one — every unit tagged A1
+    // and dimensioned with the first one's width.
     const name =
-      (meta && ((meta.__metadata && meta.__metadata.name) || meta.name)) ||
+      (meta &&
+        ((meta.__metadata &&
+          (meta.__metadata.name || meta.__metadata.itemName)) ||
+          meta.name ||
+          meta.itemName)) ||
       "Furniture Item";
 
     let g = groups.get(name);
@@ -1042,10 +1145,32 @@ function collectRoomItems(viewer3d, bbox) {
         depth: Math.round(size.z * CM_TO_MM),
         qty: 0,
       };
+      // Its shelf boards, for the Internal-view dimension chains. Never allowed
+      // to stop the drawing.
+      try {
+        g.boards = measureItemBoards(item);
+      } catch (e) {
+        g.boards = null;
+      }
       groups.set(name, g);
     }
     g.qty += 1;
-    placements.push({ no: g.no, center: center });
+    // Each placement keeps its own outline (for its width and height
+    // dimensions in every view) and its own depth — the item's size front to
+    // back — with the plan axis that depth runs along as it is turned.
+    let depthMm = null;
+    let depthAxis = null;
+    try {
+      const half = meta && meta.halfSize;
+      const turn = (meta && meta.rotation && meta.rotation.y) || 0;
+      if (half && half.z > 0) {
+        depthMm = Math.round(half.z * 2 * CM_TO_MM);
+        depthAxis = Math.abs(Math.sin(turn)) > Math.abs(Math.cos(turn)) ? "x" : "z";
+      }
+    } catch (e) {
+      depthMm = null;
+    }
+    placements.push({ no: g.no, center: center, box: box.clone(), depthMm, depthAxis });
   }
 
   return { schedule: Array.from(groups.values()), placements: placements };
@@ -1056,13 +1181,46 @@ function collectRoomItems(viewer3d, bbox) {
 function projectRoomTags(placements, cam, halfW, halfH) {
   const tags = [];
   const p = new Vector3();
+  const corner = new Vector3();
   for (let i = 0; i < placements.length; i++) {
-    p.copy(placements[i].center).project(cam);
-    tags.push({
-      no: placements[i].no,
+    const pl = placements[i];
+    p.copy(pl.center).project(cam);
+    const tag = {
+      no: pl.no,
       x: p.x * halfW * CM_TO_MM,
       y: p.y * halfH * CM_TO_MM,
-    });
+    };
+    // The item's outline in this view (paper mm, Y up), for its own width,
+    // height and depth dimensions.
+    if (pl.box) {
+      let x0 = Infinity;
+      let x1 = -Infinity;
+      let y0 = Infinity;
+      let y1 = -Infinity;
+      for (let k = 0; k < 8; k++) {
+        corner
+          .set(
+            k & 1 ? pl.box.max.x : pl.box.min.x,
+            k & 2 ? pl.box.max.y : pl.box.min.y,
+            k & 4 ? pl.box.max.z : pl.box.min.z
+          )
+          .project(cam);
+        const cx = corner.x * halfW * CM_TO_MM;
+        const cy = corner.y * halfH * CM_TO_MM;
+        if (cx < x0) x0 = cx;
+        if (cx > x1) x1 = cx;
+        if (cy < y0) y0 = cy;
+        if (cy > y1) y1 = cy;
+      }
+      Object.assign(tag, { x0, x1, y0, y1 });
+    }
+    if (pl.depthMm) {
+      tag.depthMm = pl.depthMm;
+      tag.depthAxis = pl.depthAxis;
+    }
+    // How high its foot is off the floor (a wall unit hangs well above it).
+    if (pl.box) tag.footMm = Math.round(pl.box.min.y * CM_TO_MM);
+    tags.push(tag);
   }
   return tags;
 }
