@@ -181,7 +181,48 @@ export class RoomPlannerHelper {
     // this.__selectedItem = null;
   }
 
+  /**
+   * Is this wall side part of the plan as it is NOW? Its wall must still be
+   * one of the plan's walls and still carry this side. A side kept from
+   * before a load or a rebuild fails this, even if it looks the same.
+   */
+  isLiveEdge(edge) {
+    const wall = edge && edge.wall;
+    if (!wall) return false;
+    const walls =
+      (this.__floorplan &&
+        (typeof this.__floorplan.getWalls === "function"
+          ? this.__floorplan.getWalls()
+          : this.__floorplan.walls)) ||
+      [];
+    if (!walls.includes(wall)) return false;
+    return wall.frontEdge === edge || wall.backEdge === edge;
+  }
+
   addWallItems(data) {
+    // A caller that already knows the wall and the point (a duplicate going
+    // beside its original) says so in `data.placeAt`, and nothing left over
+    // from an earlier click can send the item anywhere else.
+    if (data && data.placeAt && data.placeAt.edge && data.placeAt.point) {
+      const edge = data.placeAt.edge;
+      this.__selectedEdge = edge;
+      this.__selectedEdgePoint = data.placeAt.point.clone
+        ? data.placeAt.point.clone()
+        : data.placeAt.point;
+      this.__selectedEdgeNormal = edge.normal ?? { x: 0, y: 0, z: 1 };
+      if (edge.wall?.thickness != null) {
+        this.__wallThickness = Dimensioning.cmToMeasureRaw(edge.wall.thickness);
+      }
+    }
+    // A WALL FROM ANOTHER PLAN IS NO WALL AT ALL. The last clicked wall is kept
+    // here across loads, so after opening another project (or reloading this
+    // one, which builds new walls) it pointed at a wall that is no longer in
+    // the plan — and a wall unit was hung where that old wall used to be,
+    // floating in the room or outside it. Forget it, and use the fallback.
+    if (this.__selectedEdge && !this.isLiveEdge(this.__selectedEdge)) {
+      this.__selectedEdge = null;
+      this.__selectedEdgePoint = null;
+    }
     if (!this.__selectedEdge) {
       /* No wall was clicked — pick a sensible fallback HalfEdge so the item
        * still lands somewhere reasonable. Preference order:
@@ -281,10 +322,46 @@ export class RoomPlannerHelper {
     // the user clicked the back face, or vice-versa). This mirrors how
     // addParametricDoorToCurrentWall (line 305) already does it. */
     item.snapToWall(
-      this.__selectedEdgePoint,
+      this.__hungPoint(data) || this.__selectedEdgePoint,
       this.__selectedEdge.wall,
       this.__selectedEdge
     );
+  }
+
+  /**
+   * WHERE A UNIT HUNG BY ITS TOP GOES: the chosen point on the wall, at the
+   * height that puts the unit's TOP at `data.hangTopCm` from the floor; the
+   * unit hangs down from there.
+   *
+   * Only for a caller that passes `hangTopCm` (a wall unit from "+ Add", a
+   * catalogue drop, auto-furnish, or a copy); every other wall item keeps the
+   * point it was given. The height is worked out here, after the wall is
+   * known, and the point's own height is ignored — it can be a floor click
+   * (y≈0) or the middle of the wall.
+   *
+   * Under a ceiling lower than that, the top sits just under the ceiling; a
+   * unit taller than the wall rests on the floor — the same limits a drag uses.
+   */
+  __hungPoint(data) {
+    const topCm = Number(data && data.hangTopCm);
+    const edge = this.__selectedEdge;
+    if (!(topCm > 0) || !edge) return null;
+    const at = this.__selectedEdgePoint || edge.center;
+    if (!at) return null;
+    const wall = edge.wall;
+    // The wall's real height is its corners' elevation (lower end if they
+    // differ); `wall.height` is only the app's default for new walls.
+    const ends = wall
+      ? [wall.startElevation, wall.endElevation].filter((h) => h > 0)
+      : [];
+    const wallHeight = ends.length
+      ? Math.min(...ends)
+      : (wall && wall.height) || 250;
+    const unitHeight = Array.isArray(data.size) ? Number(data.size[1]) || 0 : 0;
+    const half = unitHeight / 2;
+    const top = Math.min(topCm, wallHeight);
+    const y = Math.max(half, top - half);
+    return new Vector3(at.x, y, at.z);
   }
   /* Add FloorItem Model */
   addItemScene(data) {

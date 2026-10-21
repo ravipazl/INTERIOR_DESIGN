@@ -94,10 +94,18 @@ type Tool =
 
 interface WallEditorModalProps {
   /** The wall side that was clicked in 3D (a HalfEdge). */
-  edge: any;
+  edge?: any;
   onClose: () => void;
   /** Open the editor on another side of the same wall instead. */
   onSwitchEdge?: (edge: any) => void;
+  /**
+   * A surface that is not a wall side — a room's ceiling (ceilingSurfaceOf):
+   * { kind, face, label, room, getRegions(), setRegions(list) }. Given, the
+   * editor works on it instead of `edge` (the Ceiling Editor).
+   */
+  surface?: any;
+  /** Open the editor on another room's ceiling instead. */
+  onSwitchSurface?: (room: any) => void;
 }
 
 /** A drag or click shorter than this (cm) is a slip, not a shape. */
@@ -324,16 +332,31 @@ const WallEditorModal: React.FC<WallEditorModalProps> = ({
   edge,
   onClose,
   onSwitchEdge,
+  surface,
+  onSwitchSurface,
 }) => {
   // The face is measured once, when the page opens: its size and openings do
   // not change while the editor is in front of the 3D view.
-  const face = useMemo(() => faceOfEdge(edge), [edge]);
+  const face = useMemo(
+    () => (surface ? surface.face : faceOfEdge(edge)),
+    [edge, surface]
+  );
+  // The Ceiling Editor: the same page on a room's ceiling. What is not ceiling
+  // (the notch of an L-shaped room) arrives as the face's openings.
+  const isCeiling = face?.kind === "ceiling";
   const W = face?.width || 0;
   const H = face?.height || 0;
   const mirrored = !!face?.mirrored;
 
   const initial = useMemo<Region[]>(
-    () => (face ? (cleanRegions(edge.getRegions(), W, H) as Region[]) : []),
+    () =>
+      face
+        ? (cleanRegions(
+            surface ? surface.getRegions() : edge.getRegions(),
+            W,
+            H
+          ) as Region[])
+        : [],
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [face]
   );
@@ -737,7 +760,7 @@ const WallEditorModal: React.FC<WallEditorModalProps> = ({
     if (!(typed > 0) || typed >= limit) {
       alert(
         `Enter a distance between 1 and ${mm(limit) - 1} mm (${
-          splitAxis === "h" ? "from the floor" : "from the left"
+          splitAxis === "h" ? (isCeiling ? "from the bottom" : "from the floor") : "from the left"
         }).`
       );
       return;
@@ -1399,16 +1422,21 @@ const WallEditorModal: React.FC<WallEditorModalProps> = ({
   const save = async () => {
     setSaving(true);
     try {
-      edge.setRegions(regionsToSave(regions));
+      if (surface) surface.setRegions(regionsToSave(regions));
+      else edge.setRegions(regionsToSave(regions));
       const planner = BlueprintInterface?.blueprint3d?.roomplanner;
       if (planner) planner.needsUpdate = true;
       await BlueprintInterface.ProjectManagerService.updateFloorPlan(
-        HISTORY_TITLES.WALL_TEXTURE_CHANGED
+        isCeiling ? "Ceiling areas changed" : HISTORY_TITLES.WALL_TEXTURE_CHANGED
       );
       onClose();
     } catch (e) {
       console.error("WallEditorModal ~ save", e);
-      alert("The wall could not be saved. Please try again.");
+      alert(
+        isCeiling
+          ? "The ceiling could not be saved. Please try again."
+          : "The wall could not be saved. Please try again."
+      );
     } finally {
       setSaving(false);
     }
@@ -1464,10 +1492,18 @@ const WallEditorModal: React.FC<WallEditorModalProps> = ({
     };
   });
 
-  // The two sides of this wall, for "Select room".
+  // The two sides of this wall, for "Select room" — or, on a ceiling, every
+  // room's ceiling.
   const sides = useMemo(() => {
-    const wall = edge?.wall;
     const list: { edge: any; label: string }[] = [];
+    if (surface) {
+      const rooms: any[] = surface.room?.floorplan?.getRooms?.() || [];
+      rooms.forEach((room: any, i: number) =>
+        list.push({ edge: room, label: room?.name || "Room " + (i + 1) })
+      );
+      return list;
+    }
+    const wall = edge?.wall;
     [wall?.frontEdge, wall?.backEdge].forEach((side: any, i: number) => {
       if (!side) return;
       list.push({
@@ -1476,7 +1512,9 @@ const WallEditorModal: React.FC<WallEditorModalProps> = ({
       });
     });
     return list;
-  }, [edge]);
+  }, [edge, surface]);
+  // What "Select room" has open now: this wall side, or this ceiling's room.
+  const current = surface ? surface.room : edge;
 
   // The drawing, as the preview sees it: left to right as on the page.
   const previewRegions = useMemo(() => {
@@ -1581,10 +1619,6 @@ const WallEditorModal: React.FC<WallEditorModalProps> = ({
 
   const gap = 26 * u;
   const sb = selected ? regionBounds(selected) : null;
-  const selectedOutline: Pt[] | null =
-    selected && selected.points && selected.points.length <= 12
-      ? selected.points
-      : null;
 
   // What is being drawn, before it is finished.
   const draftShape = (() => {
@@ -1760,7 +1794,7 @@ const WallEditorModal: React.FC<WallEditorModalProps> = ({
       }}
     >
       <div className="we-top">
-        <div className="we-title">Wall Editor</div>
+        <div className="we-title">{isCeiling ? "Ceiling Editor" : "Wall Editor"}</div>
         <div className="we-top-actions">
           <button className="we-link" onClick={undo} disabled={!past.length}>
             <Icon name="undo" /> Undo
@@ -2032,18 +2066,44 @@ const WallEditorModal: React.FC<WallEditorModalProps> = ({
                 "Show",
                 false,
                 () => setMenu(menu === "show" ? null : "show"),
-                SHOW_OPTIONS.map(([id, name]) => (
-                  <label className="we-menu-item we-check" key={id}>
-                    <input
-                      type="checkbox"
-                      checked={!!show[id]}
-                      onChange={(e) =>
-                        setShow((s) => ({ ...s, [id]: e.target.checked }))
+                SHOW_OPTIONS.map(([id, name]) => {
+                  // These two show doors and windows. On a wall with none
+                  // they cannot change anything, and say so rather than
+                  // looking broken.
+                  const idle =
+                    (id === "wallModel" || id === "modelDim") &&
+                    (isCeiling || !face.openings.length);
+                  return (
+                    <label
+                      className={"we-menu-item we-check" + (idle ? " is-idle" : "")}
+                      key={id}
+                      title={
+                        idle
+                          ? isCeiling
+                            ? "A ceiling has no doors or windows"
+                            : "No doors or windows on this wall"
+                          : undefined
                       }
-                    />
-                    <span>{name}</span>
-                  </label>
-                ))
+                    >
+                      <input
+                        type="checkbox"
+                        disabled={idle}
+                        checked={!!show[id]}
+                        onChange={(e) =>
+                          setShow((s) => ({ ...s, [id]: e.target.checked }))
+                        }
+                      />
+                      <span>
+                        {name}
+                        {idle ? (
+                          <small className="we-menu-sub">
+                            No doors or windows on this wall
+                          </small>
+                        ) : null}
+                      </span>
+                    </label>
+                  );
+                })
               )}
               {toolButton(
                 "guides",
@@ -2462,8 +2522,27 @@ const WallEditorModal: React.FC<WallEditorModalProps> = ({
                 );
               })}
 
+              {/* On a ceiling: what of the box is not ceiling (outside the
+                  room), drawn as the page behind it. Nothing is drawn there
+                  in 3D either. */}
+              {isCeiling
+                ? face.openings.map((o: any, i: number) => (
+                    <rect
+                      key={"out" + i}
+                      pointerEvents="none"
+                      x={o.x}
+                      y={Y(o.y + o.h)}
+                      width={o.w}
+                      height={o.h}
+                      fill="#1c1c1e"
+                      stroke="#1c1c1e"
+                      strokeWidth={0.6 * u}
+                    />
+                  ))
+                : null}
+
               {/* Doors and windows: a material is cut away here in 3D. */}
-              {show.wallModel || show.modelDim
+              {!isCeiling && (show.wallModel || show.modelDim)
                 ? face.openings.map((o: any, i: number) => (
                     <g key={i} pointerEvents="none">
                       {show.wallModel ? (
@@ -2544,7 +2623,7 @@ const WallEditorModal: React.FC<WallEditorModalProps> = ({
                     ? label(
                         -gap * 2.2,
                         guideAt.at,
-                        `${mm(guideAt.at)} mm from floor`,
+                        `${mm(guideAt.at)} mm from ${isCeiling ? "bottom" : "floor"}`,
                         "gat",
                         "#9ff3e8",
                         10
@@ -2571,10 +2650,17 @@ const WallEditorModal: React.FC<WallEditorModalProps> = ({
                 strokeDasharray={`${8 * u} ${5 * u}`}
                 pointerEvents="none"
               />
-              {dimension([0, H + gap], [W, H + gap], String(mm(W)), "dt")}
-              {dimension([0, -gap], [W, -gap], String(mm(W)), "db")}
-              {dimension([-gap, 0], [-gap, H], String(mm(H)), "dl")}
-              {dimension([W + gap, 0], [W + gap, H], String(mm(H)), "dr")}
+              {/* The wall's own sizes are line lengths like any other, so
+                  "Line length" hides them too — they were drawn whatever it
+                  said, and unticking it seemed to do nothing. */}
+              {show.lineLength ? (
+                <>
+                  {dimension([0, H + gap], [W, H + gap], String(mm(W)), "dt")}
+                  {dimension([0, -gap], [W, -gap], String(mm(W)), "db")}
+                  {dimension([-gap, 0], [-gap, H], String(mm(H)), "dl")}
+                  {dimension([W + gap, 0], [W + gap, H], String(mm(H)), "dr")}
+                </>
+              ) : null}
 
               {selected ? (
                 <g pointerEvents="none">
@@ -2587,22 +2673,6 @@ const WallEditorModal: React.FC<WallEditorModalProps> = ({
                       strokeWidth={2 * u}
                     />
                   ))}
-                  {show.lineLength && selectedOutline
-                    ? selectedOutline.map((p, i) => {
-                        const q =
-                          selectedOutline[(i + 1) % selectedOutline.length];
-                        const len = dist(p, q);
-                        return len * ppc > 46
-                          ? label(
-                              (p[0] + q[0]) / 2,
-                              (p[1] + q[1]) / 2,
-                              String(mm(len)),
-                              "ll" + i,
-                              "#bfe0ff"
-                            )
-                          : null;
-                      })
-                    : null}
                   {show.lineSpacing && sb ? (
                     <g
                       stroke="#ffb454"
@@ -2650,36 +2720,76 @@ const WallEditorModal: React.FC<WallEditorModalProps> = ({
                       )}
                     </g>
                   ) : null}
-                  {show.arcHeight &&
-                  selected.kind === "curve" &&
-                  selected.arcHeight &&
-                  sb
-                    ? label(
-                        sb.x + sb.w / 2,
-                        sb.y + sb.h,
-                        `Arc height ${mm(selected.arcHeight)}`,
-                        "ah",
+                </g>
+              ) : null}
+
+              {/* WHAT THE SHOW MENU ADDS, for the selected area — or, with
+                  nothing selected, for every area on the wall. It used to
+                  be for the selected area only, so with nothing selected
+                  every tick in the menu seemed to do nothing at all. A
+                  region covering the whole wall is left out: its edges are
+                  the wall's own, already measured round the outside. */}
+              {(() => {
+                const wholeWall = (r: Region) => {
+                  const b = regionBounds(r);
+                  return b.x < 0.5 && b.y < 0.5 && b.w > W - 1 && b.h > H - 1;
+                };
+                const targets = selected
+                  ? [selected]
+                  : regions.filter((r) => !wholeWall(r));
+                const marks: React.ReactNode[] = [];
+                targets.forEach((r, ri) => {
+                  const b = regionBounds(r);
+                  if (show.lineLength && r.points && r.points.length <= 12) {
+                    r.points.forEach((pt, i) => {
+                      const q = r.points![(i + 1) % r.points!.length];
+                      const len = dist(pt, q);
+                      // Only where there is room to read it.
+                      if (len * ppc > 46)
+                        marks.push(
+                          label(
+                            (pt[0] + q[0]) / 2,
+                            (pt[1] + q[1]) / 2,
+                            String(mm(len)),
+                            `ll${ri}-${i}`,
+                            "#bfe0ff"
+                          )
+                        );
+                    });
+                  }
+                  if (show.arcHeight && r.kind === "curve" && r.arcHeight) {
+                    marks.push(
+                      label(
+                        b.x + b.w / 2,
+                        b.y + b.h,
+                        `Arc height ${mm(r.arcHeight)}`,
+                        `ah${ri}`,
                         "#c8ffd9",
                         12
                       )
-                    : null}
-                  {show.startingPoint && sb
-                    ? (() => {
-                        // Where the picture starts: the area's bottom-left
-                        // corner as it is seen.
-                        const px = Math.min(X(sb.x), X(sb.x + sb.w));
-                        const py = Y(sb.y);
-                        return (
-                          <g stroke="#ff5d6c" strokeWidth={1.6 * u} fill="none">
-                            <circle cx={px} cy={py} r={5 * u} />
-                            <line x1={px - 9 * u} y1={py} x2={px + 9 * u} y2={py} />
-                            <line x1={px} y1={py - 9 * u} x2={px} y2={py + 9 * u} />
-                          </g>
-                        );
-                      })()
-                    : null}
-                </g>
-              ) : null}
+                    );
+                  }
+                  if (show.startingPoint) {
+                    // Where the picture starts: the area's bottom-left corner
+                    // as it is seen.
+                    const px = Math.min(X(b.x), X(b.x + b.w));
+                    const py = Y(b.y);
+                    marks.push(
+                      <g
+                        key={`sp${ri}`}
+                        stroke="#ff5d6c"
+                        strokeWidth={1.6 * u}
+                        fill="none"
+                      >
+                        <circle cx={px} cy={py} r={5 * u} />
+                        <line x1={px - 9 * u} y1={py} x2={px + 9 * u} y2={py} />
+                        <line x1={px} y1={py - 9 * u} x2={px} y2={py + 9 * u} />
+                      </g>
+                    );
+                  }
+                });
+                return <g pointerEvents="none">{marks}</g>;
+              })()}
 
               {measures.map((m, i) =>
                 dimension(m.a, m.b, `${mm(dist(m.a, m.b))} mm`, "m" + i)
@@ -2828,19 +2938,22 @@ const WallEditorModal: React.FC<WallEditorModalProps> = ({
                           <button
                             key={i}
                             className={
-                              "we-menu-item" + (s.edge === edge ? " is-on" : "")
+                              "we-menu-item" + (s.edge === current ? " is-on" : "")
                             }
                             onClick={() => {
                               setMenu(null);
-                              if (s.edge === edge || !onSwitchEdge) return;
+                              const go = surface ? onSwitchSurface : onSwitchEdge;
+                              if (s.edge === current || !go) return;
                               if (
                                 dirty &&
                                 !window.confirm(
-                                  "Switch sides without saving your changes?"
+                                  surface
+                                    ? "Switch rooms without saving your changes?"
+                                    : "Switch sides without saving your changes?"
                                 )
                               )
                                 return;
-                              onSwitchEdge(s.edge);
+                              go(s.edge);
                             }}
                           >
                             <span>{capitalizeText(s.label)}</span>
@@ -2848,7 +2961,7 @@ const WallEditorModal: React.FC<WallEditorModalProps> = ({
                         ))}
                         {sides.length < 2 ? (
                           <div className="we-menu-note">
-                            This wall has one side.
+                            {surface ? "This plan has one room." : "This wall has one side."}
                           </div>
                         ) : null}
                       </div>
@@ -2867,7 +2980,7 @@ const WallEditorModal: React.FC<WallEditorModalProps> = ({
                     </dd>
                     <dt>From left</dt>
                     <dd>{mm(mirrored ? W - sb.x - sb.w : sb.x)} mm</dd>
-                    <dt>From floor</dt>
+                    <dt>{isCeiling ? "From bottom" : "From floor"}</dt>
                     <dd>{mm(sb.y)} mm</dd>
                     <dt>Material</dt>
                     <dd>
@@ -2913,7 +3026,7 @@ const WallEditorModal: React.FC<WallEditorModalProps> = ({
                         setSplitAxis(e.target.value as "h" | "v")
                       }
                     >
-                      <option value="h">Line from floor</option>
+                      <option value="h">{isCeiling ? "Line from bottom" : "Line from floor"}</option>
                       <option value="v">Line from left</option>
                     </select>
                     <input

@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
+import { Box3 } from "three";
 import BlueprintInterface from "@pazl/blueprint-interface";
 import { EVENT_ITEM_SELECTED } from "@pazl/main/core/events";
 import { RenderService } from "../../../services/RenderService";
@@ -14,6 +15,10 @@ import {
   isRetiredPlacementType,
 } from "@pazl/helpers/guessModelType";
 import { handleAddItemsToScene } from "@pazl/viewer3d-state-interface";
+import {
+  isKitchenCabinetModel,
+  isWallUnitModel,
+} from "@pazl/react-app/roomTemplates/wallUnitPlacement";
 import ObjectComponents from "./objectComponents";
 import "../index.css";
 import { config } from "@pazl/main/core/configuration";
@@ -214,6 +219,149 @@ function ObjectProperties({
       /* best-effort */
     }
   };
+
+  // POSITION IS SHOWN AND TYPED IN MILLIMETRES, like the dimensions above it.
+  // The engine and the saved record keep centimetres (1 unit = 1 cm), so the
+  // three boxes convert both ways: mm on screen, cm everywhere else. A typed
+  // 1834 is 183.4 cm — the millimetre is kept, not rounded to a whole cm.
+  const positionToMm = (cm: any) =>
+    Number(cm) ? Math.round(Number(cm) * 10) : 0;
+  const positionFromMm = (mm: string) => (mm ? Number(mm) / 10 : 0);
+
+  // Y OF A KITCHEN CABINET IS THE HEIGHT OF ITS BOTTOM, floor → bottom edge.
+  //
+  // The engine places every item by its CENTRE, so a wall unit hung with its
+  // bottom at 7 ft would show Y = 2434 (2134 + half of its 600 height) — not
+  // the 2134 it was hung at, and a base unit showed 413 (half of 825). For
+  // the kitchen's cabinets — wall units, below-counter units and tall units,
+  // by their catalogue category — the box shows and takes the BOTTOM:
+  // centre − half the height, the way cabinets are measured on site. A wall
+  // unit reads 2134; a base or tall unit on the floor reads 0 (its Y stays
+  // locked). Every other item (TV, AC, sofa, door, window) keeps the centre,
+  // as before.
+  //
+  // What counts is how the item actually sits in the scene: a wall unit
+  // uploaded as a floor item but hung on the wall is a wall item there.
+  const selectedSceneItem = () => {
+    const sel: any = (BlueprintInterface as any)?.selectedModels?.[0];
+    return sel?.itemModel || sel?.__itemModel || null;
+  };
+  const placedType = () => {
+    const t = Number(selectedSceneItem()?.itemType);
+    return Number.isNaN(t) || selectedSceneItem()?.itemType == null
+      ? modelObject?.type
+      : t;
+  };
+  // A WALL UNIT reads its TOP instead: it is hung by its top at 7 ft, so
+  // its Y is 2134 whatever its size, and a typed Y moves its top.
+  const catalogueModel = () => selectedModel?.model || selectedModel;
+  const yIsTop = () => isWallUnitModel(catalogueModel());
+  const yIsBottom = () => !yIsTop() && isKitchenCabinetModel(catalogueModel());
+  const halfHeightCm = () => {
+    const half = Number(selectedSceneItem()?.halfSize?.y);
+    if (half > 0) return half;
+    const mm = Number(modelObject?.dimensions?.height);
+    return mm > 0 ? mm / 20 : 0;
+  };
+  const yToMm = (centreCm: any) =>
+    yIsTop()
+      ? positionToMm(Number(centreCm || 0) + halfHeightCm())
+      : yIsBottom()
+      ? positionToMm(Number(centreCm || 0) - halfHeightCm())
+      : positionToMm(centreCm);
+  const yFromMm = (mm: string) =>
+    yIsTop()
+      ? positionFromMm(mm) - halfHeightCm()
+      : yIsBottom()
+      ? positionFromMm(mm) + halfHeightCm()
+      : positionFromMm(mm);
+
+  // X AND Z: FROM THE ROOM'S CORNER TO THE ITEM'S START CORNER.
+  //
+  // They used to be the item's CENTRE measured from the plan's origin (the red
+  // dot in 2D) — a point nobody can find in the real room, to a point nobody
+  // measures to. Now (0, 0) is the room's own top-left INSIDE corner in the
+  // Top view (where the inside faces of its top and left walls meet; in an
+  // L-shaped room, where the left-most and top-most inside walls line up), and
+  // the item is measured to its own top-left corner in the plan:
+  //   X = room's left inside wall → the item's left edge
+  //   Z = room's top inside wall  → the item's top edge
+  // — what a tape measure gives on site. A rotated item is measured by the
+  // corner of its footprint as it sits. Typing a value sets that distance; the
+  // engine still keeps the centre, so nothing else changes.
+  //
+  // The room is the one the item stands in, read once when it is selected, so
+  // the reference does not jump while a value is being typed.
+  const planRoom = useMemo(() => {
+    try {
+      const fp: any = (BlueprintInterface as any)?.blueprint3d?.model?.floorplan;
+      const rooms: any[] =
+        (fp && typeof fp.getRooms === "function" ? fp.getRooms() : fp?.rooms) || [];
+      const pos: any = selectedModel?.position;
+      const x = Number(pos?.[0]);
+      const z = Number(pos?.[2]);
+      const inside =
+        Number.isFinite(x) && Number.isFinite(z)
+          ? rooms.find(
+              (r: any) =>
+                r && typeof r.pointInRoom === "function" && r.pointInRoom({ x, y: z })
+            )
+          : null;
+      const room =
+        inside ||
+        (selectedModel?.roomId
+          ? rooms.find((r: any) => r && r.uuid === selectedModel.roomId)
+          : null);
+      const pts: any[] = (room && room.interiorCorners) || [];
+      if (!pts.length) return null;
+      return {
+        name: String(room.name || "room"),
+        x: Math.min(...pts.map((pt: any) => pt.x)),
+        z: Math.min(...pts.map((pt: any) => pt.y)),
+      };
+    } catch (e) {
+      return null;
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedModel]);
+  const roomOrigin = () => planRoom || { name: "", x: 0, z: 0 };
+  // Centre → top-left corner of the footprint, for the item as it is turned.
+  // Read off the model's REAL outline when it is loaded (its pivot is not
+  // always in the middle of the cabinet, and handles can stick out); the
+  // size-and-turn estimate below only until then.
+  const startOffsetCm = () => {
+    try {
+      const sel: any = (BlueprintInterface as any)?.selectedModels?.[0];
+      const pos = sel?.__itemModel?.position || sel?.itemModel?.position;
+      if (sel?.__loadedItem && pos) {
+        // Up to date first: a typed X / Z has only just moved the item.
+        if (typeof sel.updateMatrixWorld === "function") sel.updateMatrixWorld(true);
+        const box = new Box3().setFromObject(sel.__loadedItem);
+        if (isFinite(box.min.x) && isFinite(box.min.z)) {
+          return { x: pos.x - box.min.x, z: pos.z - box.min.z };
+        }
+      }
+    } catch (e) {
+      /* fall back to the estimate */
+    }
+    const it = selectedSceneItem();
+    const hx =
+      Number(it?.halfSize?.x) || Number(modelObject?.dimensions?.width) / 20 || 0;
+    const hz =
+      Number(it?.halfSize?.z) || Number(modelObject?.dimensions?.depth) / 20 || 0;
+    const turn = Number(it?.rotation?.y) || 0;
+    const c = Math.abs(Math.cos(turn));
+    const sn = Math.abs(Math.sin(turn));
+    return { x: c * hx + sn * hz, z: sn * hx + c * hz };
+  };
+  const xToMm = (centreCm: any) =>
+    positionToMm(Number(centreCm || 0) - startOffsetCm().x - roomOrigin().x);
+  const xFromMm = (mm: string) =>
+    positionFromMm(mm) + startOffsetCm().x + roomOrigin().x;
+  const zToMm = (centreCm: any) =>
+    positionToMm(Number(centreCm || 0) - startOffsetCm().z - roomOrigin().z);
+  const zFromMm = (mm: string) =>
+    positionFromMm(mm) + startOffsetCm().z + roomOrigin().z;
 
   const onPositionChange = async (minHeight?: string, position?: any[]) => {
     if (modelObject?.position?.length) {
@@ -885,7 +1033,8 @@ function ObjectProperties({
                   </div>
                   <div className="flex flex-col max-w-sm mb-2">
                     <h6 className="text-xs font-semibold leading-tight text-primary dark:text-neutral-200">
-                      Position
+                      Position{" "}
+                      <span style={{ fontSize: "10px" }}>(in mm)</span>
                     </h6>
                     <div className="flex items-center justify-between">
                       <div className="relative flex w-full flex-wrap items-stretch">
@@ -903,27 +1052,21 @@ function ObjectProperties({
                           aria-label="0"
                           aria-describedby="button-addon1"
                           value={
-                            modelObject.position[0]
-                              ? Number(modelObject.position[0]).toFixed(0)
-                              : 0
+                            xToMm(modelObject.position[0])
                           }
                           onChange={(e) => {
                             if (!Number.isNaN(Number(e.target.value)))
                               setModelObject({
                                 ...modelObject,
                                 position: [
-                                  e.target.value
-                                    ? Number(e.target.value).toFixed(0)
-                                    : 0,
+                                  xFromMm(e.target.value),
                                   modelObject?.position[1] ?? 0,
                                   modelObject?.position[2] ?? 0,
                                 ],
                               });
                             if (!Number.isNaN(Number(e.target.value))) {
                               onPositionChange("", [
-                                e.target.value
-                                  ? Number(e.target.value).toFixed(0)
-                                  : 0,
+                                xFromMm(e.target.value),
                                 modelObject?.position[1] ?? 0,
                                 modelObject?.position[2] ?? 0,
                               ]);
@@ -943,40 +1086,40 @@ function ObjectProperties({
                         {/* Y is now a free number box (same as X and Z) for all
                             items — wall units can type any height instead of the
                             old min/max-only dropdown. Floor items keep Y locked
-                            to the floor (disabled). */}
+                            to the floor (disabled). A wall-mounted item's Y is
+                            the height of its TOP, a below-counter or tall
+                            unit's its BOTTOM (yToMm / yFromMm above). */}
                         <input
                           type="text"
                           className="relative m-0 -mr-0.5 block w-[1px] min-w-0 flex-auto border-neutral-300 bg-[color:var(--pz-input-bg)] bg-clip-padding px-1 py-[0.25rem] text-xs text-center font-normal leading-[1.6] text-neutral-700 outline-none transition duration-200 ease-in-out focus:z-[3] focus:border-primary focus:text-neutral-700 focus:shadow-[inset_0_0_0_1px_rgb(59,113,202)] focus:outline-none dark:border-neutral-600 dark:text-neutral-200 dark:placeholder:text-neutral-200 dark:focus:border-primary"
                           aria-label="0"
                           aria-describedby="button-addon1"
+                          title={
+                            yIsTop()
+                              ? "Height of the top of the unit from the floor"
+                              : yIsBottom()
+                              ? "Height of the bottom of the unit from the floor"
+                              : undefined
+                          }
                           disabled={
-                            modelObject.type === MODEL_TYPES.FLOOR_UNIT ||
-                            modelObject.type ===
-                              MODEL_TYPES.IN_WALL_FLOOR_UNIT
+                            placedType() === MODEL_TYPES.FLOOR_UNIT ||
+                            placedType() === MODEL_TYPES.IN_WALL_FLOOR_UNIT
                           }
-                          value={
-                            modelObject.position[1]
-                              ? Number(modelObject.position[1]).toFixed(0)
-                              : 0
-                          }
+                          value={yToMm(modelObject.position[1])}
                           onChange={(e) => {
                             if (!Number.isNaN(Number(e.target.value)))
                               setModelObject({
                                 ...modelObject,
                                 position: [
                                   modelObject.position[0] ?? 0,
-                                  e.target.value
-                                    ? Number(e.target.value).toFixed(0)
-                                    : 0,
+                                  yFromMm(e.target.value),
                                   modelObject.position[2] ?? 0,
                                 ],
                               });
                             if (!Number.isNaN(Number(e.target.value))) {
                               onPositionChange("", [
                                 modelObject.position[0] ?? 0,
-                                e.target.value
-                                  ? Number(e.target.value).toFixed(0)
-                                  : 0,
+                                yFromMm(e.target.value),
                                 modelObject.position[2] ?? 0,
                               ]);
                             }
@@ -998,9 +1141,7 @@ function ObjectProperties({
                           aria-label="0"
                           aria-describedby="button-addon1"
                           value={
-                            modelObject.position[2]
-                              ? Number(modelObject.position[2]).toFixed(0)
-                              : 0
+                            zToMm(modelObject.position[2])
                           }
                           onChange={(e) => {
                             if (!Number.isNaN(Number(e.target.value)))
@@ -1009,18 +1150,14 @@ function ObjectProperties({
                                 position: [
                                   modelObject.position[0] ?? 0,
                                   modelObject.position[1] ?? 0,
-                                  e.target.value
-                                    ? Number(e.target.value).toFixed(0)
-                                    : 0,
+                                  zFromMm(e.target.value),
                                 ],
                               });
                             if (!Number.isNaN(Number(e.target.value))) {
                               onPositionChange("", [
                                 modelObject.position[0] ?? 0,
                                 modelObject.position[1] ?? 0,
-                                e.target.value
-                                  ? Number(e.target.value).toFixed(0)
-                                  : 0,
+                                zFromMm(e.target.value),
                               ]);
                             }
                           }}

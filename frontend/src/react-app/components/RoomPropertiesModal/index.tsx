@@ -18,6 +18,8 @@ interface RoomPropertiesModalProps {
   selectedRoom: any;
   onHideRoomPropertiesPanel: () => void;
   handleSelectAllRoomItems: () => void;
+  /** Open the Ceiling Editor on this room's ceiling. */
+  onOpenCeilingEditor?: () => void;
 }
 
 const RoomPropertiesModal = ({
@@ -28,6 +30,7 @@ const RoomPropertiesModal = ({
   selectedRoom,
   onHideRoomPropertiesPanel,
   handleSelectAllRoomItems,
+  onOpenCeilingEditor,
 }: RoomPropertiesModalProps) => {
   const isDarkMode = localStorage.getItem("isDarkMode") === "true" || false;
   const [showFloorTextureMenu, setShowFloorTextureMenu] = useState(false);
@@ -345,6 +348,19 @@ const RoomPropertiesModal = ({
                 </div>
               </div>
             </div>
+            {onOpenCeilingEditor ? (
+              <div>
+                <div className="floor-title">Ceiling areas &amp; materials</div>
+                <button
+                  className="flex items-start justify-self-start"
+                  onClick={onOpenCeilingEditor}
+                >
+                  <span className="select-items font-normal text-xs ml-1 mt-1">
+                    Ceiling Editor
+                  </span>
+                </button>
+              </div>
+            ) : null}
           </div>
         </div>
         {showFloorTextureMenu && allFloorFinishings?.length ? (

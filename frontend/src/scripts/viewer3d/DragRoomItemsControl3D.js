@@ -29,6 +29,10 @@ import { remove } from "jszip";
 import BlueprintInterface from "@pazl/blueprint-interface";
 import { HISTORY_TITLES } from "@pazl/services/ProjectManager";
 import { MODEL_TYPES } from "@pazl/entities/Model";
+import {
+  isWallUnitModel,
+  wallUnitTopCm,
+} from "@pazl/react-app/roomTemplates/wallUnitPlacement";
 import { SnapManager } from "../snap/SnapEngine";
 import { SnapIndicator } from "../snap/SnapIndicator";
 
@@ -280,6 +284,39 @@ export class DragRoomItemsControl3D extends EventDispatcher {
     });
   }
 
+  // The room whose CEILING is under the pointer, seen from below — or null.
+  // The ceiling is drawn one-sided, facing down into the room, so the ray
+  // only meets it from inside; from above (the ceiling hidden or not) there
+  // is nothing to hit. Never allowed to break a click.
+  __ceilingRoomAtMouse() {
+    try {
+      const bp = BlueprintInterface && BlueprintInterface.blueprint3d;
+      const v = bp && (bp.roomplanner || bp.viewer3d);
+      const floors = ((v && v.floors3d) || []).filter(
+        (f) => f && f.roofPlane && f.room
+      );
+      if (!floors.length) return null;
+      const roofs = this.__pickable(floors.map((f) => f.roofPlane));
+      if (!roofs.length) return null;
+      this.__raycaster.setFromCamera(this.__mouse, this.__camera);
+      const hits = this.__raycaster.intersectObjects(roofs, true);
+      // Looking UP at it: the camera is under the ceiling.
+      if (!hits.length || !(this.__camera.position.y < hits[0].point.y)) return null;
+      // The panel hit may be one of the ceiling's areas, a child of its roof.
+      let node = hits[0].object;
+      while (node && !roofs.includes(node)) node = node.parent;
+      const floor = floors.find((f) => f.roofPlane === node);
+      if (!floor) return null;
+      return {
+        room: floor.room,
+        point: hits[0].point,
+        normal: hits[0].face ? hits[0].face.normal : null,
+      };
+    } catch (e) {
+      return null;
+    }
+  }
+
   __getSurfaceMeshes() {
     const bp = BlueprintInterface && BlueprintInterface.blueprint3d;
     // The Viewer3D instance is `roomplanner` (see blueprint.js). Fall back to
@@ -409,6 +446,8 @@ export class DragRoomItemsControl3D extends EventDispatcher {
         this.__selected = null;
         return;
       }
+      // A new drag: a wall unit's held height is read from where it is now.
+      this.__selected.__wallUnitSnapTop = undefined;
 
       if (
         this.__raycaster.ray.intersectPlane(this.__plane, this.__intersection)
@@ -552,6 +591,9 @@ export class DragRoomItemsControl3D extends EventDispatcher {
       } catch (e) {
         /* non-fatal — fall through to the wall-cleanup below */
       }
+      // The next drag reads the wall unit's height afresh (it may have been
+      // typed in the Properties panel since).
+      if (this.__selected) this.__selected.__wallUnitSnapTop = undefined;
       // Settle a floor item flush beside any wall it was dropped straddling
       // (free dragging is allowed during the drag; overlap is cleaned up here).
       try {
@@ -561,6 +603,16 @@ export class DragRoomItemsControl3D extends EventDispatcher {
         }
       } catch (e) {
         console.warn("release resolve off walls failed", e);
+      }
+      // A WALL UNIT settles exactly flush as well: its back on the wall, and
+      // its side against the end wall when brought within 3 cm of a corner.
+      try {
+        const flush = this.__settleWallUnit(this.__selected);
+        if (flush && this.__selected.__itemModel) {
+          this.__selected.__itemModel.position = flush;
+        }
+      } catch (e) {
+        console.warn("release settle wall unit failed", e);
       }
       this.dispatchEvent({
         type: EVENT_ITEM_MOVE_FINISH,
@@ -579,6 +631,7 @@ export class DragRoomItemsControl3D extends EventDispatcher {
         this.__pickable(this.__floors),
         false
       );
+      let ceilingHit = null;
       //if (deltaTime < 300) {
       if (wallPlanesThatIntersect.length) {
         this.dispatchEvent({
@@ -593,6 +646,17 @@ export class DragRoomItemsControl3D extends EventDispatcher {
           item: floorPlanesThatIntersect[0].object.room,
           point: floorPlanesThatIntersect[0].point,
           normal: floorPlanesThatIntersect[0].face.normal,
+        });
+      } else if ((ceilingHit = this.__ceilingRoomAtMouse())) {
+        // The CEILING, seen from inside the room: it selects that room, so
+        // Room Properties — and its Ceiling Editor — opens for it. Only a
+        // click that used to hit nothing at all comes here.
+        this.dispatchEvent({
+          type: EVENT_ROOM_CLICKED,
+          item: ceilingHit.room,
+          point: ceilingHit.point,
+          normal: ceilingHit.normal,
+          ceiling: true,
         });
       } else {
         // Nothing hit — still announce the click, with no room.
@@ -647,6 +711,10 @@ export class DragRoomItemsControl3D extends EventDispatcher {
         t === "1";
       if (!isFloorGrounded) return null;
       if (!item.position) return null;
+      // The room's own inside wall faces when the item stands in a room; the
+      // older wall-line estimate below only for an item in no room at all.
+      const onRoomWalls = this.__settleOnRoomWalls(item);
+      if (onRoomWalls !== undefined) return onRoomWalls;
       const walls =
         BlueprintInterface?.blueprint3d?.model?.__floorplan?.walls || [];
       if (!walls.length) return null;
@@ -717,6 +785,183 @@ export class DragRoomItemsControl3D extends EventDispatcher {
     }
   }
 
+  /**
+   * A WALL UNIT, FLUSH: its real outline's back exactly on the wall it hangs
+   * on, and — when within 3 cm of either end of that wall — its side exactly
+   * against the end, so a unit pushed into a corner reads X = 0 / Z = 0 like a
+   * base unit does. Further from an end than that, it stays where it is.
+   * Returns the corrected position, or null when nothing needs to move.
+   */
+  __settleWallUnit(item) {
+    const SNAP = 3; // cm
+    if (!item || item.__itemType != MODEL_TYPES.WALL_UNIT) return null;
+    if (this.__wallUnitSnapTopCm(item) === null) return null; // not a wall unit
+    const model = item.__itemModel;
+    const edge = model && model.__currentWallEdge;
+    if (!edge || !model.position) return null;
+    const a = edge.interiorStart();
+    const b = edge.interiorEnd();
+    const len = Math.hypot(b.x - a.x, b.y - a.y);
+    if (!(len > 1)) return null;
+    const ux = (b.x - a.x) / len;
+    const uz = (b.y - a.y) / len;
+    // The normal into the room the unit hangs in.
+    let nx = -uz;
+    let nz = ux;
+    const room = edge.room;
+    const mx = (a.x + b.x) / 2;
+    const mz = (a.y + b.y) / 2;
+    if (room && typeof room.pointInRoom === "function") {
+      if (!room.pointInRoom({ x: mx + nx * 2, y: mz + nz * 2 })) {
+        nx = -nx;
+        nz = -nz;
+      }
+    } else if ((model.position.x - mx) * nx + (model.position.z - mz) * nz < 0) {
+      nx = -nx;
+      nz = -nz;
+    }
+    if (typeof item.updateMatrixWorld === "function") item.updateMatrixWorld(true);
+    const box = new Box3().setFromObject(item.__loadedItem || item);
+    if (!isFinite(box.min.x) || !isFinite(box.max.x)) return null;
+    let back = Infinity;
+    let lo = Infinity;
+    let hi = -Infinity;
+    for (const x of [box.min.x, box.max.x]) {
+      for (const z of [box.min.z, box.max.z]) {
+        const rx = x - a.x;
+        const rz = z - a.y;
+        back = Math.min(back, rx * nx + rz * nz);
+        const t = rx * ux + rz * uz;
+        lo = Math.min(lo, t);
+        hi = Math.max(hi, t);
+      }
+    }
+    let dn = 0;
+    let dt = 0;
+    if (Math.abs(back) < SNAP && Math.abs(back) > 0.01) dn = -back;
+    if (Math.abs(lo) < SNAP && Math.abs(lo) > 0.01) dt = -lo;
+    else if (Math.abs(len - hi) < SNAP && Math.abs(len - hi) > 0.01) dt = len - hi;
+    if (!dn && !dt) return null;
+    const p = model.position.clone();
+    p.x += ux * dt + nx * dn;
+    p.z += uz * dt + nz * dn;
+    return p;
+  }
+
+  /**
+   * FLUSH AGAINST THE ROOM'S REAL INSIDE WALLS.
+   *
+   * The estimate above works the inside face out from the wall's corner line
+   * and its thickness, then adds 1 cm of clearance — so depending on how the
+   * walls were drawn, a cabinet dropped into a corner came to rest a few mm
+   * off it, or a few mm into it (−4 / 14 mm), and the Properties panel, which
+   * measures from the room's real inside corner, showed exactly that.
+   *
+   * Here the faces are the room's own (HalfEdge interiorStart → interiorEnd,
+   * the same lines the panel measures from) and the item is its real outline
+   * (the loaded model, not the selection box drawn around it). An item whose
+   * outline is INTO a wall, or within SNAP cm of it, is moved so its outline
+   * touches the face exactly — so a cabinet dropped into a corner reads
+   * X = 0, Z = 0. An item further from a wall than that is left where it is.
+   *
+   * Returns the corrected position, null for "already right", or undefined
+   * when the item stands in no room (the caller then uses the estimate).
+   */
+  __settleOnRoomWalls(item) {
+    const SNAP = 3; // cm
+    const fp = BlueprintInterface?.blueprint3d?.model?.__floorplan;
+    const rooms = (fp && (fp.rooms || (fp.getRooms && fp.getRooms()))) || [];
+    const at = { x: item.position.x, y: item.position.z };
+    const room = rooms.find(
+      (r) => r && typeof r.pointInRoom === "function" && r.pointInRoom(at)
+    );
+    if (!room || !room.edgePointer) return undefined;
+
+    // The room's inside faces, each with the normal that points into it.
+    const faces = [];
+    let edge = room.edgePointer;
+    let guard = 0;
+    do {
+      try {
+        const a = edge.interiorStart();
+        const b = edge.interiorEnd();
+        const len = Math.hypot(b.x - a.x, b.y - a.y);
+        if (len > 1) {
+          const ux = (b.x - a.x) / len;
+          const uz = (b.y - a.y) / len;
+          let nx = -uz;
+          let nz = ux;
+          const mx = (a.x + b.x) / 2;
+          const mz = (a.y + b.y) / 2;
+          if (!room.pointInRoom({ x: mx + nx * 2, y: mz + nz * 2 })) {
+            nx = -nx;
+            nz = -nz;
+          }
+          faces.push({ ax: a.x, az: a.y, ux, uz, nx, nz, len });
+        }
+      } catch (e) {
+        /* skip a malformed edge */
+      }
+      edge = edge.next;
+      guard += 1;
+    } while (edge && edge !== room.edgePointer && guard < 200);
+    if (!faces.length) return undefined;
+
+    // The item's real outline on the floor (the model, not its outline box).
+    // Its world matrices are brought up to date first: the item has only just
+    // been moved, and measuring the model alone reads its parent's matrix as
+    // it was before the move — the outline of where the item USED to be.
+    if (typeof item.updateMatrixWorld === "function") item.updateMatrixWorld(true);
+    const box = new Box3().setFromObject(item.__loadedItem || item);
+    if (!isFinite(box.min.x) || !isFinite(box.max.x)) return undefined;
+    let dx = 0;
+    let dz = 0;
+    for (let iter = 0; iter < 4; iter++) {
+      let moved = false;
+      const xs = [box.min.x + dx, box.max.x + dx];
+      const zs = [box.min.z + dz, box.max.z + dz];
+      for (const f of faces) {
+        // Nearest point of the outline to this face, and its reach along it.
+        let gap = Infinity;
+        let lo = Infinity;
+        let hi = -Infinity;
+        for (const x of xs) {
+          for (const z of zs) {
+            const rx = x - f.ax;
+            const rz = z - f.az;
+            gap = Math.min(gap, rx * f.nx + rz * f.nz);
+            const t = rx * f.ux + rz * f.uz;
+            lo = Math.min(lo, t);
+            hi = Math.max(hi, t);
+          }
+        }
+        // Only a wall the item is actually beside, and only when it is into
+        // the wall or almost touching it — not one far across the room.
+        if (hi <= 0 || lo >= f.len) continue;
+        if (gap >= SNAP || Math.abs(gap) < 0.01) continue;
+        const depth = Math.max(
+          Math.abs(f.nx) * (box.max.x - box.min.x) +
+            Math.abs(f.nz) * (box.max.z - box.min.z),
+          1
+        );
+        if (gap < -depth) continue; // across the wall, not into it
+        dx -= gap * f.nx;
+        dz -= gap * f.nz;
+        moved = true;
+        xs[0] = box.min.x + dx;
+        xs[1] = box.max.x + dx;
+        zs[0] = box.min.z + dz;
+        zs[1] = box.max.z + dz;
+      }
+      if (!moved) break;
+    }
+    if (Math.abs(dx) < 0.01 && Math.abs(dz) < 0.01) return null;
+    const p = item.position.clone();
+    p.x += dx;
+    p.z += dz;
+    return p;
+  }
+
   // Pointer moves arrive far faster than the screen refreshes — a mouse can
   // emit 120+ events a second, and each one used to run the FULL drag pipeline
   // (raycasts, wall/room containment, snap queries, polygon collision). Most of
@@ -749,6 +994,37 @@ export class DragRoomItemsControl3D extends EventDispatcher {
         }
       }
     });
+  }
+
+  /**
+   * The studio's wall-unit top height (cm, 7 ft) when this item is a wall
+   * unit, or null for any other item. Read once per drag (the record lookup
+   * is not free), cleared on press and on release.
+   *
+   * A wall unit is a wall-mounted item whose catalogue product is in the
+   * kitchen template's Wall Unit category (wallUnitPlacement.isWallUnitModel).
+   */
+  __wallUnitSnapTopCm(item) {
+    if (!item) return null;
+    if (item.__wallUnitSnapTop === undefined) {
+      let top = null;
+      try {
+        const model = item.__itemModel;
+        if (model && item.__itemType == MODEL_TYPES.WALL_UNIT) {
+          const record =
+            BlueprintInterface?.ProjectManagerService?.getFurnishedModelById?.(
+              model.id
+            );
+          if (record && isWallUnitModel(record.model || record)) {
+            top = wallUnitTopCm();
+          }
+        }
+      } catch (e) {
+        top = null; // never let the check break a drag
+      }
+      item.__wallUnitSnapTop = Number(top) > 0 ? Number(top) : null;
+    }
+    return item.__wallUnitSnapTop;
   }
 
   __processMove(evt) {
@@ -949,6 +1225,19 @@ export class DragRoomItemsControl3D extends EventDispatcher {
                 "SnapEngine.query failed during drag — ignoring",
                 snapErr
               );
+            }
+            // A WALL UNIT DRAGS UP AND DOWN AS WELL AS ALONG THE WALL, and
+            // settles at the studio's height (its top at 7 ft) when it comes
+            // within 5 cm of it — so a unit moved by hand is easily put back
+            // in line with the others. Holding Shift turns the snap off, as
+            // it does every other snap. The clamp above already keeps it
+            // between the floor and the ceiling.
+            const snapTop = this.__wallUnitSnapTopCm(this.__selected);
+            if (snapTop !== null && !this.__shiftHeld) {
+              const halfY = this.__selected.__itemModel?.__halfSize?.y ?? 0;
+              if (Math.abs(location.y + halfY - snapTop) <= 5) {
+                location.y = snapTop - halfY;
+              }
             }
             // SMOOTH MOVE: ease the item TOWARD the (snapped) target each frame
             // instead of teleporting straight to it — so it glides fluidly and

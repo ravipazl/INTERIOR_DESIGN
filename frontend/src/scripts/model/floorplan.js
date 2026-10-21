@@ -124,6 +124,9 @@ export class Floorplan extends EventDispatcher {
     // Per-room ceiling finish (uuid → { color, textureUrl }); serialized so it
     // survives reload, like floorTextures.
     this.ceilingTextures = {};
+    // Per-room ceiling areas drawn in the Ceiling Editor (uuid → regions, in
+    // the same shape as a wall's regions); serialized with the design.
+    this.ceilingRegions = {};
     /**
      * The {@link CarbonSheet} that handles the background image to show in
      * the 2D view
@@ -701,6 +704,7 @@ export class Floorplan extends EventDispatcher {
 
     floorplans.newFloorTextures = this.floorTextures;
     floorplans.ceilingTextures = this.ceilingTextures;
+    floorplans.ceilingRegions = this.ceilingRegions;
     return floorplans;
   }
 
@@ -816,6 +820,9 @@ export class Floorplan extends EventDispatcher {
     if ("ceilingTextures" in floorplan) {
       this.ceilingTextures = floorplan.ceilingTextures || {};
     }
+    // A design saved before the Ceiling Editor has none.
+    this.ceilingRegions =
+      ("ceilingRegions" in floorplan && floorplan.ceilingRegions) || {};
 
     if ("boundary" in floorplan) {
       if (floorplan.boundary.points) {
@@ -1037,6 +1044,18 @@ export class Floorplan extends EventDispatcher {
   setCeilingTexture(uuid, data) {
     if (!this.ceilingTextures) this.ceilingTextures = {};
     this.ceilingTextures[uuid] = data;
+  }
+
+  // Per-room ceiling areas (Ceiling Editor), stored like the ceiling finish.
+  getCeilingRegions(uuid) {
+    const list = this.ceilingRegions && this.ceilingRegions[uuid];
+    return Array.isArray(list) ? list : [];
+  }
+
+  setCeilingRegions(uuid, list) {
+    if (!this.ceilingRegions) this.ceilingRegions = {};
+    if (Array.isArray(list) && list.length) this.ceilingRegions[uuid] = list;
+    else delete this.ceilingRegions[uuid];
   }
 
   /** clear out obsolete floor textures */

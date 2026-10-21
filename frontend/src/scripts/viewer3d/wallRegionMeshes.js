@@ -79,15 +79,25 @@ export const buildRegionMeshes = ({ regions, openings, frame, side, scene, cache
   const meshes = [];
   const geometries = [];
   const used = new Set();
+  // A face that is not an upright wall (the ceiling — see ceilingRegions.js)
+  // brings its own mapping: `toWorld(x, y, out)`, `faceNormal`, `inPlane(ox,
+  // oy)` and `forward`. A wall's frame is { origin, along, normal } as before.
+  const custom = typeof frame.toWorld === "function";
   const { origin, along, normal } = frame;
   // Corner order that faces the same way as the normal: anticlockwise in the
   // face's own x/y when "along × up" is the normal, clockwise otherwise.
-  const forward = -along.z * normal.x + along.x * normal.z >= 0;
-  const place = (x, y, out) => [
-    origin.x + along.x * x + normal.x * out,
-    y,
-    origin.z + along.z * x + normal.z * out,
-  ];
+  const forward = custom
+    ? !!frame.forward
+    : -along.z * normal.x + along.x * normal.z >= 0;
+  const place = custom
+    ? frame.toWorld
+    : (x, y, out) => [
+        origin.x + along.x * x + normal.x * out,
+        y,
+        origin.z + along.z * x + normal.z * out,
+      ];
+  const faceNormal = custom ? frame.faceNormal : [normal.x, 0, normal.z];
+  const inPlane = custom ? frame.inPlane : (ox, oy) => [along.x * ox, oy, along.z * ox];
 
   // What has been laid so far, so each region can be placed against the ones
   // it lies over.
@@ -132,7 +142,7 @@ export const buildRegionMeshes = ({ regions, openings, frame, side, scene, cache
       const start = positions.length / 3;
       points.forEach((p) => {
         positions.push(...place(p[0], p[1], top));
-        normals.push(normal.x, 0, normal.z);
+        normals.push(...faceNormal);
         uvs.push(...uv(p));
       });
       const triangles = ShapeUtils.triangulateShape(
@@ -169,7 +179,7 @@ export const buildRegionMeshes = ({ regions, openings, frame, side, scene, cache
             [q, top],
             [p, top],
           ].map(([pt, out]) => place(pt[0], pt[1], out));
-          const outward = [along.x * ox, oy, along.z * ox];
+          const outward = inPlane(ox, oy);
           corners.forEach((c, k) => {
             positions.push(...c);
             normals.push(...outward);
@@ -237,7 +247,7 @@ export const buildRegionMeshes = ({ regions, openings, frame, side, scene, cache
 
     const mesh = new Mesh(geometry, material);
     mesh.receiveShadow = true;
-    mesh.name = "wall";
+    mesh.name = (custom && frame.meshName) || "wall";
     meshes.push(mesh);
   });
 

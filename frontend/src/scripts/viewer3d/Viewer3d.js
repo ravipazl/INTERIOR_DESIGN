@@ -1531,7 +1531,12 @@ export class Viewer3D extends Scene {
     return degrees * (pi / 180);
   }
 
-  __pasteCopiedItem() {
+  /**
+   * `placeAt` ({ edge, point, itemType }) is given by Duplicate for a wall
+   * item, so the copy lands beside the original on its wall; Ctrl+V passes
+   * nothing and places as before.
+   */
+  __pasteCopiedItem(placeAt) {
     let scope = this;
     console.debug(
       "Viewer3d ~ __pasteCopiedItem ~ __copiedItem",
@@ -1547,7 +1552,7 @@ export class Viewer3D extends Scene {
         furnishedModel
       );
       if (furnishedModel) {
-        handleAddFurnishedModelToScene(furnishedModel);
+        handleAddFurnishedModelToScene(furnishedModel, placeAt);
       }
     }
   }
@@ -4218,6 +4223,146 @@ export class Viewer3D extends Scene {
     this.controls.target.y = y;
     this.controls.update();
     this.needsUpdate = true;
+  }
+
+  /**
+   * The room the render camera is about: the focused room if one is focused,
+   * else the room the camera stands in, else the largest. As a box in cm
+   * (x across the plan, z down it), with the room's corners for an
+   * inside-the-room test.
+   */
+  __renderRoomBox() {
+    const scope = this;
+    const rooms =
+      (scope.floorplan && scope.floorplan.getRooms && scope.floorplan.getRooms()) || [];
+    const boxOf = (room) => {
+      const pts = (room && room.interiorCorners) || [];
+      if (pts.length < 3) return null;
+      let minX = Infinity;
+      let maxX = -Infinity;
+      let minZ = Infinity;
+      let maxZ = -Infinity;
+      pts.forEach((pt) => {
+        minX = Math.min(minX, pt.x);
+        maxX = Math.max(maxX, pt.x);
+        minZ = Math.min(minZ, pt.y);
+        maxZ = Math.max(maxZ, pt.y);
+      });
+      return Number.isFinite(minX) ? { minX, maxX, minZ, maxZ, pts } : null;
+    };
+    const focusId = BlueprintInterface && BlueprintInterface.__roomFocusId;
+    if (focusId) {
+      const box = boxOf(rooms.find((r) => r && r.roomByCornersId === focusId));
+      if (box) return box;
+    }
+    const p = scope.camera && scope.camera.position;
+    if (p) {
+      for (const room of rooms) {
+        const box = boxOf(room);
+        if (box && Viewer3D.__pointInCorners(box.pts, p.x, p.z)) return box;
+      }
+    }
+    let best = null;
+    let bestArea = -1;
+    rooms.forEach((room) => {
+      const box = boxOf(room);
+      if (!box) return;
+      const area = (box.maxX - box.minX) * (box.maxZ - box.minZ);
+      if (area > bestArea) {
+        bestArea = area;
+        best = box;
+      }
+    });
+    return best;
+  }
+
+  static __pointInCorners(pts, x, z) {
+    let hit = false;
+    for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) {
+      const a = pts[i];
+      const b = pts[j];
+      if (a.y > z !== b.y > z && x < ((b.x - a.x) * (z - a.y)) / (b.y - a.y) + a.x) {
+        hit = !hit;
+      }
+    }
+    return hit;
+  }
+
+  /**
+   * LOOK AT THE ROOM FROM ONE OF ITS SIDES, for the Side buttons of the
+   * framing step: "front", "back", "left" or "right".
+   *
+   * The sides are the floor plan's, so they mean the same thing every time:
+   * Front stands at the BOTTOM of the plan and looks up it, Back stands at the
+   * top and looks down it, Left and Right stand at the plan's left and right
+   * edges and look across. The camera stands just inside that wall, in the
+   * middle of it, at the eye height already chosen, with the lens level.
+   *
+   * In a room that is not a plain rectangle (an L) the middle of a wall can be
+   * outside the room; the camera is then walked into the room along the way it
+   * faces until it is standing on the floor.
+   */
+  setRenderSide(side) {
+    const scope = this;
+    const cam = scope.camera;
+    const c = scope.controls;
+    const box = scope.__renderRoomBox();
+    if (!box || !cam || !c) return false;
+    // Clear of the wall by more than the "too close to a wall" check (35 cm),
+    // so a side shot never comes up with the Fix camera warning.
+    const INSET = 45;
+    const LOOK_CM = 30;
+    const STEP = 10;
+    // Each side as: where along it a camera can stand (u), and the way into
+    // the room (from the outer wall, t = 0, inwards).
+    const ways = {
+      front: { dx: 0, dz: -1, at: (u, t) => [u, box.maxZ - t], lo: box.minX, hi: box.maxX, depth: box.maxZ - box.minZ },
+      back: { dx: 0, dz: 1, at: (u, t) => [u, box.minZ + t], lo: box.minX, hi: box.maxX, depth: box.maxZ - box.minZ },
+      left: { dx: 1, dz: 0, at: (u, t) => [box.minX + t, u], lo: box.minZ, hi: box.maxZ, depth: box.maxX - box.minX },
+      right: { dx: -1, dz: 0, at: (u, t) => [box.maxX - t, u], lo: box.minZ, hi: box.maxZ, depth: box.maxX - box.minX },
+    };
+    const w = ways[side];
+    if (!w) return false;
+    const inRoom = (xz) => !box.pts || Viewer3D.__pointInCorners(box.pts, xz[0], xz[1]);
+    /*
+     * WHERE ALONG THAT SIDE TO STAND.
+     *
+     * The middle of the wall is right for a plain rectangle and wrong for an
+     * L: there the middle can be outside the room, or right at the inside
+     * corner, so the camera ends up with its nose against a wall. So every
+     * spot along the side is tried, and the one with the LONGEST clear view
+     * into the room wins — on a rectangle that is every spot equally, and the
+     * one nearest the middle is kept.
+     */
+    const mid = (w.lo + w.hi) / 2;
+    let best = null;
+    for (let u = w.lo + INSET; u <= w.hi - INSET + 0.01; u += STEP) {
+      let t = 0;
+      while (t < w.depth && !inRoom(w.at(u, t))) t += STEP;
+      if (t >= w.depth) continue;
+      const start = t;
+      while (t < w.depth && inRoom(w.at(u, t))) t += STEP;
+      const clear = t - start;
+      if (
+        !best ||
+        clear > best.clear + 1 ||
+        (Math.abs(clear - best.clear) <= 1 && Math.abs(u - mid) < Math.abs(best.u - mid))
+      ) {
+        best = { u, t: start, clear };
+      }
+    }
+    if (!best) return false;
+    const [x, z] = w.at(best.u, best.t + Math.min(INSET, best.clear / 2));
+    // Keep the eye height that was chosen; a camera still up in the overview
+    // comes down to eye level.
+    const y = cam.position.y > 20 && cam.position.y < 260 ? cam.position.y : 150;
+    scope.__camTween = null;
+    cam.position.set(x, y, z);
+    c.target.set(x + w.dx * LOOK_CM, y, z + w.dz * LOOK_CM);
+    cam.updateProjectionMatrix();
+    c.update();
+    scope.needsUpdate = true;
+    return true;
   }
 
   /** Lens in full-frame mm (24 mm frame height): 16 mm wide … 50 mm normal. */

@@ -4,6 +4,9 @@ import { Configuration, configWallHeight } from '../core/configuration.js';
 import { BufferGeometry } from 'three/build/three.module';
 import { FloorMaterial3D } from '../materials/FloorMaterial3D.js';
 import { TEXTURE_PROPERTY_COLOR } from '../core/constants.js';
+import { cleanRegions } from '../model/wallRegions.js';
+import { faceOfCeiling, EVENT_CEILING_REGIONS_CHANGED } from '../model/ceilingRegions.js';
+import { buildRegionMeshes } from './wallRegionMeshes.js';
 
 export class Floor3D extends EventDispatcher {
     constructor(scene, room, controls, opts) {
@@ -30,6 +33,8 @@ export class Floor3D extends EventDispatcher {
 
         this.room.addEventListener(EVENT_ROOM_ATTRIBUTES_CHANGED, this.changedevent);
         this.room.addEventListener(EVENT_CHANGED, this.changedevent);
+        // The Ceiling Editor saved this room's ceiling areas.
+        this.room.addEventListener(EVENT_CEILING_REGIONS_CHANGED, this.changedevent);
 
         this.room.addEventListener(EVENT_UPDATE_TEXTURES, this.__materialChangedEvent);
         this.room.addEventListener(EVENT_MODIFY_TEXTURE_ATTRIBUTE, this.__materialChangedEvent);
@@ -206,6 +211,10 @@ export class Floor3D extends EventDispatcher {
         }
         // console.log('===================================');
         roof = new Mesh(shapeGeometry, roofMaterial);
+        // The Ceiling Editor's areas, hung from the ceiling: as its children
+        // they are shown and hidden with it (adaptive ceiling, room focus,
+        // wireframe) with nothing else to keep in step.
+        this.__ceilingRegionMeshes(side).forEach((m) => roof.add(m));
 
 
         // let geometry = new Geometry();
@@ -224,6 +233,42 @@ export class Floor3D extends EventDispatcher {
         return roof;
     }
 
+
+    /**
+     * The 3D panels for this room's ceiling areas (Ceiling Editor) — built by
+     * the same code as a wall's areas, on the ceiling's own frame. A room
+     * whose ceiling was never edited gets none and draws exactly as before.
+     * Never allowed to stop the ceiling being drawn.
+     */
+    __ceilingRegionMeshes(side) {
+        (this.__ceilingGeometries || []).forEach((g) => g.dispose());
+        this.__ceilingGeometries = [];
+        const cache = this.__ceilingMaterials || (this.__ceilingMaterials = new Map());
+        try {
+            const fp = this.room && this.room.floorplan;
+            const saved = fp && fp.getCeilingRegions ? fp.getCeilingRegions(this.room.getUuid()) : [];
+            if (!saved.length) {
+                cache.forEach((m) => m.dispose());
+                cache.clear();
+                return [];
+            }
+            const face = faceOfCeiling(this.room);
+            if (!face) return [];
+            const built = buildRegionMeshes({
+                regions: cleanRegions(saved, face.width, face.height),
+                openings: face.openings,
+                frame: face.frame,
+                side: side,
+                scene: this.scene,
+                cache: cache,
+            });
+            this.__ceilingGeometries = built.geometries;
+            return built.meshes;
+        } catch (e) {
+            console.error('Floor3D ~ ceiling areas', e);
+            return [];
+        }
+    }
 
     buildRoofUniformHeight() {
         // setup texture
@@ -276,6 +321,7 @@ export class Floor3D extends EventDispatcher {
 
     destroy() {
         this.room.removeEventListener(EVENT_CHANGED, this.changedevent);
+        this.room.removeEventListener(EVENT_CEILING_REGIONS_CHANGED, this.changedevent);
         this.room.removeEventListener(EVENT_UPDATE_TEXTURES, this.__materialChangedEvent);
         this.controls.removeEventListener('change', this.__updateReflectionsEvent);
         this.removeFromScene();
