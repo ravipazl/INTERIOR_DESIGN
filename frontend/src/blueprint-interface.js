@@ -1256,7 +1256,12 @@ BlueprintInterface.applyRoomFocus3D = (roomId, opts) => {
         const meta = model.metadata || model.__metadata || {};
         const type = parseInt(meta.itemType, 10);
         if (type === 3 || type === 7) {
-          setVisible(it, myWalls.has(wall));
+          // ...and goes with the wall's DRAWN face: Edge3D decides, from the
+          // camera's side, whether this opening's wall is showing (its
+          // updateObjectVisibility, on every camera move) and records it on the
+          // model. Looking in from behind a wall that is not drawn, the door
+          // goes with it instead of hanging in the air.
+          setVisible(it, myWalls.has(wall) && model.visible !== false);
           return;
         }
         // Everything else hangs on ONE face, and the engine records which:

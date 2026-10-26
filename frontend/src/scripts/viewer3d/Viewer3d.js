@@ -27,6 +27,7 @@ import {
   MOUSE,
   Quaternion,
   Object3D,
+  Raycaster,
   Mesh,
   PlaneGeometry,
   MeshBasicMaterial,
@@ -261,6 +262,10 @@ export class Viewer3D extends Scene {
     // were impossible. 15 cm lets the camera sit inside the space.
     scope.controls.minDistance = MIN_ZOOM_DISTANCE;
     scope.controls.screenSpacePanning = true;
+    // The wheel is handled by __wheelZoomToCenter (registered once in init).
+    // Fresh OrbitControls come with their own wheel zoom ON, which made every
+    // wheel notch zoom twice after the camera had been switched.
+    scope.controls.enableZoom = false;
     if (scope.camera.isOrthographicCamera) {
       scope.controls.mouseButtons = {
         LEFT: MOUSE.PAN,
@@ -275,6 +280,7 @@ export class Viewer3D extends Scene {
       };
     }
     scope.controls.update();
+    scope.__applyCameraSettings();
 
     if (scope.dragcontrols) {
       scope.dragcontrols.dispose();
@@ -401,6 +407,9 @@ export class Viewer3D extends Scene {
       const fitForHeight = extent / 2 / Math.tan(fov / 2);
       const fitForWidth = fitForHeight / Math.min(1, aspect);
       const dist = Math.max(fitForHeight, fitForWidth) * FRAME_PADDING;
+      // This distance is "100 %" on the zoom bar; a pending glide is dropped.
+      scope.__zoomRefDist = dist;
+      scope.__camGoal = null;
       // Dollhouse direction: pulled back, elevated, angled.
       const dir = new Vector3(0.55, 0.72, 0.55).normalize();
       const endPos = new Vector3(
@@ -1001,6 +1010,19 @@ export class Viewer3D extends Scene {
     scope.controls.enableZoom = false;
     scope.__wheelZoomToCenter = (e) => {
       e.preventDefault();
+      // The 3D (perspective) view MOVES the camera — toward the screen centre
+      // or toward the cursor, per the camera settings — so you can zoom right
+      // into a room and look around inside it. The top-down plan camera, and
+      // the AI-render framing step (which owns the lens), keep the original
+      // magnify-the-picture zoom.
+      if (
+        scope.camera.isPerspectiveCamera &&
+        !scope.__renderFraming
+      ) {
+        const notches = Math.min(Math.max(Math.abs(e.deltaY) / 100, 0.15), 3);
+        scope.dollyCamera(e.deltaY < 0 ? 1 : -1, notches, e.clientX, e.clientY);
+        return;
+      }
       const step = e.deltaY < 0 ? 0.25 : -0.25;
       scope.camera.zoom = Math.min(
         Math.max((scope.camera.zoom || 1) + step, 0.25),
@@ -1013,6 +1035,8 @@ export class Viewer3D extends Scene {
     scope.domElement.addEventListener("wheel", scope.__wheelZoomToCenter, {
       passive: false,
     });
+    scope.__applyCameraSettings();
+    scope.__bindCameraKeys();
     scope.axes = new AxesHelper(500);
     scope.transformControls = new TransformControls(
       scope.camera,
@@ -1274,6 +1298,16 @@ export class Viewer3D extends Scene {
 
   __zoom(evt) {
     let scope = this;
+    // The toolbar's Zoom in / Zoom out move the 3D camera, like the wheel.
+    if (
+      scope.camera &&
+      scope.camera.isPerspectiveCamera &&
+      !scope.__renderFraming &&
+      (evt.type === "zoom_in" || evt.type === "zoom_out")
+    ) {
+      scope.dollyCamera(evt.type === "zoom_in" ? 1 : -1, 1.5);
+      return;
+    }
     if (evt.type === "zoom_in") {
       scope.camera.zoom += 0.25;
     } else if (evt.type === "zoom_out") {
@@ -1295,6 +1329,339 @@ export class Viewer3D extends Scene {
   // "Fit to view" for the zoom bar's ⛶ button — re-frame the whole plan.
   fitView(animate = true) {
     this.frameFloorplan(animate);
+  }
+
+  // ── CAMERA SETTINGS & MOVEMENT (Coohom-style) ──────────────────────────────
+  //
+  // Everything here is for the perspective 3D camera. The defaults reproduce
+  // how the view behaved before the settings existed (zoom and rotate about
+  // the screen centre), so nothing changes until someone opens the panel.
+  //
+  // The camera is moved by setting a GOAL (position + orbit target) which
+  // render() eases the camera toward each frame. A wheel notch or key press
+  // therefore glides instead of jumping, and a burst of notches adds up.
+
+  getCameraSettings() {
+    if (!this.__camSettings) {
+      this.__camSettings = {
+        zoomCenter: "canvas", // "canvas" | "mouse"
+        rotationCenter: "canvas", // "canvas" | "mouse"
+        lockRotation: false,
+        speed: 100, // % — wheel step, walking and panning
+      };
+      try {
+        const saved = JSON.parse(localStorage.getItem("pazl-camera-settings"));
+        if (saved && typeof saved === "object") {
+          Object.keys(this.__camSettings).forEach((k) => {
+            if (typeof saved[k] === typeof this.__camSettings[k]) {
+              this.__camSettings[k] = saved[k];
+            }
+          });
+        }
+      } catch (e) {
+        /* settings are a convenience; defaults are fine */
+      }
+    }
+    return { ...this.__camSettings };
+  }
+
+  setCameraSettings(patch) {
+    const cur = this.getCameraSettings();
+    const next = { ...cur, ...(patch || {}) };
+    next.zoomCenter = next.zoomCenter === "mouse" ? "mouse" : "canvas";
+    next.rotationCenter = next.rotationCenter === "mouse" ? "mouse" : "canvas";
+    next.lockRotation = !!next.lockRotation;
+    next.speed = Math.min(Math.max(Number(next.speed) || 100, 10), 400);
+    this.__camSettings = next;
+    try {
+      localStorage.setItem("pazl-camera-settings", JSON.stringify(next));
+    } catch (e) {
+      /* private window — the setting still applies for this visit */
+    }
+    this.__applyCameraSettings();
+    return { ...next };
+  }
+
+  // Push the settings onto the live OrbitControls. Called whenever controls are
+  // (re)created, because setCamera() builds a fresh set.
+  __applyCameraSettings() {
+    const scope = this;
+    const c = scope.controls;
+    if (!c) return;
+    const s = scope.getCameraSettings();
+    const persp = scope.camera && scope.camera.isPerspectiveCamera;
+    // Locking rotation only applies to the 3D camera: the plan camera has no
+    // orbit to lock, and its left button is already bound to panning.
+    c.enableRotate = persp ? !s.lockRotation : c.enableRotate;
+    c.panSpeed = s.speed / 100;
+    if (!c.__pzCamBound) {
+      c.__pzCamBound = true;
+      // A new drag takes over from any glide in progress.
+      c.addEventListener("start", () => {
+        scope.__camGoal = null;
+      });
+    }
+    if (!scope.__rotateMouseBound && scope.domElement) {
+      scope.__rotateMouseBound = true;
+      // ROTATION CENTRE = MOUSE: before an orbit starts, aim the orbit pivot at
+      // the thing under the cursor — at the SAME view direction, so the picture
+      // does not jump. Capture phase, so it runs before OrbitControls reads
+      // the target.
+      scope.domElement.addEventListener(
+        "mousedown",
+        (e) => {
+          try {
+            if (e.button !== 0) return;
+            if (scope.getCameraSettings().rotationCenter !== "mouse") return;
+            if (!scope.camera.isPerspectiveCamera || scope.__renderFraming) return;
+            const hit = scope.__pointUnderCursor(e.clientX, e.clientY);
+            if (!hit) return;
+            const cam = scope.camera;
+            const dir = scope.controls.target.clone().sub(cam.position).normalize();
+            const depth = Math.max(hit.clone().sub(cam.position).dot(dir), 30);
+            scope.controls.target.copy(cam.position).addScaledVector(dir, depth);
+            scope.__camGoal = null;
+          } catch (err) {
+            /* the orbit simply pivots about the centre as before */
+          }
+        },
+        true
+      );
+    }
+  }
+
+  // The first visible surface under a screen point, or null. Ground plane,
+  // lines and helpers are skipped so the pivot lands on real geometry.
+  __pointUnderCursor(clientX, clientY) {
+    const el = this.renderer && this.renderer.domElement;
+    if (!el || clientX === undefined) return null;
+    const r = el.getBoundingClientRect();
+    if (!r.width || !r.height) return null;
+    if (!this.__ray) this.__ray = new Raycaster();
+    this.__ray.setFromCamera(
+      new Vector2(
+        ((clientX - r.left) / r.width) * 2 - 1,
+        -((clientY - r.top) / r.height) * 2 + 1
+      ),
+      this.camera
+    );
+    const hits = this.__ray.intersectObjects(this.children, true);
+    for (const h of hits) {
+      const o = h.object;
+      if (!o || !o.isMesh || o.__isGround) continue;
+      let hidden = false;
+      for (let n = o; n; n = n.parent) {
+        if (n.visible === false) {
+          hidden = true;
+          break;
+        }
+      }
+      if (!hidden) return h.point.clone();
+    }
+    return null;
+  }
+
+  /**
+   * Move the camera toward (+1) or away from (-1) the screen centre, or the
+   * point under the cursor when the zoom centre is "mouse". Zooming IN keeps
+   * going once the orbit target is reached — the target is carried along — so
+   * the camera can enter a room and look around from inside.
+   */
+  dollyCamera(direction, notches = 1, clientX, clientY) {
+    const scope = this;
+    const cam = scope.camera;
+    const c = scope.controls;
+    if (!cam || !c || !cam.isPerspectiveCamera) return;
+    const MIN_D = 45; // cm — closest the orbit target is kept in front of the lens
+    const s = scope.getCameraSettings();
+    const speed = s.speed / 100;
+    const pos = (scope.__camGoal ? scope.__camGoal.pos : cam.position).clone();
+    const target = (scope.__camGoal ? scope.__camGoal.target : c.target).clone();
+    const view = target.clone().sub(pos);
+    let d = view.length();
+    if (d < 1e-3) {
+      cam.getWorldDirection(view);
+      d = 1;
+    }
+    view.normalize();
+
+    const f = Math.pow(0.86, notches * speed); // < 1
+    const inward = direction > 0;
+
+    let pivot = target;
+    if (s.zoomCenter === "mouse") {
+      // Reuse the last pick for a burst of notches: the cursor has barely moved
+      // and a scene-wide raycast per event is wasted work.
+      const now = performance.now();
+      if (
+        scope.__zoomPick &&
+        now - scope.__zoomPick.t < 250 &&
+        Math.abs(scope.__zoomPick.x - clientX) < 6 &&
+        Math.abs(scope.__zoomPick.y - clientY) < 6
+      ) {
+        pivot = scope.__zoomPick.p;
+      } else {
+        const hit = scope.__pointUnderCursor(clientX, clientY);
+        if (hit) pivot = hit;
+        scope.__zoomPick = { t: now, x: clientX, y: clientY, p: pivot };
+      }
+    }
+
+    // Scale the camera's distance from the pivot (in: nearer, out: further).
+    const toPivot = pivot.clone().sub(pos);
+    const shift = toPivot.clone().multiplyScalar(inward ? 1 - f : -(1 / f - 1));
+    let newD = inward ? d * f : d / f;
+    if (inward && newD <= MIN_D) {
+      // Walking forward: keep the target a fixed way ahead, and never let the
+      // step shrink to nothing as the target closes in.
+      newD = MIN_D;
+      const minStep = 10 * notches * speed;
+      if (shift.length() < minStep) {
+        if (shift.lengthSq() > 1e-6) shift.setLength(minStep);
+        else shift.copy(view).multiplyScalar(minStep);
+      }
+    }
+    newD = Math.min(newD, (c.maxDistance || 7500) * 0.98);
+    const newPos = pos.add(shift);
+    // Stay above the floor.
+    if (newPos.y < 20) newPos.y = 20;
+    // The view direction is unchanged, so the target is simply newD ahead.
+    scope.__setCameraGoal(newPos, newPos.clone().addScaledVector(view, newD));
+  }
+
+  // Walk the camera: forward / right / up in cm, relative to where it looks.
+  // Used by the arrow keys; the orbit target travels with the camera.
+  walkCamera(forward = 0, right = 0, up = 0) {
+    const scope = this;
+    const cam = scope.camera;
+    const c = scope.controls;
+    if (!cam || !c || !cam.isPerspectiveCamera) return;
+    const pos = (scope.__camGoal ? scope.__camGoal.pos : cam.position).clone();
+    const target = (scope.__camGoal ? scope.__camGoal.target : c.target).clone();
+    // Walk along the FLOOR direction of the view, so walking forward while
+    // looking down does not dive into the floor.
+    const dir = new Vector3(target.x - pos.x, 0, target.z - pos.z);
+    if (dir.lengthSq() < 1e-6) dir.set(0, 0, -1);
+    dir.normalize();
+    const side = new Vector3(-dir.z, 0, dir.x);
+    const move = dir.multiplyScalar(forward).add(side.multiplyScalar(right));
+    const y = Math.min(Math.max(pos.y + up, 20), 20000);
+    move.y = y - pos.y;
+    scope.__setCameraGoal(pos.add(move), target.add(move));
+  }
+
+  __setCameraGoal(pos, target) {
+    this.__camTween = null;
+    this.__camGoal = { pos, target };
+    this.needsUpdate = true;
+    this.shouldRender = true;
+  }
+
+  // Arrow keys: ↑/↓ walk, ←/→ step sideways, Page Up / Page Down raise and
+  // lower the camera. Bound once. W/A/S/D/Q/E are NOT used — the item gizmo
+  // already owns W (move), E (rotate) and Q (space).
+  __bindCameraKeys() {
+    const scope = this;
+    if (scope.__camKeysBound) return;
+    scope.__camKeysBound = true;
+    window.addEventListener("keydown", (e) => {
+      try {
+        if (!scope.enabled || scope.__renderFraming) return;
+        if (!scope.camera || !scope.camera.isPerspectiveCamera) return;
+        if (e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return;
+        const keys = ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "PageUp", "PageDown"];
+        if (!keys.includes(e.key)) return;
+        const t = e.target;
+        const tag = t && t.tagName ? t.tagName.toUpperCase() : "";
+        if (
+          tag === "INPUT" ||
+          tag === "TEXTAREA" ||
+          tag === "SELECT" ||
+          (t && t.isContentEditable)
+        )
+          return;
+        const el = scope.domElement;
+        if (!el || !el.isConnected || el.offsetParent === null) return;
+        const step = 30 * (scope.getCameraSettings().speed / 100);
+        e.preventDefault();
+        if (e.key === "ArrowUp") scope.walkCamera(step, 0, 0);
+        else if (e.key === "ArrowDown") scope.walkCamera(-step, 0, 0);
+        else if (e.key === "ArrowLeft") scope.walkCamera(0, -step, 0);
+        else if (e.key === "ArrowRight") scope.walkCamera(0, step, 0);
+        else if (e.key === "PageUp") scope.walkCamera(0, 0, step);
+        else scope.walkCamera(0, 0, -step);
+      } catch (err) {
+        /* a key must never break the view */
+      }
+    });
+  }
+
+  /**
+   * What the camera panel shows. Heading is 0-360° (0 = looking toward the top
+   * of the plan, 90 = right); tilt is +up / -down in degrees; height is the
+   * camera's height above the floor in mm.
+   */
+  getCameraState() {
+    const cam = this.camera;
+    const c = this.controls;
+    if (!cam || !c) return null;
+    const persp = !!cam.isPerspectiveCamera;
+    const dir = c.target.clone().sub(cam.position);
+    if (dir.lengthSq() < 1e-8) cam.getWorldDirection(dir);
+    dir.normalize();
+    let heading = (Math.atan2(dir.x, -dir.z) * 180) / Math.PI;
+    if (heading < 0) heading += 360;
+    const tilt = (Math.asin(Math.max(-1, Math.min(1, dir.y))) * 180) / Math.PI;
+    let zoomPercent;
+    if (persp) {
+      const d = cam.position.distanceTo(c.target);
+      if (!this.__zoomRefDist) this.__zoomRefDist = Math.max(d, 1);
+      zoomPercent = Math.round((this.__zoomRefDist / Math.max(d, 1)) * 100);
+    } else {
+      zoomPercent = Math.round((cam.zoom || 1) * 100);
+    }
+    return {
+      perspective: persp,
+      heading,
+      tilt,
+      fov: persp ? cam.fov : 0,
+      heightMm: Math.round(cam.position.y * 10),
+      zoomPercent: Math.max(1, zoomPercent),
+      inside: this.isCameraInsideRoom(),
+    };
+  }
+
+  setCameraFov(deg) {
+    const cam = this.camera;
+    if (!cam || !cam.isPerspectiveCamera) return;
+    cam.fov = Math.min(Math.max(Number(deg) || 45, 20), 110);
+    cam.updateProjectionMatrix();
+    this.needsUpdate = true;
+    this.shouldRender = true;
+  }
+
+  // Camera height above the floor, in mm. The view direction is kept: the
+  // orbit target moves by the same amount.
+  setCameraHeightMm(mm) {
+    const cam = this.camera;
+    const c = this.controls;
+    if (!cam || !c || !cam.isPerspectiveCamera) return;
+    const y = Math.min(Math.max((Number(mm) || 0) / 10, 20), 20000);
+    const pos = (this.__camGoal ? this.__camGoal.pos : cam.position).clone();
+    const target = (this.__camGoal ? this.__camGoal.target : c.target).clone();
+    const dy = y - pos.y;
+    pos.y += dy;
+    target.y += dy;
+    this.__setCameraGoal(pos, target);
+  }
+
+  // Zoom bar +/-: the same camera move as one wheel notch.
+  zoomStep(direction) {
+    if (this.camera && this.camera.isPerspectiveCamera && !this.__renderFraming) {
+      this.dollyCamera(direction, 1.5);
+    } else {
+      this.__zoom({ type: direction > 0 ? "zoom_in" : "zoom_out" });
+    }
   }
 
   // Render the currently-selected item SIDE-ON (orthographic) to a PNG data URL,
@@ -1463,6 +1830,7 @@ export class Viewer3D extends Scene {
   // `duration` ms. The tween is advanced in render() each frame.
   __animateCameraTo(endPos, endTarget, duration = 450) {
     if (!this.camera || !this.controls) return;
+    this.__camGoal = null;
     this.__camTween = {
       fromPos: this.camera.position.clone(),
       toPos: endPos.clone(),
@@ -2516,6 +2884,25 @@ export class Viewer3D extends Scene {
       scope.camera.updateProjectionMatrix();
       scope.needsUpdate = true;
       if (k >= 1) scope.__camTween = null;
+    } else if (scope.__camGoal && scope.controls) {
+      // Glide toward the goal set by the wheel / arrow keys / camera panel.
+      // Eased by a fixed fraction per frame, so a quick burst of notches adds up
+      // and the camera settles smoothly.
+      const g = scope.__camGoal;
+      const K = 0.22;
+      scope.camera.position.lerp(g.pos, K);
+      scope.controls.target.lerp(g.target, K);
+      scope.controls.update();
+      if (
+        scope.camera.position.distanceToSquared(g.pos) < 0.0025 &&
+        scope.controls.target.distanceToSquared(g.target) < 0.0025
+      ) {
+        scope.camera.position.copy(g.pos);
+        scope.controls.target.copy(g.target);
+        scope.controls.update();
+        scope.__camGoal = null;
+      }
+      scope.needsUpdate = true;
     } else if (scope.controls && scope.controls.enableDamping) {
       // Advance camera inertia (damping) so orbit/zoom/pan glide to a stop.
       scope.controls.update();

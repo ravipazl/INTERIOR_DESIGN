@@ -1,0 +1,316 @@
+/* The camera controls of the 3D view (CameraControls3D.tsx): the camera-angle
+   dial bottom-left, the zoom bar + camera settings bottom-right. They sit
+   inside #bp3d-js-app, over the canvas; the root passes mouse events through
+   so only the controls themselves catch clicks. */
+
+.pz-cam {
+  position: absolute;
+  inset: 0;
+  z-index: 25;
+  pointer-events: none;
+  font-size: 13px;
+  color: var(--pz-text);
+  user-select: none;
+}
+
+.pz-cam > * {
+  pointer-events: auto;
+}
+
+.pz-cam-angle,
+.pz-cam-buttons,
+.pz-cam-panel {
+  background: var(--pz-panel-surface);
+  border: 1px solid var(--pz-panel-border);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.14);
+}
+
+/* ── camera angle ── */
+.pz-cam-angle {
+  position: absolute;
+  /* Clear of the "Snap" pill that sits in the canvas's bottom-left corner. */
+  bottom: 72px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 12px 6px 6px;
+  border-radius: 10px;
+  transition: left 0.15s ease;
+}
+
+.pz-cam-dial {
+  width: 56px;
+  height: 56px;
+  flex: none;
+}
+
+.pz-cam-dial-ring {
+  fill: var(--pz-panel-surface);
+  stroke: var(--pz-panel-border);
+  stroke-width: 1.5;
+}
+
+.pz-cam-dial-top {
+  fill: var(--pz-text-2);
+}
+
+.pz-cam-dial-wedge {
+  fill: var(--pz-accent);
+  fill-opacity: 0.28;
+  stroke: var(--pz-accent);
+  stroke-width: 1.2;
+  stroke-linejoin: round;
+}
+
+.pz-cam-dial-dot {
+  fill: var(--pz-accent);
+}
+
+.pz-cam-angle-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  line-height: 1.25;
+  color: var(--pz-text-2);
+  font-variant-numeric: tabular-nums;
+  min-width: 96px;
+}
+
+.pz-cam-angle-text b {
+  color: var(--pz-text);
+  font-weight: 600;
+}
+
+/* ── zoom bar + settings ── */
+.pz-cam-bar {
+  position: absolute;
+  bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  transition: right 0.15s ease;
+}
+
+.pz-cam-buttons {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px;
+  border-radius: 10px;
+}
+
+.pz-cam-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--pz-text);
+  cursor: pointer;
+}
+
+.pz-cam-btn .material-symbols-outlined {
+  font-size: 20px;
+}
+
+.pz-cam-btn:hover:not(:disabled) {
+  background: var(--pz-panel-hover, rgba(0, 0, 0, 0.06));
+}
+
+.pz-cam-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.pz-cam-btn.is-on {
+  background: var(--pz-accent-soft);
+  color: var(--pz-accent);
+}
+
+.pz-cam-sep {
+  width: 1px;
+  height: 20px;
+  margin: 0 4px;
+  background: var(--pz-panel-border);
+}
+
+.pz-cam-zoom {
+  min-width: 46px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.pz-cam button:focus-visible,
+.pz-cam input:focus-visible {
+  outline: 2px solid var(--pz-accent);
+  outline-offset: 1px;
+}
+
+/* ── settings panel ── */
+.pz-cam-panel {
+  width: 292px;
+  padding: 14px 16px 12px;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.pz-cam-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.pz-cam-row-switch {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.pz-cam-label {
+  color: var(--pz-text);
+  font-weight: 500;
+}
+
+.pz-cam-choice {
+  display: flex;
+  gap: 20px;
+}
+
+.pz-cam-choice button {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--pz-text-2);
+  font: inherit;
+  cursor: pointer;
+}
+
+.pz-cam-choice button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.pz-cam-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 1.5px solid var(--pz-panel-border);
+  background: var(--pz-panel-surface);
+  box-sizing: border-box;
+}
+
+.pz-cam-choice .is-on {
+  color: var(--pz-text);
+}
+
+.pz-cam-choice .is-on .pz-cam-dot {
+  border: 4px solid var(--pz-accent);
+}
+
+.pz-cam-switch {
+  position: relative;
+  width: 40px;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  border-radius: 11px;
+  background: var(--pz-panel-border);
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.pz-cam-switch span {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  transition: transform 0.15s ease;
+}
+
+.pz-cam-switch.is-on {
+  background: var(--pz-accent);
+}
+
+.pz-cam-switch.is-on span {
+  transform: translateX(18px);
+}
+
+.pz-cam-switch:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.pz-cam-slider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.pz-cam-slider input[type="range"] {
+  flex: 1;
+  min-width: 0;
+  accent-color: var(--pz-accent);
+}
+
+.pz-cam-num {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: 78px;
+  padding: 3px 6px;
+  border: 1px solid var(--pz-panel-border);
+  border-radius: 5px;
+  background: var(--pz-panel-surface);
+  color: var(--pz-text-2);
+  font-size: 12px;
+}
+
+.pz-cam-num input {
+  width: 100%;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--pz-text);
+  font: inherit;
+  text-align: right;
+  -moz-appearance: textfield;
+}
+
+.pz-cam-num input::-webkit-inner-spin-button,
+.pz-cam-num input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.pz-cam-hint {
+  padding-top: 8px;
+  border-top: 1px solid var(--pz-panel-border);
+  color: var(--pz-text-2);
+  font-size: 11.5px;
+  line-height: 1.4;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pz-cam-angle,
+  .pz-cam-bar,
+  .pz-cam-switch,
+  .pz-cam-switch span {
+    transition: none;
+  }
+}
