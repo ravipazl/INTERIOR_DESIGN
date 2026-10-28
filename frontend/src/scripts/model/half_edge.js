@@ -590,7 +590,10 @@ export class HalfEdge extends EventDispatcher {
          * When two walls are connected with 180 degrees apart, then simply
          * rotate the vector by 90 degrees clockwise and use it as the interiorPoint
          */
-        if (dot_temp == 1.0) {
+        // (Not `== 1.0`: normalising a wall's direction can leave it a rounding
+        // error short of 1, and a straight run of walls of different
+        // thicknesses then got a tilted face instead of a straight one.)
+        if (dot_temp > 1.0 - 1e-12) {
             return u.clone().normalize().rotateAround(new Vector2(), 1.57).multiplyScalar(this.wall.thickness);
         }
         // let angle = Math.acos(dot_temp);

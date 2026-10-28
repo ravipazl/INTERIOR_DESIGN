@@ -558,10 +558,36 @@ const WallEditorModal: React.FC<WallEditorModalProps> = ({
   };
   const clearAll = () => {
     if (!regions.length) return;
-    if (!window.confirm("Remove every area and material from this wall face?"))
+    if (
+      !window.confirm(
+        isCeiling
+          ? "Remove every area and material from this ceiling?"
+          : "Remove every area and material from this wall face?"
+      )
+    )
       return;
     setSelectedId(null);
     commit([]);
+  };
+
+  /** Something on the selected area to clear: a material, a light, a depth. */
+  const selectedHasEdits = !!(
+    selected &&
+    (selected.texture || selected.light || selected.extrusion)
+  );
+  /**
+   * Clear only the selected area: its material, light and depth go, its
+   * outline stays, and every other area is left exactly as it is.
+   */
+  const clearSelected = () => {
+    if (!selected || !selectedHasEdits) return;
+    commit(
+      regions.map((r) =>
+        r.id === selected.id
+          ? { ...r, texture: null, light: false, extrusion: 0 }
+          : r
+      )
+    );
   };
 
   /**
@@ -610,10 +636,6 @@ const WallEditorModal: React.FC<WallEditorModalProps> = ({
     else if (tool !== "molding") setTool("pave");
   };
 
-  const patchSelected = (patch: Partial<Region>) => {
-    if (!selected) return;
-    commit(regions.map((r) => (r.id === selected.id ? { ...r, ...patch } : r)));
-  };
   /**
    * Typing in a number box (Extrusion, an arch's sizes). The drawing and the
    * 3D preview follow every digit, but typing "120" is ONE change: the areas
@@ -1804,10 +1826,19 @@ const WallEditorModal: React.FC<WallEditorModalProps> = ({
           </button>
           <button
             className="we-link"
+            onClick={clearSelected}
+            disabled={!selectedHasEdits}
+            title="Remove the material, light and depth of the selected area only"
+          >
+            <Icon name="clear" /> Clear selected
+          </button>
+          <button
+            className="we-link"
             onClick={clearAll}
             disabled={!regions.length}
+            title={isCeiling ? "Remove every area from this ceiling" : "Remove every area from this wall face"}
           >
-            <Icon name="clear" /> Clear
+            <Icon name="clear" /> Clear all
           </button>
         </div>
         <div className="we-top-actions">
@@ -3020,6 +3051,18 @@ const WallEditorModal: React.FC<WallEditorModalProps> = ({
                     </div>
                   ) : null}
                   <div className="we-row">
+                    <button
+                      className="we-btn"
+                      onClick={clearSelected}
+                      disabled={!selectedHasEdits}
+                    >
+                      Clear area
+                    </button>
+                    <button className="we-btn" onClick={deleteArea}>
+                      Delete area
+                    </button>
+                  </div>
+                  <div className="we-row">
                     <select
                       value={splitAxis}
                       onChange={(e) =>
@@ -3041,19 +3084,6 @@ const WallEditorModal: React.FC<WallEditorModalProps> = ({
                     />
                     <button className="we-btn" onClick={splitExact}>
                       Cut
-                    </button>
-                  </div>
-                  <div className="we-row">
-                    {selected.texture ? (
-                      <button
-                        className="we-btn"
-                        onClick={() => patchSelected({ texture: null })}
-                      >
-                        Remove material
-                      </button>
-                    ) : null}
-                    <button className="we-btn" onClick={deleteArea}>
-                      Delete area
                     </button>
                   </div>
                 </div>

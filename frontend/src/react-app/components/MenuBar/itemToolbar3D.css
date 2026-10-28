@@ -48,7 +48,12 @@
   font-size: 18px;
 }
 
-.pz-it3d-btn:hover {
+.pz-it3d-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.pz-it3d-btn:hover:not(:disabled) {
   background: var(--pz-panel-hover, rgba(0, 0, 0, 0.06));
 }
 

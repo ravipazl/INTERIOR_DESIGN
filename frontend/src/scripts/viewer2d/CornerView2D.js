@@ -93,14 +93,25 @@ export class CornerView2D extends BaseFloorplanViewElement2D {
     // straight walls) gets a tiny dot, so the curve reads as one smooth wall
     // instead of a string of beads. Real corners keep the full dot, and
     // hovering or selecting any joint still draws it full size.
-    if (this.__isCurveJoint()) {
-      // nothing is drawn: the curve reads as one wall. The full-size hitArea
-      // still catches the mouse, and hover draws the normal dot.
+    if (this.__isCurveJoint() || this.__touchesColumn()) {
+      // nothing is drawn: the curve reads as one wall, a column as one block
+      // rather than a dot at each end of it. The full-size hitArea still
+      // catches the mouse, and hover draws the normal dot.
       this.clear();
       return;
     }
     let radius = this.__options["corner-radius"];
     this.__drawCornerState(radius, 0xcccccc, 0x000000);
+  }
+
+  // An end of a column (a wall piece an imported plan marks as one).
+  __touchesColumn() {
+    try {
+      const c = this.__corner;
+      return [...(c.wallStarts || []), ...(c.wallEnds || [])].some((w) => w && w.isColumn);
+    } catch (e) {
+      return false;
+    }
   }
 
   // A joint along a curve (Arc / Circle / Fillet build curves from short
@@ -281,8 +292,13 @@ export class CornerView2D extends BaseFloorplanViewElement2D {
   }
 
   remove() {
-    this.__corner.removeEventListener(EVENT_DELETED, this.__cornerDeletedEvent);
-    this.__corner.removeEventListener(EVENT_MOVED, this.__cornerUpdateEvent);
+    // A view whose corner is already deleted (it let go of it then) has no
+    // corner to unhook from — clearing the whole plan at once redraws after
+    // the corners are gone, not between each one.
+    if (this.__corner) {
+      this.__corner.removeEventListener(EVENT_DELETED, this.__cornerDeletedEvent);
+      this.__corner.removeEventListener(EVENT_MOVED, this.__cornerUpdateEvent);
+    }
     super.remove();
   }
 

@@ -9,6 +9,8 @@ interface AddCategoryModalProps {
   onSuccess: () => void;
   /** Pre-select this parent in the dropdown (used by hover "+" per main). */
   presetParentId?: string | null;
+  /** Only create a main (top-level) category: the Parent choice is hidden. */
+  mainOnly?: boolean;
 }
 
 const NONE_VALUE = "__none__";
@@ -18,6 +20,7 @@ function AddCategoryModal({
   onClose,
   onSuccess,
   presetParentId,
+  mainOnly = false,
 }: AddCategoryModalProps) {
   const [name, setName] = useState("");
   const [parentId, setParentId] = useState<string>(NONE_VALUE);
@@ -34,13 +37,9 @@ function AddCategoryModal({
     setName("");
     setError(null);
     setParentId(
-      presetParentId === null
-        ? NONE_VALUE
-        : presetParentId
-        ? presetParentId
-        : NONE_VALUE
+      mainOnly || !presetParentId ? NONE_VALUE : presetParentId
     );
-  }, [show, presetParentId]);
+  }, [show, presetParentId, mainOnly]);
 
   const parentOptions = useMemo(() => {
     const getPath = (cat: Category): string => {
@@ -94,7 +93,7 @@ function AddCategoryModal({
 
     setBusy(true);
     try {
-      const parentVal = parentId === NONE_VALUE ? null : parentId;
+      const parentVal = mainOnly || parentId === NONE_VALUE ? null : parentId;
       const created = await CategoriesService.createCategory({
         name: trimmed,
         parentCategoryId: parentVal,
@@ -120,7 +119,7 @@ function AddCategoryModal({
       >
         <div className="flex items-center justify-between px-5 py-3 border-b border-neutral-200 dark:border-neutral-700">
           <h3 className="font-semibold text-base text-[#414063] dark:text-white">
-            Add Category
+            {mainOnly ? "Add Main Category" : "Add Category"}
           </h3>
           <button
             onClick={onClose}
@@ -144,12 +143,15 @@ function AddCategoryModal({
                 setName(e.target.value);
                 if (error) setError(null);
               }}
-              placeholder="e.g. Glass Bottle or Shutter"
+              placeholder={
+                mainOnly ? "e.g. Dining Room" : "e.g. Glass Bottle or Shutter"
+              }
               disabled={busy}
               autoFocus
             />
           </label>
 
+          {mainOnly ? null : (
           <div className="block text-sm">
             <span className="text-neutral-600 dark:text-neutral-300">
               Parent
@@ -174,6 +176,7 @@ function AddCategoryModal({
               />
             </div>
           </div>
+          )}
 
           {error && (
             <div className="text-sm text-red-600 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded px-3 py-2">

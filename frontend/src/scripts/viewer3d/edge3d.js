@@ -290,19 +290,42 @@ export class Edge3D extends EventDispatcher {
     // every plane of the wall back on.
     __hideRegionsFromBehind() {
         if (!this.__regionMeshList || !this.__regionMeshList.length) return;
-        const n = this.edge.__faceNormal;
-        const start = this.edge.interiorStart();
-        const cam = this.controls.object.position;
-        const inFront = n
-            ? (cam.x - start.x) * n.x + (cam.z - start.y) * n.z > 0
-            : true;
+        const inFront = this.__cameraInFront();
         this.__regionMeshList.forEach((mesh) => {
             mesh.visible = this.visible && inFront;
         });
     }
 
+    // Is the camera on the side of this wall FACE that the face looks toward?
+    // The face is one-sided, so from behind it is simply not drawn.
+    __cameraInFront() {
+        const n = this.edge.__faceNormal;
+        if (!n) return true;
+        const start = this.edge.interiorStart();
+        const cam = this.controls.object.position;
+        return (cam.x - start.x) * n.x + (cam.z - start.y) * n.z > 0;
+    }
+
     updateObjectVisibility() {
         let scope = this;
+
+        // DOORS AND WINDOWS GO WHEN THEIR WALL GOES.
+        //
+        // From behind, this face of the wall is not drawn — that is how you look
+        // into a room from outside. A door or window is its own object, though,
+        // and was left hanging in the air with no wall around it. So an opening
+        // follows the wall: it is hidden while the camera is behind a face that
+        // is not drawn from that side.
+        //
+        // Nothing is hidden when a face of the wall IS drawn toward the camera:
+        // a wall between two rooms has a face for each, the camera is always in
+        // front of one of them, and an opening shows if ANY of its wall's faces
+        // shows (front || back below).
+        //
+        // An OUTER wall's outside surface does not count: it is built, but it is
+        // not drawn when seen from outside — you look straight into the rooms —
+        // so its windows hide from outside just like its doors.
+        const openingsVisible = scope.visible && scope.__cameraInFront();
 
         function itemVisibility(item, visibility) {
             if (scope.front) {
@@ -312,12 +335,30 @@ export class Edge3D extends EventDispatcher {
             }
             return (item.frontVisible || item.backVisible);
         }
+        // A door or window starts out with its BACK face marked visible. Where
+        // the wall has a face on both sides (two rooms) that mark is overwritten
+        // by the other face's own edge, but an outer wall has only ONE face, so
+        // nothing ever clears it — and the opening stayed on screen, hanging
+        // in the air, long after its wall was gone. A side that does not exist
+        // cannot show anything.
+        const edgeList = (scope.scene && scope.scene.edges3d) || [];
+        const hasOtherFace = edgeList.some(
+            (o) => o !== scope && o.wall === scope.wall
+        );
         this.wall.inWallItems.forEach((item) => {
-            let visibility = itemVisibility(item, scope.visible);
+            if (!hasOtherFace) {
+                if (scope.front) item.backVisible = false;
+                else item.frontVisible = false;
+            }
+            let visibility = itemVisibility(item, openingsVisible);
             item.visible = visibility;
         });
         this.wall.onWallItems.forEach((item) => {
-            let visibility = itemVisibility(item, scope.visible);
+            // A door or window can sit in BOTH lists. If this loop set it
+            // visible again, the loop above would be undone, so an opening
+            // always takes the opening rule.
+            const isOpening = this.wall.inWallItems.includes(item);
+            let visibility = itemVisibility(item, isOpening ? openingsVisible : scope.visible);
             item.visible = visibility;
         });
     }

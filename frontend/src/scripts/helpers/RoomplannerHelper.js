@@ -648,7 +648,7 @@ export class RoomPlannerHelper {
   // Place an AI-detected window: a glass pane on the nearest wall, at sill
   // height. Mirrors addParametricDoorAtPoint but uses an InWallItem (not floor-
   // seated) so it sits up at the sill, and the WINDOW parametric type.
-  addParametricWindowAtPoint(cxCm, cyCm, widthCm, windowType = 1, itemName = "Parametric Window") {
+  addParametricWindowAtPoint(cxCm, cyCm, widthCm, windowType = 1, itemName = "Parametric Window", heightCm, sillCm) {
     const fp = this.__model && this.__model.floorplan;
     if (!fp || !fp.walls || !fp.walls.length) return false;
 
@@ -673,8 +673,10 @@ export class RoomPlannerHelper {
     if (!bestWall || !bestEdge || bestDist > 60) return false;
 
     const w = Math.min(300, Math.max(40, Math.round(widthCm) || 120));
-    const WINDOW_H = 120; // window height (cm)
-    const SILL = 90; // sill height from floor (cm)
+    // Window height and sill height from the floor (cm): the standard window
+    // unless the caller gives them (a ventilator is small and set high).
+    const WINDOW_H = heightCm > 0 ? Math.min(300, Math.max(20, Math.round(heightCm))) : 120;
+    const SILL = sillCm >= 0 && sillCm != null ? Math.min(250, Math.round(sillCm)) : 90;
     const centerY = SILL + WINDOW_H / 2; // window centre height
     const itemMetaData = {
       itemName: itemName,

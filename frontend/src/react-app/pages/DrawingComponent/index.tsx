@@ -5,6 +5,7 @@ import MenuBar from "@pazl/components/MenuBar";
 import FloorPlanTools from "@pazl/components/MenuBar/FloorPlanTools";
 import EditorShortcuts2D from "@pazl/components/MenuBar/EditorShortcuts2D";
 import ItemToolbar3D from "@pazl/components/MenuBar/ItemToolbar3D";
+import CameraControls3D from "@pazl/components/MenuBar/CameraControls3D";
 import BlueprintInterface from "@pazl/blueprint-interface";
 import { AuthService } from "@pazl/services/authService";
 import { CategoriesService } from "@pazl/services/categoriesService";
@@ -324,6 +325,9 @@ const DrawingComponent = ({
               positions itself from the item's place on screen, so it lives
               here with the canvas rather than in a side panel. */}
           {!isLoading && activeTab !== "floor_plan" ? <ItemToolbar3D /> : null}
+          {/* Camera angle (bottom-left) and zoom bar + camera settings
+              (bottom-right). Only the 3D tabs have a camera to control. */}
+          {!isLoading && activeTab !== "floor_plan" ? <CameraControls3D /> : null}
         </div>
         {/* The inspector OVERLAYS the canvas — it is position:fixed on the
             right edge and no space is reserved for it here.

@@ -1256,7 +1256,12 @@ BlueprintInterface.applyRoomFocus3D = (roomId, opts) => {
         const meta = model.metadata || model.__metadata || {};
         const type = parseInt(meta.itemType, 10);
         if (type === 3 || type === 7) {
-          setVisible(it, myWalls.has(wall));
+          // ...and goes with the wall's DRAWN face: Edge3D decides, from the
+          // camera's side, whether this opening's wall is showing (its
+          // updateObjectVisibility, on every camera move) and records it on the
+          // model. Looking in from behind a wall that is not drawn, the door
+          // goes with it instead of hanging in the air.
+          setVisible(it, myWalls.has(wall) && model.visible !== false);
           return;
         }
         // Everything else hangs on ONE face, and the engine records which:
@@ -1700,7 +1705,9 @@ BlueprintInterface.placeAiDoors = (doors) => {
   if (!helper || !Array.isArray(doors)) return 0;
   let placed = 0;
   doors.forEach((d) => {
-    if (helper.addParametricDoorAtPoint(d.cxCm, d.cyCm, d.widthCm)) placed += 1;
+    // `open` (RIGHT / LEFT / BOTH_SIDES / NO_DOORS) when the caller knows how
+    // the door should be — a wide gap as a double door or an open frame.
+    if (helper.addParametricDoorAtPoint(d.cxCm, d.cyCm, d.widthCm, 1, d.open || "RIGHT", 210, d.name || "Parametric Door")) placed += 1;
   });
   BlueprintInterface.redrawDoors2D();
   return placed;
@@ -1713,7 +1720,19 @@ BlueprintInterface.placeAiWindows = (windows) => {
   if (!helper || !Array.isArray(windows)) return 0;
   let placed = 0;
   windows.forEach((wn) => {
-    if (helper.addParametricWindowAtPoint(wn.cxCm, wn.cyCm, wn.widthCm))
+    // A name, a height and a sill when the caller knows them (a ventilator is
+    // small and set high); otherwise the standard window.
+    if (
+      helper.addParametricWindowAtPoint(
+        wn.cxCm,
+        wn.cyCm,
+        wn.widthCm,
+        1,
+        wn.name || "Parametric Window",
+        wn.heightCm,
+        wn.sillCm
+      )
+    )
       placed += 1;
   });
   BlueprintInterface.redrawDoors2D();

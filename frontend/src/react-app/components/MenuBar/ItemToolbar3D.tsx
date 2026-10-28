@@ -13,11 +13,12 @@ import {
   EVENT_ITEM_REMOVED,
 } from "@pazl/main/core/events";
 import { HISTORY_TITLES } from "@pazl/services/ProjectManager";
+import { ROTATION_MODES } from "@pazl/entities/FurnishedModel";
 import "./itemToolbar3D.css";
 
 /**
  * The small toolbar that appears beside the item you click in the 3D view:
- * mirror, lock, duplicate, hide and delete.
+ * mirror, rotate, lock, duplicate, hide and delete.
  *
  * It follows the item on screen: the item's own position is projected through
  * the 3D camera every frame, the same way the dimension chips do it
@@ -48,6 +49,21 @@ const mirrorItem = (id: string | null) => {
   Promise.resolve(pm?.onFurnishedModelMirror?.(id)).then((saved) => {
     if (!saved) (BlueprintInterface as any).mirrorItem3D?.(id);
   });
+};
+
+/**
+ * Turn a placed item a quarter turn about its vertical axis and save it.
+ *
+ * This is the SAME call the Rotate buttons in the object panel make
+ * (onFurnishedModelRotationChange), so the turn is saved to the project, shows
+ * in the panel's angle box, and comes back after a reload.
+ */
+const rotateItem = (id: string | null, toLeft: boolean) => {
+  if (!id) return;
+  projectManager()?.onFurnishedModelRotationChange?.(
+    id,
+    toLeft ? ROTATION_MODES.ROTATE_LEFT : ROTATION_MODES.ROTATE_RIGHT
+  );
 };
 
 /**
@@ -307,6 +323,16 @@ const ItemToolbar3D: React.FC = () => {
       if (key === "g" && !e.ctrlKey && !e.metaKey && !e.altKey) {
         e.preventDefault();
         mirrorItem(id);
+      } else if (key === "r" && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        // R turns right, Shift+R turns left. Not for doors and windows (they
+        // belong to their wall), not for a locked item, and not while a dialog
+        // (the Wall Editor uses R for its own tool) has the keyboard.
+        const m = itemRef.current?.itemModel || itemRef.current?.__itemModel;
+        if (e.defaultPrevented || m?.isParametric) return;
+        if (el?.closest?.('[role="dialog"],[class*="Modal"],[class*="modal"]')) return;
+        if (BI.isItem3DLocked?.(id)) return;
+        e.preventDefault();
+        rotateItem(id, e.shiftKey);
       } else if (key === "d" && (e.ctrlKey || e.metaKey)) {
         e.preventDefault();
         BI.duplicateItem3D?.(id);
@@ -347,12 +373,16 @@ const ItemToolbar3D: React.FC = () => {
   if (!item || !point || dragging) return null;
 
   const BI = BlueprintInterface as any;
-  const act = (fn: () => void) => (e: React.MouseEvent) => {
+  const act = (fn: (e: React.MouseEvent) => void) => (e: React.MouseEvent) => {
     e.stopPropagation();
-    fn();
+    fn(e);
   };
 
   const onMirror = () => mirrorItem(modelId);
+  // Shift + click turns the other way. Doors and windows are cut into their
+  // wall and cannot be turned, so they get no Rotate button at all.
+  const canRotate = !(item?.itemModel || item?.__itemModel)?.isParametric;
+  const onRotate = (e: React.MouseEvent) => rotateItem(modelId, e.shiftKey);
   const onDuplicate = () => {
     BI.duplicateItem3D?.(modelId);
   };
@@ -383,17 +413,20 @@ const ItemToolbar3D: React.FC = () => {
     onClick,
     danger,
     active,
+    disabled,
   }: {
     icon: string;
     title: string;
-    onClick: () => void;
+    onClick: (e: React.MouseEvent) => void;
     danger?: boolean;
     active?: boolean;
+    disabled?: boolean;
   }) => (
     <button
       type="button"
       title={title}
       aria-label={title}
+      disabled={disabled}
       onClick={act(onClick)}
       className={`pz-it3d-btn${danger ? " pz-it3d-danger" : ""}${
         active ? " pz-it3d-active" : ""
@@ -414,6 +447,18 @@ const ItemToolbar3D: React.FC = () => {
       <div className="pz-it3d-bar">
         <span className="pz-it3d-grip material-symbols-outlined">drag_indicator</span>
         <Icon icon="flip" title="Mirror (G)" onClick={onMirror} />
+        {canRotate ? (
+          <Icon
+            icon="rotate_right"
+            title={
+              locked
+                ? "Unlock to rotate"
+                : "Rotate 90° (R) · Shift+click turns left"
+            }
+            onClick={onRotate}
+            disabled={locked}
+          />
+        ) : null}
         <Icon
           icon={locked ? "lock_open" : "lock"}
           title={locked ? "Unlock (Ctrl+L)" : "Lock (Ctrl+L)"}

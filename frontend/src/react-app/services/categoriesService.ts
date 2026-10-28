@@ -72,12 +72,16 @@ export const CategoriesService = {
     parentCategoryId: string | null;
   }) => {
     const accessToken = AuthService.getAccessToken();
-    const payload = {
+    // A main category has no parent: leave the field out rather than sending
+    // null, which the server's schema (string only) rejects.
+    const payload: any = {
       name: input.name.trim(),
-      parentCategoryId: input.parentCategoryId,
       invisible: false,
       thumbnail: "",
     };
+    if (input.parentCategoryId) {
+      payload.parentCategoryId = input.parentCategoryId;
+    }
     const response = await axios.post("/categories", payload, {
       headers: { Authorization: `Bearer ${accessToken}` },
     });

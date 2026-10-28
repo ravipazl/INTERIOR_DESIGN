@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import "material-symbols";
 import BlueprintInterface from "@pazl/blueprint-interface.js";
 import { handleDrawFreeShape } from "@pazl/viewer2d-state-interface";
@@ -9,6 +9,7 @@ import {
   dimMilliMeter,
 } from "@pazl/main/core/constants.js";
 import FloorPlanAiImport from "./FloorPlanAiImport";
+import FloorPlanStandardImport from "./FloorPlanImport/FloorPlanStandardImport";
 import SaveTemplateButton from "./SaveTemplateButton";
 import KitchenPlanner2D from "./KitchenPlanner2D";
 
@@ -106,6 +107,46 @@ const FloorPlanTools: React.FC = () => {
   // "inner" = show ALL per-wall labels at once. Mutually exclusive; both sit on
   // top of the always-on individual show-on-select behaviour.
   const [dimMode, setDimMode] = useState<"off" | "inner" | "outer">("off");
+
+  // An import turns the measurements on (a length on every wall, as a plan
+  // from another tool shows them) and tells this panel, so its cards agree.
+  useEffect(() => {
+    const onMode = (e: Event) => {
+      const m = (e as CustomEvent).detail;
+      if (m === "inner" || m === "outer" || m === "off") setDimMode(m);
+    };
+    window.addEventListener("pazl-dim-mode", onMode);
+    return () => window.removeEventListener("pazl-dim-mode", onMode);
+  }, []);
+
+  // The floor's INTERIOR AREA: the rooms' areas added together, in m². Read
+  // from the plan while the panel is open, so it follows every edit.
+  const [interiorArea, setInteriorArea] = useState<number | null>(null);
+  useEffect(() => {
+    const read = () => {
+      try {
+        const rooms = (BlueprintInterface as any)?.blueprint3d?.model?.floorplan?.getRooms?.() || [];
+        let total = 0;
+        rooms.forEach((r: any) => {
+          const c = r?.interiorCorners || [];
+          let a = 0;
+          for (let i = 0; i < c.length; i++) {
+            const p = c[i];
+            const q = c[(i + 1) % c.length];
+            a += p.x * q.y - q.x * p.y;
+          }
+          total += Math.abs(a / 2);
+        });
+        const m2 = Math.round(total / 100) / 100; // cm² → m², two places
+        setInteriorArea((cur) => (cur === m2 ? cur : m2));
+      } catch (e) {
+        /* the readout is a convenience; leave it as it was */
+      }
+    };
+    read();
+    const t = window.setInterval(read, 1000);
+    return () => window.clearInterval(t);
+  }, []);
 
   const drawWalls = () => {
     setActive("walls");
@@ -296,6 +337,12 @@ const FloorPlanTools: React.FC = () => {
           PDF, PNG, JPG or WEBP. Walls and rooms are read from the drawing.
         </p>
 
+        {/* The standard import, without AI: CAD files read exactly, PDFs and
+            images as a background at real size. */}
+        <div className="mt-3 pt-3 border-t border-[color:var(--pz-panel-border)]">
+          <FloorPlanStandardImport />
+        </div>
+
         <div className="mt-3 pt-3 border-t border-[color:var(--pz-panel-border)]">
           <SaveTemplateButton inline />
           {/* Spelled out because the button itself just says "Save", which sits
@@ -405,6 +452,12 @@ const FloorPlanTools: React.FC = () => {
             isActive={dimMode === "inner"}
           />
         </div>
+        {interiorArea !== null && interiorArea > 0 ? (
+          <div className="mt-2 flex items-center justify-between text-[12px] text-[color:var(--pz-text-2)]">
+            <span>Interior area</span>
+            <span className="font-medium text-[color:var(--pz-text)]">{interiorArea.toFixed(2)} m²</span>
+          </div>
+        ) : null}
       </PanelSection>
     </div>
   );

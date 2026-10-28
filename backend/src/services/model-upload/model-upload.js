@@ -20,6 +20,7 @@ import multer from '@koa/multer'
 import { v4 as uuidv4 } from 'uuid'
 import gltfPipeline from 'gltf-pipeline'
 import { applyDefaultWood } from './auto-wood.js'
+import { turnAlongWall } from './wall-turn.js'
 
 const { processGlb } = gltfPipeline
 
@@ -221,6 +222,20 @@ export const modelUpload = (app) => {
         ? `model-upload ~ default wood applied (${wood.category}): ${wood.bytes[0]} → ${wood.bytes[1]} bytes`
         : `model-upload ~ default wood not applied: ${wood.reason}`
     )
+    // WALL-MOUNTED ITEMS HANG LONG SIDE ALONG THE WALL. An AC or TV exported
+    // with its length front-to-back is turned once here, so "+ Add" hangs it
+    // flat instead of sticking out into the room. Cabinets are left alone.
+    let turnedAlongWall = false
+    if (Number(body.type) === 2 && !wood.category) {
+      const turned = await turnAlongWall(bufferToWrite)
+      bufferToWrite = turned.buffer
+      turnedAlongWall = turned.turned
+      console.log(
+        turned.turned
+          ? 'model-upload ~ wall item turned so its long side runs along the wall'
+          : `model-upload ~ wall item not turned: ${turned.reason}`
+      )
+    }
     const wasNormalized = false
     const normalizationWarning = null
 
@@ -240,12 +255,14 @@ export const modelUpload = (app) => {
     }
 
     const modelFileUrl = `${PUBLIC_URL_PREFIX}/${filename}`
-    const width = Number(body.width) || 450
+    let width = Number(body.width) || 450
     // Height / Depth now come from the upload form (measured from the GLB or
     // typed by the user). Fall back to the old placeholders if not supplied so
     // older clients keep working.
     const height = Number(body.height) || 815
-    const depth = Number(body.depth) || 550
+    let depth = Number(body.depth) || 550
+    // The form measured the file before it was turned: width and depth swap.
+    if (turnedAlongWall && depth > width) [width, depth] = [depth, width]
     const price = Number(body.price) || 0
     const type = Number(body.type) || 1
 
