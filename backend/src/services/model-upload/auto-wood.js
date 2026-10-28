@@ -26,6 +26,7 @@ import {
   isGlass,
   WOOD
 } from '../../../scripts/lib/glb-wood-bake.mjs'
+import { finishWardrobeDoc, hasWardrobeFinish } from '../../../scripts/lib/wardrobe-finish.mjs'
 
 /**
  * The top-level categories whose models get the default wood.
@@ -57,6 +58,11 @@ const SKIP_NAMES = [/handle colour/i]
 
 const loosely = (s) => String(s || '').toLowerCase().replace(/[^a-z]/g, '')
 const WANTED = new Set(WOOD_CATEGORIES.map(loosely))
+
+// Wardrobes are finished by their own rules (scripts/lib/wardrobe-finish.mjs):
+// 300 mm bar handles, drawer fronts on open units, aluminium profile handles.
+const WARDROBES = new Set(['Wardrobe', 'Single Wardrobe', 'Double Wardrobe'].map(loosely))
+const isWardrobe = (category) => WARDROBES.has(loosely(category))
 
 /**
  * Is this category — or any category above it — one that gets the wood?
@@ -173,6 +179,21 @@ export const bakeWood = async (buffer, modelName = '') => {
 }
 
 /**
+ * The wardrobe version of bakeWood: same contract, null to leave the file alone.
+ */
+export const bakeWardrobe = async (buffer) => {
+  const io = await createIO()
+  const doc = await io.readBinary(new Uint8Array(buffer))
+  if (bakedParts(doc) || hasWardrobeFinish(doc)) return null
+  const images = {
+    shutter: await loadWoodImage(WOOD.shutter),
+    handle: await loadWoodImage(WOOD.handle)
+  }
+  const finished = await finishWardrobeDoc(io, doc, images)
+  return finished ? finished.buffer : null
+}
+
+/**
  * The whole step, for the upload route: decide, bake, and say what happened.
  * Always returns a buffer — the original one whenever the wood is not applied.
  */
@@ -181,7 +202,7 @@ export const applyDefaultWood = async (app, buffer, categoryId, modelName = '') 
   try {
     category = await woodCategoryFor(app, categoryId)
     if (!category) return { buffer, applied: false, reason: 'category not a cabinet' }
-    const baked = await bakeWood(buffer, modelName)
+    const baked = isWardrobe(category) ? await bakeWardrobe(buffer) : await bakeWood(buffer, modelName)
     if (!baked) return { buffer, applied: false, reason: 'no plain shutter or handle to finish', category }
     return { buffer: baked, applied: true, category, bytes: [buffer.length, baked.length] }
   } catch (e) {
