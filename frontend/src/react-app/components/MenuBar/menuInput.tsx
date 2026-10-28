@@ -8,6 +8,15 @@ import { menuItemDisplayValue, modalInputs } from "@pazl/utils/unitsUtils.js";
 import { ACTION_EVENT_2D } from "@pazl/main/core/events.js";
 import { MENU_TABS } from ".";
 
+/** What the value in a wall or corner field is in: the project's own unit. */
+const UNIT_LABELS: Record<string, string> = {
+  mm: " mm",
+  cm: " cm",
+  m: " m",
+  inch: " in",
+  feetAndInch: " ft",
+};
+
 interface MenuInputPropsType {
   itemData: MenuItem;
   item2D: any;
@@ -147,7 +156,7 @@ function MenuInput({
               itemData.itemName === "dimension" ||
               itemData.itemName === "corner_elevation" ? (
                 <label className="px-4 py-[2px] bg-[#E9E5EC] font-semibold text-sm text-[#333333]">
-                  {unitMetric === "feetAndInch" ? " ft" : " mt"}
+                  {UNIT_LABELS[unitMetric as string] || " m"}
                 </label>
               ) : null}
             </div>

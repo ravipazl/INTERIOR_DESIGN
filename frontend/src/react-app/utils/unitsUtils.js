@@ -1,5 +1,6 @@
 import BlueprintInterface from "@pazl/blueprint-interface";
 import { Dimensioning } from "@pazl/main/core/dimensioning.js";
+import { dimMeter, dimCentiMeter, dimMilliMeter } from "@pazl/main/core/constants.js";
 
 export const NINTY_DEGREE_ROTATION_UNIT = 1.57;
 
@@ -22,7 +23,13 @@ function dimUnitRoomLabel(area) {
     "INFO: output area label in terms of the choosen metric ",
     Dimensioning.cmFromMeasureRaw(area) + ` ${BlueprintInterface.getUnit()}`
   );
-  return Dimensioning.cmToMeasureUnit(area, 2, BlueprintInterface.getUnit());
+  const unit = BlueprintInterface.getUnit();
+  // A room's area is read in square metres whichever metric unit lengths are
+  // shown in — 13326448mm² is no way to say 13.33 m². The caller adds the "²".
+  if (unit === dimMilliMeter || unit === dimCentiMeter || unit === dimMeter) {
+    return `${(area / 10000).toFixed(2)} m`;
+  }
+  return Dimensioning.cmToMeasureUnit(area, 2, unit);
 }
 
 function menuItemDisplayValue(item) {

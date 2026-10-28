@@ -137,10 +137,21 @@ export class Floorplan extends EventDispatcher {
     this._carbonSheet = null;
 
     /**
+     * The structural columns: a list of boxes { x0, y0, x1, y1 } (cm, plan
+     * corners). Not walls: each is drawn in 2D and built in 3D as the box it is,
+     * full height, wherever the plan puts it, whatever the walls round it are.
+     *
+     * @type {Array<{x0: number, y0: number, x1: number, y1: number}>}
+     */
+    this.__columns = [];
+
+    /**
      * This is necessary to sometimes explicitly stop the floorplan from doing
      * heavy computations
      */
     this.__updatesOn = true;
+    /** True while reset() removes everything (see reset). */
+    this.__resetting = false;
 
     this.__cornerGroups = new CornerGroups(this);
 
@@ -210,6 +221,8 @@ export class Floorplan extends EventDispatcher {
 
     this.removeCorner(corner);
     this.update();
+    // During reset() the 2D view is told once, when everything is gone.
+    if (this.__resetting) return;
     this.dispatchEvent({ type: EVENT_DELETED, item: this });
   }
 
@@ -431,6 +444,8 @@ export class Floorplan extends EventDispatcher {
   removeWall(wall) {
     Utils.removeValue(this.walls, wall);
     this.update();
+    // During reset() the 2D view is told once, when everything is gone.
+    if (this.__resetting) return;
     this.dispatchEvent({
       type: EVENT_DELETED,
       item: this,
@@ -448,6 +463,8 @@ export class Floorplan extends EventDispatcher {
   removeCorner(corner) {
     Utils.removeValue(this.corners, corner);
     this.update();
+    // During reset() the 2D view is told once, when everything is gone.
+    if (this.__resetting) return;
     this.dispatchEvent({
       type: EVENT_DELETED,
       item: this,
@@ -643,6 +660,15 @@ export class Floorplan extends EventDispatcher {
           a: { x: wall.a.x, y: wall.a.y },
           b: { x: wall.b.x, y: wall.b.y },
           thickness: Dimensioning.cmToMeasureRaw(wall.thickness),
+          // A column set into a wall (an imported plan's): written only when
+          // it is one, like the regions above.
+          ...(wall.isColumn ? { isColumn: true } : {}),
+          // Laid by an import so its footprint is the drawing's wall: drawn so in 2D.
+          ...(wall.builtFootprint ? { builtFootprint: true } : {}),
+          // The block as the drawing has it: [x1, y1, x2, y2], in the plan's unit.
+          ...(wall.isColumn && wall.columnRect
+            ? { columnRect: wall.columnRect.map((v) => Dimensioning.cmToMeasureRaw(v)) }
+            : {}),
         });
         cornerIds.push(wall.getStart());
         cornerIds.push(wall.getEnd());
@@ -669,6 +695,17 @@ export class Floorplan extends EventDispatcher {
     // });
     floorplans.rooms = this.metaroomsdata;
 
+    // Written only when the plan has columns, so a plan without any is saved
+    // byte for byte as it always was.
+    if (this.columns && this.columns.length) {
+      floorplans.columns = this.columns.map((c) => ({
+        x0: Dimensioning.cmToMeasureRaw(c.x0),
+        y0: Dimensioning.cmToMeasureRaw(c.y0),
+        x1: Dimensioning.cmToMeasureRaw(c.x1),
+        y1: Dimensioning.cmToMeasureRaw(c.y1),
+      }));
+    }
+
     if (this.carbonSheet) {
       floorplans.carbonSheet["url"] = this.carbonSheet.url;
       floorplans.carbonSheet["transparency"] = this.carbonSheet.transparency;
@@ -678,6 +715,13 @@ export class Floorplan extends EventDispatcher {
       floorplans.carbonSheet["anchorY"] = this.carbonSheet.anchorY;
       floorplans.carbonSheet["width"] = this.carbonSheet.width;
       floorplans.carbonSheet["height"] = this.carbonSheet.height;
+      // The plan background's own settings (viewer2d/PlanImage2D.js). Written
+      // only when it has them, like the rest of the sheet.
+      ["kind", "rotation", "locked", "hidden", "layersHidden"].forEach((key) => {
+        if (this.carbonSheet[key] !== undefined) {
+          floorplans.carbonSheet[key] = this.carbonSheet[key];
+        }
+      });
     }
 
     /*if (this.__boundary) {
@@ -800,6 +844,13 @@ export class Floorplan extends EventDispatcher {
       if (wall.thickness) {
         newWall.thickness = Dimensioning.cmFromMeasureRaw(wall.thickness);
       }
+      if (wall.builtFootprint) newWall.builtFootprint = true;
+      if (wall.isColumn) {
+        newWall.isColumn = true;
+        if (Array.isArray(wall.columnRect) && wall.columnRect.length === 4) {
+          newWall.columnRect = wall.columnRect.map((v) => Dimensioning.cmFromMeasureRaw(v));
+        }
+      }
       // Adding of a, b, wallType (straight, curved) for walls happened
       // with introduction of 0.0.2a
       if (Version.isVersionHigherThan(floorplan.version, "0.0.2a")) {
@@ -823,6 +874,28 @@ export class Floorplan extends EventDispatcher {
     // A design saved before the Ceiling Editor has none.
     this.ceilingRegions =
       ("ceilingRegions" in floorplan && floorplan.ceilingRegions) || {};
+
+    // The plan background (an image, or a CAD drawing's lines) if this plan
+    // has one — an empty sheet, as plans and templates without one carry,
+    // means none. Its values are always centimetres, so the plan's units do
+    // not apply.
+    this.carbonSheet =
+      floorplan.carbonSheet && floorplan.carbonSheet.url
+        ? { ...floorplan.carbonSheet }
+        : null;
+
+    // The structural columns, if the plan has any (absent on every plan saved
+    // before they existed). Written in the plan's unit, like the walls.
+    this.columns = Array.isArray(floorplan.columns)
+      ? floorplan.columns
+          .filter((c) => c && [c.x0, c.y0, c.x1, c.y1].every((v) => Number.isFinite(Number(v))))
+          .map((c) => ({
+            x0: Dimensioning.cmFromMeasureRaw(c.x0),
+            y0: Dimensioning.cmFromMeasureRaw(c.y0),
+            x1: Dimensioning.cmFromMeasureRaw(c.x1),
+            y1: Dimensioning.cmFromMeasureRaw(c.y1),
+          }))
+      : [];
 
     if ("boundary" in floorplan) {
       if (floorplan.boundary.points) {
@@ -936,6 +1009,13 @@ export class Floorplan extends EventDispatcher {
       }
       if (wall.thickness) {
         newWall.thickness = Dimensioning.cmFromMeasureRaw(wall.thickness);
+      }
+      if (wall.builtFootprint) newWall.builtFootprint = true;
+      if (wall.isColumn) {
+        newWall.isColumn = true;
+        if (Array.isArray(wall.columnRect) && wall.columnRect.length === 4) {
+          newWall.columnRect = wall.columnRect.map((v) => Dimensioning.cmFromMeasureRaw(v));
+        }
       }
       // Adding of a, b, wallType (straight, curved) for walls happened
       // with introduction of 0.0.2a
@@ -1081,15 +1161,36 @@ export class Floorplan extends EventDispatcher {
   reset() {
     var tmpCorners = this.corners.slice(0);
     var tmpWalls = this.walls.slice(0);
-    tmpCorners.forEach((corner) => {
-      corner.remove();
-    });
-    tmpWalls.forEach((wall) => {
-      wall.remove();
-    });
+    // ONE refresh, and ONE 2D redraw, when everything is gone — not one of
+    // each for every corner and wall removed. Each refresh finds the rooms
+    // again and each redraw rebuilds the whole 2D plan; on an imported plan of
+    // ~90 walls and ~80 corners that was hundreds of them and made Clear (and
+    // importing over a plan) take minutes. Each corner and wall is still
+    // removed, and still tells its own views, exactly as before.
+    var updatesWereOn = this.__updatesOn;
+    this.__updatesOn = false;
+    this.__resetting = true;
+    try {
+      tmpCorners.forEach((corner) => {
+        corner.remove();
+      });
+      tmpWalls.forEach((wall) => {
+        wall.remove();
+      });
+    } finally {
+      this.__updatesOn = updatesWereOn;
+      this.__resetting = false;
+    }
+    // Run while the old rooms are still listed, so the refresh takes them
+    // down (their floors and ceilings) exactly as the last removal used to.
+    if (updatesWereOn) this.update();
+    if (tmpCorners.length || tmpWalls.length) {
+      this.dispatchEvent({ type: EVENT_DELETED, item: this, item_type: "all" });
+    }
     this.corners = [];
     this.walls = [];
     this.rooms = [];
+    this.columns = [];
     this.metaroomsdata = {};
     this.__externalRooms = [];
     this.__externalCorners = [];
@@ -1495,6 +1596,15 @@ export class Floorplan extends EventDispatcher {
    */
   set carbonSheet(val) {
     this._carbonSheet = val;
+  }
+
+  /** The structural columns, as boxes { x0, y0, x1, y1 } in centimetres. */
+  get columns() {
+    return this.__columns;
+  }
+
+  set columns(list) {
+    this.__columns = Array.isArray(list) ? list : [];
   }
 
   /**

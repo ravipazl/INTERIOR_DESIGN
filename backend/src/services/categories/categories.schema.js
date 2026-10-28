@@ -9,7 +9,8 @@ export const categoriesSchema = {
   properties: {
     _id: { type: 'string' },
     name: { type: 'string' },
-    parentCategoryId: { type: 'string' },
+    // null = main category (KITCHEN, BEDROOM…), as stored in the database.
+    parentCategoryId: { type: ['string', 'null'] },
     invisible: { type: 'boolean' },
     thumbnail: { type: 'string' },
     createdAt: { type: 'string', format: 'date-time' },

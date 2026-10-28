@@ -401,7 +401,54 @@ export class WallView2D extends BaseFloorplanViewElement2D {
         }
     }
 
-    __drawPolygon(color = 0xDDDDDD, alpha = 1.0) {
+    /**
+     * The wall as the editor builds it — each side's own footprint, from its
+     * corner line inward — rather than one bar centred on the line. For a wall
+     * an import has laid so that this IS the drawing's wall (`builtFootprint`),
+     * so the 2D plan shows it, and the columns in it, exactly as drawn. The
+     * room-facing faces are edged, and the outer face of a wall with a room on
+     * one side only; the seam where two sides meet is not.
+     * Returns false when there is nothing to draw from (the caller draws the bar).
+     */
+    __drawSolid(color, alpha, outline) {
+        const views = [this.__frontEdge, this.__backEdge].filter(Boolean);
+        if (!views.length) return false;
+        const faces = views
+            .map((v) => {
+                try {
+                    return v.__getPolygonCoordinates(v.edge);
+                } catch (e) {
+                    return null;
+                }
+            })
+            .filter((p) => p && p.length === 4);
+        if (!faces.length) return false;
+        this.clear();
+        views.forEach((v) => v.clear());
+        this.lineStyle(0);
+        faces.forEach((p) => {
+            this.beginFill(color, alpha);
+            this.moveTo(p[0].x, p[0].y);
+            for (let i = 1; i < 4; i++) this.lineTo(p[i].x, p[i].y);
+            this.lineTo(p[0].x, p[0].y);
+            this.endFill();
+        });
+        if (outline != null) {
+            this.lineStyle(1, outline, 1.0);
+            faces.forEach((p) => {
+                this.moveTo(p[3].x, p[3].y); // the room-facing face
+                this.lineTo(p[2].x, p[2].y);
+                if (faces.length === 1) {
+                    this.moveTo(p[0].x, p[0].y); // the outer face
+                    this.lineTo(p[1].x, p[1].y);
+                }
+            });
+        }
+        return true;
+    }
+
+    __drawPolygon(color = 0xDDDDDD, alpha = 1.0, outline = null) {
+        if (this.__wall && this.__wall.builtFootprint && this.__drawSolid(color, alpha, outline)) return;
         this.clear();
         // Draw the wall as ONE solid bar spanning its full thickness — a single
         // combined wall for the two adjacent rooms — instead of two separate
@@ -428,13 +475,30 @@ export class WallView2D extends BaseFloorplanViewElement2D {
         let p2 = Dimensioning.cmToPixelVector2D(end.clone().add(offset));
         let p3 = Dimensioning.cmToPixelVector2D(end.clone().sub(offset));
         let p4 = Dimensioning.cmToPixelVector2D(start.clone().sub(offset));
-        this.lineStyle(0);
+        if (outline == null) this.lineStyle(0);
+        else this.lineStyle(1, outline, 1.0);
         this.beginFill(color, alpha);
         this.moveTo(p1.x, p1.y);
         this.lineTo(p2.x, p2.y);
         this.lineTo(p3.x, p3.y);
         this.lineTo(p4.x, p4.y);
         this.lineTo(p1.x, p1.y);
+        this.endFill();
+    }
+
+    /**
+     * A column drawn as the block it is: the rectangle [x1, y1, x2, y2] (cm) as
+     * the drawing has it, whatever the wall piece beneath it measures.
+     */
+    __drawBlock([x0, y0, x1, y1], color) {
+        this.clear();
+        if (this.__frontEdge) this.__frontEdge.clear();
+        if (this.__backEdge) this.__backEdge.clear();
+        const a = Dimensioning.cmToPixelVector2D({ x: Math.min(x0, x1), y: Math.min(y0, y1) });
+        const b = Dimensioning.cmToPixelVector2D({ x: Math.max(x0, x1), y: Math.max(y0, y1) });
+        this.lineStyle(0);
+        this.beginFill(color, 1.0);
+        this.drawRect(a.x, a.y, b.x - a.x, b.y - a.y);
         this.endFill();
     }
 
@@ -458,13 +522,23 @@ export class WallView2D extends BaseFloorplanViewElement2D {
         // Combined with the thickness itself, structural reads as a heavy black
         // wall and partition as a lighter, thinner grey wall. Hover/selected
         // states keep their own highlight colours.
+        // A column set into a wall (an imported plan's) is drawn solid black, so
+        // it stands out from the walls round it. Walls are a light grey with a
+        // thin edge — heavier for structural than for a partition.
+        if (this.__wall && this.__wall.isColumn) {
+            const r = this.__wall.columnRect;
+            if (Array.isArray(r) && r.length === 4) this.__drawBlock(r, 0x0d0d0f);
+            else this.__drawPolygon(0x0d0d0f, 1.0);
+            return;
+        }
         let thickness = this.__wall ? this.__wall.thickness : 0;
+        // An imported wall between two rooms is built from half its thickness
+        // on each side: its real thickness is twice that.
+        if (this.__wall && this.__wall.builtFootprint && this.__frontEdge && this.__backEdge) thickness *= 2;
         let isPartition = thickness <= 12;
-        let color = isPartition ? 0x8a8f98 : 0x000000;
-        // Softer solid black for structural/custom walls (reduced opacity);
-        // partition grey stays full strength.
-        let alpha = isPartition ? 1.0 : 0.75;
-        this.__drawPolygon(color, alpha);
+        let color = isPartition ? 0xd5d8dd : 0xb4b9c1;
+        let outline = isPartition ? 0x8a8f98 : 0x5b616b;
+        this.__drawPolygon(color, 1.0, outline);
     }
 
     __getCornerLocation(vec2){
@@ -557,9 +631,14 @@ export class WallView2D extends BaseFloorplanViewElement2D {
     }
 
     remove() {
-        this.__wall.removeEventListener(EVENT_MOVED, this.__wallUpdatedEvent);
-        this.__wall.removeEventListener(EVENT_UPDATED, this.__wallUpdatedEvent);
-        this.__wall.removeEventListener(EVENT_DELETED, this.__wallDeletedEvent);
+        // A view whose wall is already deleted (it let go of it then) has no
+        // wall to unhook from — clearing the whole plan at once redraws after
+        // the walls are gone, not between each one.
+        if (this.__wall) {
+            this.__wall.removeEventListener(EVENT_MOVED, this.__wallUpdatedEvent);
+            this.__wall.removeEventListener(EVENT_UPDATED, this.__wallUpdatedEvent);
+            this.__wall.removeEventListener(EVENT_DELETED, this.__wallDeletedEvent);
+        }
         this.removeChild(this.__info);
         super.remove();
     }

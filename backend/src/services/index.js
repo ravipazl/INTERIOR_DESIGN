@@ -31,6 +31,7 @@ import { render } from './render/render.js'
 import { aiRender } from './ai-render/ai-render.js'
 import { video } from './video/video.js'
 import { floorplanAi } from './floorplan-ai/floorplan-ai.js'
+import { dwgConvert } from './dwg-convert/dwg-convert.js'
 import { floorplanTemplates } from './floorplan-templates/floorplan-templates.js'
 import { thumbnailUpload } from './thumbnail-upload/thumbnail-upload.js'
 import { hardware } from './hardware/hardware.js'
@@ -85,6 +86,7 @@ export const services = (app) => {
   app.configure(aiRender)
   app.configure(video)
   app.configure(floorplanAi)
+  app.configure(dwgConvert)
   app.configure(floorplanTemplates)
   app.configure(thumbnailUpload)
   app.configure(hardware)

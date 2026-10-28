@@ -27,6 +27,14 @@ import {
   isGlb,
   downloadAsBuffer
 } from './tripo.js'
+import {
+  config as claudeBlenderConfig,
+  generateCandidate,
+  takeDailyAllowance,
+  refundDailyAllowance,
+  tempRoot,
+  UserFacingError
+} from './claude-blender.js'
 
 // gltf-transform IO used only to read the saved GLB and enumerate its
 // meshes — we don't re-write the Tripo output, just inspect it so we can
@@ -419,10 +427,268 @@ async function runJob(job, app, params) {
   }
 }
 
+// ───────────────────────── Claude + Blender engine ─────────────────────────
+//
+// Same job/poll mechanics as Tripo, but the job ends at stage "preview_ready"
+// with a candidate model. Nothing is written to the catalogue until the user
+// presses "Add to catalogue" (POST /image-to-3d/accept/:id).
+
+const PREVIEW_DIR = path.join(IMAGE_STORAGE_DIR, 'ai-previews')
+
+/** Signed-in user or null (a 401 is already written). Every run spends Anthropic credits. */
+async function requireUser(app, ctx) {
+  const token = String(ctx.headers.authorization || '')
+    .replace(/^Bearer\s+/i, '')
+    .trim()
+  if (token) {
+    try {
+      const { user } = await app
+        .service('authentication')
+        .create({ strategy: 'jwt', accessToken: token })
+      if (user) return user
+    } catch (_) {
+      /* fall through */
+    }
+  }
+  ctx.status = 401
+  ctx.body = { error: 'unauthenticated', message: 'Sign in to use Claude + Blender.' }
+  return null
+}
+
+const userIdOf = (user) => String(user?._id ?? user?.id ?? '')
+
+// Fields the browser may see (the candidate's file paths stay on the server).
+const publicJob = (job) => {
+  const { _private, ...rest } = job
+  return rest
+}
+
+function scheduleCleanup(dir) {
+  setTimeout(() => {
+    try {
+      fs.rmSync(dir, { recursive: true, force: true })
+    } catch (_) {
+      /* ignore */
+    }
+  }, JOB_RETENTION_MS).unref?.()
+}
+
+async function runClaudeBlenderJob(job, app, params) {
+  const { imageBuffer, sizeMm, categoryId, categoryName, displayName, hint, user, savedImageRelUrl, placementType } = params
+  const workDir = path.join(tempRoot(), job.id)
+  const db = await app.get('mongodbClient')
+  try {
+    const cand = await generateCandidate(job, {
+      imageBuffer,
+      sizeMm,
+      categoryName,
+      name: displayName,
+      hint,
+      workDir
+    })
+
+    fs.mkdirSync(PREVIEW_DIR, { recursive: true })
+    const previewName = `${job.id}.jpg`
+    fs.writeFileSync(path.join(PREVIEW_DIR, previewName), cand.previewJpeg)
+
+    // Can the model be read back, and do its parts line up with what we will store?
+    const doc = await glbIo.readBinary(new Uint8Array(fs.readFileSync(cand.glbPath)))
+    const componentNames = extractComponentNamesFromDoc(doc)
+    const measured = measureDocumentMm(doc)
+    const got = { w: measured?.widthMm, d: measured?.depthMm, h: measured?.heightMm }
+    const within = (have, want) => Number.isFinite(have) && Math.abs(have - want) / want <= 0.02
+    const checks = {
+      sizeWithin2Percent: within(got.w, sizeMm.w) && within(got.d, sizeMm.d) && within(got.h, sizeMm.h),
+      namedParts: componentNames.length >= 3 && componentNames.every((n) => !/^(mesh|cube|part)_?\d*$/i.test(n)),
+      opens: componentNames.length > 0
+    }
+
+    job._private = {
+      userId: userIdOf(user),
+      glbPath: cand.glbPath,
+      componentNames,
+      measured,
+      categoryId,
+      displayName,
+      placementType,
+      savedImageRelUrl,
+      script: cand.script
+    }
+    scheduleCleanup(workDir)
+    finishJob(job, {
+      stage: 'preview_ready',
+      progress: 100,
+      result: {
+        previewUrl: `/uploads/images/ai-previews/${previewName}`,
+        sizeMm: { w: Math.round(got.w), d: Math.round(got.d), h: Math.round(got.h) },
+        requestedSizeMm: sizeMm,
+        parts: componentNames,
+        triangles: cand.info.triangles,
+        fixRounds: cand.rounds,
+        differences: cand.differences,
+        plan: cand.plan,
+        checks,
+        tokens: cand.tokens,
+        seconds: Math.round((Date.now() - job.startedAt) / 1000)
+      }
+    })
+    console.log(
+      `[claude-blender] job ${job.id} ready: ${componentNames.length} parts, ${cand.info.triangles} tris, ` +
+        `${cand.rounds} fix round(s), ${cand.claudeCalls} Claude calls, ${cand.tokens.input}+${cand.tokens.output} tokens, ` +
+        `${Math.round((Date.now() - job.startedAt) / 1000)} s`
+    )
+  } catch (err) {
+    await refundDailyAllowance(db, userIdOf(user))
+    console.error(`[claude-blender] job ${job.id} failed:`, err?.message || err)
+    try {
+      fs.rmSync(workDir, { recursive: true, force: true })
+    } catch (_) {
+      /* ignore */
+    }
+    finishJob(job, {
+      stage: 'error',
+      error: err instanceof UserFacingError ? err.message : "Couldn't build a model from this photo. Please try again."
+    })
+  }
+}
+
+/** Save the previewed candidate: GLB file + `models` row + `model_components` rows. */
+async function acceptCandidate(app, job, overrides) {
+  const p = job._private
+  const displayName = overrides.name || p.displayName
+  const categoryId = overrides.categoryId || p.categoryId
+  const buffer = fs.readFileSync(p.glbPath)
+
+  ensureDirs()
+  const filename = `${uuidv4()}_${sanitizeFilename(displayName)}.glb`
+  fs.writeFileSync(path.join(GLB_STORAGE_DIR, filename), buffer)
+  const modelFileUrl = `/assets/models/glb/${filename}`
+
+  let moduleName = ''
+  try {
+    const cat = await app.service('categories').get(categoryId)
+    moduleName = cat?.name || ''
+  } catch (_) {
+    /* ignore */
+  }
+
+  const now = new Date().toISOString()
+  const db = await app.get('mongodbClient')
+  const ins = await db.collection('models').insertOne({
+    name: displayName,
+    modelFileUrl,
+    thumbnail: '',
+    thumbnails: '',
+    categoryId,
+    dimensions: resolveDimensions(p.measured).dimensions,
+    maxWidth: 9999,
+    standardWidth: [1, 500, 9999],
+    price: 0,
+    type: Number.isFinite(p.placementType) ? p.placementType : 1,
+    description: 'AI-generated from photo (Claude + Blender)',
+    hardware: '',
+    isPazlSupplied: true,
+    isUserUploaded: true,
+    isAiGenerated: true,
+    aiEngine: 'claude-blender',
+    sourceImageUrl: p.savedImageRelUrl,
+    moduleName,
+    sizeBytes: buffer.length,
+    createdAt: now,
+    updatedAt: now
+  })
+  const modelId = String(ins.insertedId)
+
+  // One row per real part. Part names are the GLB's own node names — they are what the
+  // runtime mesh names will be, which is what the colour picker and the BOQ key on.
+  const cNow = new Date().toISOString()
+  const docs = p.componentNames.map((name, i) => ({
+    modelId,
+    name,
+    meshName: name,
+    meshIndex: i,
+    componentType: 'external',
+    defaultFinishingId: null,
+    defaultFinishingBrandId: null,
+    defaultExternalFinishGrainDirection: 'Horizontal',
+    modelDefaultValues: [],
+    createdAt: cNow,
+    updatedAt: cNow
+  }))
+  if (docs.length) await db.collection('model_components').insertMany(docs)
+
+  return { modelId, modelFileUrl, name: displayName, categoryId, componentsInserted: docs.length }
+}
+
 export const imageTo3d = (app) => {
   ensureDirs()
 
   app.use(async (ctx, next) => {
+    // GET /image-to-3d/options — what the "Claude + Blender" engine offers this user right now
+    if (ctx.method === 'GET' && ctx.path === '/image-to-3d/options') {
+      const cfg = claudeBlenderConfig()
+      const user = await requireUser(app, ctx)
+      if (!user) return
+      let used = 0
+      try {
+        const db = await app.get('mongodbClient')
+        const row = await db.collection('ai_model_usage').findOne({
+          userId: userIdOf(user),
+          day: new Date().toISOString().slice(0, 10),
+          engine: 'claude-blender'
+        })
+        used = row?.count || 0
+      } catch (_) {
+        /* show 0 */
+      }
+      ctx.status = 200
+      ctx.body = {
+        claudeBlender: {
+          enabled: cfg.enabled && !!process.env.ANTHROPIC_API_KEY,
+          dailyLimit: cfg.dailyLimit,
+          usedToday: used
+        }
+      }
+      return
+    }
+
+    // POST /image-to-3d/accept/:id — user pressed "Add to catalogue"
+    if (ctx.method === 'POST' && ctx.path.startsWith('/image-to-3d/accept/')) {
+      const user = await requireUser(app, ctx)
+      if (!user) return
+      const id = ctx.path.substring('/image-to-3d/accept/'.length)
+      const job = jobs.get(id)
+      if (!job || !job._private) {
+        ctx.status = 404
+        ctx.body = { error: 'not_found', message: 'This preview has expired. Generate it again.' }
+        return
+      }
+      if (job._private.userId !== userIdOf(user)) {
+        ctx.status = 403
+        ctx.body = { error: 'forbidden', message: 'This preview belongs to someone else.' }
+        return
+      }
+      if (job.accepted) {
+        ctx.status = 200
+        ctx.body = job.accepted
+        return
+      }
+      try {
+        const body = ctx.request.body || {}
+        job.accepted = await acceptCandidate(app, job, {
+          name: body.name && String(body.name).trim(),
+          categoryId: body.categoryId
+        })
+        ctx.status = 200
+        ctx.body = job.accepted
+      } catch (err) {
+        console.error('[claude-blender] accept failed:', err?.message || err)
+        ctx.status = 500
+        ctx.body = { error: 'accept_failed', message: "Couldn't add the model to the catalogue. Please try again." }
+      }
+      return
+    }
+
     // GET /image-to-3d/status/:id
     if (ctx.method === 'GET' && ctx.path.startsWith('/image-to-3d/status/')) {
       const id = ctx.path.substring('/image-to-3d/status/'.length)
@@ -433,7 +699,7 @@ export const imageTo3d = (app) => {
         return
       }
       ctx.status = 200
-      ctx.body = job
+      ctx.body = publicJob(job)
       return
     }
 
@@ -511,6 +777,62 @@ export const imageTo3d = (app) => {
       const n = Number(body.type)
       return Number.isFinite(n) && n >= 0 ? n : 1
     })()
+
+    // ── Claude + Blender engine (Tripo below is untouched) ──
+    if (String(body.engine || '').toLowerCase() === 'claude-blender') {
+      // A request refused below must not leave its photo behind on disk.
+      const dropPhoto = () => fs.rmSync(savedPath, { force: true })
+      const user = await requireUser(app, ctx)
+      if (!user) return dropPhoto()
+      const cfg = claudeBlenderConfig()
+      if (!cfg.enabled) {
+        // 400, not 503: the app's HTTP client treats 5xx as a crash and 401/403 as "signed out"
+        ctx.status = 400
+        ctx.body = { error: 'engine_off', message: 'Claude + Blender is switched off right now.' }
+        return dropPhoto()
+      }
+      const sizeMm = { w: Number(body.widthMm), d: Number(body.depthMm), h: Number(body.heightMm) }
+      if (![sizeMm.w, sizeMm.d, sizeMm.h].every((v) => Number.isFinite(v) && v > 0)) {
+        ctx.status = 400
+        ctx.body = {
+          error: 'size_required',
+          message: 'Enter the real width, depth and height in mm — Claude + Blender builds to that exact size.'
+        }
+        return dropPhoto()
+      }
+      const db = await app.get('mongodbClient')
+      const allowance = await takeDailyAllowance(db, userIdOf(user))
+      if (!allowance.ok) {
+        ctx.status = 429
+        ctx.body = {
+          error: 'daily_limit',
+          message: `Daily limit reached (${allowance.limit} Claude + Blender models). It resets at midnight UTC.`
+        }
+        return dropPhoto()
+      }
+      let categoryName = ''
+      try {
+        categoryName = (await app.service('categories').get(categoryId))?.name || ''
+      } catch (_) {
+        /* name is optional */
+      }
+      const cbJob = newJob()
+      cbJob.engine = 'claude-blender'
+      ctx.status = 202
+      ctx.body = { jobId: cbJob.id, status: 'queued', usedToday: allowance.used, dailyLimit: allowance.limit }
+      runClaudeBlenderJob(cbJob, app, {
+        imageBuffer: file.buffer,
+        sizeMm,
+        categoryId,
+        categoryName,
+        displayName,
+        hint: body.hint && String(body.hint).slice(0, 300),
+        user,
+        savedImageRelUrl,
+        placementType
+      })
+      return
+    }
 
     // Create job + start async
     const job = newJob()

@@ -346,6 +346,8 @@ function RoomPanel({
     );
   const [addCategoryParentId, setAddCategoryParentId] =
     useState<string | null>(null);
+  // The "+" beside the Category heading only creates main categories.
+  const [addMainCategory, setAddMainCategory] = useState<boolean>(false);
   // Active placement-type pill (Explore filter). Resets to "all" whenever a
   // new category is opened, so the filter is scoped to the current category.
   const [placementFilter, setPlacementFilter] = useState<string>("all");
@@ -1146,6 +1148,7 @@ function RoomPanel({
               onClick={(e) => {
                 e.stopPropagation();
                 setAddCategoryParentId(node.data.id);
+                setAddMainCategory(false);
                 setShowAddCategoryModal(true);
               }}
               className="text-xs px-1.5 py-0.5 rounded bg-[color:var(--pz-accent)] text-white shrink-0"
@@ -1565,10 +1568,11 @@ function RoomPanel({
                 onClick={(e) => {
                   e.stopPropagation();
                   setAddCategoryParentId(null);
+                  setAddMainCategory(true);
                   setShowAddCategoryModal(true);
                 }}
                 className="w-6 h-6 grid place-items-center rounded bg-[color:var(--pz-accent)] text-white hover:opacity-90 shrink-0"
-                title="Add a new top-level category (or pick a parent inside the modal)"
+                title="Add a new main category, like KITCHEN or BEDROOM"
               >
                 <span className="material-symbols-outlined text-[16px] leading-none">
                   add
@@ -1711,6 +1715,7 @@ function RoomPanel({
         onClose={() => setShowAddCategoryModal(false)}
         onSuccess={refreshCategoriesTree}
         presetParentId={addCategoryParentId}
+        mainOnly={addMainCategory}
       />
       <EditCategoryModal
         show={showEditCategoryModal}

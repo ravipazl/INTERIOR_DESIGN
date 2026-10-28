@@ -1705,7 +1705,9 @@ BlueprintInterface.placeAiDoors = (doors) => {
   if (!helper || !Array.isArray(doors)) return 0;
   let placed = 0;
   doors.forEach((d) => {
-    if (helper.addParametricDoorAtPoint(d.cxCm, d.cyCm, d.widthCm)) placed += 1;
+    // `open` (RIGHT / LEFT / BOTH_SIDES / NO_DOORS) when the caller knows how
+    // the door should be — a wide gap as a double door or an open frame.
+    if (helper.addParametricDoorAtPoint(d.cxCm, d.cyCm, d.widthCm, 1, d.open || "RIGHT", 210, d.name || "Parametric Door")) placed += 1;
   });
   BlueprintInterface.redrawDoors2D();
   return placed;
@@ -1718,7 +1720,19 @@ BlueprintInterface.placeAiWindows = (windows) => {
   if (!helper || !Array.isArray(windows)) return 0;
   let placed = 0;
   windows.forEach((wn) => {
-    if (helper.addParametricWindowAtPoint(wn.cxCm, wn.cyCm, wn.widthCm))
+    // A name, a height and a sill when the caller knows them (a ventilator is
+    // small and set high); otherwise the standard window.
+    if (
+      helper.addParametricWindowAtPoint(
+        wn.cxCm,
+        wn.cyCm,
+        wn.widthCm,
+        1,
+        wn.name || "Parametric Window",
+        wn.heightCm,
+        wn.sillCm
+      )
+    )
       placed += 1;
   });
   BlueprintInterface.redrawDoors2D();

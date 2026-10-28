@@ -22,6 +22,7 @@ import {
 import { Grid2D } from "./Grid2d";
 import { CornerView2D } from "./CornerView2D";
 import { WallView2D } from "./WallView2D";
+import { ColumnView2D } from "./ColumnView2D";
 import { RoomView2D } from "./RoomView2D";
 import { Dimensioning } from "../core/dimensioning";
 import { KeyboardListener2D } from "./KeyboardManager2D";
@@ -37,6 +38,7 @@ import Room from "../model/room";
 import { BoundaryView2D } from "./BoundaryView2D";
 import { DrawTools2D } from "./DrawTools2D";
 import { LineLengthBox2D } from "./LineLengthBox2D";
+import { PlanImage2D } from "./PlanImage2D";
 import BlueprintInterface from "@pazl/blueprint-interface";
 
 // TOOL: a drawing tool from DrawTools2D (Arc, Rectangle, Split, …) has the mouse.
@@ -362,6 +364,10 @@ export class Viewer2D extends Application {
 
     // Coohom-style drawing tools. Idle until one is chosen from the toolbar.
     this.__drawTools = new DrawTools2D(this);
+
+    // The plan image to trace over (floorplan.carbonSheet). Shows nothing
+    // until a plan has one.
+    this.__planImage = new PlanImage2D(this);
 
     // Line tool's typed-length box (Coohom-style): type a length, Enter.
     this.__lineCursor = null;
@@ -1527,6 +1533,16 @@ export class Viewer2D extends Application {
         this.__selectionMonitorEvent
       );
     }
+    // The structural columns, over the walls: each the box the plan gives it.
+    (this.__floorplan.columns || []).forEach((modelColumn) => {
+      const columnView = new ColumnView2D(
+        this.__floorplan,
+        this.__options,
+        modelColumn
+      );
+      this.__floorplanElementsHolder.addChild(columnView);
+      this.__entities2D.push(columnView);
+    });
     for (i = 0; i < this.__floorplan.corners.length; i++) {
       let modelCorner = this.__floorplan.corners[i];
       let cornerView = new CornerView2D(
@@ -2158,6 +2174,7 @@ export class Viewer2D extends Application {
 
   dispose() {
     if (this.__drawTools) this.__drawTools.deactivate();
+    if (this.__planImage) this.__planImage.destroy();
     if (this.__lengthBox) this.__lengthBox.destroy();
     this.__floorplanContainer.off("zoomed", this.__zoomedEvent);
     this.__floorplanContainer.off("moved", this.__pannedEvent);

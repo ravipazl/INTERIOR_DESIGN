@@ -106,6 +106,14 @@ export const ModelsService = {
      * 4 Roof, 7 InWallFloor. Defaults to 1 server-side if omitted.
      */
     type?: number;
+    /** "tripo" (default) or "claude-blender" — the latter needs the real size. */
+    engine?: "tripo" | "claude-blender";
+    /** Real overall size in mm (required by claude-blender). */
+    widthMm?: number;
+    depthMm?: number;
+    heightMm?: number;
+    /** Optional note for Claude, e.g. "handles are brushed steel". */
+    hint?: string;
   }) => {
     const fd = new FormData();
     fd.append("image", input.image);
@@ -114,6 +122,11 @@ export const ModelsService = {
     if (input.faceLimit != null) fd.append("faceLimit", String(input.faceLimit));
     if (input.texture) fd.append("texture", "true");
     if (input.type != null) fd.append("type", String(input.type));
+    if (input.engine) fd.append("engine", input.engine);
+    if (input.widthMm != null) fd.append("widthMm", String(input.widthMm));
+    if (input.depthMm != null) fd.append("depthMm", String(input.depthMm));
+    if (input.heightMm != null) fd.append("heightMm", String(input.heightMm));
+    if (input.hint) fd.append("hint", input.hint);
     const accessToken = AuthService.getAccessToken();
     const response = await axios.post("/image-to-3d", fd, {
       headers: {
@@ -142,6 +155,29 @@ export const ModelsService = {
       );
     }
     return response.data;
+  },
+
+  /** What the "Claude + Blender" engine offers right now (on/off, daily limit, used today). */
+  getImageTo3dOptions: async () => {
+    const accessToken = AuthService.getAccessToken();
+    const response = await axios.get("/image-to-3d/options", {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    return response.data as {
+      claudeBlender: { enabled: boolean; dailyLimit: number; usedToday: number };
+    };
+  },
+
+  /** "Add to catalogue" for a Claude + Blender preview — only now is anything saved. */
+  acceptImageTo3d: async (
+    jobId: string,
+    input: { name?: string; categoryId?: string } = {}
+  ) => {
+    const accessToken = AuthService.getAccessToken();
+    const response = await axios.post(`/image-to-3d/accept/${jobId}`, input, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    return response.data as { modelId: string; modelFileUrl: string; name: string };
   },
 
   /**

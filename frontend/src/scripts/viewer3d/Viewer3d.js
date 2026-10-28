@@ -98,6 +98,7 @@ const POLAR_EPSILON = 0.01;
 const MIN_ZOOM_DISTANCE = 15;
 import { Edge3D } from "./edge3d.js";
 import { Floor3D } from "./floor3d.js";
+import { Column3D } from "./column3d.js";
 import { Lights3D } from "./lights3d.js";
 import { HUD } from "./hud.js";
 import { Physical3DItem } from "./Physical3DItem.js";
@@ -2613,9 +2614,37 @@ export class Viewer3D extends Scene {
     }
   }
 
+  /**
+   * How tall a column stands: as the nearest wall does (its corners'
+   * elevation), or the plan's wall height where no wall is near.
+   */
+  __columnHeight(column) {
+    const cx = (column.x0 + column.x1) / 2;
+    const cy = (column.y0 + column.y1) / 2;
+    let nearest = null;
+    let nearestD = Infinity;
+    (this.floorplan.walls || []).forEach((w) => {
+      if (!w.start || !w.end) return;
+      const a = w.start.location;
+      const b = w.end.location;
+      const dx = b.x - a.x;
+      const dy = b.y - a.y;
+      const l2 = dx * dx + dy * dy || 1;
+      const t = Math.max(0, Math.min(1, ((cx - a.x) * dx + (cy - a.y) * dy) / l2));
+      const d = Math.hypot(a.x + t * dx - cx, a.y + t * dy - cy);
+      if (d < nearestD) {
+        nearestD = d;
+        nearest = w;
+      }
+    });
+    const h = nearest ? Math.max(nearest.startElevation || 0, nearest.endElevation || 0) : 0;
+    return h > 0 ? h : Configuration.getNumericValue(configWallHeight) || 280;
+  }
+
   addRoomsAndWalls() {
     let scope = this;
     let i = 0;
+    if (!scope.columns3d) scope.columns3d = [];
 
     // clear scene
     scope.floors3d.forEach((floor) => {
@@ -2627,6 +2656,8 @@ export class Viewer3D extends Scene {
       edge3d.remove();
       edge3d = null;
     });
+    (scope.columns3d || []).forEach((column3d) => column3d.remove());
+    scope.columns3d = [];
     scope.lights.forEach((light) => {
       light.remove();
     });
@@ -2662,6 +2693,16 @@ export class Viewer3D extends Scene {
         this.__options
       );
       scope.edges3d.push(edge3d);
+    }
+
+    // The structural columns: each a box of its own, as tall as the walls it
+    // stands among. Never allowed to break the walls and floors above.
+    try {
+      (scope.floorplan.columns || []).forEach((column) => {
+        scope.columns3d.push(new Column3D(scope, column, scope.__columnHeight(column)));
+      });
+    } catch (e) {
+      console.error("Viewer3D: the columns couldn't be built", e);
     }
 
     // The floors and walls above are BRAND NEW objects, so any room-focus that

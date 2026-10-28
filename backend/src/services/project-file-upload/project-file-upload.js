@@ -6,7 +6,8 @@
 //
 // multipart/form-data:
 //   file        the binary (.pdf; images .png .jpg .jpeg .webp .gif;
-//               audio .mp3 .wav .m4a .ogg .aac; video .webm .mp4 .mov .m4v .avi .mkv)
+//               audio .mp3 .wav .m4a .ogg .aac; video .webm .mp4 .mov .m4v .avi .mkv;
+//               .json — a floor plan background's lines)
 //   projectId   the project this file belongs to (required)
 //
 // Writes to:
@@ -50,7 +51,9 @@ const ALLOWED_EXT = [
   '.mov',
   '.m4v',
   '.avi',
-  '.mkv'
+  '.mkv',
+  // a floor plan background: an imported CAD drawing's lines (PlanImage2D)
+  '.json'
 ]
 
 const upload = multer({
