@@ -49,6 +49,8 @@
     "cabinet-finishes:verify": "node scripts/production/verify-cabinet-finishes.mjs",
     "wardrobe-finishes:check": "node scripts/production/wardrobe-finish-live.mjs",
     "wardrobe-finishes:apply": "node scripts/production/wardrobe-finish-live.mjs --apply",
+    "living-finishes:check": "node scripts/production/living-finish-live.mjs",
+    "living-finishes:apply": "node scripts/production/living-finish-live.mjs --apply",
     "laminate-catalogue:check": "node scripts/production/laminate-catalogue-live.mjs",
     "laminate-catalogue:apply": "node scripts/production/laminate-catalogue-live.mjs --apply",
     "laminate-catalogue:verify": "node scripts/production/laminate-catalogue-live.mjs --verify",

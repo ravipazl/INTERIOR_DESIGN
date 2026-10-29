@@ -27,6 +27,7 @@ import {
   WOOD
 } from '../../../scripts/lib/glb-wood-bake.mjs'
 import { finishWardrobeDoc, hasWardrobeFinish } from '../../../scripts/lib/wardrobe-finish.mjs'
+import { LIVING_RULES, finishPanelDoc } from '../../../scripts/lib/living-finish.mjs'
 
 /**
  * The top-level categories whose models get the default wood.
@@ -49,7 +50,9 @@ const WOOD_CATEGORIES = [
   'Above Counter Storage',
   'Wardrobe',
   'Single Wardrobe',
-  'Double Wardrobe'
+  'Double Wardrobe',
+  // Living Room TV wall (scripts/lib/living-finish.mjs).
+  ...Object.keys(LIVING_RULES)
 ]
 
 // Models the bake script leaves alone by name, mirrored here so both paths
@@ -63,6 +66,11 @@ const WANTED = new Set(WOOD_CATEGORIES.map(loosely))
 // 300 mm bar handles, drawer fronts on open units, aluminium profile handles.
 const WARDROBES = new Set(['Wardrobe', 'Single Wardrobe', 'Double Wardrobe'].map(loosely))
 const isWardrobe = (category) => WARDROBES.has(loosely(category))
+
+// The TV drawer unit is read by the wardrobe rules (a 327 mm drawer front and
+// 96 mm bar handles); a TV back panel or cladding slat is wood all over.
+const LIVING = new Map(Object.entries(LIVING_RULES).map(([name, rule]) => [loosely(name), rule]))
+const livingRule = (category) => LIVING.get(loosely(category)) || null
 
 /**
  * Is this category — or any category above it — one that gets the wood?
@@ -193,6 +201,26 @@ export const bakeWardrobe = async (buffer) => {
   return finished ? finished.buffer : null
 }
 
+/** A TV back panel or cladding slat: wood all over. Null to leave the file alone. */
+export const bakePanel = async (buffer) => {
+  const io = await createIO()
+  const doc = await io.readBinary(new Uint8Array(buffer))
+  if (bakedParts(doc)) return null
+  const images = {
+    shutter: await loadWoodImage(WOOD.shutter),
+    handle: await loadWoodImage(WOOD.handle)
+  }
+  const finished = await finishPanelDoc(io, doc, images)
+  return finished ? finished.buffer : null
+}
+
+const bakeFor = (category, buffer, modelName) => {
+  const living = livingRule(category)
+  if (living === 'panel') return bakePanel(buffer)
+  if (living === 'cabinet' || isWardrobe(category)) return bakeWardrobe(buffer)
+  return bakeWood(buffer, modelName)
+}
+
 /**
  * The whole step, for the upload route: decide, bake, and say what happened.
  * Always returns a buffer — the original one whenever the wood is not applied.
@@ -202,7 +230,7 @@ export const applyDefaultWood = async (app, buffer, categoryId, modelName = '') 
   try {
     category = await woodCategoryFor(app, categoryId)
     if (!category) return { buffer, applied: false, reason: 'category not a cabinet' }
-    const baked = isWardrobe(category) ? await bakeWardrobe(buffer) : await bakeWood(buffer, modelName)
+    const baked = await bakeFor(category, buffer, modelName)
     if (!baked) return { buffer, applied: false, reason: 'no plain shutter or handle to finish', category }
     return { buffer: baked, applied: true, category, bytes: [buffer.length, baked.length] }
   } catch (e) {
