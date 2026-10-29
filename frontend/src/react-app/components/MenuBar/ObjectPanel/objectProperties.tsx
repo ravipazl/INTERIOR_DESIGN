@@ -6,6 +6,7 @@ import { RenderService } from "../../../services/RenderService";
 import { ROTATION_MODES } from "@pazl/entities/FurnishedModel";
 import { capitalizeText } from "@pazl/utils/genericFunctions";
 import { MODEL_TYPES } from "@pazl/entities/Model";
+import { WallItem } from "@pazl/main/items/wall_item.js";
 import { ModelsService } from "@pazl/services/ModelsService";
 import { TexturesService } from "@pazl/services/texturesService";
 import { CategoriesService } from "@pazl/services/categoriesService";
@@ -393,8 +394,26 @@ function ObjectProperties({
     onHideObjectPanel();
   };
 
-  // Every placement type (floor, wall-mounted, in-wall) rotates the same way:
-  // the item turns around its vertical axis, saved on the placed record.
+  // A wall item hangs square to its wall and faces the room, so it gets
+  // "Face the room" instead of Rotate (see ItemToolbar3D, isWallItem).
+  const engineItem: any =
+    (BlueprintInterface as any)?.selectedModels?.find(
+      (i: any) => i?.itemModel?.id === selectedModel?._id
+    ) || (BlueprintInterface as any)?.selectedModels?.[0];
+  const onWallItem =
+    (engineItem?.itemModel || engineItem?.__itemModel) instanceof WallItem;
+  const wallItemTurned = Math.abs(Number(modelObject?.rotation?.[1] || 0)) > 0.5;
+  const onFaceRoom = async () => {
+    await BlueprintInterface.ProjectManagerService.onFurnishedModelFaceWall(
+      selectedModel._id
+    );
+    setModelObject({
+      ...modelObject,
+      rotation: [modelObject.rotation[0] ?? 0, 0, modelObject.rotation[2] ?? 0],
+    });
+  };
+
+  // Floor items turn around their vertical axis, saved on the placed record.
   const onRotationChange = async (mode: ROTATION_MODES, angle?: number) => {
     await BlueprintInterface.ProjectManagerService.onFurnishedModelRotationChange(
       selectedModel._id,
@@ -1319,7 +1338,17 @@ function ObjectProperties({
                                   furnishedId
                                 );
                               }
-                              handleAddItemsToScene(updatedModel);
+                              // Moved to Wall-mounted: hang it with its top at
+                              // 7 ft, as "+ Add" does (not for any other type,
+                              // or a wall unit could not be stood on the floor).
+                              handleAddItemsToScene(
+                                updatedModel,
+                                undefined,
+                                undefined,
+                                newType === MODEL_TYPES.WALL_UNIT
+                                  ? { hangWallUnit: true }
+                                  : undefined
+                              );
 
                               setTypeSaveMessage(
                                 `Re-docked as "${placementTypeLabel(
@@ -1369,9 +1398,42 @@ function ObjectProperties({
                       </div>
                     );
                   })()}
-                  {/* Shown for every placement type — wall-mounted and in-wall
-                      items rotate exactly like floor items. */}
-                  {modelObject ? (
+                  {modelObject && onWallItem ? (
+                    <div className="flex flex-col max-w-sm mb-2">
+                      <h6 className="text-xs font-semibold leading-tight text-primary dark:text-neutral-200">
+                        Facing
+                      </h6>
+                      {wallItemTurned ? (
+                        <button
+                          type="button"
+                          className="mt-1 self-start rounded border border-[color:var(--pz-panel-border)] px-2 py-1.5 text-xs font-medium leading-tight text-black dark:text-neutral-200"
+                          title="Hang it square to its wall, facing the room"
+                          onClick={onFaceRoom}
+                        >
+                          Face the room
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          className="mt-1 self-start rounded border border-[color:var(--pz-panel-border)] px-2 py-1.5 text-xs font-medium leading-tight text-black dark:text-neutral-200"
+                          title="Turn it 90° and keep it flat on the wall"
+                          onClick={() =>
+                            BlueprintInterface.ProjectManagerService.onFurnishedModelWallTurn(
+                              selectedModel._id
+                            )
+                          }
+                        >
+                          Turn on wall 90°
+                        </button>
+                      )}
+                      <p className="mt-1 text-[10px] text-neutral-500 dark:text-neutral-400">
+                        Stays flat on the wall. To move it to another wall, drag
+                        it there.
+                      </p>
+                    </div>
+                  ) : null}
+                  {/* Floor items rotate; wall items get "Facing" above. */}
+                  {modelObject && !onWallItem ? (
                     <div className="flex flex-col max-w-sm mb-2">
                       <h6 className="text-xs font-semibold leading-tight text-primary dark:text-neutral-200">
                         Rotate

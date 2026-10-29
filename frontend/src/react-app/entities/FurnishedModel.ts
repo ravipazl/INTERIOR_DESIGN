@@ -206,6 +206,44 @@ export class FurnishedModel extends LocalDBManager {
   }
 
   /**
+   * Hang a wall item square to its wall again, facing into the room: drop
+   * any turn the user gave it. A wall item's facing comes from its wall, so
+   * this is right on every wall, and it is what a reload shows too (a saved
+   * turn of 0 is never re-applied).
+   */
+  async handleFaceWall() {
+    this.rotation = [this.rotation?.[0] ?? 0, 0, this.rotation?.[2] ?? 0];
+    await this.update();
+    await BlueprintInterface?.selectedModels
+      ?.find((item) => item.itemModel.id === this._id)
+      ?.__itemUpdatedEvent({
+        faceWall: true,
+        property: "combinedRotation",
+      });
+  }
+
+  /**
+   * Turn a wall item a quarter turn ON its wall (toolbar: Turn on wall). The
+   * 3D item turns the model and re-hangs it flush (Physical3DItem.turnOnWall);
+   * here the record follows: width and depth swap, and the spot is saved. The
+   * turn count itself is saved with the plan, in the item's metadata.
+   */
+  async handleWallTurn() {
+    const placed: any = BlueprintInterface?.selectedModels?.find(
+      (item: any) => item.itemModel.id === this._id
+    );
+    if (!placed?.turnOnWall || !(await placed.turnOnWall())) return false;
+    if (this.dimensions?.length === 3) {
+      const [h, w, d] = this.dimensions;
+      this.dimensions = [h, d, w];
+    }
+    const p = placed.itemModel.position;
+    this.position = [p.x, p.y, p.z];
+    await this.update();
+    return true;
+  }
+
+  /**
    * Read the GLB's cached native bounding-box extents.
    *
    * UNIFORM resize: changing any one dimension scales the whole item by a

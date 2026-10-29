@@ -214,7 +214,10 @@ export function keepLoadOrder(doc) {
  * Returns the new GLB bytes, verified: same parts in the same order and the
  * materials really applied — otherwise throws and nothing should be written.
  */
-export async function bakeDoc(io, doc, { shutters, handles }, images) {
+export async function bakeDoc(io, doc, { shutters, handles }, images, tileM = {}) {
+  // `tileM` ({ shutter, handle } in metres) overrides how much wood one image
+  // covers — a 2.4 m wall panel needs more than a door's 2.1 m, or the grain
+  // repeats with a seam across it. Leaving it out bakes exactly as before.
   const before = signature(doc)
   const rows = partRows(doc)
   const base = rows[0]?.prim.getMaterial() || null
@@ -230,8 +233,8 @@ export async function bakeDoc(io, doc, { shutters, handles }, images) {
       .setExtras({ bakedFinish: part.label, bakedTexture: part.fileUrl })
   }
   const jobs = [
-    [shutters, shutters.length ? make(WOOD.shutter, images.shutter) : null, WOOD.shutter],
-    [handles, handles.length ? make(WOOD.handle, images.handle) : null, WOOD.handle]
+    [shutters, shutters.length ? make(WOOD.shutter, images.shutter) : null, { ...WOOD.shutter, tileM: tileM.shutter || WOOD.shutter.tileM }],
+    [handles, handles.length ? make(WOOD.handle, images.handle) : null, { ...WOOD.handle, tileM: tileM.handle || WOOD.handle.tileM }]
   ]
   for (const [indices, material, part] of jobs) {
     for (const i of indices) {

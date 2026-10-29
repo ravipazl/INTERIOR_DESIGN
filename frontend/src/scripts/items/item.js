@@ -416,6 +416,8 @@ export class Item extends EventDispatcher {
       // Kitchen backsplash config ({on,height,materialUrl,color}) — kept so it
       // survives an explicit metadata rebuild and reloads with the project.
       backsplash: this.metadata.backsplash,
+      // Quarter turns of a wall item on its wall (Physical3DItem.turnOnWall).
+      wallTurn: this.metadata.wallTurn,
     };
   }
 

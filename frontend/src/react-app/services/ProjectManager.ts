@@ -1307,6 +1307,23 @@ export class ProjectManager {
     }
   }
 
+  /** Turn a wall item back to face the room and save it (toolbar: Face the room). */
+  async onFurnishedModelFaceWall(furnishedModelId: string) {
+    const existingFurnishedModel = this.getFurnishedModelById(furnishedModelId);
+    if (!existingFurnishedModel) return;
+    await existingFurnishedModel.handleFaceWall();
+    await this.updateFloorPlan(HISTORY_TITLES.WALL_ITEM_ROTATED);
+  }
+
+  /** Turn a wall item a quarter turn on its wall and save it (toolbar: Turn on wall). */
+  async onFurnishedModelWallTurn(furnishedModelId: string) {
+    const existingFurnishedModel = this.getFurnishedModelById(furnishedModelId);
+    if (!existingFurnishedModel) return;
+    if (await existingFurnishedModel.handleWallTurn()) {
+      await this.updateFloorPlan(HISTORY_TITLES.WALL_ITEM_ROTATED);
+    }
+  }
+
   /** Mirror a placed item left-to-right and save it (toolbar: Mirror). */
   async onFurnishedModelMirror(furnishedModelId: string) {
     const existingFurnishedModel = this.getFurnishedModelById(furnishedModelId);

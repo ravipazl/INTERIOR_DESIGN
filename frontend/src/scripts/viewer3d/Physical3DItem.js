@@ -12,6 +12,7 @@ import {
   MeshBasicMaterial,
   Group,
   DoubleSide,
+  Quaternion,
 } from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
 import {
@@ -320,6 +321,12 @@ export class Physical3DItem extends Mesh {
         // tweens below included, which otherwise animate it straight back to
         // its old angle and hand you double the turn.
         const onItem = evt.rotationY || evt.rotationY === 0;
+        // FACE THE ROOM (wall items). Their facing is the wall's own angle,
+        // which the mesh carries as combinedRotation; a turn put on the item
+        // replaced it and left the item side-on to its wall. Clearing the
+        // item's turn and taking the mesh branch below hangs it square again,
+        // on any wall.
+        if (evt.faceWall) scope.rotation.set(0, 0, 0);
         const meshTurn = onItem
           ? { x: 0, y: 0, z: 0 }
           : scope.__itemModel.combinedRotation;
@@ -436,6 +443,12 @@ export class Physical3DItem extends Mesh {
         // tweens below included, which otherwise animate it straight back to
         // its old angle and hand you double the turn.
         const onItem = evt.rotationY || evt.rotationY === 0;
+        // FACE THE ROOM (wall items). Their facing is the wall's own angle,
+        // which the mesh carries as combinedRotation; a turn put on the item
+        // replaced it and left the item side-on to its wall. Clearing the
+        // item's turn and taking the mesh branch below hangs it square again,
+        // on any wall.
+        if (evt.faceWall) scope.rotation.set(0, 0, 0);
         const meshTurn = onItem
           ? { x: 0, y: 0, z: 0 }
           : scope.__itemModel.combinedRotation;
@@ -1031,6 +1044,74 @@ export class Physical3DItem extends Mesh {
     );
     combined.computeVertexNormals();
     return combined;
+  }
+
+  /**
+   * TURN ON WALL — a quarter turn for a wall item that keeps it flat on the wall.
+   *
+   * A wall item faces the room by its wall's angle (see WallItem.snapToWall),
+   * and its distance off the wall is half its DEPTH. Turning the item itself
+   * left it side-on with that old depth, sticking out of the wall. Instead the
+   * model is turned INSIDE the item — the same as if its file had been made
+   * that way round (backend wall-turn.js does this to an upload) — and then
+   * measured and hung again, so its new back sits flush on the wall.
+   *
+   * The number of quarter turns is `metadata.wallTurn` (0–3), saved with the
+   * plan. Returns true when the turn swaps width and depth (an odd number).
+   */
+  __applyWallTurn() {
+    if (!this.__loadedItem) return false;
+    const want =
+      (((Math.round(Number(this.__itemModel?.__metadata?.wallTurn) || 0) % 4) + 4) % 4);
+    const has = this.__loadedItem.userData.__wallTurn || 0;
+    const delta = (want - has + 4) % 4;
+    if (!delta) return false;
+    // -90° per step: x' = -z, z' = x (as backend wall-turn.js).
+    const q = new Quaternion().setFromAxisAngle(
+      new Vector3(0, 1, 0),
+      (-delta * Math.PI) / 2
+    );
+    this.__loadedItem.children.forEach((c) => {
+      c.position.applyQuaternion(q);
+      c.quaternion.premultiply(q);
+    });
+    this.__loadedItem.userData.__wallTurn = want;
+    this.__loadedItem.updateMatrixWorld(true);
+    // The fixed size reference the resize handlers use turns with the model.
+    if (this.__nativeBox) {
+      const b = this.__nativeBox;
+      const turned = new Box3();
+      for (const x of [b.min.x, b.max.x])
+        for (const z of [b.min.z, b.max.z]) {
+          turned.expandByPoint(new Vector3(x, b.min.y, z).applyQuaternion(q));
+          turned.expandByPoint(new Vector3(x, b.max.y, z).applyQuaternion(q));
+        }
+      this.__nativeBox = turned;
+    }
+    return delta % 2 === 1;
+  }
+
+  /** One more quarter turn on the wall, re-hung flush. Wall items only. */
+  async turnOnWall() {
+    const itemModel = this.__itemModel;
+    if (!this.__loadedItem || !itemModel?.__currentWall) return false;
+    const meta = itemModel.__metadata;
+    meta.wallTurn = ((Number(meta.wallTurn) || 0) + 1) % 4;
+    if (this.__applyWallTurn()) {
+      // The item's X is along the wall: what was its depth is now its width.
+      const s = itemModel.__scale;
+      s.set(s.z, s.y, s.x);
+    }
+    await this.__initializeChildItem();
+    // Hang it again with its new depth, at the same spot along the wall.
+    itemModel.snapToWall(
+      itemModel.position.clone(),
+      itemModel.__currentWall,
+      itemModel.__currentWallEdge
+    );
+    this.position.copy(itemModel.position);
+    this.parent?.model?.updateRoomItemPosition?.(this);
+    return true;
   }
 
   // Cut this WHOLE item into exactly `n` pieces along its longest axis, IN PLACE
@@ -1716,6 +1797,9 @@ export class Physical3DItem extends Mesh {
     //   __scale[axis] = targetDimCm / (nativeDim × 100)
     // Absolute math has zero dependence on current state, so there is no
     // drift, no compounding, and no cross-axis coupling.
+    // A wall item turned on its wall comes back turned (see __applyWallTurn);
+    // before the measurement, so the size reference matches what is drawn.
+    this.__applyWallTurn();
     this.__nativeBox = new Box3().setFromObject(this.__loadedItem);
     const nativeSize = new Vector3();
     this.__nativeBox.getSize(nativeSize);
