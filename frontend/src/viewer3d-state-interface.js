@@ -19,6 +19,10 @@ import { SnapManager } from "../src/scripts/snap/SnapEngine.js";
 import { Dimensioning } from "../src/scripts/core/dimensioning";
 import {
   isWallUnitModel,
+  isTvUnitModel,
+  TV_UNIT_BOTTOM_MM,
+  isTvModel,
+  TV_BOTTOM_MM,
   wallUnitTopCm,
 } from "@pazl/react-app/roomTemplates/wallUnitPlacement";
 
@@ -497,7 +501,16 @@ function handleAddItemsToScene(
             if (t !== MODEL_TYPES.WALL_UNIT && t !== MODEL_TYPES.IN_WALL_UNIT) {
               metadata.type = MODEL_TYPES.WALL_UNIT;
             }
-            const topCm = wallUnitTopCm();
+            let topCm = wallUnitTopCm();
+            // Except the TV drawer unit: its BOTTOM 300 mm off the floor, so
+            // its top is that plus its own height (see isTvUnitModel).
+            const unitHeightCm = Array.isArray(metadata.size) ? Number(metadata.size[1]) || 0 : 0;
+            if (isTvUnitModel(currentUnitItem) && unitHeightCm > 0) {
+              topCm = TV_UNIT_BOTTOM_MM / 10 + unitHeightCm;
+            } else if (isTvModel(currentUnitItem) && unitHeightCm > 0) {
+              // The TV itself: bottom 900 mm off the floor (see isTvModel).
+              topCm = TV_BOTTOM_MM / 10 + unitHeightCm;
+            }
             if (topCm > 0) metadata.hangTopCm = topCm;
           }
           console.debug(

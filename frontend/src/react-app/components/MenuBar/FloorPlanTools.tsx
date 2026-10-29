@@ -12,6 +12,8 @@ import FloorPlanAiImport from "./FloorPlanAiImport";
 import FloorPlanStandardImport from "./FloorPlanImport/FloorPlanStandardImport";
 import SaveTemplateButton from "./SaveTemplateButton";
 import KitchenPlanner2D from "./KitchenPlanner2D";
+import BedroomPlanner from "./BedroomPlanner";
+import RoomFurnishPlanner from "./RoomFurnishPlanner";
 
 /**
  * The Floor plan step's tool panel, docked in the left sidebar.
@@ -435,6 +437,16 @@ const FloorPlanTools: React.FC = () => {
           the walls, see the cabinets previewed, place them. */}
       <PanelSection title="Kitchen" {...sectionProps("kitchen")}>
         <KitchenPlanner2D />
+      </PanelSection>
+
+      {/* The same for a bedroom: click the bed wall, see it previewed, place. */}
+      <PanelSection title="Bedroom" {...sectionProps("bedroom")}>
+        <BedroomPlanner mode="2d" />
+      </PanelSection>
+
+      {/* And a living room: click the TV wall, see it previewed, place. */}
+      <PanelSection title="Living Room" {...sectionProps("living")}>
+        <RoomFurnishPlanner kind="living" mode="2d" />
       </PanelSection>
 
       <PanelSection title="Measurements" {...sectionProps("measure")}>

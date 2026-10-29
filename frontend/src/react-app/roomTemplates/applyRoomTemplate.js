@@ -599,3 +599,5 @@ function makeVector3(x, y, z) {
 }
 
 export { KITCHEN_DEFAULTS, kitchenTemplate, pickProblem, LAYOUTS, freeSpans };
+// Shared with the other rooms' auto-furnish (applyBedroomTemplate.js).
+export { modelsOfCategory, placeOne, saveScene, makeVector3 };

@@ -101,6 +101,38 @@ function inCategory(model, want) {
   return false;
 }
 
+/**
+ * THE TV DRAWER UNIT HANGS LOW. Every other wall-mounted item goes up with its
+ * top at 7 ft, but a TV unit at that height would be a shelf near the ceiling:
+ * it hangs with its BOTTOM 300 mm off the floor instead, under the TV back
+ * panel. A product counts when its category or any above it is the TV drawer
+ * unit category (by name, ignoring case and spaces — "TV Draw Unit" here,
+ * "TV Drawer Unit" elsewhere), so both its sub-categories are covered.
+ */
+const TV_UNIT_NAMES = new Set(["tvdrawunit", "tvdrawerunit", "tvdrawerunits", "tvdrawunits"]);
+export const TV_UNIT_BOTTOM_MM = 300;
+
+export function isTvUnitModel(model) {
+  const categoryId = model?.categoryId;
+  if (!categoryId) return false;
+  return pathOfCategory(categoryId).some((name) => TV_UNIT_NAMES.has(name.replace(/[^a-z]/g, "")));
+}
+
+/**
+ * THE TV HANGS AT WATCHING HEIGHT: its BOTTOM 900 mm off the floor (its middle
+ * near eye level from the sofa), above the TV drawer unit and on the TV back
+ * panel — not by its top at 7 ft like the other wall-mounted items. A product
+ * counts when its category, or one above it, is called "TV" (only that: "Tv
+ * Stand", "TV Draw Unit" and "Tv back panel" are other things).
+ */
+export const TV_BOTTOM_MM = 900;
+
+export function isTvModel(model) {
+  const categoryId = model?.categoryId;
+  if (!categoryId) return false;
+  return pathOfCategory(categoryId).some((name) => ["tv", "tvs", "television", "televisions"].includes(name.trim()));
+}
+
 /** Floor → TOP of a wall unit, in cm. */
 export function wallUnitTopCm() {
   const mm = Number(preset().rules?.wallUnitTopMm ?? KITCHEN_DEFAULTS.wallUnitTopMm);
