@@ -14,6 +14,7 @@ import {
 } from "@pazl/main/core/events";
 import { HISTORY_TITLES } from "@pazl/services/ProjectManager";
 import { ROTATION_MODES } from "@pazl/entities/FurnishedModel";
+import { WallItem } from "@pazl/main/items/wall_item.js";
 import "./itemToolbar3D.css";
 
 /**
@@ -64,6 +65,35 @@ const rotateItem = (id: string | null, toLeft: boolean) => {
     id,
     toLeft ? ROTATION_MODES.ROTATE_LEFT : ROTATION_MODES.ROTATE_RIGHT
   );
+};
+
+/**
+ * WALL ITEMS TURN ON THE WALL.
+ *
+ * A wall-mounted item (AC, TV, shower set, wall unit…) hangs with its back on
+ * the wall. The ordinary quarter turn left it side-on, sticking out of the
+ * wall, and users then had to click round until it came back. A wall item gets
+ * "Turn on wall" instead: each click turns it 90° and hangs it flush again, so
+ * a model made the wrong way round can be put right. To change walls it is
+ * dragged there. One turned the old way (an old project) gets "Face the room".
+ */
+const isWallItem = (item: any) => (item?.itemModel || item?.__itemModel) instanceof WallItem;
+// The user's own turn, in degrees, as saved on the placed record — the 3D item
+// can carry a small leftover angle from loading that is not a turn anyone made.
+const isTurned = (item: any) => {
+  const id = item?.itemModel?.__id || item?.__itemModel?.__id;
+  const saved = projectManager()?.getFurnishedModelById?.(id)?.rotation?.[1];
+  return Math.abs(Number(saved) || 0) > 0.5;
+};
+
+const faceRoom = (id: string | null) => {
+  if (!id) return Promise.resolve();
+  return Promise.resolve(projectManager()?.onFurnishedModelFaceWall?.(id));
+};
+
+const turnOnWall = (id: string | null) => {
+  if (!id) return Promise.resolve();
+  return Promise.resolve(projectManager()?.onFurnishedModelWallTurn?.(id));
 };
 
 /**
@@ -195,6 +225,9 @@ const ItemToolbar3D: React.FC = () => {
   const [size, setSize] = useState({ w: 0, h: 0 });
   const [hidden, setHidden] = useState(false);
   const [locked, setLocked] = useState(false);
+  // Bumped after "Face the room" so the bar re-reads the item's turn and drops
+  // the button; the turn itself lives on the 3D item, not in React state.
+  const [, setTick] = useState(0);
   const itemRef = useRef<any>(null);
   const frame = useRef<number | null>(null);
 
@@ -332,6 +365,13 @@ const ItemToolbar3D: React.FC = () => {
         if (el?.closest?.('[role="dialog"],[class*="Modal"],[class*="modal"]')) return;
         if (BI.isItem3DLocked?.(id)) return;
         e.preventDefault();
+        // A wall item turns ON its wall (see isWallItem); one turned the old
+        // way is squared up first.
+        if (isWallItem(itemRef.current)) {
+          const next = isTurned(itemRef.current) ? faceRoom(id) : turnOnWall(id);
+          next.then(() => setTick((t) => t + 1));
+          return;
+        }
         rotateItem(id, e.shiftKey);
       } else if (key === "d" && (e.ctrlKey || e.metaKey)) {
         e.preventDefault();
@@ -381,8 +421,14 @@ const ItemToolbar3D: React.FC = () => {
   const onMirror = () => mirrorItem(modelId);
   // Shift + click turns the other way. Doors and windows are cut into their
   // wall and cannot be turned, so they get no Rotate button at all.
-  const canRotate = !(item?.itemModel || item?.__itemModel)?.isParametric;
+  const onWall = isWallItem(item);
+  const canRotate = !(item?.itemModel || item?.__itemModel)?.isParametric && !onWall;
   const onRotate = (e: React.MouseEvent) => rotateItem(modelId, e.shiftKey);
+  const canFaceRoom = onWall && isTurned(item);
+  const onFaceRoom = () => faceRoom(modelId).then(() => setTick((t) => t + 1));
+  const canTurnOnWall =
+    onWall && !canFaceRoom && !(item?.itemModel || item?.__itemModel)?.isParametric;
+  const onTurnOnWall = () => turnOnWall(modelId);
   const onDuplicate = () => {
     BI.duplicateItem3D?.(modelId);
   };
@@ -456,6 +502,22 @@ const ItemToolbar3D: React.FC = () => {
                 : "Rotate 90° (R) · Shift+click turns left"
             }
             onClick={onRotate}
+            disabled={locked}
+          />
+        ) : null}
+        {canTurnOnWall ? (
+          <Icon
+            icon="rotate_right"
+            title={locked ? "Unlock to turn" : "Turn on wall 90° (R)"}
+            onClick={onTurnOnWall}
+            disabled={locked}
+          />
+        ) : null}
+        {canFaceRoom ? (
+          <Icon
+            icon="flip_to_front"
+            title={locked ? "Unlock to face the room" : "Face the room (R)"}
+            onClick={onFaceRoom}
             disabled={locked}
           />
         ) : null}

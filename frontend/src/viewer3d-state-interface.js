@@ -482,10 +482,16 @@ function handleAddItemsToScene(
           // Asked for by "+ Add", by a drop from the catalogue (which keeps
           // the spot along the wall it was dropped at) and by auto-furnish for
           // its wall units. Swap (a `__slot`) keeps the opening it fills.
+          //
+          // EVERY WALL-MOUNTED ITEM HANGS THE SAME WAY. An AC, TV, mirror or
+          // tap with the Wall-mounted placement type used to land at the foot
+          // of the wall (Y = 0) and had to be lifted by hand every time; it now
+          // goes up with its top at the same 7 ft as a wall unit.
           if (
             options.hangWallUnit &&
             !slot &&
-            isWallUnitModel(currentUnitItem)
+            (isWallUnitModel(currentUnitItem) ||
+              parseInt(metadata.type, 10) === MODEL_TYPES.WALL_UNIT)
           ) {
             const t = parseInt(metadata.type, 10);
             if (t !== MODEL_TYPES.WALL_UNIT && t !== MODEL_TYPES.IN_WALL_UNIT) {
@@ -1078,9 +1084,13 @@ function handleAddItem() {
 function handleDropModelAtScreen(model, clientX, clientY) {
   // A Wall Unit dropped from the catalogue hangs on the wall under the cursor
   // with its bottom at the studio's height, exactly as "+ Add" hangs it.
+  // Any other Wall-mounted item hangs at the same height (handleAddItemsToScene).
   let dropsAsWallUnit = false;
   try {
-    dropsAsWallUnit = isWallUnitModel((model && model.model) || model);
+    const product = (model && model.model) || model;
+    dropsAsWallUnit =
+      isWallUnitModel(product) ||
+      parseInt(product && product.type, 10) === MODEL_TYPES.WALL_UNIT;
   } catch (e) {
     dropsAsWallUnit = false;
   }
