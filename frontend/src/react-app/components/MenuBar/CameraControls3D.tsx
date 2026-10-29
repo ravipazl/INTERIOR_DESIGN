@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import "material-symbols";
 import BlueprintInterface from "@pazl/blueprint-interface.js";
+import { headsetMode, enterHeadset } from "@pazl/main/viewer3d/RoomInHeadset";
 import "./cameraControls3D.css";
 
 /**
@@ -165,6 +166,30 @@ const CameraControls3D: React.FC = () => {
   // Where to sit so the controls clear the panels that overlay the canvas.
   const [inset, setInset] = useState({ left: 16, right: 16 });
   const rootRef = useRef<HTMLDivElement>(null);
+  // A headset this browser can open (HoloLens, Quest…), and whether it is on.
+  const [headset, setHeadset] = useState<string | null>(null);
+  const [inHeadset, setInHeadset] = useState(false);
+
+  useEffect(() => {
+    let alive = true;
+    headsetMode().then((mode) => alive && setHeadset(mode));
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  const openHeadset = () => {
+    const v = viewer();
+    if (!v || !headset || inHeadset) return;
+    enterHeadset(v, { mode: headset, onEnd: () => setInHeadset(false) })
+      .then(() => setInHeadset(true))
+      .catch((e: any) => {
+        setInHeadset(false);
+        window.alert(
+          "Could not open the headset view. " + (e && e.message ? e.message : "")
+        );
+      });
+  };
 
   // --- follow the camera ----------------------------------------------------
   useEffect(() => {
@@ -372,6 +397,21 @@ const CameraControls3D: React.FC = () => {
           </div>
         ) : null}
         <div className="pz-cam-buttons">
+          {headset ? (
+            <>
+              <button
+                type="button"
+                className={`pz-cam-btn${inHeadset ? " is-on" : ""}`}
+                title="View in your room (headset)"
+                aria-label="View in your room (headset)"
+                disabled={inHeadset}
+                onClick={openHeadset}
+              >
+                <span className="material-symbols-outlined">view_in_ar</span>
+              </button>
+              <span className="pz-cam-sep" />
+            </>
+          ) : null}
           <button
             type="button"
             className={`pz-cam-btn${open ? " is-on" : ""}`}
