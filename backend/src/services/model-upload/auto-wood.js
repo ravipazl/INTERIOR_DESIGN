@@ -13,6 +13,7 @@
 // file that will not parse, a missing wood image, a category that cannot be
 // read — leaves the uploaded file exactly as it arrived and logs why.
 
+import { randomUUID } from 'crypto'
 import { prune } from '@gltf-transform/functions'
 import {
   createIO,
@@ -38,7 +39,7 @@ import { LIVING_RULES, finishPanelDoc } from '../../../scripts/lib/living-finish
  * punctuation ignored) because the same unit is called "Tall Unit" on one
  * server and "Tall Units" on another.
  */
-const WOOD_CATEGORIES = [
+export const WOOD_CATEGORIES = [
   'Below Counter Storage',
   'Storage Unit',
   'Base Unit',
@@ -199,6 +200,51 @@ export const bakeWardrobe = async (buffer) => {
   }
   const finished = await finishWardrobeDoc(io, doc, images)
   return finished ? finished.buffer : null
+}
+
+/**
+ * SAVE THE FINISH THAT IS IN THE FILE, so the BOQ and the panel can name it.
+ *
+ * The wood baked into a GLB colours the 3D view only. The BOQ's Material
+ * column and the Components panel read a part's finish from the database
+ * (model_default_values, copied onto each new placement), and the upload never
+ * wrote one — so every cabinet uploaded with its wood baked in was listed with
+ * "—" for its material. This writes the model's defaults for the parts that
+ * carry the wood: fronts → Wood 10002, handles → Wood 10012. A part that
+ * already has a default is left alone. Returns how many were added; never
+ * throws.
+ */
+export const recordDefaultFinish = async (db, modelId, buffer) => {
+  try {
+    const io = await createIO()
+    const parts = bakedParts(await io.readBinary(new Uint8Array(buffer)))
+    if (!parts) return 0
+    const id = String(modelId)
+    const col = db.collection('model_default_values')
+    let added = 0
+    for (const [indices, part] of [[parts.shutters, WOOD.shutter], [parts.handles, WOOD.handle]]) {
+      if (!indices.length) continue
+      const fin = await db.collection('finishings').findOne({ name: part.label, type: 'wall' })
+      // Only the very finish whose image is in the file.
+      if (!fin || fin.texture?.fileUrl !== part.fileUrl) continue
+      for (const i of indices) {
+        const modelName = `Mesh_${i}`
+        const query = { modelId: id, modelName, propertyName: 'externalFinishFinishingId' }
+        if (await col.findOne(query)) continue
+        await col.insertOne({
+          _id: randomUUID(),
+          ...query,
+          propertyValue: String(fin._id),
+          createdAt: new Date().toISOString()
+        })
+        added += 1
+      }
+    }
+    return added
+  } catch (e) {
+    console.error('model-upload ~ default finish not recorded:', e && e.message)
+    return 0
+  }
 }
 
 /** A TV back panel or cladding slat: wood all over. Null to leave the file alone. */

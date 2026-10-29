@@ -19,7 +19,7 @@ import url from 'url'
 import multer from '@koa/multer'
 import { v4 as uuidv4 } from 'uuid'
 import gltfPipeline from 'gltf-pipeline'
-import { applyDefaultWood } from './auto-wood.js'
+import { applyDefaultWood, recordDefaultFinish } from './auto-wood.js'
 import { turnAlongWall } from './wall-turn.js'
 
 const { processGlb } = gltfPipeline
@@ -359,6 +359,13 @@ export const modelUpload = (app) => {
       } catch (compErr) {
         console.error('[model-upload] model_components create failed:', compErr?.message || compErr)
       }
+    }
+
+    // The wood baked in above, saved as the model's default finish too, so the
+    // BOQ's Material column and the panel name it (see recordDefaultFinish).
+    if (wood.applied) {
+      const recorded = await recordDefaultFinish(db, created._id, bufferToWrite)
+      console.log(`model-upload ~ default finish recorded on ${recorded} part(s)`)
     }
 
     ctx.status = 201

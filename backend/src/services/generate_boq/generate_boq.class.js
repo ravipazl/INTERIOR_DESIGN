@@ -5,6 +5,76 @@ const convertMMtoFeet = (unitInMM) => {
   return (parseFloat(unitInMM) || 0) * 0.00328084
 }
 
+/**
+ * THE BOQ LISTS ONLY THESE.
+ *
+ * The BOQ quotes the joinery the studio makes — kitchen cabinets, wardrobes,
+ * the TV wall and mirrors. Anything else placed in a room (shower, taps, WC,
+ * basin, sofa, AC…) is there for the design and stays in it, but is not part
+ * of the quote, so it is left out of the table, the totals and the PDF.
+ *
+ * A model counts when its category, or any category above it, has one of these
+ * names — so every sub-category (each wardrobe type, "Tv back panel - groove")
+ * is covered. Names are matched loosely (case, spaces, punctuation) and list
+ * the names the same group goes by on other servers ("Tall Unit", "Above
+ * Counter Storage").
+ */
+const BOQ_CATEGORIES = [
+  'Tall Units',
+  'Tall Unit',
+  'Below Counter Storage',
+  'Wall Unit',
+  'Wall Units',
+  'Above Counter Storage',
+  'TV Draw Unit',
+  'TV Drawer Unit',
+  'Tv back panel',
+  'Wall Cladding',
+  'Wardrobe',
+  'Wardrobes',
+  'Mirror',
+  'Mirrors'
+]
+const loosely = (s) => String(s || '').toLowerCase().replace(/[^a-z]/g, '')
+const BOQ_WANTED = new Set(BOQ_CATEGORIES.map(loosely))
+
+/**
+ * The placed models whose catalogue category is on the BOQ list. If the
+ * catalogue cannot be read, every model is kept: a BOQ with extra lines is
+ * easier to spot and fix than one that silently lost its cabinets.
+ */
+const onlyBoqCategories = async (db, furnishedModels) => {
+  try {
+    const cats = await db
+      .collection('categories')
+      .find({})
+      .project({ name: 1, parentCategoryId: 1 })
+      .toArray()
+    const byId = new Map(cats.map((c) => [String(c._id), c]))
+    const onList = (categoryId) => {
+      let c = categoryId ? byId.get(String(categoryId)) : null
+      // A tree is a handful of levels; the cap only stops a cycle in the data.
+      for (let depth = 0; c && depth < 12; depth += 1) {
+        if (BOQ_WANTED.has(loosely(c.name))) return true
+        c = c.parentCategoryId ? byId.get(String(c.parentCategoryId)) : null
+      }
+      return false
+    }
+    const ids = [...new Set(furnishedModels.map((m) => String(m.modelId || '')).filter(Boolean))]
+    const anyId = ids.flatMap((id) => (/^[a-f0-9]{24}$/i.test(id) ? [id, new ObjectId(id)] : [id]))
+    const models = await db
+      .collection('models')
+      .find({ _id: { $in: anyId } })
+      .project({ categoryId: 1 })
+      .toArray()
+    const categoryOf = new Map(models.map((m) => [String(m._id), m.categoryId]))
+    return furnishedModels.filter((m) => onList(categoryOf.get(String(m.modelId))))
+  } catch (e) {
+    console.log('[BOQ] category filter skipped:', e.message)
+    return furnishedModels
+  }
+}
+
 export class GenerateBoqServiceService {
   constructor(options) {
     this.options = options || {}
@@ -77,6 +147,9 @@ export class GenerateBoqServiceService {
         console.log('[BOQ] scene filter skipped:', e.message)
       }
       console.log('[BOQ] models in scene=', modelsToPrice.length)
+      // Only cabinets, wardrobes, the TV wall and mirrors — see BOQ_CATEGORIES.
+      modelsToPrice = await onlyBoqCategories(db, modelsToPrice)
+      console.log('[BOQ] models on the BOQ list=', modelsToPrice.length)
 
       const projectId = furnishedModels[0].projectId
       const project = await this.app.service('projects').get(projectId)

@@ -1,0 +1,4500 @@
+{
+  "0394e348-794e-4d67-907a-d2b6a12b098c_Wall_Unit_500_x_600_Fluted_Glass_Alu_Frame_Profile_.glb": {
+    "modelId": "6aba0d4708643016da3132ee",
+    "name": "Wall Unit 500 x 600 Fluted Glass Alu Frame Profile",
+    "shutters": [
+      1
+    ],
+    "handles": []
+  },
+  "b01da7ea-1254-474a-bb3a-323eeeec8e77_Wall_Unit_450_x_600_Fluted_Glass_Alu_Frame_Profile_.glb": {
+    "modelId": "6aba0d4808643016da3132f3",
+    "name": "Wall Unit 450 x 600 Fluted Glass Alu Frame Profile",
+    "shutters": [
+      1
+    ],
+    "handles": []
+  },
+  "eb69ea10-f7b9-4607-afeb-9fc671df5503_Wall_Unit_600_x_600_Fluted_Glass_Alu_Frame_Profile_.glb": {
+    "modelId": "6aba0d4908643016da3132f8",
+    "name": "Wall Unit 600 x 600 Fluted Glass Alu Frame Profile",
+    "shutters": [
+      1
+    ],
+    "handles": []
+  },
+  "98a224c9-f681-4399-ab86-eee36141be42_Wall_Unit_550_x_600_Fluted_Glass_Alu_Frame_Profile_.glb": {
+    "modelId": "6aba0d4b08643016da3132fd",
+    "name": "Wall Unit 550 x 600 Fluted Glass Alu Frame Profile",
+    "shutters": [
+      1
+    ],
+    "handles": []
+  },
+  "8dd64795-bf6b-48a4-8504-2bee42d6f59a_Wall_Unit_500_x_600_Fluted_Glass_Alu._Frame_Profile_shelf_.glb": {
+    "modelId": "6aba0d9408643016da313302",
+    "name": "Wall Unit 500 x 600 Fluted Glass Alu. Frame Profile_shelf",
+    "shutters": [
+      1
+    ],
+    "handles": []
+  },
+  "352ced70-4ebf-4afb-a9bf-5d95886d1d45_Wall_Unit_450_x_600_Fluted_Glass_Alu._Frame_Profile_shelf_.glb": {
+    "modelId": "6aba0d9508643016da313308",
+    "name": "Wall Unit 450 x 600 Fluted Glass Alu. Frame Profile_shelf",
+    "shutters": [
+      1
+    ],
+    "handles": []
+  },
+  "75a72270-6408-47de-9911-0b9d3a60a233_Wall_Unit_600_x_600_Fluted_Glass_Alu._Frame_Profile_shelf_.glb": {
+    "modelId": "6aba0d9608643016da31330e",
+    "name": "Wall Unit 600 x 600 Fluted Glass Alu. Frame Profile_shelf",
+    "shutters": [
+      1
+    ],
+    "handles": []
+  },
+  "dff64d4b-328e-4e03-a514-8dcdcb182791_Wall_Unit_550_x_600_Fluted_Glass_Alu._Frame_Profile_shelf_.glb": {
+    "modelId": "6aba0d9708643016da313314",
+    "name": "Wall Unit 550 x 600 Fluted Glass Alu. Frame Profile_shelf",
+    "shutters": [
+      1
+    ],
+    "handles": []
+  },
+  "5627f1ad-ba60-49ab-a239-90dac455375c_Wall_Unit_450_x_825_plain_glass_Alu_frame_profile_.glb": {
+    "modelId": "6aba0dc908643016da31331a",
+    "name": "Wall Unit 450 x 825 plain glass Alu frame profile",
+    "shutters": [
+      1
+    ],
+    "handles": []
+  },
+  "1c966a84-aa94-496a-ad74-00dcea9fb16f_Wall_Unit_600_x_825_plain_glass_Alu_frame_profile_.glb": {
+    "modelId": "6aba0dca08643016da31331f",
+    "name": "Wall Unit 600 x 825 plain glass Alu frame profile",
+    "shutters": [
+      1
+    ],
+    "handles": []
+  },
+  "f6ece37b-ad0a-409b-bc58-f228aec7bdd0_Wall_Unit_550_x_825_plain_glass_Alu_frame_profile_.glb": {
+    "modelId": "6aba0dcb08643016da313324",
+    "name": "Wall Unit 550 x 825 plain glass Alu frame profile",
+    "shutters": [
+      1
+    ],
+    "handles": []
+  },
+  "67cf5d69-06a2-471f-bc70-ed75b5303c1e_Wall_Unit_500_x_825_plain_glass_Alu_frame_profile_.glb": {
+    "modelId": "6aba0dcc08643016da313329",
+    "name": "Wall Unit 500 x 825 plain glass Alu frame profile",
+    "shutters": [
+      1
+    ],
+    "handles": []
+  },
+  "5423757e-3fa5-43aa-b23e-99366f0f7837_Wall_Unit_500_x_825_plain_glass_Alu_frame_profile_shelf_.glb": {
+    "modelId": "6aba0df508643016da31332e",
+    "name": "Wall Unit 500 x 825 plain glass Alu frame profile_shelf",
+    "shutters": [
+      1
+    ],
+    "handles": []
+  },
+  "4a5b4417-f6b0-4b0b-9816-a9ff37fdf587_Wall_Unit_450_x_825_plain_glass_Alu_frame_profile_shelf_.glb": {
+    "modelId": "6aba0df608643016da313334",
+    "name": "Wall Unit 450 x 825 plain glass Alu frame profile_shelf",
+    "shutters": [
+      1
+    ],
+    "handles": []
+  },
+  "0bcc5530-8e9b-45c1-b11b-f5b4c528049a_Wall_Unit_600_x_825_plain_glass_Alu_frame_profile_shelf_.glb": {
+    "modelId": "6aba0df708643016da31333a",
+    "name": "Wall Unit 600 x 825 plain glass Alu frame profile_shelf",
+    "shutters": [
+      1
+    ],
+    "handles": []
+  },
+  "ff231e5d-c90e-4fdb-96fd-2b07321e1a51_Wall_Unit_550_x_825_plain_glass_Alu_frame_profile_shelf_.glb": {
+    "modelId": "6aba0df808643016da313340",
+    "name": "Wall Unit 550 x 825 plain glass Alu frame profile_shelf",
+    "shutters": [
+      1
+    ],
+    "handles": []
+  },
+  "b07cbeea-fa6a-4f7a-9162-eca01e649fa9_Wall_Unit_550_x_600_fluted_glass_left_opening_handle_.glb": {
+    "modelId": "6aba0eb708643016da313346",
+    "name": "Wall Unit 550 x 600 fluted glass left opening handle",
+    "shutters": [
+      1
+    ],
+    "handles": [
+      2
+    ]
+  },
+  "118d6b84-3c08-4de4-a37b-7109237d9817_Wall_Unit_500_x_600_fluted_glass_left_opening_handle_.glb": {
+    "modelId": "6aba0eb808643016da31334b",
+    "name": "Wall Unit 500 x 600 fluted glass left opening handle",
+    "shutters": [
+      1
+    ],
+    "handles": [
+      2
+    ]
+  },
+  "2ed3f6dd-3a2a-461d-9244-cc5c4d6615eb_Wall_Unit_450_x_600_fluted_glass_left_opening_handle_.glb": {
+    "modelId": "6aba0eb908643016da313350",
+    "name": "Wall Unit 450 x 600 fluted glass left opening handle",
+    "shutters": [
+      1
+    ],
+    "handles": [
+      2
+    ]
+  },
+  "94a260c1-81a5-4ec2-a23a-d01c020025e5_Wall_Unit_600_x_600_fluted_glass_left_opening_handle_.glb": {
+    "modelId": "6aba0eba08643016da313355",
+    "name": "Wall Unit 600 x 600 fluted glass left opening handle",
+    "shutters": [
+      1
+    ],
+    "handles": [
+      2
+    ]
+  },
+  "7d5da449-6946-4452-9d14-e032e68cd4a9_Wall_Unit_450_x_600_fluted_glass_left_opening_handle_shelf_.glb": {
+    "modelId": "6aba0ef408643016da31335a",
+    "name": "Wall Unit 450 x 600 fluted glass left opening handle_shelf",
+    "shutters": [
+      1
+    ],
+    "handles": [
+      2
+    ]
+  },
+  "fa03dcf8-3a08-47ed-8144-34885a1ed28e_Wall_Unit_600_x_600_fluted_glass_left_opening_handle_shelf_.glb": {
+    "modelId": "6aba0ef508643016da313360",
+    "name": "Wall Unit 600 x 600 fluted glass left opening handle_shelf",
+    "shutters": [
+      1
+    ],
+    "handles": [
+      2
+    ]
+  },
+  "0e01865d-c5eb-437b-8139-61ba461aa2fe_Wall_Unit_550_x_600_fluted_glass_left_opening_handle_shelf_.glb": {
+    "modelId": "6aba0ef608643016da313366",
+    "name": "Wall Unit 550 x 600 fluted glass left opening handle_shelf",
+    "shutters": [
+      1
+    ],
+    "handles": [
+      2
+    ]
+  },
+  "41627741-e365-4425-8781-e51e30da0837_Wall_Unit_500_x_600_fluted_glass_left_opening_handle_shelf_.glb": {
+    "modelId": "6aba0ef708643016da31336c",
+    "name": "Wall Unit 500 x 600 fluted glass left opening handle_shelf",
+    "shutters": [
+      1
+    ],
+    "handles": [
+      2
+    ]
+  },
+  "d862ac74-0636-42ad-9260-0faa8801df23_Wall_unit_500_x_600_Fluted_glass_right_opening_handle.glb": {
+    "modelId": "6aba0f3708643016da313372",
+    "name": "Wall unit 500 x 600 Fluted glass right opening handle",
+    "shutters": [
+      2
+    ],
+    "handles": [
+      1
+    ]
+  },
+  "4e5c1580-286f-457b-9acc-ff75f70ed569_Wall_unit_450_x_600_Fluted_glass_right_opening_handle.glb": {
+    "modelId": "6aba0f3808643016da313377",
+    "name": "Wall unit 450 x 600 Fluted glass right opening handle",
+    "shutters": [
+      3
+    ],
+    "handles": [
+      1
+    ]
+  },
+  "02e8a65c-8c0a-4500-85f7-ccbef47189a5_Wall_unit_600_x_600_Fluted_glass_right_opening_handle.glb": {
+    "modelId": "6aba0f3908643016da31337c",
+    "name": "Wall unit 600 x 600 Fluted glass right opening handle",
+    "shutters": [
+      1
+    ],
+    "handles": [
+      3
+    ]
+  },
+  "88686e72-6b20-4bc0-833a-894ca92ff917_Wall_unit_550_x_600_Fluted_glass_right_opening_handle.glb": {
+    "modelId": "6aba0f3908643016da313381",
+    "name": "Wall unit 550 x 600 Fluted glass right opening handle",
+    "shutters": [
+      3
+    ],
+    "handles": [
+      1
+    ]
+  },
+  "729486ea-c06a-4c7c-bbbb-beb8c73f1d3b_Wall_unit_450_x_600_Fluted_glass_right_opening_handle_shelf.glb": {
+    "modelId": "6aba0f7408643016da313386",
+    "name": "Wall unit 450 x 600 Fluted glass right opening handle_shelf",
+    "shutters": [
+      3
+    ],
+    "handles": [
+      2
+    ]
+  },
+  "a70aea5b-f174-41e1-a8ae-261ac991ef3c_Wall_unit_600_x_600_Fluted_glass_right_opening_handle_shelf.glb": {
+    "modelId": "6aba0f7508643016da31338c",
+    "name": "Wall unit 600 x 600 Fluted glass right opening handle_shelf",
+    "shutters": [
+      2
+    ],
+    "handles": [
+      4
+    ]
+  },
+  "2c3095b2-2092-4781-a4e7-a1ab2b2df14c_Wall_unit_550_x_600_Fluted_glass_right_opening_handle_shelf.glb": {
+    "modelId": "6aba0f7608643016da313392",
+    "name": "Wall unit 550 x 600 Fluted glass right opening handle_shelf",
+    "shutters": [
+      4
+    ],
+    "handles": [
+      2
+    ]
+  },
+  "10a94689-9c38-4fe9-9271-87f601d23658_Wall_unit_500_x_600_Fluted_glass_right_opening_handle_shelf.glb": {
+    "modelId": "6aba0f7608643016da313398",
+    "name": "Wall unit 500 x 600 Fluted glass right opening handle_shelf",
+    "shutters": [
+      2
+    ],
+    "handles": [
+      3
+    ]
+  },
+  "734cb386-cc83-4fbf-a0df-7aabc70204ec_Wall_Unit_450_x_600_plain_glass_left_opening_handle_.glb": {
+    "modelId": "6aba0fb008643016da31339e",
+    "name": "Wall Unit 450 x 600 plain glass left opening handle",
+    "shutters": [
+      1
+    ],
+    "handles": [
+      2
+    ]
+  },
+  "7df39936-36f4-4c23-b7c0-c38d141949f0_Wall_Unit_600_x_600_plain_glass_left_opening_handle_.glb": {
+    "modelId": "6aba0fb108643016da3133a3",
+    "name": "Wall Unit 600 x 600 plain glass left opening handle",
+    "shutters": [
+      1
+    ],
+    "handles": [
+      2
+    ]
+  },
+  "7ff82fc4-fda0-4778-b93e-2177d028c682_Wall_Unit_550_x_600_plain_glass_left_opening_handle_.glb": {
+    "modelId": "6aba0fb208643016da3133a8",
+    "name": "Wall Unit 550 x 600 plain glass left opening handle",
+    "shutters": [
+      1
+    ],
+    "handles": [
+      2
+    ]
+  },
+  "05950f72-3d85-4052-bc8f-2b9f63d298f2_Wall_Unit_500_x_600_plain_glass_left_opening_handle_.glb": {
+    "modelId": "6aba0fb208643016da3133ad",
+    "name": "Wall Unit 500 x 600 plain glass left opening handle",
+    "shutters": [
+      1
+    ],
+    "handles": [
+      2
+    ]
+  },
+  "39e70460-b114-44de-85ec-cc9b6f615047_Wall_Unit_450_x_600_plain_glass_left_opening_handle_shelf.glb": {
+    "modelId": "6aba0fe708643016da3133b2",
+    "name": "Wall Unit 450 x 600 plain glass left opening handle_shelf",
+    "shutters": [
+      1
+    ],
+    "handles": [
+      2
+    ]
+  },
+  "a29d0611-f186-496d-b9d1-fea9aa4fb5d2_Wall_Unit_600_x_600_plain_glass_left_opening_handle_shelf.glb": {
+    "modelId": "6aba0fe808643016da3133b8",
+    "name": "Wall Unit 600 x 600 plain glass left opening handle_shelf",
+    "shutters": [
+      1
+    ],
+    "handles": [
+      2
+    ]
+  },
+  "0e97d732-60d3-4741-819f-10d85df92000_Wall_Unit_550_x_600_plain_glass_left_opening_handle_shelf.glb": {
+    "modelId": "6aba0fe808643016da3133be",
+    "name": "Wall Unit 550 x 600 plain glass left opening handle_shelf",
+    "shutters": [
+      1
+    ],
+    "handles": [
+      2
+    ]
+  },
+  "6f115f59-c86c-4a80-9ae4-4e12c67c7273_Wall_Unit_500_x_600_plain_glass_left_opening_handle_shelf.glb": {
+    "modelId": "6aba0fe908643016da3133c4",
+    "name": "Wall Unit 500 x 600 plain glass left opening handle_shelf",
+    "shutters": [
+      1
+    ],
+    "handles": [
+      2
+    ]
+  },
+  "0546756d-46fd-424f-b57a-9f93ec39f888_Wall_Unit_550_x_600_plain_glass_right_opening_handle_.glb": {
+    "modelId": "6aba101f08643016da3133ca",
+    "name": "Wall Unit 550 x 600 plain glass right opening handle",
+    "shutters": [
+      3
+    ],
+    "handles": [
+      2
+    ]
+  },
+  "8eda6967-8a37-478c-9adb-00fdd5b8243b_Wall_Unit_500_x_600_plain_glass_right_opening_handle_.glb": {
+    "modelId": "6aba101f08643016da3133cf",
+    "name": "Wall Unit 500 x 600 plain glass right opening handle",
+    "shutters": [
+      3
+    ],
+    "handles": [
+      1
+    ]
+  },
+  "95223ad6-1419-4663-b51c-f07b783beba4_Wall_Unit_450_x_600_plain_glass_right_opening_handle_.glb": {
+    "modelId": "6aba102008643016da3133d4",
+    "name": "Wall Unit 450 x 600 plain glass right opening handle",
+    "shutters": [
+      1
+    ],
+    "handles": [
+      3
+    ]
+  },
+  "a0db3f90-26a5-4377-a1d4-b19e46746441_Wall_Unit_600_x_600_plain_glass_right_opening_handle_.glb": {
+    "modelId": "6aba102108643016da3133d9",
+    "name": "Wall Unit 600 x 600 plain glass right opening handle",
+    "shutters": [
+      1
+    ],
+    "handles": [
+      2
+    ]
+  },
+  "4d19bca0-5ebe-454a-b3bb-10168bbe0eda_Wall_Unit_500_x_600_plain_glass_right_opening_handle_shelf.glb": {
+    "modelId": "6aba105e08643016da3133de",
+    "name": "Wall Unit 500 x 600 plain glass right opening handle_shelf",
+    "shutters": [
+      3
+    ],
+    "handles": [
+      2
+    ]
+  },
+  "8d26be61-aeec-48cd-bb2e-bd8aba5c4147_Wall_Unit_450_x_600_plain_glass_right_opening_handle_shelf.glb": {
+    "modelId": "6aba105f08643016da3133e4",
+    "name": "Wall Unit 450 x 600 plain glass right opening handle_shelf",
+    "shutters": [
+      2
+    ],
+    "handles": [
+      3
+    ]
+  },
+  "1518f0aa-b53c-4859-8cbe-97db6651b3b3_Wall_Unit_600_x_600_plain_glass_right_opening_handle_shelf.glb": {
+    "modelId": "6aba106008643016da3133ea",
+    "name": "Wall Unit 600 x 600 plain glass right opening handle_shelf",
+    "shutters": [
+      4
+    ],
+    "handles": [
+      3
+    ]
+  },
+  "b4c55299-e8f9-4a35-828e-f13fc7cb1cf8_Wall_Unit_550_x_600_plain_glass_right_opening_handle_shelf.glb": {
+    "modelId": "6aba106008643016da3133f0",
+    "name": "Wall Unit 550 x 600 plain glass right opening handle_shelf",
+    "shutters": [
+      4
+    ],
+    "handles": [
+      2
+    ]
+  },
+  "a2c7f056-5010-45c6-813c-3444eab12cce_Wall_unit_500_x_600_Fluted_glass_profile.glb": {
+    "modelId": "6aba109308643016da3133f6",
+    "name": "Wall unit 500 x 600 Fluted glass profile",
+    "shutters": [
+      1
+    ],
+    "handles": []
+  },
+  "ca01ee4e-6c07-403d-a6fe-49d47921b605_Wall_unit_450_x_600_Fluted_glass_profile.glb": {
+    "modelId": "6aba109408643016da3133fb",
+    "name": "Wall unit 450 x 600 Fluted glass profile",
+    "shutters": [
+      2
+    ],
+    "handles": []
+  },
+  "83a72a75-dd71-4796-a392-8430a5a370c8_Wall_unit_600_x_600_Fluted_glass_profile.glb": {
+    "modelId": "6aba109408643016da313400",
+    "name": "Wall unit 600 x 600 Fluted glass profile",
+    "shutters": [
+      1
+    ],
+    "handles": []
+  },
+  "1b0b57d5-23ab-4ddc-a6be-670942710d19_Wall_unit_550_x_600_Fluted_glass_profile.glb": {
+    "modelId": "6aba109508643016da313405",
+    "name": "Wall unit 550 x 600 Fluted glass profile",
+    "shutters": [
+      1
+    ],
+    "handles": []
+  },
+  "f9949717-6c5d-4cab-923a-35e71b1cabde_Wall_Unit_550_x_600_Fluted_glass_profile_shelf_.glb": {
+    "modelId": "6aba10d908643016da31340a",
+    "name": "Wall Unit 550 x 600 Fluted glass profile_shelf",
+    "shutters": [
+      1
+    ],
+    "handles": []
+  },
+  "17490842-850b-4f0e-a7fc-7e8624cdc96f_Wall_Unit_500_x_600_Fluted_glass_profile_shelf_.glb": {
+    "modelId": "6aba10da08643016da313410",
+    "name": "Wall Unit 500 x 600 Fluted glass profile_shelf",
+    "shutters": [
+      1
+    ],
+    "handles": []
+  },
+  "fc54ab4a-d613-4177-8735-9db3fda36d5c_Wall_Unit_450_x_600_Fluted_glass_profile_shelf_.glb": {
+    "modelId": "6aba10da08643016da313416",
+    "name": "Wall Unit 450 x 600 Fluted glass profile_shelf",
+    "shutters": [
+      2
+    ],
+    "handles": []
+  },
+  "bfed5e7d-9be7-4e31-b0a1-64011a16e3e9_Wall_Unit_600_x_600_Fluted_glass_profile_shelf_.glb": {
+    "modelId": "6aba10db08643016da31341c",
+    "name": "Wall Unit 600 x 600 Fluted glass profile_shelf",
+    "shutters": [
+      1
+    ],
+    "handles": []
+  },
+  "5a7fc5e4-2c64-4e9b-b69c-a6525cf560f7_Wall_Unit_500_x_825_plain_glass_Alu_frame_profile_.glb": {
+    "modelId": "6aba110b08643016da313422",
+    "name": "Wall Unit 500 x 825 plain glass Alu frame profile",
+    "shutters": [
+      1
+    ],
+    "handles": []
+  },
+  "0925c2b7-6741-4405-90bb-a6bc38e131ce_Wall_Unit_450_x_825_plain_glass_Alu_frame_profile_.glb": {
+    "modelId": "6aba110c08643016da313427",
+    "name": "Wall Unit 450 x 825 plain glass Alu frame profile",
+    "shutters": [
+      1
+    ],
+    "handles": []
+  },
+  "6ffc246c-ebd0-425b-b7d9-acaefb6552fb_Wall_Unit_600_x_825_plain_glass_Alu_frame_profile_.glb": {
+    "modelId": "6aba110d08643016da31342c",
+    "name": "Wall Unit 600 x 825 plain glass Alu frame profile",
+    "shutters": [
+      1
+    ],
+    "handles": []
+  },
+  "775136f7-e38f-44bd-aac2-01dc93949733_Wall_Unit_550_x_825_plain_glass_Alu_frame_profile_.glb": {
+    "modelId": "6aba110e08643016da313431",
+    "name": "Wall Unit 550 x 825 plain glass Alu frame profile",
+    "shutters": [
+      1
+    ],
+    "handles": []
+  },
+  "6afb10b3-28e5-4513-aed5-c1d2326072fa_Wall_Unit_550_x_825_plain_glass_Alu_frame_profile_shelf_.glb": {
+    "modelId": "6aba115e08643016da313436",
+    "name": "Wall Unit 550 x 825 plain glass Alu frame profile_shelf",
+    "shutters": [
+      1
+    ],
+    "handles": []
+  },
+  "ed091e27-8a6f-4df3-8901-3f00ce9346f7_Wall_Unit_500_x_825_plain_glass_Alu_frame_profile_shelf_.glb": {
+    "modelId": "6aba115f08643016da31343c",
+    "name": "Wall Unit 500 x 825 plain glass Alu frame profile_shelf",
+    "shutters": [
+      1
+    ],
+    "handles": []
+  },
+  "3d07170e-3edb-4d6b-b53d-ab1079aae54d_Wall_Unit_450_x_825_plain_glass_Alu_frame_profile_shelf_.glb": {
+    "modelId": "6aba116008643016da313442",
+    "name": "Wall Unit 450 x 825 plain glass Alu frame profile_shelf",
+    "shutters": [
+      1
+    ],
+    "handles": []
+  },
+  "97224108-8082-4009-9700-d1f66e406f79_Wall_Unit_600_x_825_plain_glass_Alu_frame_profile_shelf_.glb": {
+    "modelId": "6aba116108643016da313448",
+    "name": "Wall Unit 600 x 825 plain glass Alu frame profile_shelf",
+    "shutters": [
+      1
+    ],
+    "handles": []
+  },
+  "c37afe3c-3b6b-4a6e-8fbc-36b19b47f8a7_Wall_unit_550_x_600_left_opening_solid_shutter_handle.glb": {
+    "modelId": "6aba11a608643016da31344e",
+    "name": "Wall unit 550 x 600 left opening solid shutter handle",
+    "shutters": [
+      1
+    ],
+    "handles": [
+      2
+    ]
+  },
+  "0fee7e98-0c9b-4b85-b942-2a95c55e5701_Wall_unit_500_x_600_left_opening_solid_shutter_handle.glb": {
+    "modelId": "6aba11a608643016da313452",
+    "name": "Wall unit 500 x 600 left opening solid shutter handle",
+    "shutters": [
+      1
+    ],
+    "handles": [
+      2
+    ]
+  },
+  "8bb49e7e-1a4d-42c5-8885-2175d7562797_Wall_unit_450_x_600_left_opening_solid_shutter_handle.glb": {
+    "modelId": "6aba11a708643016da313456",
+    "name": "Wall unit 450 x 600 left opening solid shutter handle",
+    "shutters": [
+      1
+    ],
+    "handles": [
+      2
+    ]
+  },
+  "7139e6e9-41ec-428c-b202-f8a09536ea86_Wall_unit_600_x_600_left_opening_solid_shutter_handle.glb": {
+    "modelId": "6aba11a708643016da31345a",
+    "name": "Wall unit 600 x 600 left opening solid shutter handle",
+    "shutters": [
+      1
+    ],
+    "handles": [
+      2
+    ]
+  },
+  "ffbb5ef1-35ec-4c9b-8245-43fab314bffd_Wall_unit_550_x_600_left_opening_solid_shutter_handle_shelf_.glb": {
+    "modelId": "6aba11e708643016da31345e",
+    "name": "Wall unit 550 x 600 left opening solid shutter handle_shelf",
+    "shutters": [
+      1
+    ],
+    "handles": [
+      2
+    ]
+  },
+  "451b6ca6-f356-4dfa-81fa-b44fa2d85326_Wall_unit_500_x_600_left_opening_solid_shutter_handle_shelf_.glb": {
+    "modelId": "6aba11e808643016da313463",
+    "name": "Wall unit 500 x 600 left opening solid shutter handle_shelf",
+    "shutters": [
+      1
+    ],
+    "handles": [
+      2
+    ]
+  },
+  "3fafb226-8145-4641-b0db-fcbd244c2857_Wall_unit_450_x_600_left_opening_solid_shutter_handle_shelf_.glb": {
+    "modelId": "6aba11e808643016da313468",
+    "name": "Wall unit 450 x 600 left opening solid shutter handle_shelf",
+    "shutters": [
+      1
+    ],
+    "handles": [
+      2
+    ]
+  },
+  "08ddd5f1-fdd8-49a0-a6bb-fc5f649d5603_Wall_unit_600_x_600_left_opening_solid_shutter_handle_shelf_.glb": {
+    "modelId": "6aba11e908643016da31346d",
+    "name": "Wall unit 600 x 600 left opening solid shutter handle_shelf",
+    "shutters": [
+      1
+    ],
+    "handles": [
+      2
+    ]
+  },
+  "b2edbd39-b09e-45d7-a630-ad32bf37d387_Wall_unit_550_x_600_right_opening_solid_shutter_handle.glb": {
+    "modelId": "6aba121a08643016da313472",
+    "name": "Wall unit 550 x 600 right opening solid shutter handle",
+    "shutters": [
+      2
+    ],
+    "handles": [
+      1
+    ]
+  },
+  "9d1dad69-fa17-4311-b16b-410e765d11d4_Wall_unit_500_x_600_right_opening_solid_shutter_handle.glb": {
+    "modelId": "6aba121b08643016da313476",
+    "name": "Wall unit 500 x 600 right opening solid shutter handle",
+    "shutters": [
+      1
+    ],
+    "handles": [
+      2
+    ]
+  },
+  "d838fffd-dee9-49ea-8ac7-8c5f56768f49_Wall_unit_450_x_600_right_opening_solid_shutter_handle.glb": {
+    "modelId": "6aba121b08643016da31347a",
+    "name": "Wall unit 450 x 600 right opening solid shutter handle",
+    "shutters": [
+      1
+    ],
+    "handles": [
+      2
+    ]
+  },
+  "7a1475b9-e8b9-4906-b9a9-53d3f907501e_Wall_unit_600_x_600_right_opening_solid_shutter_handle.glb": {
+    "modelId": "6aba121c08643016da31347e",
+    "name": "Wall unit 600 x 600 right opening solid shutter handle",
+    "shutters": [
+      1
+    ],
+    "handles": [
+      2
+    ]
+  },
+  "c1b430f5-cd85-4e6a-a5c2-1a5a26d874c3_Wall_unit_550_x_600_right_opening_solid_shutter_handle.glb": {
+    "modelId": "6aba124b08643016da313482",
+    "name": "Wall unit 550 x 600 right opening solid shutter handle",
+    "shutters": [
+      3
+    ],
+    "handles": [
+      2
+    ]
+  },
+  "b6d7093a-6958-47c4-b04f-69fd208e558e_Wall_unit_500_x_600_right_opening_solid_shutter_handle.glb": {
+    "modelId": "6aba124c08643016da313487",
+    "name": "Wall unit 500 x 600 right opening solid shutter handle",
+    "shutters": [
+      2
+    ],
+    "handles": [
+      3
+    ]
+  },
+  "856f7063-d761-4173-906b-c1d4d1a16d69_Wall_unit_450_x_600_right_opening_solid_shutter_handle.glb": {
+    "modelId": "6aba124d08643016da31348c",
+    "name": "Wall unit 450 x 600 right opening solid shutter handle",
+    "shutters": [
+      3
+    ],
+    "handles": [
+      2
+    ]
+  },
+  "ef1ce994-47b7-4985-a56b-3386f4afcd99_Wall_unit_600_x_600_right_opening_solid_shutter_handle.glb": {
+    "modelId": "6aba124d08643016da313491",
+    "name": "Wall unit 600 x 600 right opening solid shutter handle",
+    "shutters": [
+      3
+    ],
+    "handles": [
+      2
+    ]
+  },
+  "c2479f81-65d7-4b31-92f0-bb67e26505f1_Wall_unit_550_x_600_left_opening_solid_shutter_profile.glb": {
+    "modelId": "6aba127808643016da313496",
+    "name": "Wall unit 550 x 600 left opening solid shutter profile",
+    "shutters": [
+      1
+    ],
+    "handles": []
+  },
+  "fe600825-ac18-44be-b27a-3ef1cb75a813_Wall_unit_500_x_600_left_opening_solid_shutter_profile.glb": {
+    "modelId": "6aba127808643016da31349a",
+    "name": "Wall unit 500 x 600 left opening solid shutter profile",
+    "shutters": [
+      1
+    ],
+    "handles": []
+  },
+  "4475385a-100d-484e-b312-aa12bf944d5a_Wall_unit_450_x_600_left_opening_solid_shutter_profile.glb": {
+    "modelId": "6aba127908643016da31349e",
+    "name": "Wall unit 450 x 600 left opening solid shutter profile",
+    "shutters": [
+      1
+    ],
+    "handles": []
+  },
+  "07ce189e-ea36-4161-be7d-bc5f408a02a5_Wall_unit_600_x_600_left_opening_solid_shutter_profile.glb": {
+    "modelId": "6aba127a08643016da3134a2",
+    "name": "Wall unit 600 x 600 left opening solid shutter profile",
+    "shutters": [
+      1
+    ],
+    "handles": []
+  },
+  "9e11ae44-f692-4b73-9921-25e1d234f014_Wall_unit_550_x_600_left_opening_solid_shutter_profile_shelf.glb": {
+    "modelId": "6aba12d108643016da3134ba",
+    "name": "Wall unit 550 x 600 left opening solid shutter profile_shelf",
+    "shutters": [
+      1
+    ],
+    "handles": []
+  },
+  "b3dbfd9e-d42e-424e-84d8-0c491320dfc3_Wall_unit_500_x_600_left_opening_solid_shutter_profile_shelf.glb": {
+    "modelId": "6aba12d108643016da3134bf",
+    "name": "Wall unit 500 x 600 left opening solid shutter profile_shelf",
+    "shutters": [
+      1
+    ],
+    "handles": []
+  },
+  "7961c4e3-e9a9-442a-96e6-c77357cbcc32_Wall_unit_450_x_600_left_opening_solid_shutter_profile_shelf.glb": {
+    "modelId": "6aba12d208643016da3134c4",
+    "name": "Wall unit 450 x 600 left opening solid shutter profile_shelf",
+    "shutters": [
+      1
+    ],
+    "handles": []
+  },
+  "20202544-68fd-4f47-a1cf-cf2a471a656c_Wall_unit_600_x_600_left_opening_solid_shutter_profile_shelf.glb": {
+    "modelId": "6aba12d308643016da3134c9",
+    "name": "Wall unit 600 x 600 left opening solid shutter profile_shelf",
+    "shutters": [
+      1
+    ],
+    "handles": []
+  },
+  "09c07d5a-8544-4099-aa49-52439939e785_Wall_unit_550_x_600_left_opening_solid_shutter_profile.glb": {
+    "modelId": "6aba130908643016da3134ce",
+    "name": "Wall unit 550 x 600 left opening solid shutter profile",
+    "shutters": [
+      1
+    ],
+    "handles": []
+  },
+  "f9f9d931-6331-4030-93a3-d94736adf16b_Wall_unit_500_x_600_left_opening_solid_shutter_profile.glb": {
+    "modelId": "6aba130a08643016da3134d2",
+    "name": "Wall unit 500 x 600 left opening solid shutter profile",
+    "shutters": [
+      1
+    ],
+    "handles": []
+  },
+  "e2b88800-58a4-4658-ab98-f79bdc1d54d1_Wall_unit_450_x_600_left_opening_solid_shutter_profile.glb": {
+    "modelId": "6aba130b08643016da3134d6",
+    "name": "Wall unit 450 x 600 left opening solid shutter profile",
+    "shutters": [
+      1
+    ],
+    "handles": []
+  },
+  "2de08b16-ebfb-43c1-b588-1929ed984855_Wall_unit_600_x_600_left_opening_solid_shutter_profile.glb": {
+    "modelId": "6aba130b08643016da3134da",
+    "name": "Wall unit 600 x 600 left opening solid shutter profile",
+    "shutters": [
+      1
+    ],
+    "handles": []
+  },
+  "60605dec-a607-4bd1-84a5-7e04ce6251b8_Wall_unit_550_x_600_left_opening_solid_shutter_profile_shelf.glb": {
+    "modelId": "6aba134108643016da3134de",
+    "name": "Wall unit 550 x 600 left opening solid shutter profile_shelf",
+    "shutters": [
+      1
+    ],
+    "handles": []
+  },
+  "38574d11-e08d-47fc-a039-2c9e23df2502_Wall_unit_500_x_600_left_opening_solid_shutter_profile_shelf.glb": {
+    "modelId": "6aba134108643016da3134e3",
+    "name": "Wall unit 500 x 600 left opening solid shutter profile_shelf",
+    "shutters": [
+      1
+    ],
+    "handles": []
+  },
+  "f81dff44-49ac-4f57-b9de-6d753e33d980_Wall_unit_450_x_600_left_opening_solid_shutter_profile_shelf.glb": {
+    "modelId": "6aba134208643016da3134e8",
+    "name": "Wall unit 450 x 600 left opening solid shutter profile_shelf",
+    "shutters": [
+      1
+    ],
+    "handles": []
+  },
+  "b3c44ebb-5554-42f1-94ad-0c4a160ea384_Wall_unit_600_x_600_left_opening_solid_shutter_profile_shelf.glb": {
+    "modelId": "6aba134208643016da3134ed",
+    "name": "Wall unit 600 x 600 left opening solid shutter profile_shelf",
+    "shutters": [
+      1
+    ],
+    "handles": []
+  },
+  "478a899f-d0c7-4248-b519-6174fdf592be_Base_unit_500x825_2_drawer_system_-_handle.glb": {
+    "modelId": "6aba3ad05a0bd3e98c21eb96",
+    "name": "Base unit 500x825 2 drawer system - handle",
+    "shutters": [
+      2
+    ],
+    "handles": [
+      3,
+      4
+    ]
+  },
+  "fc927d70-b566-4721-92f3-a6b49d62a6bd_Base_unit_600x825_2_drawer_system_-_handle.glb": {
+    "modelId": "6aba3ad15a0bd3e98c21eb9d",
+    "name": "Base unit 600x825 2 drawer system - handle",
+    "shutters": [
+      2
+    ],
+    "handles": [
+      3,
+      4
+    ]
+  },
+  "57f6ab99-2b4f-4e1a-ac5d-2c277f09c5df_Base_unit_550x825_2_drawer_system_-_handle.glb": {
+    "modelId": "6aba3ad25a0bd3e98c21eba4",
+    "name": "Base unit 550x825 2 drawer system - handle",
+    "shutters": [
+      2
+    ],
+    "handles": [
+      3,
+      4
+    ]
+  },
+  "9461fe06-b7f2-4f5e-a3e9-f5d061aab5d9_Base_unit_450x825_2_drawer_system_-_handle.glb": {
+    "modelId": "6aba3ad35a0bd3e98c21ebab",
+    "name": "Base unit 450x825 2 drawer system - handle",
+    "shutters": [
+      2
+    ],
+    "handles": [
+      3,
+      4
+    ]
+  },
+  "dec8bfc6-d12a-4fb2-98ee-d172976a0523_Base_unit_900x825_2_drawer_system_-_handle_.glb": {
+    "modelId": "6aba3ad45a0bd3e98c21ebb2",
+    "name": "Base unit 900x825 2 drawer system - handle",
+    "shutters": [
+      2
+    ],
+    "handles": [
+      3,
+      4
+    ]
+  },
+  "da390103-f39b-43fd-a45d-66cbe5504480_Base_unit_600_x_825_2_drawer_profile_handle.glb": {
+    "modelId": "6aba3c2f5a0bd3e98c21ebb9",
+    "name": "Base unit 600 x 825 2 drawer profile handle",
+    "shutters": [
+      2
+    ],
+    "handles": []
+  },
+  "c14bb0ae-432c-4376-9f32-ad3bca857be3_Base_unit_550_x_825_2_drawer_profile_handle.glb": {
+    "modelId": "6aba3c305a0bd3e98c21ebc0",
+    "name": "Base unit 550 x 825 2 drawer profile handle",
+    "shutters": [
+      2
+    ],
+    "handles": []
+  },
+  "c0bfd718-0f3c-45d4-afb3-1e07cc5ba899_Base_unit_500_x_825_2_drawer_profile_handle.glb": {
+    "modelId": "6aba3c315a0bd3e98c21ebc7",
+    "name": "Base unit 500 x 825 2 drawer profile handle",
+    "shutters": [
+      2
+    ],
+    "handles": []
+  },
+  "965db84e-a35f-400c-b8fa-0f0a4a870a10_Base_unit_450_x_825_2_drawer_profile_handle.glb": {
+    "modelId": "6aba3c325a0bd3e98c21ebce",
+    "name": "Base unit 450 x 825 2 drawer profile handle",
+    "shutters": [
+      2
+    ],
+    "handles": []
+  },
+  "8811743a-a465-4688-85a6-54d60e75aab6_Base_unit_900_x_825_2_drawer_profile_handle.glb": {
+    "modelId": "6aba3c335a0bd3e98c21ebd5",
+    "name": "Base unit 900 x 825 2 drawer profile handle",
+    "shutters": [
+      2
+    ],
+    "handles": []
+  },
+  "4ed81dd7-c25d-4ec5-b39b-036d9e114f46_Base_unit_600_x_825_3_drawer_handle.glb": {
+    "modelId": "6aba3c7f5a0bd3e98c21ebdc",
+    "name": "Base unit 600 x 825 3 drawer handle",
+    "shutters": [
+      1
+    ],
+    "handles": [
+      3,
+      4,
+      5
+    ]
+  },
+  "0fa577de-475c-4240-85e7-c194a2a3d934_Base_unit_550_x_825_3_drawer_handle.glb": {
+    "modelId": "6aba3c805a0bd3e98c21ebe4",
+    "name": "Base unit 550 x 825 3 drawer handle",
+    "shutters": [
+      1
+    ],
+    "handles": [
+      3,
+      4,
+      5
+    ]
+  },
+  "f1685ce7-b28d-4d37-878c-1aa7f5867fb1_Base_unit_500_x_825_3_drawer_handle.glb": {
+    "modelId": "6aba3c815a0bd3e98c21ebec",
+    "name": "Base unit 500 x 825 3 drawer handle",
+    "shutters": [
+      1
+    ],
+    "handles": [
+      3,
+      4,
+      5
+    ]
+  },
+  "214e5fe6-9089-4e39-b077-b156744a02dd_Base_unit_450_x_825_3_drawer_handle.glb": {
+    "modelId": "6aba3c815a0bd3e98c21ebf4",
+    "name": "Base unit 450 x 825 3 drawer handle",
+    "shutters": [
+      1
+    ],
+    "handles": [
+      3,
+      4,
+      5
+    ]
+  },
+  "9517dae6-c6e0-4ea6-883f-10ec5c6d170e_Base_unit_900_x_825_3_drawer_handle.glb": {
+    "modelId": "6aba3c825a0bd3e98c21ebfc",
+    "name": "Base unit 900 x 825 3 drawer handle",
+    "shutters": [
+      1
+    ],
+    "handles": [
+      3,
+      4,
+      5
+    ]
+  },
+  "08000427-71a7-40ee-8a3a-34e9997e600e_Base_unit_600_x_825_3_drawer_profile_handle.glb": {
+    "modelId": "6aba3cb55a0bd3e98c21ec04",
+    "name": "Base unit 600 x 825 3 drawer profile handle",
+    "shutters": [
+      1
+    ],
+    "handles": []
+  },
+  "55c3f643-f3a9-441b-8bf1-418352602a2d_Base_unit_550_x_825_3_drawer_profile_handle.glb": {
+    "modelId": "6aba3cb65a0bd3e98c21ec0c",
+    "name": "Base unit 550 x 825 3 drawer profile handle",
+    "shutters": [
+      1
+    ],
+    "handles": []
+  },
+  "1a36df57-767e-44b5-8379-8f14a6f65655_Base_unit_500_x_825_3_drawer_profile_handle.glb": {
+    "modelId": "6aba3cb75a0bd3e98c21ec14",
+    "name": "Base unit 500 x 825 3 drawer profile handle",
+    "shutters": [
+      1
+    ],
+    "handles": []
+  },
+  "cce8daf7-3e62-45fb-a42d-bd9a5ab74455_Base_unit_450_x_825_3_drawer_profile_handle.glb": {
+    "modelId": "6aba3cb85a0bd3e98c21ec1c",
+    "name": "Base unit 450 x 825 3 drawer profile handle",
+    "shutters": [
+      1
+    ],
+    "handles": []
+  },
+  "051347c5-f357-4a31-bf38-4e5de80fe4de_Base_unit_900_x_825_3_drawer_profile_handle.glb": {
+    "modelId": "6aba3cb95a0bd3e98c21ec24",
+    "name": "Base unit 900 x 825 3 drawer profile handle",
+    "shutters": [
+      1
+    ],
+    "handles": []
+  },
+  "56b8b98d-4e67-426c-a977-aed180fb5f86_Base_corner_unit_1150_x_1150_x_825_handle_.glb": {
+    "modelId": "6aba3d175a0bd3e98c21ec2c",
+    "name": "Base corner unit 1150 x 1150 x 825 handle",
+    "shutters": [
+      1
+    ],
+    "handles": [
+      3,
+      4
+    ]
+  },
+  "efe36ad0-48ad-4d45-99b6-af735fca3c5a_Base_corner_unit_1100_x_1100_x_825_handle_.glb": {
+    "modelId": "6aba3d185a0bd3e98c21ec33",
+    "name": "Base corner unit 1100 x 1100 x 825 handle",
+    "shutters": [
+      1
+    ],
+    "handles": [
+      3,
+      4
+    ]
+  },
+  "31764f17-2979-4956-b8f4-22422c8ecaa9_Base_corner_unit_1050_x_1050_x_825_handle_.glb": {
+    "modelId": "6aba3d185a0bd3e98c21ec3a",
+    "name": "Base corner unit 1050 x 1050 x 825 handle",
+    "shutters": [
+      1
+    ],
+    "handles": [
+      3,
+      4
+    ]
+  },
+  "59fe39b7-c8ca-4b1e-be0f-5f70078ab838_Base_corner_unit_1200_x_1200_x_825_handle_.glb": {
+    "modelId": "6aba3d195a0bd3e98c21ec41",
+    "name": "Base corner unit 1200 x 1200 x 825 handle",
+    "shutters": [
+      1
+    ],
+    "handles": [
+      3,
+      4
+    ]
+  },
+  "f7af0dce-7d3a-470d-8aaa-861522e1c26e_Base_corner_unit_1150_x_1150_x_825_handle_shelf.glb": {
+    "modelId": "6aba3d515a0bd3e98c21ec48",
+    "name": "Base corner unit 1150 x 1150 x 825 handle_shelf",
+    "shutters": [
+      1
+    ],
+    "handles": [
+      3,
+      4
+    ]
+  },
+  "89d9761d-6f1c-4599-96a4-d87fc911fbf9_Base_corner_unit_1100_x_1100_x_825_handle_shelf.glb": {
+    "modelId": "6aba3d515a0bd3e98c21ec50",
+    "name": "Base corner unit 1100 x 1100 x 825 handle_shelf",
+    "shutters": [
+      1
+    ],
+    "handles": [
+      3,
+      4
+    ]
+  },
+  "0b08bed5-cbc4-44db-b610-66950cebac0a_Base_corner_unit_1050_x_1050_x_825_handle_shelf.glb": {
+    "modelId": "6aba3d525a0bd3e98c21ec58",
+    "name": "Base corner unit 1050 x 1050 x 825 handle_shelf",
+    "shutters": [
+      1
+    ],
+    "handles": [
+      3,
+      4
+    ]
+  },
+  "003f364b-14ef-4949-9966-cff75c652150_Base_corner_unit_1200_x_1200_x_825_handle_shelf.glb": {
+    "modelId": "6aba3d525a0bd3e98c21ec60",
+    "name": "Base corner unit 1200 x 1200 x 825 handle_shelf",
+    "shutters": [
+      1
+    ],
+    "handles": [
+      3,
+      4
+    ]
+  },
+  "9d9d9827-fa26-4611-aee6-1bf318af2f8e_Base_corner_unit_1150_x_1150_x_825_profile_handle.glb": {
+    "modelId": "6aba3d7b5a0bd3e98c21ec68",
+    "name": "Base corner unit 1150 x 1150 x 825 profile handle",
+    "shutters": [
+      1
+    ],
+    "handles": []
+  },
+  "59c3e6fd-5e45-4de4-8dfa-bb7293d1484e_Base_corner_unit_1100_x_1100_x_825_profile_handle.glb": {
+    "modelId": "6aba3d7b5a0bd3e98c21ec6f",
+    "name": "Base corner unit 1100 x 1100 x 825 profile handle",
+    "shutters": [
+      1
+    ],
+    "handles": []
+  },
+  "49aa96ef-8617-4cf6-9d69-79d220d7a15e_Base_corner_unit_1050_x_1050_x_825_profile_handle.glb": {
+    "modelId": "6aba3d7c5a0bd3e98c21ec76",
+    "name": "Base corner unit 1050 x 1050 x 825 profile handle",
+    "shutters": [
+      1
+    ],
+    "handles": []
+  },
+  "23873ee5-55a0-485e-9875-db30480dc0be_Base_corner_unit_1200_x_1200_x_825_profile_handle.glb": {
+    "modelId": "6aba3d7c5a0bd3e98c21ec7d",
+    "name": "Base corner unit 1200 x 1200 x 825 profile handle",
+    "shutters": [
+      1
+    ],
+    "handles": []
+  },
+  "02a9491d-11b7-4f28-86ee-1e771c30e2e6_Base_corner_unit_1150_x_1150_x_825_profile_handle_shelf.glb": {
+    "modelId": "6aba3da35a0bd3e98c21ec84",
+    "name": "Base corner unit 1150 x 1150 x 825 profile handle_shelf",
+    "shutters": [
+      1
+    ],
+    "handles": []
+  },
+  "aae845e5-fe2c-4342-923f-9d8f7dfce4e4_Base_corner_unit_1100_x_1100_x_825_profile_handle_shelf.glb": {
+    "modelId": "6aba3da45a0bd3e98c21ec8c",
+    "name": "Base corner unit 1100 x 1100 x 825 profile handle_shelf",
+    "shutters": [
+      1
+    ],
+    "handles": []
+  },
+  "39b2c56a-d544-49ce-9efb-7a2207b725ea_Base_corner_unit_1050_x_1050_x_825_profile_handle_shelf.glb": {
+    "modelId": "6aba3da55a0bd3e98c21ec94",
+    "name": "Base corner unit 1050 x 1050 x 825 profile handle_shelf",
+    "shutters": [
+      1
+    ],
+    "handles": []
+  },
+  "42256b99-1de5-45f8-9527-01ca11baee07_Base_corner_unit_1200_x_1200_x_825_profile_handle_shelf.glb": {
+    "modelId": "6aba3da55a0bd3e98c21ec9c",
+    "name": "Base corner unit 1200 x 1200 x 825 profile handle_shelf",
+    "shutters": [
+      1
+    ],
+    "handles": []
+  },
+  "080d20bc-4025-413f-8322-91504299f3ab_Base_unit_1150x825_double_shutter_handle_.glb": {
+    "modelId": "6aba3dff5a0bd3e98c21eca4",
+    "name": "Base unit 1150x825 double shutter handle",
+    "shutters": [
+      3
+    ],
+    "handles": [
+      4,
+      5
+    ]
+  },
+  "141c46a0-7d99-4296-aefe-7eec2cc5f4ad_Base_unit_1100x825_double_shutter_handle_.glb": {
+    "modelId": "6aba3dff5a0bd3e98c21ecab",
+    "name": "Base unit 1100x825 double shutter handle",
+    "shutters": [
+      3
+    ],
+    "handles": [
+      4,
+      5
+    ]
+  },
+  "37020606-d6f8-4d05-aa96-2cced0d1e358_Base_unit_1050x825_double_shutter_handle_.glb": {
+    "modelId": "6aba3e005a0bd3e98c21ecb2",
+    "name": "Base unit 1050x825 double shutter handle",
+    "shutters": [
+      3
+    ],
+    "handles": [
+      4,
+      5
+    ]
+  },
+  "a9475801-da9d-4615-ae49-90cae3da77e1_Base_unit_1000x825_double_shutter_handle_.glb": {
+    "modelId": "6aba3e005a0bd3e98c21ecb9",
+    "name": "Base unit 1000x825 double shutter handle",
+    "shutters": [
+      2
+    ],
+    "handles": [
+      3,
+      4
+    ]
+  },
+  "08668ef1-a800-4040-b41d-dd70dc752078_Base_unit_950x825_double_shutter_handle_.glb": {
+    "modelId": "6aba3e015a0bd3e98c21ecc0",
+    "name": "Base unit 950x825 double shutter handle",
+    "shutters": [
+      3
+    ],
+    "handles": [
+      4,
+      5
+    ]
+  },
+  "d58a99a4-c7a1-4990-bd05-8bef210fb8cc_Base_unit_900x825_double_shutter_handle_.glb": {
+    "modelId": "6aba3e015a0bd3e98c21ecc7",
+    "name": "Base unit 900x825 double shutter handle",
+    "shutters": [
+      3
+    ],
+    "handles": [
+      4,
+      5
+    ]
+  },
+  "c0e77fd8-7c69-44c7-9085-ac44a411dc98_Base_unit_1200x825_double_shutter_handle_.glb": {
+    "modelId": "6aba3e025a0bd3e98c21ecce",
+    "name": "Base unit 1200x825 double shutter handle",
+    "shutters": [
+      3
+    ],
+    "handles": [
+      4,
+      5
+    ]
+  },
+  "083a5993-48c2-4eac-bebe-4ff0bdcc24d8_Base_unit_1150x825_double_shutter_handle_shelf.glb": {
+    "modelId": "6aba3e365a0bd3e98c21ecd5",
+    "name": "Base unit 1150x825 double shutter handle shelf",
+    "shutters": [
+      3
+    ],
+    "handles": [
+      4,
+      5
+    ]
+  },
+  "87a1d06a-e153-4131-bb6f-0db26c8c4cca_Base_unit_1100x825_double_shutter_handle_shelf.glb": {
+    "modelId": "6aba3e375a0bd3e98c21ecdd",
+    "name": "Base unit 1100x825 double shutter handle shelf",
+    "shutters": [
+      3
+    ],
+    "handles": [
+      4,
+      5
+    ]
+  },
+  "866b3cb7-3232-4a70-906d-ce29baba1b52_Base_unit_1050x825_double_shutter_handle_shelf.glb": {
+    "modelId": "6aba3e385a0bd3e98c21ece5",
+    "name": "Base unit 1050x825 double shutter handle shelf",
+    "shutters": [
+      3
+    ],
+    "handles": [
+      4,
+      5
+    ]
+  },
+  "a3ce2365-fd3d-4e47-ba3c-e151cef5ace2_Base_unit_1000x825_double_shutter_handle_shelf.glb": {
+    "modelId": "6aba3e385a0bd3e98c21eced",
+    "name": "Base unit 1000x825 double shutter handle shelf",
+    "shutters": [
+      2
+    ],
+    "handles": [
+      3,
+      4
+    ]
+  },
+  "24005bb8-f5d2-4c47-b4ca-262020417fb4_Base_unit_950x825_double_shutter_handle_shelf.glb": {
+    "modelId": "6aba3e395a0bd3e98c21ecf5",
+    "name": "Base unit 950x825 double shutter handle shelf",
+    "shutters": [
+      3
+    ],
+    "handles": [
+      4,
+      5
+    ]
+  },
+  "409288ac-6c85-4761-abea-d038b1fde72c_Base_unit_900x825_double_shutter_handle_shelf.glb": {
+    "modelId": "6aba3e395a0bd3e98c21ecfd",
+    "name": "Base unit 900x825 double shutter handle shelf",
+    "shutters": [
+      3
+    ],
+    "handles": [
+      4,
+      5
+    ]
+  },
+  "ceaa60bc-7f2c-4354-85eb-19c747331b91_Base_unit_1200x825_double_shutter_handle_shelf.glb": {
+    "modelId": "6aba3e3a5a0bd3e98c21ed05",
+    "name": "Base unit 1200x825 double shutter handle shelf",
+    "shutters": [
+      3
+    ],
+    "handles": [
+      4,
+      5
+    ]
+  },
+  "b2c3db75-72df-4b17-b59e-01cb42226245_Base_Unit_1150_x_825_double_shutter_profile_handle.glb": {
+    "modelId": "6aba3e875a0bd3e98c21ed0d",
+    "name": "Base Unit 1150 x 825 double shutter profile handle",
+    "shutters": [
+      3
+    ],
+    "handles": []
+  },
+  "68f94444-00e7-4bf4-95b8-1338f8185bee_Base_Unit_1100_x_825_double_shutter_profile_handle.glb": {
+    "modelId": "6aba3e875a0bd3e98c21ed14",
+    "name": "Base Unit 1100 x 825 double shutter profile handle",
+    "shutters": [
+      3
+    ],
+    "handles": []
+  },
+  "cb5158b0-628c-44f0-8e62-f09e9a8242f4_Base_Unit_1050_x_825_double_shutter_profile_handle.glb": {
+    "modelId": "6aba3e885a0bd3e98c21ed1b",
+    "name": "Base Unit 1050 x 825 double shutter profile handle",
+    "shutters": [
+      3
+    ],
+    "handles": []
+  },
+  "41585a2f-01b9-4371-a984-c9c81bf33ee2_Base_Unit_1000_x_825_double_shutter_profile_handle.glb": {
+    "modelId": "6aba3e895a0bd3e98c21ed22",
+    "name": "Base Unit 1000 x 825 double shutter profile handle",
+    "shutters": [
+      2
+    ],
+    "handles": []
+  },
+  "50c7c62e-a7e4-469d-93b9-09e30d9f8205_Base_Unit_950_x_825_double_shutter_profile_handle.glb": {
+    "modelId": "6aba3e895a0bd3e98c21ed29",
+    "name": "Base Unit 950 x 825 double shutter profile handle",
+    "shutters": [
+      3
+    ],
+    "handles": []
+  },
+  "a9359117-2ea6-4fa2-80ee-79b3c102ef75_Base_Unit_900_x_825_double_shutter_profile_handle.glb": {
+    "modelId": "6aba3e8a5a0bd3e98c21ed30",
+    "name": "Base Unit 900 x 825 double shutter profile handle",
+    "shutters": [
+      3
+    ],
+    "handles": []
+  },
+  "d548cd19-1074-47c3-b785-f4b464d93b5e_Base_Unit_1200_x_825_double_shutter_profile_handle.glb": {
+    "modelId": "6aba3e8b5a0bd3e98c21ed37",
+    "name": "Base Unit 1200 x 825 double shutter profile handle",
+    "shutters": [
+      3
+    ],
+    "handles": []
+  },
+  "fda0885f-0fe4-49fd-be36-4a2e28d911ff_Base_Unit_1150_x_825_double_shutter_profile_handle_-_shelf.glb": {
+    "modelId": "6aba3ebf5a0bd3e98c21ed3e",
+    "name": "Base Unit 1150 x 825 double shutter profile handle - shelf",
+    "shutters": [
+      3
+    ],
+    "handles": []
+  },
+  "58f35088-df27-4ac7-bdee-decd3951b5d0_Base_Unit_1100_x_825_double_shutter_profile_handle_-_shelf.glb": {
+    "modelId": "6aba3ec05a0bd3e98c21ed46",
+    "name": "Base Unit 1100 x 825 double shutter profile handle - shelf",
+    "shutters": [
+      3
+    ],
+    "handles": []
+  },
+  "73f89c37-f797-46ac-b601-18b1ce5f568f_Base_Unit_1050_x_825_double_shutter_profile_handle_-_shelf.glb": {
+    "modelId": "6aba3ec05a0bd3e98c21ed4e",
+    "name": "Base Unit 1050 x 825 double shutter profile handle - shelf",
+    "shutters": [
+      3
+    ],
+    "handles": []
+  },
+  "95ac23bc-bda7-4cd3-932f-761b22703850_Base_Unit_1000_x_825_double_shutter_profile_handle_-_shelf.glb": {
+    "modelId": "6aba3ec15a0bd3e98c21ed56",
+    "name": "Base Unit 1000 x 825 double shutter profile handle - shelf",
+    "shutters": [
+      2
+    ],
+    "handles": []
+  },
+  "f093c447-5fbc-450f-9496-e22b42b6bd7b_Base_Unit_950_x_825_double_shutter_profile_handle_-_shelf.glb": {
+    "modelId": "6aba3ec15a0bd3e98c21ed5e",
+    "name": "Base Unit 950 x 825 double shutter profile handle - shelf",
+    "shutters": [
+      3
+    ],
+    "handles": []
+  },
+  "86d887ef-5995-497b-802d-511e4cab07ea_Base_Unit_900_x_825_double_shutter_profile_handle_-_shelf.glb": {
+    "modelId": "6aba3ec25a0bd3e98c21ed66",
+    "name": "Base Unit 900 x 825 double shutter profile handle - shelf",
+    "shutters": [
+      3
+    ],
+    "handles": []
+  },
+  "0357b3d3-4506-4ec3-bc7e-940c46b9da5a_Base_Unit_1200_x_825_double_shutter_profile_handle_-_shelf.glb": {
+    "modelId": "6aba3ec25a0bd3e98c21ed6e",
+    "name": "Base Unit 1200 x 825 double shutter profile handle - shelf",
+    "shutters": [
+      3
+    ],
+    "handles": []
+  },
+  "d338f664-215a-44b7-8765-e2101827e711_Oil_pullout_250_x_825_handle.glb": {
+    "modelId": "6aba3ef55a0bd3e98c21ed76",
+    "name": "Oil pullout 250 x 825 handle",
+    "shutters": [
+      2
+    ],
+    "handles": [
+      3
+    ]
+  },
+  "0f2b511c-a78d-489e-ba10-602694480024_Oil_pullout_200_x_825_handle.glb": {
+    "modelId": "6aba3ef55a0bd3e98c21ed7c",
+    "name": "Oil pullout 200 x 825 handle",
+    "shutters": [
+      2
+    ],
+    "handles": [
+      3
+    ]
+  },
+  "9e6964c3-40ca-4a1f-b4a9-9f751ffe3e12_Oil_pullout_150_x_825_handle.glb": {
+    "modelId": "6aba3ef65a0bd3e98c21ed82",
+    "name": "Oil pullout 150 x 825 handle",
+    "shutters": [
+      2
+    ],
+    "handles": [
+      3
+    ]
+  },
+  "8627163f-9b84-42a9-8185-0097bbdc9466_Oil_pullout_300_x_825_handle.glb": {
+    "modelId": "6aba3ef75a0bd3e98c21ed88",
+    "name": "Oil pullout 300 x 825 handle",
+    "shutters": [
+      2
+    ],
+    "handles": [
+      3
+    ]
+  },
+  "b3a2111b-696d-4f19-9c25-21dd28711af0_Oil_pullout_250_x_825_profile.glb": {
+    "modelId": "6aba3f1b5a0bd3e98c21ed8e",
+    "name": "Oil pullout 250 x 825 profile",
+    "shutters": [
+      2
+    ],
+    "handles": []
+  },
+  "9f2a80fc-6ac9-44a3-bb18-9374aebbada5_Oil_pullout_200_x_825_profile.glb": {
+    "modelId": "6aba3f1c5a0bd3e98c21ed94",
+    "name": "Oil pullout 200 x 825 profile",
+    "shutters": [
+      2
+    ],
+    "handles": []
+  },
+  "c3b02e78-43e7-417d-a591-23ff993dd2eb_Oil_pullout_150_x_825_profile.glb": {
+    "modelId": "6aba3f1c5a0bd3e98c21ed9a",
+    "name": "Oil pullout 150 x 825 profile",
+    "shutters": [
+      2
+    ],
+    "handles": []
+  },
+  "afe85bb8-d7c7-4fc2-9233-7e39d2435853_Oil_pullout_300_x_825_profile.glb": {
+    "modelId": "6aba3f1d5a0bd3e98c21eda0",
+    "name": "Oil pullout 300 x 825 profile",
+    "shutters": [
+      2
+    ],
+    "handles": []
+  },
+  "d7484d08-c50a-4a5a-84b8-edf8fcca31a6_Base_sink_unit_1150_x_825_handle.glb": {
+    "modelId": "6aba3f615a0bd3e98c21eda6",
+    "name": "Base sink unit 1150 x 825 handle",
+    "shutters": [
+      3
+    ],
+    "handles": [
+      5,
+      6
+    ]
+  },
+  "2177ad15-bfcf-46bd-af60-b864a1cdd68d_Base_sink_unit_1100_x_825_handle.glb": {
+    "modelId": "6aba3f625a0bd3e98c21edaf",
+    "name": "Base sink unit 1100 x 825 handle",
+    "shutters": [
+      3
+    ],
+    "handles": [
+      5,
+      6
+    ]
+  },
+  "4758cd0b-1f7c-4b04-8bbf-380d3dd40071_Base_sink_unit_1050_x_825_handle.glb": {
+    "modelId": "6aba3f625a0bd3e98c21edb8",
+    "name": "Base sink unit 1050 x 825 handle",
+    "shutters": [
+      3
+    ],
+    "handles": [
+      5,
+      6
+    ]
+  },
+  "4bfbec43-b5ab-463e-9aa9-e53cfc7fd8e3_Base_sink_unit_1000_x_825_handle.glb": {
+    "modelId": "6aba3f635a0bd3e98c21edc1",
+    "name": "Base sink unit 1000 x 825 handle",
+    "shutters": [
+      3
+    ],
+    "handles": [
+      5,
+      6
+    ]
+  },
+  "1d81a4f1-cb09-42ce-8074-400e38605fb6_Base_sink_unit_950_x_825_handle.glb": {
+    "modelId": "6aba3f635a0bd3e98c21edca",
+    "name": "Base sink unit 950 x 825 handle",
+    "shutters": [
+      3
+    ],
+    "handles": [
+      5,
+      6
+    ]
+  },
+  "a3d2e442-6e4f-4118-a119-17a3ed7c974f_Base_sink_unit_900_x_825_handle.glb": {
+    "modelId": "6aba3f645a0bd3e98c21edd3",
+    "name": "Base sink unit 900 x 825 handle",
+    "shutters": [
+      3
+    ],
+    "handles": [
+      5,
+      6
+    ]
+  },
+  "a27c0728-6ec0-441f-9347-eb35d61085ac_Base_sink_unit_1200_x_825_handle.glb": {
+    "modelId": "6aba3f655a0bd3e98c21eddc",
+    "name": "Base sink unit 1200 x 825 handle",
+    "shutters": [
+      3
+    ],
+    "handles": [
+      5,
+      6
+    ]
+  },
+  "c29d4e2c-49b0-4a93-9c03-3bcb8fee263c_Base_sink_unit_1150_x_825_profile_handle.glb": {
+    "modelId": "6aba3f985a0bd3e98c21ede5",
+    "name": "Base sink unit 1150 x 825 profile handle",
+    "shutters": [
+      3
+    ],
+    "handles": []
+  },
+  "412a0d92-5565-4b1a-91b5-a797cf6c2b64_Base_sink_unit_1100_x_825_profile_handle.glb": {
+    "modelId": "6aba3f985a0bd3e98c21edee",
+    "name": "Base sink unit 1100 x 825 profile handle",
+    "shutters": [
+      3
+    ],
+    "handles": []
+  },
+  "811bf1fc-2dcd-49e4-9662-4fa4361c99e5_Base_sink_unit_1050_x_825_profile_handle.glb": {
+    "modelId": "6aba3f995a0bd3e98c21edf7",
+    "name": "Base sink unit 1050 x 825 profile handle",
+    "shutters": [
+      3
+    ],
+    "handles": []
+  },
+  "910af49a-4720-4114-a0ad-35780db71177_Base_sink_unit_1000_x_825_profile_handle.glb": {
+    "modelId": "6aba3f995a0bd3e98c21ee00",
+    "name": "Base sink unit 1000 x 825 profile handle",
+    "shutters": [
+      3
+    ],
+    "handles": []
+  },
+  "08f157ec-3687-4df2-84d1-797d29ab74a1_Base_sink_unit_950_x_825_profile_handle.glb": {
+    "modelId": "6aba3f9a5a0bd3e98c21ee09",
+    "name": "Base sink unit 950 x 825 profile handle",
+    "shutters": [
+      3
+    ],
+    "handles": []
+  },
+  "830c7f01-c506-46a9-831c-5e4661f5f1fb_Base_sink_unit_900_x_825_profile_handle.glb": {
+    "modelId": "6aba3f9b5a0bd3e98c21ee12",
+    "name": "Base sink unit 900 x 825 profile handle",
+    "shutters": [
+      3
+    ],
+    "handles": []
+  },
+  "70d810ec-e698-4509-a688-9940e6d21058_Base_sink_unit_1200_x_825_profile_handle.glb": {
+    "modelId": "6aba3f9b5a0bd3e98c21ee1b",
+    "name": "Base sink unit 1200 x 825 profile handle",
+    "shutters": [
+      3
+    ],
+    "handles": []
+  },
+  "73a0a91e-53a2-4114-9eba-52d6e1901fe8_Base_unit_550x825_left_opening_shutter_-_handle.glb": {
+    "modelId": "6aba40015a0bd3e98c21ee24",
+    "name": "Base unit 550x825 left opening shutter - handle",
+    "shutters": [
+      2
+    ],
+    "handles": [
+      3
+    ]
+  },
+  "92b983bf-294e-42e1-934b-c941cf58d037_Base_unit_500x825_left_opening_shutter_-_handle.glb": {
+    "modelId": "6aba40025a0bd3e98c21ee2a",
+    "name": "Base unit 500x825 left opening shutter - handle",
+    "shutters": [
+      2
+    ],
+    "handles": [
+      3
+    ]
+  },
+  "fba74224-0d86-4d76-89ec-ae4fbe060047_Base_unit_450x825_left_opening_shutter_-_handle.glb": {
+    "modelId": "6aba40025a0bd3e98c21ee30",
+    "name": "Base unit 450x825 left opening shutter - handle",
+    "shutters": [
+      2
+    ],
+    "handles": [
+      3
+    ]
+  },
+  "439b2795-6ada-49d6-9639-1dacd30eb456_Base_unit_600x825_left_opening_shutter_-_handle_.glb": {
+    "modelId": "6aba40035a0bd3e98c21ee36",
+    "name": "Base unit 600x825 left opening shutter - handle",
+    "shutters": [
+      2
+    ],
+    "handles": [
+      3
+    ]
+  },
+  "f523f406-410a-4a54-8401-2d3eaa515110_Base_unit_550x825_left_opening_shutters_shelf.glb": {
+    "modelId": "6aba40355a0bd3e98c21ee3c",
+    "name": "Base unit 550x825 left opening shutters shelf",
+    "shutters": [
+      2
+    ],
+    "handles": [
+      3
+    ]
+  },
+  "cf82c578-bc56-4855-ac6e-ce2e9131bc0f_Base_unit_500x825_left_opening_shutters_shelf.glb": {
+    "modelId": "6aba40365a0bd3e98c21ee43",
+    "name": "Base unit 500x825 left opening shutters shelf",
+    "shutters": [
+      2
+    ],
+    "handles": [
+      3
+    ]
+  },
+  "cd25ccf2-480e-4d1a-8621-649b711bb8fd_Base_unit_450x825_left_opening_shutters_shelf.glb": {
+    "modelId": "6aba40365a0bd3e98c21ee4a",
+    "name": "Base unit 450x825 left opening shutters shelf",
+    "shutters": [
+      2
+    ],
+    "handles": [
+      3
+    ]
+  },
+  "22c035a0-4216-46bf-9cf6-be2a2d5d8042_Base_unit_600x825_left_opening_shutters_shelf.glb": {
+    "modelId": "6aba40375a0bd3e98c21ee51",
+    "name": "Base unit 600x825 left opening shutters shelf",
+    "shutters": [
+      2
+    ],
+    "handles": [
+      3
+    ]
+  },
+  "6006b220-7401-4cea-b393-08ad052cda6d_Base_unit_550x825_right_opening_shutter_-_handle.glb": {
+    "modelId": "6aba40685a0bd3e98c21ee58",
+    "name": "Base unit 550x825 right opening shutter - handle",
+    "shutters": [
+      4
+    ],
+    "handles": [
+      3
+    ]
+  },
+  "972671ef-d6ef-4213-8403-818530e7708a_Base_unit_500x825_right_opening_shutter_-_handle.glb": {
+    "modelId": "6aba40695a0bd3e98c21ee5e",
+    "name": "Base unit 500x825 right opening shutter - handle",
+    "shutters": [
+      1
+    ],
+    "handles": [
+      0
+    ]
+  },
+  "3059e7d2-9cd0-46de-a1ee-145bc554efe3_Base_unit_450x825_right_opening_shutter_-_handle_.glb": {
+    "modelId": "6aba406a5a0bd3e98c21ee64",
+    "name": "Base unit 450x825 right opening shutter - handle",
+    "shutters": [
+      3
+    ],
+    "handles": [
+      0
+    ]
+  },
+  "4e198b71-bf47-4d4b-b11b-de7e6b6d9628_Base_unit_600x825_right_opening_shutter_-_handle.glb": {
+    "modelId": "6aba406a5a0bd3e98c21ee6a",
+    "name": "Base unit 600x825 right opening shutter - handle",
+    "shutters": [
+      2
+    ],
+    "handles": [
+      3
+    ]
+  },
+  "29400f6c-1ee3-4331-8afd-bbc993102e4a_Base_unit_550x825_right_opening_shutter_handle_shelf_.glb": {
+    "modelId": "6aba40925a0bd3e98c21ee70",
+    "name": "Base unit 550x825 right opening shutter handle shelf",
+    "shutters": [
+      3
+    ],
+    "handles": [
+      4
+    ]
+  },
+  "e5656c10-de83-4c85-9969-8600365a3588_Base_unit_500x825_right_opening_shutter_handle_shelf_.glb": {
+    "modelId": "6aba40925a0bd3e98c21ee77",
+    "name": "Base unit 500x825 right opening shutter handle shelf",
+    "shutters": [
+      5
+    ],
+    "handles": [
+      3
+    ]
+  },
+  "be4723b2-133b-45e8-bc3c-d909e5091ca4_Base_unit_450x825_right_opening_shutter_handle_shelf_.glb": {
+    "modelId": "6aba40935a0bd3e98c21ee7e",
+    "name": "Base unit 450x825 right opening shutter handle shelf",
+    "shutters": [
+      0
+    ],
+    "handles": [
+      1
+    ]
+  },
+  "4afc82a4-b5df-41c0-bf8a-156ea3b46905_Base_unit_600x825_right_opening_shutter_handle_shelf_.glb": {
+    "modelId": "6aba40945a0bd3e98c21ee85",
+    "name": "Base unit 600x825 right opening shutter handle shelf",
+    "shutters": [
+      3
+    ],
+    "handles": [
+      1
+    ]
+  },
+  "d1c640fd-5c42-435f-9f6d-999fe9d1065a_Base_unit_550x825_left_opening_profile_shutter_-_handle_.glb": {
+    "modelId": "6aba40dd5a0bd3e98c21ee8c",
+    "name": "Base unit 550x825 left opening profile shutter - handle",
+    "shutters": [
+      2
+    ],
+    "handles": []
+  },
+  "14e51df8-9132-4437-9119-42cc2ae89cb1_Base_unit_500x825_left_opening_profile_shutter_-_handle_.glb": {
+    "modelId": "6aba40de5a0bd3e98c21ee92",
+    "name": "Base unit 500x825 left opening profile shutter - handle",
+    "shutters": [
+      2
+    ],
+    "handles": []
+  },
+  "1a706e0a-1b66-449d-bfbd-4eff28fe3847_Base_unit_450x825_left_opening_profile_shutter_-_handle.glb": {
+    "modelId": "6aba40de5a0bd3e98c21ee98",
+    "name": "Base unit 450x825 left opening profile shutter - handle",
+    "shutters": [
+      2
+    ],
+    "handles": []
+  },
+  "fbd3dcd1-240f-44b1-8008-b585be91a959_Base_unit_600x825_left_opening_profile_shutter_-_handle.glb": {
+    "modelId": "6aba40df5a0bd3e98c21ee9e",
+    "name": "Base unit 600x825 left opening profile shutter - handle",
+    "shutters": [
+      2
+    ],
+    "handles": []
+  },
+  "51d58ee3-8612-432f-8664-4ba77bf1246f_Base_unit_550x825_left_profile_shutter_shelf.glb": {
+    "modelId": "6aba41065a0bd3e98c21eea4",
+    "name": "Base unit 550x825 left profile shutter shelf",
+    "shutters": [
+      2
+    ],
+    "handles": []
+  },
+  "a7cde519-94ed-4c89-80b8-801b8a8ce4c4_Base_unit_500x825_left_profile_shutter_shelf_.glb": {
+    "modelId": "6aba41075a0bd3e98c21eeab",
+    "name": "Base unit 500x825 left profile shutter shelf",
+    "shutters": [
+      2
+    ],
+    "handles": []
+  },
+  "56301617-7af8-41dc-91e0-dea69806a232_Base_unit_450x825_left_profile_shutter_shelf.glb": {
+    "modelId": "6aba41075a0bd3e98c21eeb2",
+    "name": "Base unit 450x825 left profile shutter shelf",
+    "shutters": [
+      2
+    ],
+    "handles": []
+  },
+  "dd08247d-0cd6-42b6-aa0a-d77ea062300f_Base_unit_600x825_left_profile_shutter_shelf.glb": {
+    "modelId": "6aba41085a0bd3e98c21eeb9",
+    "name": "Base unit 600x825 left profile shutter shelf",
+    "shutters": [
+      2
+    ],
+    "handles": []
+  },
+  "210e5676-f6f0-4269-96c4-f57e44779cc7_Tall_Unit_with_Right_Opening_Door_550_x_2080_profile_handles_.glb": {
+    "modelId": "6aba6208533ff2d1a09955ee",
+    "name": "Tall Unit with Right Opening Door 550 x 2080 profile handles",
+    "shutters": [
+      4
+    ],
+    "handles": []
+  },
+  "fdb938cd-c674-4fcc-935d-5d0a41a4a0a4_Tall_Unit_with_Right_Opening_Door_500_x_2080_profile_handles_.glb": {
+    "modelId": "6aba6209533ff2d1a09955fa",
+    "name": "Tall Unit with Right Opening Door 500 x 2080 profile handles",
+    "shutters": [
+      4
+    ],
+    "handles": []
+  },
+  "3dd31d7a-135a-40ac-a8f9-4c06fb739390_Tall_Unit_with_Right_Opening_Door_450_x_2080_profile_handles_.glb": {
+    "modelId": "6aba620a533ff2d1a0995606",
+    "name": "Tall Unit with Right Opening Door 450 x 2080 profile handles",
+    "shutters": [
+      4
+    ],
+    "handles": []
+  },
+  "9d7aac7e-a4eb-49c3-a565-dde5159aa518_Tall_Unit_with_Right_Opening_Door_400_x_2080_profile_handles_.glb": {
+    "modelId": "6aba620b533ff2d1a0995612",
+    "name": "Tall Unit with Right Opening Door 400 x 2080 profile handles",
+    "shutters": [
+      4
+    ],
+    "handles": []
+  },
+  "89b62995-690b-4c9b-b6d6-c8b61ed1bb35_Tall_Unit_with_Right_Opening_Door_600_x_2080_profile_handles_.glb": {
+    "modelId": "6aba620c533ff2d1a099561e",
+    "name": "Tall Unit with Right Opening Door 600 x 2080 profile handles",
+    "shutters": [
+      4
+    ],
+    "handles": []
+  },
+  "dbd05b82-6c92-4562-af78-138087d2775a_Tall_unit_with_Right_Opening_door_550_x_2080.glb": {
+    "modelId": "6aba620d533ff2d1a099562a",
+    "name": "Tall unit with Right Opening door 550 x 2080",
+    "shutters": [
+      4
+    ],
+    "handles": [
+      5
+    ]
+  },
+  "a75c2fd7-af9f-4a24-8ca9-914d687a3198_Tall_unit_with_Right_Opening_door_500_x_2080.glb": {
+    "modelId": "6aba620e533ff2d1a0995636",
+    "name": "Tall unit with Right Opening door 500 x 2080",
+    "shutters": [
+      4
+    ],
+    "handles": [
+      5
+    ]
+  },
+  "783920ef-ec0d-4f17-b797-6b2e2cd11c84_Tall_unit_with_Right_Opening_door_450_x_2080.glb": {
+    "modelId": "6aba620e533ff2d1a0995642",
+    "name": "Tall unit with Right Opening door 450 x 2080",
+    "shutters": [
+      4
+    ],
+    "handles": [
+      5
+    ]
+  },
+  "65103d66-346a-4f68-baab-e9bc335b5329_Tall_unit_with_Right_Opening_door_600_x_2080.glb": {
+    "modelId": "6aba620f533ff2d1a099564e",
+    "name": "Tall unit with Right Opening door 600 x 2080",
+    "shutters": [
+      4
+    ],
+    "handles": [
+      5
+    ]
+  },
+  "77e8a664-de01-49a7-b42d-c84a60951aa5_Tall_unit_with_Right_Opening_door_400_x_2080.glb": {
+    "modelId": "6aba6210533ff2d1a099565a",
+    "name": "Tall unit with Right Opening door 400 x 2080",
+    "shutters": [
+      4
+    ],
+    "handles": [
+      5
+    ]
+  },
+  "ca6f26ac-dca8-40be-b1a8-6b137d46772b_Tall_Unit_with_Right_Opening_Door_550_X_2080_Blender_.glb": {
+    "modelId": "6aba6211533ff2d1a0995666",
+    "name": "Tall Unit with Right Opening Door  550 X 2080 Blender",
+    "shutters": [
+      5
+    ],
+    "handles": [
+      6
+    ]
+  },
+  "a5e4c199-6e36-4851-9fe0-cb1e849ee582_Tall_Unit_with_Right_Opening_Door_500_X_2080_Blender_.glb": {
+    "modelId": "6aba6212533ff2d1a0995672",
+    "name": "Tall Unit with Right Opening Door  500 X 2080 Blender",
+    "shutters": [
+      5
+    ],
+    "handles": [
+      6
+    ]
+  },
+  "20f47d1a-0cee-4c32-96f1-b933d12e404d_Tall_Unit_with_Right_Opening_Door_450_X_2080_Blender_.glb": {
+    "modelId": "6aba6212533ff2d1a099567e",
+    "name": "Tall Unit with Right Opening Door  450 X 2080 Blender",
+    "shutters": [
+      5
+    ],
+    "handles": [
+      6
+    ]
+  },
+  "051fe9b2-dbaf-4e78-8b2f-0f2541c3cc1b_Tall_Unit_with_Right_Opening_Door_400_X_2080_Blender_.glb": {
+    "modelId": "6aba6213533ff2d1a099568a",
+    "name": "Tall Unit with Right Opening Door  400 X 2080 Blender",
+    "shutters": [
+      5
+    ],
+    "handles": [
+      6
+    ]
+  },
+  "21483389-05b8-40a1-8ad6-c3e14cd0ca27_Tall_Unit_with_Right_Opening_Door_600_X_2080_Blender_.glb": {
+    "modelId": "6aba6214533ff2d1a0995696",
+    "name": "Tall Unit with Right Opening Door  600 X 2080 Blender",
+    "shutters": [
+      5
+    ],
+    "handles": [
+      6
+    ]
+  },
+  "ecd29a56-c299-46ca-b713-061c7da76241_Tall_Unit_with_Left_Opening_Door_profile_handles_550_x_2080_1_.glb": {
+    "modelId": "6aba6215533ff2d1a09956a2",
+    "name": "Tall Unit with Left Opening Door profile handles 550 x 2080 (1)",
+    "shutters": [
+      4
+    ],
+    "handles": []
+  },
+  "8d1da491-770a-4ef0-9cff-34f71591c909_Tall_Unit_with_Left_Opening_Door_profile_handles_500_x_2080_1_.glb": {
+    "modelId": "6aba6215533ff2d1a09956ae",
+    "name": "Tall Unit with Left Opening Door profile handles 500 x 2080 (1)",
+    "shutters": [
+      4
+    ],
+    "handles": []
+  },
+  "117ca4a8-ea8e-419d-b902-7cb7f8bb6a31_Tall_Unit_with_Left_Opening_Door_profile_handles_450_x_2080.glb": {
+    "modelId": "6aba6216533ff2d1a09956ba",
+    "name": "Tall Unit with Left Opening Door profile handles 450 x 2080",
+    "shutters": [
+      4
+    ],
+    "handles": []
+  },
+  "917569a0-9d08-490c-9bb1-e48d7bc59953_Tall_Unit_with_Left_Opening_Door_profile_handles_400_x_2080_1_.glb": {
+    "modelId": "6aba6217533ff2d1a09956c6",
+    "name": "Tall Unit with Left Opening Door profile handles 400 x 2080 (1)",
+    "shutters": [
+      4
+    ],
+    "handles": []
+  },
+  "42a134f3-8612-4bd6-8d60-3456a8f3c58b_Tall_Unit_with_Left_Opening_Door_profile_handles_550_x_2080.glb": {
+    "modelId": "6aba6218533ff2d1a09956d2",
+    "name": "Tall Unit with Left Opening Door profile handles 550 x 2080",
+    "shutters": [
+      5
+    ],
+    "handles": []
+  },
+  "db611d91-bc16-460c-b5ae-cf186807a791_Tall_Unit_with_Left_Opening_Door_profile_handles_600_x_2080_1_.glb": {
+    "modelId": "6aba6219533ff2d1a09956de",
+    "name": "Tall Unit with Left Opening Door profile handles 600 x 2080 (1)",
+    "shutters": [
+      4
+    ],
+    "handles": []
+  },
+  "ad92d41b-57f3-4183-bd06-4a9eed56b05b_Tall_Unit_with_Left_Opening_Door_profile_handles_500_x_2080.glb": {
+    "modelId": "6aba6219533ff2d1a09956ea",
+    "name": "Tall Unit with Left Opening Door profile handles 500 x 2080",
+    "shutters": [
+      5
+    ],
+    "handles": []
+  },
+  "8fa7a724-7f0f-497b-93b9-94a6d4a0f90a_Tall_Unit_with_Left_Opening_Door_profile_handles_400_x_2080.glb": {
+    "modelId": "6aba621a533ff2d1a09956f6",
+    "name": "Tall Unit with Left Opening Door profile handles 400 x 2080",
+    "shutters": [
+      4
+    ],
+    "handles": []
+  },
+  "3146b469-ef95-4e26-b69d-a4ddb8324468_Tall_unit_left_opening_profile_handle_450_x_2080.glb": {
+    "modelId": "6aba621b533ff2d1a0995702",
+    "name": "Tall unit left opening profile handle 450 x 2080",
+    "shutters": [
+      5
+    ],
+    "handles": []
+  },
+  "65852e00-6873-4268-a329-1def540a0300_Tall_Unit_with_Left_Opening_Door_profile_handles_600_x_2080.glb": {
+    "modelId": "6aba621c533ff2d1a099570e",
+    "name": "Tall Unit with Left Opening Door profile handles 600 x 2080",
+    "shutters": [
+      5
+    ],
+    "handles": []
+  },
+  "b9dca35a-a20c-4214-8b20-e77e6867c4ea_tall_unit_with_Left_Opening_door_550_x_2080_.glb": {
+    "modelId": "6aba621d533ff2d1a099571a",
+    "name": "tall unit with Left Opening door 550 x 2080",
+    "shutters": [
+      4
+    ],
+    "handles": [
+      5
+    ]
+  },
+  "e080aa68-a6ec-416f-b98a-c5b90f3b0140_tall_unit_with_Left_Opening_door_500_x_2080_.glb": {
+    "modelId": "6aba621f533ff2d1a0995726",
+    "name": "tall unit with Left Opening door 500 x 2080",
+    "shutters": [
+      4
+    ],
+    "handles": [
+      5
+    ]
+  },
+  "d90aa504-0f3f-4e04-a67f-69a8ac793750_tall_unit_with_Left_Opening_door_450_x_2080.glb": {
+    "modelId": "6aba6220533ff2d1a0995732",
+    "name": "tall unit with Left Opening door 450 x 2080",
+    "shutters": [
+      4
+    ],
+    "handles": [
+      5
+    ]
+  },
+  "af1dfb59-31af-49f1-b4ec-1013959e233f_tall_unit_with_Left_Opening_door_400_x_2080.glb": {
+    "modelId": "6aba6221533ff2d1a099573e",
+    "name": "tall unit with Left Opening door 400 x 2080",
+    "shutters": [
+      4
+    ],
+    "handles": [
+      5
+    ]
+  },
+  "5841bcc7-99f2-47af-bf6c-f2079b0773a0_tall_unit_with_Left_Opening_door_600_x_2080_.glb": {
+    "modelId": "6aba6222533ff2d1a099574a",
+    "name": "tall unit with Left Opening door 600 x 2080",
+    "shutters": [
+      4
+    ],
+    "handles": [
+      5
+    ]
+  },
+  "913b6cce-3159-494d-812d-b7fee6f275d8_Tall_unit_Left_door_opening_handles_550_x_2080.glb": {
+    "modelId": "6aba6223533ff2d1a0995756",
+    "name": "Tall unit Left door opening handles  550 x 2080",
+    "shutters": [
+      5
+    ],
+    "handles": [
+      6
+    ]
+  },
+  "f55a0db5-e97d-4145-9233-cbcee234f826_Tall_unit_Left_door_opening_handles_500_x_2080.glb": {
+    "modelId": "6aba6224533ff2d1a0995762",
+    "name": "Tall unit Left door opening handles  500 x 2080",
+    "shutters": [
+      5
+    ],
+    "handles": [
+      6
+    ]
+  },
+  "893ced6a-e346-490a-bafb-a097a7ac772c_Tall_unit_Left_door_opening_handles_450_x_2080.glb": {
+    "modelId": "6aba6224533ff2d1a099576e",
+    "name": "Tall unit Left door opening handles  450 x 2080",
+    "shutters": [
+      5
+    ],
+    "handles": [
+      6
+    ]
+  },
+  "cf56ca66-ccec-4306-906d-17f7d67517e6_Tall_unit_Left_door_opening_handles_600_x_2080.glb": {
+    "modelId": "6aba6225533ff2d1a099577a",
+    "name": "Tall unit Left door opening handles  600 x 2080",
+    "shutters": [
+      5
+    ],
+    "handles": [
+      6
+    ]
+  },
+  "39c27a3d-d054-448d-8ac6-02ef188f519d_Tall_Unit_with_Left_Opening_Door_profile_handles_400_x_2080_1_.glb": {
+    "modelId": "6ac626f4bf26a3fe8a508da0",
+    "name": "Tall Unit with Left Opening Door profile handles 400 x 2080 (1)",
+    "shutters": [
+      4
+    ],
+    "handles": [
+      10
+    ]
+  },
+  "5697866c-4c10-428c-b640-a75950df3fec_TV_drawer_unit_with_basic_handles_1800_x_350mm_.glb": {
+    "modelId": "6ad9dd1398f6908d0e8f16b4",
+    "name": "TV drawer unit with basic handles 1800 x 350mm",
+    "shutters": [
+      2
+    ],
+    "handles": [
+      3,
+      4,
+      5,
+      6
+    ]
+  },
+  "fae18ab2-0f39-4130-893f-a69d5ca8a68d_TV_drawer_unit_with_basic_handles_1500_x_350mm_.glb": {
+    "modelId": "6ad9dd1398f6908d0e8f16bc",
+    "name": "TV drawer unit with basic handles 1500 x 350mm",
+    "shutters": [
+      2
+    ],
+    "handles": [
+      3,
+      4,
+      5
+    ]
+  },
+  "39d78a75-56a9-44bc-903f-de846384af4c_TV_drawer_unit_with_basic_handles_1300_x_350mm_.glb": {
+    "modelId": "6ad9dd1398f6908d0e8f16c3",
+    "name": "TV drawer unit with basic handles 1300 x 350mm",
+    "shutters": [
+      2
+    ],
+    "handles": [
+      3,
+      4,
+      5
+    ]
+  },
+  "c4a20f00-1cb3-4304-a927-07b07f60a382_TV_drawer_unit_with_basic_handles_2100_x_350mm_.glb": {
+    "modelId": "6ad9dd1398f6908d0e8f16ca",
+    "name": "TV drawer unit with basic handles 2100 x 350mm",
+    "shutters": [
+      2
+    ],
+    "handles": [
+      3,
+      4,
+      5,
+      6,
+      7
+    ]
+  },
+  "154e8491-f5b3-4428-a463-2d1ecd6daccf_TV_drawer_along_centre_unit_with_basic_handles_2100_x_350mm_.glb": {
+    "modelId": "6ad9dd1398f6908d0e8f16d3",
+    "name": "TV drawer along centre unit with basic handles 2100 x 350mm",
+    "shutters": [
+      2
+    ],
+    "handles": [
+      3,
+      4,
+      5,
+      6
+    ]
+  },
+  "5fca2a3f-c64b-44d8-bfaf-0c2ccfcbe37f_TV_drawer_along_centre_unit_with_basic_handles_1800_x_350mm_.glb": {
+    "modelId": "6ad9dd1398f6908d0e8f16db",
+    "name": "TV drawer along centre unit with basic handles 1800 x 350mm",
+    "shutters": [
+      2
+    ],
+    "handles": [
+      3,
+      4
+    ]
+  },
+  "a29d2eb2-0bd2-4d7d-b641-709de16cab8f_TV_drawer_along_centre_unit_with_basic_handles_1500_x_350mm_.glb": {
+    "modelId": "6ad9dd1398f6908d0e8f16e1",
+    "name": "TV drawer along centre unit with basic handles 1500 x 350mm",
+    "shutters": [
+      2
+    ],
+    "handles": [
+      3,
+      4
+    ]
+  },
+  "99d17d9e-a51c-4947-b5ca-c699fcb8d0d9_TV_drawer_along_centre_unit_with_basic_handles_1300_x_350mm_.glb": {
+    "modelId": "6ad9dd1398f6908d0e8f16e7",
+    "name": "TV drawer along centre unit with basic handles 1300 x 350mm",
+    "shutters": [
+      2
+    ],
+    "handles": [
+      3,
+      4
+    ]
+  },
+  "2ca5e36c-2215-4648-ba7f-4ac3f7bea5ee_TV_drawer_unit_with_finger_groove_1500_x_350mm_.glb": {
+    "modelId": "6ad9ddc898f6908d0e8f16ed",
+    "name": "TV drawer unit with finger groove 1500 x 350mm",
+    "shutters": [
+      2
+    ],
+    "handles": []
+  },
+  "131b3773-b7bc-48d8-90c5-57731eb146f5_TV_drawer_unit_with_finger_groove_1300_x_350mm_.glb": {
+    "modelId": "6ad9ddc898f6908d0e8f16f1",
+    "name": "TV drawer unit with finger groove 1300 x 350mm",
+    "shutters": [
+      2
+    ],
+    "handles": []
+  },
+  "5ddd736b-3f69-45d3-a6a4-eee13eb778ca_TV_drawer_unit_with_finger_groove_2100_x_350mm_.glb": {
+    "modelId": "6ad9ddc898f6908d0e8f16f5",
+    "name": "TV drawer unit with finger groove 2100 x 350mm",
+    "shutters": [
+      2
+    ],
+    "handles": []
+  },
+  "5c0f4dd6-13ba-4421-99fd-19f3c93b6b1a_TV_drawer_unit_with_finger_groove_1800_x_350mm_.glb": {
+    "modelId": "6ad9ddc898f6908d0e8f16f9",
+    "name": "TV drawer unit with finger groove 1800 x 350mm",
+    "shutters": [
+      2
+    ],
+    "handles": []
+  },
+  "44a37c3b-a860-411f-b253-aee0ac753ea9_TV_drawer_along_centre_unit_with_finger_groove_1300_x_350mm_.glb": {
+    "modelId": "6ad9ddc898f6908d0e8f16fd",
+    "name": "TV drawer along centre unit with finger groove 1300 x 350mm",
+    "shutters": [
+      2
+    ],
+    "handles": []
+  },
+  "680148b0-8dc6-4217-9dc5-461c032455f1_TV_drawer_along_centre_unit_with_finger_groove_2100_x_350mm_.glb": {
+    "modelId": "6ad9ddc898f6908d0e8f1701",
+    "name": "TV drawer along centre unit with finger groove 2100 x 350mm",
+    "shutters": [
+      2
+    ],
+    "handles": []
+  },
+  "b2b0349e-2537-426d-939a-371d07bf703e_TV_drawer_along_centre_unit_with_finger_groove_1800_x_350mm_.glb": {
+    "modelId": "6ad9ddc898f6908d0e8f1705",
+    "name": "TV drawer along centre unit with finger groove 1800 x 350mm",
+    "shutters": [
+      2
+    ],
+    "handles": []
+  },
+  "59b75119-9169-44c1-901a-04af24324a60_TV_drawer_along_centre_unit_with_finger_groove_1500_x_350mm_.glb": {
+    "modelId": "6ad9ddc898f6908d0e8f1709",
+    "name": "TV drawer along centre unit with finger groove 1500 x 350mm",
+    "shutters": [
+      2
+    ],
+    "handles": []
+  },
+  "dc17de3d-07aa-4bb2-a3de-e67b38a86631_TV_panel_1800_x_1500mm_.glb": {
+    "modelId": "6ae19a6bb6e45f59e55d3cba",
+    "name": "TV panel 1800 x 1500mm",
+    "shutters": [
+      0
+    ],
+    "handles": []
+  },
+  "efa9bee9-1044-4eee-a3dd-92cf3eb0c537_TV_panel_1500_x_1500mm_.glb": {
+    "modelId": "6ae19a6bb6e45f59e55d3cbc",
+    "name": "TV panel 1500 x 1500mm",
+    "shutters": [
+      0
+    ],
+    "handles": []
+  },
+  "0e38e66b-4cd8-482f-b47c-bc2714de40a9_TV_panel_1300_x_1500mm_.glb": {
+    "modelId": "6ae19a6bb6e45f59e55d3cbe",
+    "name": "TV panel 1300 x 1500mm",
+    "shutters": [
+      0
+    ],
+    "handles": []
+  },
+  "a3d78ef0-4d7d-4642-84d7-92216b74e4b2_TV_panel_2100_x_1500mm_.glb": {
+    "modelId": "6ae19a6bb6e45f59e55d3cc0",
+    "name": "TV panel 2100 x 1500mm",
+    "shutters": [
+      0
+    ],
+    "handles": []
+  },
+  "102d10a0-c3bd-4d4b-ae01-80506aac5c41_TV_panel_1800_x_1500mm_groove_.glb": {
+    "modelId": "6ae19aabb6e45f59e55d3cc2",
+    "name": "TV panel 1800 x 1500mm_groove",
+    "shutters": [
+      0
+    ],
+    "handles": []
+  },
+  "47ebc274-c5ed-4509-aabb-2ce89298650a_TV_panel_1500_x_1500mm_groove_.glb": {
+    "modelId": "6ae19aabb6e45f59e55d3cc4",
+    "name": "TV panel 1500 x 1500mm_groove",
+    "shutters": [
+      0
+    ],
+    "handles": []
+  },
+  "420434a7-735e-40d2-8725-703b45b4ee34_TV_panel_1300_x_1500mm_groove_.glb": {
+    "modelId": "6ae19aabb6e45f59e55d3cc6",
+    "name": "TV panel 1300 x 1500mm_groove",
+    "shutters": [
+      0
+    ],
+    "handles": []
+  },
+  "a260ab77-6d83-493a-8240-ded2d355f95d_TV_panel_2100_x_1500mm_groove_.glb": {
+    "modelId": "6ae19aabb6e45f59e55d3cc8",
+    "name": "TV panel 2100 x 1500mm_groove",
+    "shutters": [
+      0
+    ],
+    "handles": []
+  },
+  "8b790d1a-49c6-4ccf-ad7c-56fe9d02e685_Wall_cladding_148_x_2400_-_25.glb": {
+    "modelId": "6ae19afbb6e45f59e55d3ccb",
+    "name": "Wall cladding 148 x 2400 - 25",
+    "shutters": [
+      0
+    ],
+    "handles": []
+  },
+  "0ed9b8ea-7602-4c87-bb56-2f872c3827a1_Wall_cladding_148_x_2400_-_18.glb": {
+    "modelId": "6ae19afbb6e45f59e55d3ccd",
+    "name": "Wall cladding 148 x 2400 - 18",
+    "shutters": [
+      0
+    ],
+    "handles": []
+  },
+  "83869c62-13ba-4088-88e8-2e2aacd71da2_Wall_cladding_154_x_2400_-_25.glb": {
+    "modelId": "6ae19afbb6e45f59e55d3ccf",
+    "name": "Wall cladding 154 x 2400 - 25",
+    "shutters": [
+      0
+    ],
+    "handles": []
+  },
+  "d21e4ade-0571-4a02-aef7-048b960db10f_Fluted_double_shutter_wardrobe_1200_x_2080_hanger_drawer_with_profile_handles.glb": {
+    "modelId": "6ae19d59b6e45f59e55d3cd6",
+    "name": "Fluted double shutter wardrobe 1200 x 2080 hanger_drawer with profile handles",
+    "shutters": [
+      3,
+      6,
+      11,
+      14
+    ],
+    "handles": [
+      12,
+      15
+    ]
+  },
+  "6f308149-8b86-40b9-ad1e-6d9d5db927e4_Fluted_double_shutter_wardrobe_1200_x_2080_half_hanger_side_shelf_drawer_with_profile_handles.glb": {
+    "modelId": "6ae19d5ab6e45f59e55d3ce8",
+    "name": "Fluted double shutter wardrobe 1200 x 2080 half hanger_side shelf_drawer with profile handles",
+    "shutters": [
+      3,
+      4,
+      7,
+      16
+    ],
+    "handles": [
+      2,
+      15
+    ]
+  },
+  "3ff10152-41df-49b9-a5b7-76f8b6be56a7_Fluted_double_shutter_wardrobe_1200_x_2080_half_hanger_side_shelf_with_profile_handles.glb": {
+    "modelId": "6ae19d5ab6e45f59e55d3cfb",
+    "name": "Fluted double shutter wardrobe 1200 x 2080 half hanger_side shelf with profile handles",
+    "shutters": [
+      3,
+      12
+    ],
+    "handles": []
+  },
+  "b2759e31-985b-4547-9bab-ebf17b490f14_Fluted_double_shutter_wardrobe_1200_x_2080_3_shelf_and_hanger_space_with_profile_handles.glb": {
+    "modelId": "6ae19d5bb6e45f59e55d3d0a",
+    "name": "Fluted double shutter wardrobe 1200 x 2080 3 shelf and hanger space with profile handles",
+    "shutters": [
+      3,
+      8
+    ],
+    "handles": []
+  },
+  "dbdf3716-83f0-4724-8d9e-4e6ee83db66a_Fluted_double_shutter_wardrobe_1200_x_2080_shelf_drawer_with_profile_handles.glb": {
+    "modelId": "6ae19d5bb6e45f59e55d3d17",
+    "name": "Fluted double shutter wardrobe 1200 x 2080 shelf_drawer with profile handles",
+    "shutters": [
+      4,
+      7,
+      11,
+      14
+    ],
+    "handles": [
+      12,
+      15
+    ]
+  },
+  "3ea22ec3-40d9-4153-84a4-d4771473df39_Fluted_double_shutter_wardrobe_1150_x_2080_hanger_drawer_with_profile_handles.glb": {
+    "modelId": "6ae19d5cb6e45f59e55d3d2a",
+    "name": "Fluted double shutter wardrobe 1150 x 2080 hanger_drawer with profile handles",
+    "shutters": [
+      3,
+      4,
+      7,
+      16
+    ],
+    "handles": [
+      2,
+      15
+    ]
+  },
+  "129b3ba3-01eb-45ce-b7df-5533d8104c27_Fluted_double_shutter_wardrobe_1150_x_2080_half_hanger_side_shelf_drawer_with_profile_handles.glb": {
+    "modelId": "6ae19d5cb6e45f59e55d3d3d",
+    "name": "Fluted double shutter wardrobe 1150 x 2080 half hanger_side shelf_drawer with profile handles",
+    "shutters": [
+      3,
+      4,
+      7,
+      16
+    ],
+    "handles": [
+      2,
+      15
+    ]
+  },
+  "95a59aae-07c0-4675-b952-54ab1978be01_Fluted_double_shutter_wardrobe_1150_x_2080_half_hanger_side_shelf_with_profile_handles.glb": {
+    "modelId": "6ae19d5db6e45f59e55d3d50",
+    "name": "Fluted double shutter wardrobe 1150 x 2080 half hanger_side shelf with profile handles",
+    "shutters": [
+      3,
+      12
+    ],
+    "handles": []
+  },
+  "628adf00-70b3-4ee4-ba2a-ba5393e3f920_Fluted_double_shutter_wardrobe_1150_x_2080_3_shelf_and_hanger_space_with_profile_handles.glb": {
+    "modelId": "6ae19d5db6e45f59e55d3d5f",
+    "name": "Fluted double shutter wardrobe 1150 x 2080 3 shelf and hanger space with profile handles",
+    "shutters": [
+      2,
+      8
+    ],
+    "handles": []
+  },
+  "f6f4272a-bf94-4e94-99e0-3c6221ec81eb_Fluted_double_shutter_wardrobe_1150_x_2080_shelf_drawer_with_profile_handles.glb": {
+    "modelId": "6ae19d5eb6e45f59e55d3d6c",
+    "name": "Fluted double shutter wardrobe 1150 x 2080 shelf_drawer with profile handles",
+    "shutters": [
+      4,
+      7,
+      11,
+      14
+    ],
+    "handles": [
+      12,
+      15
+    ]
+  },
+  "3a3de19b-a35a-4bd8-8b1c-06bd21a00be0_Fluted_double_shutter_wardrobe_1100_x_2080_hanger_drawer_with_profile_handles.glb": {
+    "modelId": "6ae19d5fb6e45f59e55d3d7f",
+    "name": "Fluted double shutter wardrobe 1100 x 2080 hanger_drawer with profile handles",
+    "shutters": [
+      4,
+      7,
+      11,
+      14
+    ],
+    "handles": [
+      12,
+      15
+    ]
+  },
+  "0ac8e5ad-084b-4c52-b5f5-86c36ed3e50c_Fluted_double_shutter_wardrobe_1100_x_2080_half_hanger_side_shelf_drawer_with_profile_handles.glb": {
+    "modelId": "6ae19d5fb6e45f59e55d3d92",
+    "name": "Fluted double shutter wardrobe 1100 x 2080 half hanger_side shelf_drawer with profile handles",
+    "shutters": [
+      3,
+      4,
+      7,
+      16
+    ],
+    "handles": [
+      2,
+      15
+    ]
+  },
+  "0f59c0de-4b6f-4c02-a69c-81d90e977454_Fluted_double_shutter_wardrobe_1100_x_2080_half_hanger_side_shelf_with_profile_handles.glb": {
+    "modelId": "6ae19d5fb6e45f59e55d3da5",
+    "name": "Fluted double shutter wardrobe 1100 x 2080 half hanger_side shelf with profile handles",
+    "shutters": [
+      3,
+      12
+    ],
+    "handles": []
+  },
+  "47f9be74-b6f6-4c36-82c8-af3cc8e22c30_Fluted_double_shutter_wardrobe_1100_x_2080_3_shelf_and_hanger_space_with_profile_handles.glb": {
+    "modelId": "6ae19d60b6e45f59e55d3db4",
+    "name": "Fluted double shutter wardrobe 1100 x 2080 3 shelf and hanger space with profile handles",
+    "shutters": [
+      2,
+      8
+    ],
+    "handles": []
+  },
+  "f8d79e2a-2aa3-4235-816b-167150c96df0_Fluted_double_shutter_wardrobe_1100_x_2080_shelf_drawer_with_profile_handles.glb": {
+    "modelId": "6ae19d60b6e45f59e55d3dc1",
+    "name": "Fluted double shutter wardrobe 1100 x 2080 shelf_drawer with profile handles",
+    "shutters": [
+      4,
+      7,
+      11,
+      14
+    ],
+    "handles": [
+      12,
+      15
+    ]
+  },
+  "d6ce7217-57bb-426d-859b-f1a809192c7e_Fluted_double_shutter_wardrobe_1050_x_2080_hanger_drawer_with_profile_handles.glb": {
+    "modelId": "6ae19d61b6e45f59e55d3dd4",
+    "name": "Fluted double shutter wardrobe 1050 x 2080 hanger_drawer with profile handles",
+    "shutters": [
+      3,
+      7,
+      11,
+      14
+    ],
+    "handles": [
+      12,
+      15
+    ]
+  },
+  "bf7a23b9-b2db-4a64-9b88-c01bbb530a31_Fluted_double_shutter_wardrobe_1050_x_2080_half_hanger_side_shelf_drawer_with_profile_handles.glb": {
+    "modelId": "6ae19d62b6e45f59e55d3de6",
+    "name": "Fluted double shutter wardrobe 1050 x 2080 half hanger_side shelf_drawer with profile handles",
+    "shutters": [
+      3,
+      4,
+      8,
+      16
+    ],
+    "handles": [
+      2,
+      15
+    ]
+  },
+  "8a58dc97-6167-4a6f-8c09-024e7fd816af_Fluted_double_shutter_wardrobe_1050_x_2080_half_hanger_side_shelf_with_profile_handles.glb": {
+    "modelId": "6ae19d62b6e45f59e55d3df9",
+    "name": "Fluted double shutter wardrobe 1050 x 2080 half hanger_side shelf with profile handles",
+    "shutters": [
+      4,
+      12
+    ],
+    "handles": []
+  },
+  "6aa94bcb-d092-46cb-b7a0-99826774ec0d_Fluted_double_shutter_wardrobe_1050_x_2080_3_shelf_and_hanger_space_with_profile_handles.glb": {
+    "modelId": "6ae19d63b6e45f59e55d3e08",
+    "name": "Fluted double shutter wardrobe 1050 x 2080 3 shelf and hanger space with profile handles",
+    "shutters": [
+      2,
+      8
+    ],
+    "handles": []
+  },
+  "4770381b-b672-4384-9e13-aebc9bcaaf56_Fluted_double_shutter_wardrobe_1050_x_2080_shelf_drawer_with_profile_handles.glb": {
+    "modelId": "6ae19d63b6e45f59e55d3e15",
+    "name": "Fluted double shutter wardrobe 1050 x 2080 shelf_drawer with profile handles",
+    "shutters": [
+      4,
+      8,
+      11,
+      14
+    ],
+    "handles": [
+      12,
+      15
+    ]
+  },
+  "bfaef31f-98e1-4cee-be78-16abb319c3fe_Fluted_double_shutter_wardrobe_1000_x_2080_half_hanger_side_shelf_with_profile_handles.glb": {
+    "modelId": "6ae19d64b6e45f59e55d3e28",
+    "name": "Fluted double shutter wardrobe 1000 x 2080 half hanger_side shelf with profile handles",
+    "shutters": [
+      2,
+      3
+    ],
+    "handles": []
+  },
+  "078efd9d-8529-40d9-b1a8-2f0aef3eca0a_Fluted_double_shutter_wardrobe_1000_x_2080_3_shelf_and_hanger_space_with_profile_handles.glb": {
+    "modelId": "6ae19d64b6e45f59e55d3e37",
+    "name": "Fluted double shutter wardrobe 1000 x 2080 3 shelf and hanger space with profile handles",
+    "shutters": [
+      8,
+      11
+    ],
+    "handles": []
+  },
+  "898d8256-f0bf-46e2-af48-abeff7c36246_Fluted_double_shutter_wardrobe_1000_x_2080_shelf_drawer_with_profile_handles.glb": {
+    "modelId": "6ae19d65b6e45f59e55d3e44",
+    "name": "Fluted double shutter wardrobe 1000 x 2080 shelf_drawer with profile handles",
+    "shutters": [
+      6,
+      7,
+      11,
+      14
+    ],
+    "handles": [
+      12,
+      15
+    ]
+  },
+  "089d5692-f605-4bb4-b90e-d0a0ba80d5ae_Fluted_double_shutter_wardrobe_1000_x_2080_half_hanger_side_shelf_drawer_with_profile_handles.glb": {
+    "modelId": "6ae19d65b6e45f59e55d3e57",
+    "name": "Fluted double shutter wardrobe 1000 x 2080 half hanger_side shelf_drawer with profile handles",
+    "shutters": [
+      3,
+      6,
+      7,
+      16
+    ],
+    "handles": [
+      2,
+      15
+    ]
+  },
+  "cd0a8bb2-7553-4242-8e88-c57023ff3260_Fluted_double_shutter_wardrobe_950_x_2080_hanger_drawer_with_profile_handles.glb": {
+    "modelId": "6ae19d66b6e45f59e55d3e6a",
+    "name": "Fluted double shutter wardrobe 950 x 2080 hanger_drawer with profile handles",
+    "shutters": [
+      5,
+      6,
+      11,
+      14
+    ],
+    "handles": [
+      12,
+      15
+    ]
+  },
+  "734e57f9-2f6f-4149-9baf-6687d190517f_Fluted_double_shutter_wardrobe_950_x_2080_half_hanger_side_shelf_drawer_with_profile_handles.glb": {
+    "modelId": "6ae19d66b6e45f59e55d3e7c",
+    "name": "Fluted double shutter wardrobe 950 x 2080 half hanger_side shelf_drawer with profile handles",
+    "shutters": [
+      3,
+      6,
+      8,
+      16
+    ],
+    "handles": [
+      2,
+      15
+    ]
+  },
+  "5b56a07f-22e5-4385-881a-a7fbdf6ad162_Fluted_double_shutter_wardrobe_950_x_2080_half_hanger_side_shelf_with_profile_handles.glb": {
+    "modelId": "6ae19d67b6e45f59e55d3e8f",
+    "name": "Fluted double shutter wardrobe 950 x 2080 half hanger_side shelf with profile handles",
+    "shutters": [
+      2,
+      4
+    ],
+    "handles": []
+  },
+  "3da5e202-1204-4e76-813b-58914d2a4256_Fluted_double_shutter_wardrobe_950_x_2080_3_shelf_and_hanger_space_with_profile_handles.glb": {
+    "modelId": "6ae19d68b6e45f59e55d3e9e",
+    "name": "Fluted double shutter wardrobe 950 x 2080 3 shelf and hanger space with profile handles",
+    "shutters": [
+      2,
+      8
+    ],
+    "handles": []
+  },
+  "b05496e2-c6d5-417c-94a9-2d200e01c9d6_Fluted_double_shutter_wardrobe_950_x_2080_shelf_drawer_with_profile_handles.glb": {
+    "modelId": "6ae19d68b6e45f59e55d3eab",
+    "name": "Fluted double shutter wardrobe 950 x 2080 shelf_drawer with profile handles",
+    "shutters": [
+      6,
+      8,
+      11,
+      14
+    ],
+    "handles": [
+      12,
+      15
+    ]
+  },
+  "2c564dff-25e8-4377-9a3e-da6e9995230e_Fluted_double_shutter_wardrobe_900_x_2080_hanger_drawer_with_profile_handles.glb": {
+    "modelId": "6ae19d69b6e45f59e55d3ebe",
+    "name": "Fluted double shutter wardrobe 900 x 2080 hanger_drawer with profile handles",
+    "shutters": [
+      6,
+      8,
+      11,
+      14
+    ],
+    "handles": [
+      12,
+      15
+    ]
+  },
+  "75d145c3-6266-49c7-af19-78770f8ab455_Fluted_double_shutter_wardrobe_900_x_2080_half_hanger_side_shelf_drawer_with_profile_handles.glb": {
+    "modelId": "6ae19d69b6e45f59e55d3ed0",
+    "name": "Fluted double shutter wardrobe 900 x 2080 half hanger_side shelf_drawer with profile handles",
+    "shutters": [
+      3,
+      7,
+      9,
+      16
+    ],
+    "handles": [
+      2,
+      15
+    ]
+  },
+  "128c6283-33ea-4a40-9f4c-3ae377a45bbe_Fluted_double_shutter_wardrobe_900_x_2080_half_hanger_side_shelf_with_profile_handles.glb": {
+    "modelId": "6ae19d6ab6e45f59e55d3ee3",
+    "name": "Fluted double shutter wardrobe 900 x 2080 half hanger_side shelf with profile handles",
+    "shutters": [
+      4,
+      12
+    ],
+    "handles": []
+  },
+  "de5946a8-4709-48bf-8b41-37bf5b9c9906_Fluted_double_shutter_wardrobe_900_x_2080_3_shelf_and_hanger_space_with_profile_handles.glb": {
+    "modelId": "6ae19d6ab6e45f59e55d3ef2",
+    "name": "Fluted double shutter wardrobe 900 x 2080 3 shelf and hanger space with profile handles",
+    "shutters": [
+      2,
+      8
+    ],
+    "handles": []
+  },
+  "b719fdfd-8304-44d3-bf5b-f3b711868e59_Fluted_double_shutter_wardrobe_900_x_2080_shelf_drawer_with_profile_handles.glb": {
+    "modelId": "6ae19d6bb6e45f59e55d3eff",
+    "name": "Fluted double shutter wardrobe 900 x 2080 shelf_drawer with profile handles",
+    "shutters": [
+      7,
+      9,
+      11,
+      14
+    ],
+    "handles": [
+      12,
+      15
+    ]
+  },
+  "e3c100f5-4a7e-4125-92f9-edafbc718963_Wall_unit_1200_x_2080_Hanger_and_drawer.glb": {
+    "modelId": "6ae19fafb6e45f59e55d3f12",
+    "name": "Double Wardrobe 1200 x 2080 Hanger and drawer",
+    "shutters": [
+      5,
+      8
+    ],
+    "handles": [
+      6,
+      9
+    ]
+  },
+  "1b4ef61b-edfc-44e3-8813-b0f87a429926_Wall_unit_1200_x_2080_Half_hanger_side_shelf_drawer.glb": {
+    "modelId": "6ae19fafb6e45f59e55d3f1e",
+    "name": "Double Wardrobe 1200 x 2080 Half hanger_side shelf_drawer",
+    "shutters": [
+      3,
+      10
+    ],
+    "handles": [
+      2,
+      9
+    ]
+  },
+  "4fabf447-2955-4e3c-b89e-ff6f2be43b98_Wall_unit_1200_x_2080_Shelf_and_drawer.glb": {
+    "modelId": "6ae19fb0b6e45f59e55d3f3b",
+    "name": "Double Wardrobe 1200 x 2080 Shelf and drawer",
+    "shutters": [
+      5,
+      8
+    ],
+    "handles": [
+      6,
+      9
+    ]
+  },
+  "23cc3d94-1f4b-4ed9-9d0e-adc8b8389a03_Double_Wardrobe_1150_x_2080_Hanger_and_drawer.glb": {
+    "modelId": "6ae19fb1b6e45f59e55d3f48",
+    "name": "Double Wardrobe 1150 x 2080 Hanger and drawer",
+    "shutters": [
+      5,
+      8
+    ],
+    "handles": [
+      6,
+      9
+    ]
+  },
+  "b7f3ea13-b2c3-4b21-859f-c4920ffbb5c0_Double_Wardrobe_1150_x_2080_Half_Hanger_side_shelf_drawer.glb": {
+    "modelId": "6ae19fb2b6e45f59e55d3f54",
+    "name": "Double Wardrobe 1150 x 2080 Half Hanger_side shelf_drawer",
+    "shutters": [
+      3,
+      10
+    ],
+    "handles": [
+      2,
+      9
+    ]
+  },
+  "2f69e577-056c-4e3a-869c-09112816eb95_Double_Wardrobe_1150_x_2080_Shelf_and_drawer.glb": {
+    "modelId": "6ae19fb3b6e45f59e55d3f71",
+    "name": "Double Wardrobe 1150 x 2080 Shelf and drawer",
+    "shutters": [
+      5,
+      8
+    ],
+    "handles": [
+      6,
+      9
+    ]
+  },
+  "33eca24c-4a81-4cef-918e-552bb1189295_Wall_unit_1100_x_2080_Hanger_and_drawer.glb": {
+    "modelId": "6ae19fb4b6e45f59e55d3f7e",
+    "name": "Double Wardrobe 1100 x 2080 Hanger and drawer",
+    "shutters": [
+      5,
+      8
+    ],
+    "handles": [
+      6,
+      9
+    ]
+  },
+  "b71adcf0-6bdf-4858-a422-24884b091915_Wall_unit_1100_x_2080_Half_hanger_side_shelf_drawer.glb": {
+    "modelId": "6ae19fb4b6e45f59e55d3f8a",
+    "name": "Double Wardrobe 1100 x 2080 Half hanger_side shelf_drawer",
+    "shutters": [
+      3,
+      10
+    ],
+    "handles": [
+      2,
+      9
+    ]
+  },
+  "bfbccc26-e31e-44aa-a7cb-e41385f83d2b_Wall_unit_1100_x_2080_Shelf_and_drawer.glb": {
+    "modelId": "6ae19fb5b6e45f59e55d3fae",
+    "name": "Double Wardrobe 1100 x 2080 Shelf and drawer",
+    "shutters": [
+      5,
+      8
+    ],
+    "handles": [
+      6,
+      9
+    ]
+  },
+  "783b0d82-c10f-4cbd-a74b-8fda7637c5a2_Wall_unit_1050_x_2080_Hanger_and_drawer.glb": {
+    "modelId": "6ae19fb6b6e45f59e55d3fbb",
+    "name": "Double Wardrobe 1050 x 2080 Hanger and drawer",
+    "shutters": [
+      5,
+      8
+    ],
+    "handles": [
+      6,
+      9
+    ]
+  },
+  "7c698939-bb52-46d6-8b14-71f6322abe7b_Wall_unit_1050_x_2080_Half_Hanger_side_shelf_drawer.glb": {
+    "modelId": "6ae19fb7b6e45f59e55d3fc7",
+    "name": "Double Wardrobe 1050 x 2080 Half Hanger_side shelf_drawer",
+    "shutters": [
+      3,
+      10
+    ],
+    "handles": [
+      2,
+      9
+    ]
+  },
+  "a66f8b5f-845c-4bfc-a701-e28dc53581a5_Wall_unit_1050_x_2080_shelf_and_drawer.glb": {
+    "modelId": "6ae19fb7b6e45f59e55d3fe4",
+    "name": "Double Wardrobe 1050 x 2080 shelf and drawer",
+    "shutters": [
+      5,
+      8
+    ],
+    "handles": [
+      6,
+      9
+    ]
+  },
+  "ef49c223-e379-45b0-a71f-34188a0b6bc7_Double_Wardrobe_1000_x_2080_Hanger_and_drawer.glb": {
+    "modelId": "6ae19fb8b6e45f59e55d3ff1",
+    "name": "Double Wardrobe 1000 x 2080 Hanger and drawer",
+    "shutters": [
+      5,
+      8
+    ],
+    "handles": [
+      6,
+      9
+    ]
+  },
+  "0bd99555-41cc-4a84-b6af-6944998961c7_Double_Wardrobe_1000_x_2080_Half_hanger_side_shelf_drawer.glb": {
+    "modelId": "6ae19fb9b6e45f59e55d3ffd",
+    "name": "Double Wardrobe 1000 x 2080 Half hanger_side shelf_drawer",
+    "shutters": [
+      3,
+      10
+    ],
+    "handles": [
+      2,
+      9
+    ]
+  },
+  "b332f594-047d-48dd-9612-3f65f54420d8_Double_Wardrobe_1000_x_2080_shelf_and_drawer.glb": {
+    "modelId": "6ae19fb9b6e45f59e55d401a",
+    "name": "Double Wardrobe 1000 x 2080 shelf and drawer",
+    "shutters": [
+      5,
+      8
+    ],
+    "handles": [
+      6,
+      9
+    ]
+  },
+  "09bfa48c-2995-4e12-b969-6a6ff3039dde_Double_Wardrobe_950_x_2080_Hanger_and_drawer.glb": {
+    "modelId": "6ae19fbab6e45f59e55d4027",
+    "name": "Double Wardrobe 950 x 2080 Hanger and drawer",
+    "shutters": [
+      5,
+      8
+    ],
+    "handles": [
+      6,
+      9
+    ]
+  },
+  "fb33d88a-2a7a-481e-a95c-4685c5702770_Double_Wardrobe_950_x_2080_Half_hanger_side_shelf_drawer.glb": {
+    "modelId": "6ae19fbbb6e45f59e55d4033",
+    "name": "Double Wardrobe 950 x 2080 Half hanger_side shelf_drawer",
+    "shutters": [
+      3,
+      10
+    ],
+    "handles": [
+      2,
+      9
+    ]
+  },
+  "205f14ec-ef7e-4937-b172-cc7e9c0e3e65_Double_Wardrobe_950_x_2080_Shelf_and_drawer.glb": {
+    "modelId": "6ae19fbbb6e45f59e55d4050",
+    "name": "Double Wardrobe 950 x 2080 Shelf and drawer",
+    "shutters": [
+      5,
+      8
+    ],
+    "handles": [
+      6,
+      9
+    ]
+  },
+  "3cafffb1-c23d-4ca2-89d8-f5c98f647a7b_Double_Wardrobe_900_x_2080_Hanger_and_drawer.glb": {
+    "modelId": "6ae19fbcb6e45f59e55d405d",
+    "name": "Double Wardrobe 900 x 2080 Hanger and drawer",
+    "shutters": [
+      5,
+      8
+    ],
+    "handles": [
+      6,
+      9
+    ]
+  },
+  "12f46575-fe5c-4da8-8abb-4187a29fa73c_Double_Wardrobe_900_x_2080_Half_hanger_side_shelf_drawer.glb": {
+    "modelId": "6ae19fbdb6e45f59e55d4069",
+    "name": "Double Wardrobe 900 x 2080 Half hanger_side shelf_drawer",
+    "shutters": [
+      7,
+      10
+    ],
+    "handles": [
+      8,
+      11
+    ]
+  },
+  "e3ffd46a-d2b7-4e5b-b3f7-bebbbcc4d3e7_Double_Wardrobe_900_x_2080_shelf_and_drawer.glb": {
+    "modelId": "6ae19fbdb6e45f59e55d4087",
+    "name": "Double Wardrobe 900 x 2080 shelf and drawer",
+    "shutters": [
+      5,
+      8
+    ],
+    "handles": [
+      6,
+      9
+    ]
+  },
+  "71351b0e-7d4a-4541-bebc-b8dc4407d153_Double_Opening_shutters_900_x_2080_shelf_and_drawer_with_basic_handles.glb": {
+    "modelId": "6ae1a0c1b6e45f59e55d4095",
+    "name": "Double Opening shutters 900 x 2080 shelf and drawer with basic handles",
+    "shutters": [
+      4,
+      5,
+      9,
+      12
+    ],
+    "handles": [
+      6,
+      7,
+      10,
+      13
+    ]
+  },
+  "5e169eb4-e608-49c0-87ce-d2c7a833e664_Double_Opening_shutters_900_x_2080_3_shelf_and_hanger_space_with_basic_handles.glb": {
+    "modelId": "6ae1a0c2b6e45f59e55d40a6",
+    "name": "Double Opening shutters 900 x 2080 3 shelf and hanger space with basic handles",
+    "shutters": [
+      6,
+      7
+    ],
+    "handles": [
+      8,
+      9
+    ]
+  },
+  "065e5e28-4aea-4d0c-b5cb-4fab98375200_Double_Opening_shutters_900_x_2080_Half_hanger_side_shelf_with_basic_handles.glb": {
+    "modelId": "6ae1a0c3b6e45f59e55d40b1",
+    "name": "Double Opening shutters 900 x 2080 Half hanger_side shelf with basic handles",
+    "shutters": [
+      10,
+      11
+    ],
+    "handles": [
+      2,
+      3
+    ]
+  },
+  "56650bca-b3c8-4d87-87fe-b9be8857e00a_Double_Opening_shutters_900_x_2080_Half_hanger_side_shelf_drawer_with_basic_handles.glb": {
+    "modelId": "6ae1a0c3b6e45f59e55d40be",
+    "name": "Double Opening shutters 900 x 2080 Half hanger_side shelf_drawer with basic handles",
+    "shutters": [
+      3,
+      4,
+      5,
+      14
+    ],
+    "handles": [
+      2,
+      6,
+      7,
+      13
+    ]
+  },
+  "3a844df0-1faf-4c17-8b21-85f2dd8820ec_Double_Opening_shutters_900_x_2080_Hanger_and_drawer_with_basic_handles.glb": {
+    "modelId": "6ae1a0c4b6e45f59e55d40cf",
+    "name": "Double Opening shutters 900 x 2080 Hanger and drawer with basic handles",
+    "shutters": [
+      3,
+      4,
+      9,
+      12
+    ],
+    "handles": [
+      5,
+      6,
+      10,
+      13
+    ]
+  },
+  "445e1f1d-2e75-48a5-be82-1aeafdf5ee8a_Double_opening_shutters_950_x_2080_Shelf_and_drawer_with_basic_handles.glb": {
+    "modelId": "6ae1a0c5b6e45f59e55d40df",
+    "name": "Double opening shutters 950 x 2080 Shelf and drawer with basic handles",
+    "shutters": [
+      5,
+      7,
+      9,
+      12
+    ],
+    "handles": [
+      4,
+      6,
+      10,
+      13
+    ]
+  },
+  "b5a54978-5ec7-4874-baf5-68eff5f4908c_Double_opening_shutters_950_x_2080_3_shelf_and_hanger_space_with_basic_handles.glb": {
+    "modelId": "6ae1a0c5b6e45f59e55d40f0",
+    "name": "Double opening shutters 950 x 2080 3 shelf and hanger space with basic handles",
+    "shutters": [
+      8,
+      9
+    ],
+    "handles": [
+      6,
+      7
+    ]
+  },
+  "826ddbce-0a14-4607-95f0-d9cac4e73105_Double_opening_shutters_950_x_2080_Half_hanger_side_shelf_with_basic_handles.glb": {
+    "modelId": "6ae1a0c6b6e45f59e55d40fb",
+    "name": "Double opening shutters 950 x 2080 Half hanger_side shelf with basic handles",
+    "shutters": [
+      2,
+      10
+    ],
+    "handles": [
+      3,
+      11
+    ]
+  },
+  "481cc694-9719-43df-b93c-246d632b7dad_Double_opening_shutters_950_x_2080_Half_hanger_side_shelf_drawer_with_basic_handles.glb": {
+    "modelId": "6ae1a0c7b6e45f59e55d4108",
+    "name": "Double opening shutters 950 x 2080 Half hanger_side shelf_drawer with basic handles",
+    "shutters": [
+      3,
+      4,
+      5,
+      14
+    ],
+    "handles": [
+      2,
+      6,
+      7,
+      13
+    ]
+  },
+  "9d39abcc-8921-4d22-9439-f522e9a57896_Double_opening_shutters_950_x_2080_Hanger_and_drawer_with_basic_handles.glb": {
+    "modelId": "6ae1a0c8b6e45f59e55d4119",
+    "name": "Double opening shutters 950 x 2080 Hanger and drawer with basic handles",
+    "shutters": [
+      4,
+      6,
+      9,
+      12
+    ],
+    "handles": [
+      3,
+      5,
+      10,
+      13
+    ]
+  },
+  "d8b6bc34-6adc-4de6-9bcb-a754646cf5e3_Double_Opening_Shutters_1000_x_2080_Shelf_and_drawer_with_basic_handles.glb": {
+    "modelId": "6ae1a0c8b6e45f59e55d4129",
+    "name": "Double Opening Shutters 1000 x 2080 Shelf and drawer with basic handles",
+    "shutters": [
+      5,
+      7,
+      9,
+      12
+    ],
+    "handles": [
+      4,
+      6,
+      10,
+      13
+    ]
+  },
+  "f92a3009-3b74-4f68-b84b-9ea157e68c0b_Double_Opening_Shutters_1000_x_2080_3_shelf_and_hanger_space_with_basic_handles.glb": {
+    "modelId": "6ae1a0c9b6e45f59e55d413a",
+    "name": "Double Opening Shutters 1000 x 2080 3 shelf and hanger space with basic handles",
+    "shutters": [
+      7,
+      8
+    ],
+    "handles": [
+      6,
+      9
+    ]
+  },
+  "17fa7670-c838-4d2b-b676-afacc24a7fa2_Double_Opening_Shutters_1000_x_2080_Half_hanger_side_shelf_with_basic_handles.glb": {
+    "modelId": "6ae1a0cab6e45f59e55d4145",
+    "name": "Double Opening Shutters 1000 x 2080 Half hanger_side shelf with basic handles",
+    "shutters": [
+      2,
+      11
+    ],
+    "handles": [
+      3,
+      10
+    ]
+  },
+  "1cc0a03f-a420-4014-abf6-c12144aebf7b_Double_Opening_Shutters_1000_x_2080_Half_hanger_side_shelf_drawer_with_basic_handles.glb": {
+    "modelId": "6ae1a0cab6e45f59e55d4152",
+    "name": "Double Opening Shutters 1000 x 2080 Half hanger_side shelf_drawer with basic handles",
+    "shutters": [
+      3,
+      5,
+      6,
+      14
+    ],
+    "handles": [
+      2,
+      4,
+      7,
+      13
+    ]
+  },
+  "6965d1d7-994e-46e2-8b08-191a95c8c55c_Double_Opening_Shutters_1000_x_2080_Hanger_and_drawer_with_basic_handles.glb": {
+    "modelId": "6ae1a0cbb6e45f59e55d4163",
+    "name": "Double Opening Shutters 1000 x 2080 Hanger and drawer with basic handles",
+    "shutters": [
+      4,
+      5,
+      9,
+      12
+    ],
+    "handles": [
+      3,
+      6,
+      10,
+      13
+    ]
+  },
+  "568e7241-049c-4a0e-b50c-c2b716bbec5c_Double_opening_shutter_1050_x_2080_Shelf_and_drawer_with_basic_handles_.glb": {
+    "modelId": "6ae1a0ccb6e45f59e55d4173",
+    "name": "Double opening shutter 1050 x 2080 Shelf and drawer with basic handles",
+    "shutters": [
+      4,
+      6,
+      9,
+      12
+    ],
+    "handles": [
+      5,
+      7,
+      10,
+      13
+    ]
+  },
+  "71e31b94-999f-4946-9af4-b21ad071cfbb_Double_opening_shutter_1050_x_2080_3_shelf_and_hanger_space_with_basic_handles_.glb": {
+    "modelId": "6ae1a0cdb6e45f59e55d4184",
+    "name": "Double opening shutter 1050 x 2080 3 shelf and hanger space with basic handles",
+    "shutters": [
+      6,
+      7
+    ],
+    "handles": [
+      8,
+      9
+    ]
+  },
+  "e7a4cc84-4039-4c07-909e-42ec74bfa0b5_Double_opening_shutter_1050_x_2080_Half_hanger_side_shelf_with_basic_handles_.glb": {
+    "modelId": "6ae1a0cdb6e45f59e55d418f",
+    "name": "Double opening shutter 1050 x 2080 Half hanger_side shelf with basic handles",
+    "shutters": [
+      2,
+      10
+    ],
+    "handles": [
+      3,
+      11
+    ]
+  },
+  "df653067-e554-4dfc-a8a6-0ac92c7de2aa_Double_opening_shutter_1050_x_2080_Half_hanger_side_shelf_drawer_with_basic_handles_.glb": {
+    "modelId": "6ae1a0ceb6e45f59e55d419c",
+    "name": "Double opening shutter 1050 x 2080 Half hanger_side shelf_drawer with basic handles",
+    "shutters": [
+      3,
+      4,
+      5,
+      14
+    ],
+    "handles": [
+      2,
+      6,
+      7,
+      13
+    ]
+  },
+  "684cb2b7-b9a4-472c-ba8f-f31222e21428_Double_opening_shutter_1050_x_2080_Hanger_and_drawer_with_basic_handles_.glb": {
+    "modelId": "6ae1a0cfb6e45f59e55d41ad",
+    "name": "Double opening shutter 1050 x 2080 Hanger and drawer with basic handles",
+    "shutters": [
+      3,
+      5,
+      9,
+      12
+    ],
+    "handles": [
+      4,
+      6,
+      10,
+      13
+    ]
+  },
+  "9d7ffab4-1a68-4ff3-8727-3caca701e8bd_Double_opening_shutter_1100_x_2080_Shelf_and_drawer_with_basic_handles.glb": {
+    "modelId": "6ae1a0cfb6e45f59e55d41bd",
+    "name": "Double opening shutter 1100 x 2080 Shelf and drawer with basic handles",
+    "shutters": [
+      4,
+      5,
+      9,
+      12
+    ],
+    "handles": [
+      6,
+      7,
+      10,
+      13
+    ]
+  },
+  "6a3ef1cb-7d75-49c4-b83d-7ee442e26c35_Double_opening_shutter_1100_x_2080_3_shelf_and_hanger_space_with_basic_handles.glb": {
+    "modelId": "6ae1a0d0b6e45f59e55d41ce",
+    "name": "Double opening shutter 1100 x 2080 3 shelf and hanger space with basic handles",
+    "shutters": [
+      6,
+      8
+    ],
+    "handles": [
+      7,
+      9
+    ]
+  },
+  "89653ea9-9c3a-4c20-a748-daf870dd26e2_Double_opening_shutter_1100_x_2080_Half_hanger_side_shelf_with_basic_handles.glb": {
+    "modelId": "6ae1a0d1b6e45f59e55d41d9",
+    "name": "Double opening shutter 1100 x 2080 Half hanger_side shelf with basic handles",
+    "shutters": [
+      10,
+      11
+    ],
+    "handles": [
+      2,
+      3
+    ]
+  },
+  "c15976d5-869b-4d1a-b03b-6ba778de4919_Double_opening_shutter_1100_x_2080_Half_hanger_side_shelf_drawer_with_basic_handles.glb": {
+    "modelId": "6ae1a0d1b6e45f59e55d41e6",
+    "name": "Double opening shutter 1100 x 2080 Half hanger_side shelf_drawer with basic handles",
+    "shutters": [
+      3,
+      4,
+      9,
+      12
+    ],
+    "handles": [
+      5,
+      6,
+      10,
+      13
+    ]
+  },
+  "48be5e2f-45a9-4322-914a-3e056e517b3a_Double_opening_shutter_1100_x_2080_Hanger_and_drawer_with_basic_handles.glb": {
+    "modelId": "6ae1a0d2b6e45f59e55d41f6",
+    "name": "Double opening shutter 1100 x 2080 Hanger and drawer with basic handles",
+    "shutters": [
+      3,
+      4,
+      9,
+      12
+    ],
+    "handles": [
+      5,
+      6,
+      10,
+      13
+    ]
+  },
+  "576d4e08-ac24-496e-8986-a25117b27bc9_Double_opening_shutter_1150_x_2080_Shelf_and_drawer_with_basic_handles.glb": {
+    "modelId": "6ae1a0d3b6e45f59e55d4206",
+    "name": "Double opening shutter 1150 x 2080 Shelf and drawer with basic handles",
+    "shutters": [
+      6,
+      7,
+      9,
+      12
+    ],
+    "handles": [
+      4,
+      5,
+      10,
+      13
+    ]
+  },
+  "0de0e809-6a9d-4593-8546-8cb564bf12cb_Double_opening_shutter_1150_x_2080_3_shelf_and_hanger_space_with_basic_handles.glb": {
+    "modelId": "6ae1a0d3b6e45f59e55d4217",
+    "name": "Double opening shutter 1150 x 2080 3 shelf and hanger space with basic handles",
+    "shutters": [
+      6,
+      7
+    ],
+    "handles": [
+      8,
+      9
+    ]
+  },
+  "3fcfce53-18c5-46e4-9fb6-8cffd0928658_Double_opening_shutter_1150_x_2080_Half_hanger_side_shelf_with_basic_handles.glb": {
+    "modelId": "6ae1a0d4b6e45f59e55d4222",
+    "name": "Double opening shutter 1150 x 2080 Half hanger_side shelf with basic handles",
+    "shutters": [
+      2,
+      11
+    ],
+    "handles": [
+      3,
+      10
+    ]
+  },
+  "3cd455a5-4e3e-406e-b160-67dc7d6cf220_Double_opening_shutter_1150_x_2080_Half_hanger_side_shelf_drawer_with_basic_handles.glb": {
+    "modelId": "6ae1a0d4b6e45f59e55d422f",
+    "name": "Double opening shutter 1150 x 2080 Half hanger_side shelf_drawer with basic handles",
+    "shutters": [
+      3,
+      6,
+      7,
+      14
+    ],
+    "handles": [
+      2,
+      4,
+      5,
+      13
+    ]
+  },
+  "a3d169ab-8227-492e-8961-f43687f22abb_Double_opening_shutter_1150_x_2080_Hanger_and_drawer_with_basic_handles.glb": {
+    "modelId": "6ae1a0d5b6e45f59e55d4240",
+    "name": "Double opening shutter 1150 x 2080 Hanger and drawer with basic handles",
+    "shutters": [
+      5,
+      6,
+      9,
+      12
+    ],
+    "handles": [
+      3,
+      4,
+      10,
+      13
+    ]
+  },
+  "f38125bf-6500-4f47-9ddd-4ace0c11899c_Double_opening_shutter_1200_x_2080_Shelf_and_drawer_with_basic_handles.glb": {
+    "modelId": "6ae1a0d6b6e45f59e55d4250",
+    "name": "Double opening shutter 1200 x 2080 Shelf and drawer with basic handles",
+    "shutters": [
+      5,
+      6,
+      9,
+      12
+    ],
+    "handles": [
+      4,
+      7,
+      10,
+      13
+    ]
+  },
+  "0cd50359-36e2-492e-a0c8-81c4a81fd6c5_Double_opening_shutter_1200_x_2080_3_shelf_and_hanger_space_with_basic_handles.glb": {
+    "modelId": "6ae1a0d7b6e45f59e55d4261",
+    "name": "Double opening shutter 1200 x 2080 3 shelf and hanger space with basic handles",
+    "shutters": [
+      6,
+      9
+    ],
+    "handles": [
+      7,
+      8
+    ]
+  },
+  "fcabcfb5-51bc-4360-9f9b-a7a224bdd084_Double_opening_shutter_1200_x_2080_Half_hanger_Side_shelf_with_basic_handles.glb": {
+    "modelId": "6ae1a0d8b6e45f59e55d426c",
+    "name": "Double opening shutter 1200 x 2080 Half hanger_Side shelf with basic handles",
+    "shutters": [
+      2,
+      11
+    ],
+    "handles": [
+      3,
+      10
+    ]
+  },
+  "8e6faff9-104a-4e39-9c4e-d6521f7d3ffb_Double_opening_shutter_1200_x_2080_Half_hanger_Side_shelf_drawer_with_basic_handles.glb": {
+    "modelId": "6ae1a0d8b6e45f59e55d4279",
+    "name": "Double opening shutter 1200 x 2080 Half hanger_Side shelf_drawer with basic handles",
+    "shutters": [
+      3,
+      5,
+      6,
+      14
+    ],
+    "handles": [
+      2,
+      4,
+      7,
+      13
+    ]
+  },
+  "45ce7530-c035-4d3f-b6ca-4b9e6a18c581_Double_opening_shutter_1200_x_2080_Hanger_and_drawer_with_basic_handles.glb": {
+    "modelId": "6ae1a0d9b6e45f59e55d428a",
+    "name": "Double opening shutter 1200 x 2080 Hanger and drawer with basic handles",
+    "shutters": [
+      4,
+      5,
+      9,
+      12
+    ],
+    "handles": [
+      3,
+      6,
+      10,
+      13
+    ]
+  },
+  "680c9e5d-5c7e-4abd-ba6c-cb2f17802d2b_Single_shutter_wardrobe_450_x_2080_shelf_hanger_space_with_basic_handles_right_opening.glb": {
+    "modelId": "6ae1a180b6e45f59e55d429a",
+    "name": "Single shutter wardrobe 450 x 2080 shelf_hanger space with basic handles_right opening",
+    "shutters": [
+      6
+    ],
+    "handles": [
+      7
+    ]
+  },
+  "f7983471-9aaa-4c42-99bf-6b4c89d79eae_Single_shutter_wardrobe_450_x_2080_3_shelf_hanger_space_with_basic_handles_right_opening.glb": {
+    "modelId": "6ae1a180b6e45f59e55d42a3",
+    "name": "Single shutter wardrobe 450 x 2080 3 shelf_hanger space with basic handles_right opening",
+    "shutters": [
+      6
+    ],
+    "handles": [
+      7
+    ]
+  },
+  "0b2a2dc5-3c1c-4513-9a4b-5d060e476b9a_Single_shutter_wardrobe_450_x_2080_hanger_drawer_with_basic_handles_right_opening.glb": {
+    "modelId": "6ae1a181b6e45f59e55d42ac",
+    "name": "Single shutter wardrobe 450 x 2080 hanger_drawer with basic handles_right opening",
+    "shutters": [
+      4,
+      9
+    ],
+    "handles": [
+      7,
+      8
+    ]
+  },
+  "8383d876-8457-40cd-9aa7-dbff58dc2677_Single_shutter_wardrobe_450_x_2080_shelf_with_basic_handles_right_opening.glb": {
+    "modelId": "6ae1a182b6e45f59e55d42b7",
+    "name": "Single shutter wardrobe 450 x 2080 shelf with basic handles_right opening",
+    "shutters": [
+      2,
+      6
+    ],
+    "handles": [
+      5,
+      10
+    ]
+  },
+  "5a9ae93b-5803-4545-b462-e6ddf2f33b5f_Single_shutter_wardrobe_450_x_2080_shelf_drawer_with_basic_handles_right_opening.glb": {
+    "modelId": "6ae1a182b6e45f59e55d42c3",
+    "name": "Single shutter wardrobe 450 x 2080 shelf_drawer with basic handles_right opening",
+    "shutters": [
+      5
+    ],
+    "handles": [
+      6
+    ]
+  },
+  "595c1c0e-380e-41fe-a454-934be1790695_Single_shutter_wardrobe_500_x_2080_shelf_hanger_space_with_basic_handles_right_opening.glb": {
+    "modelId": "6ae1a183b6e45f59e55d42cb",
+    "name": "Single shutter wardrobe 500 x 2080 shelf_hanger space with basic handles_right opening",
+    "shutters": [
+      6
+    ],
+    "handles": [
+      5
+    ]
+  },
+  "8884de4f-f0a3-4386-93f8-20c617926fc9_Single_shutter_wardrobe_500_x_2080_3_shelf_hanger_space_with_basic_handles_right_opening.glb": {
+    "modelId": "6ae1a184b6e45f59e55d42d3",
+    "name": "Single shutter wardrobe 500 x 2080 3 shelf_hanger space with basic handles_right opening",
+    "shutters": [
+      6
+    ],
+    "handles": [
+      7
+    ]
+  },
+  "014092cb-99b6-48db-b350-eac9e9c7f264_Single_shutter_wardrobe_500_x_2080_hanger_space_drawer_with_basic_handles_right_opening.glb": {
+    "modelId": "6ae1a185b6e45f59e55d42dc",
+    "name": "Single shutter wardrobe 500 x 2080 hanger space_drawer with basic handles_right opening",
+    "shutters": [
+      4,
+      8
+    ],
+    "handles": [
+      7,
+      9
+    ]
+  },
+  "1cb82663-38ad-4194-a1ab-e8eaaa70cb57_Single_shutter_wardrobe_500_x_2080_shelf_with_basic_handles_right_opening.glb": {
+    "modelId": "6ae1a186b6e45f59e55d42e7",
+    "name": "Single shutter wardrobe 500 x 2080 shelf with basic handles_right opening",
+    "shutters": [
+      7
+    ],
+    "handles": [
+      6
+    ]
+  },
+  "ff23772e-f30a-47f4-b691-f5fbcade0440_Single_shutter_wardrobe_500_x_2080_shelf_drawer_with_basic_handles_right_opening.glb": {
+    "modelId": "6ae1a186b6e45f59e55d42f0",
+    "name": "Single shutter wardrobe 500 x 2080 shelf_drawer with basic handles_right opening",
+    "shutters": [
+      2,
+      6
+    ],
+    "handles": [
+      5,
+      10
+    ]
+  },
+  "70bde32e-0356-45a6-9656-7b71a6495da5_Single_shutter_wardrobe_550_x_2080_shelf_drawer_with_basic_handles_right_opening.glb": {
+    "modelId": "6ae1a187b6e45f59e55d42fc",
+    "name": "Single shutter wardrobe 550 x 2080 shelf_drawer with basic handles_right opening",
+    "shutters": [
+      6,
+      10
+    ],
+    "handles": [
+      2,
+      5
+    ]
+  },
+  "7f1a731e-adc7-4ce3-b4b2-a33ed5e385e8_Single_shutter_wardrobe_550_x_2080_3_shelf_hanger_space_with_basic_handles_right_opening.glb": {
+    "modelId": "6ae1a188b6e45f59e55d4308",
+    "name": "Single shutter wardrobe 550 x 2080 3 shelf_hanger space with basic handles_right opening",
+    "shutters": [
+      7
+    ],
+    "handles": [
+      6
+    ]
+  },
+  "b7434fff-4e20-43a7-962f-8ec1ad37776b_Single_shutter_wardrobe_550_x_2080_hanger_space_drawer_with_basic_handles_right_opening.glb": {
+    "modelId": "6ae1a188b6e45f59e55d4311",
+    "name": "Single shutter wardrobe 550 x 2080 hanger space_drawer with basic handles_right opening",
+    "shutters": [
+      4,
+      8
+    ],
+    "handles": [
+      7,
+      9
+    ]
+  },
+  "4d6ba371-fac5-47bb-a715-b930cf4fc02d_Single_shutter_wardrobe_550_x_2080_hanger_space_shelf_with_basic_handles_right_opening.glb": {
+    "modelId": "6ae1a189b6e45f59e55d431c",
+    "name": "Single shutter wardrobe 550 x 2080 hanger space_shelf with basic handles_right opening",
+    "shutters": [
+      5
+    ],
+    "handles": [
+      6
+    ]
+  },
+  "faa1784e-22ed-485d-82c7-65515a47ef1f_Single_shutter_wardrobe_550_x_2080_shelf_with_basic_handles_right_opening.glb": {
+    "modelId": "6ae1a189b6e45f59e55d4324",
+    "name": "Single shutter wardrobe 550 x 2080 shelf with basic handles_right opening",
+    "shutters": [
+      6
+    ],
+    "handles": [
+      7
+    ]
+  },
+  "03e03cf4-370a-4744-b10a-1d8f166b299f_Single_shutter_wardrobe_600_x_2080_shelf_drawer_with_basic_handles_right_opening.glb": {
+    "modelId": "6ae1a18ab6e45f59e55d432d",
+    "name": "Single shutter wardrobe 600 x 2080 shelf_drawer with basic handles_right opening",
+    "shutters": [
+      2,
+      6
+    ],
+    "handles": [
+      5,
+      10
+    ]
+  },
+  "1c1a232d-24e7-4c2a-8323-8f896cbea6bf_Single_shutter_wardrobe_600_x_2080_3_shelf_hanger_space_with_basic_handles_right_opening.glb": {
+    "modelId": "6ae1a18bb6e45f59e55d4339",
+    "name": "Single shutter wardrobe 600 x 2080 3 shelf_hanger space with basic handles_right opening",
+    "shutters": [
+      6
+    ],
+    "handles": [
+      7
+    ]
+  },
+  "cc6953fc-a6c7-4be9-872b-d482f75c0f95_Single_shutter_wardrobe_600_x_2080_hanger_space_drawer_with_basic_handles_right_opening.glb": {
+    "modelId": "6ae1a18bb6e45f59e55d4342",
+    "name": "Single shutter wardrobe 600 x 2080 hanger space_drawer with basic handles_right opening",
+    "shutters": [
+      4,
+      8
+    ],
+    "handles": [
+      7,
+      9
+    ]
+  },
+  "9ea2e07e-a3f1-49ff-97ee-3f40ad76d2f9_Single_shutter_wardrobe_600_x_2080_hanger_space_shelf_with_basic_handles_right_opening.glb": {
+    "modelId": "6ae1a18cb6e45f59e55d434d",
+    "name": "Single shutter wardrobe 600 x 2080 hanger space_shelf with basic handles_right opening",
+    "shutters": [
+      5
+    ],
+    "handles": [
+      6
+    ]
+  },
+  "b1983517-9419-4019-9eeb-42514392767f_Single_shutter_wardrobe_600_x_2080_shelf_with_basic_handles_right_opening.glb": {
+    "modelId": "6ae1a18db6e45f59e55d4355",
+    "name": "Single shutter wardrobe 600 x 2080 shelf with basic handles_right opening",
+    "shutters": [
+      6
+    ],
+    "handles": [
+      7
+    ]
+  },
+  "e6fe5c8c-4477-4eb8-81d8-3c5d31bb1be7_Single_shutter_wardrobe_450_x_2080_shelf_hanger_space_with_basic_handles_left_opening.glb": {
+    "modelId": "6ae1a206b6e45f59e55d435e",
+    "name": "Single shutter wardrobe 450 x 2080 shelf_hanger space with basic handles_left opening",
+    "shutters": [
+      5
+    ],
+    "handles": [
+      6
+    ]
+  },
+  "40683450-ab2a-4d43-a11f-fd39d2a14f1f_Single_shutter_wardrobe_450_x_2080_3_shelf_hanger_space_with_basic_handles_left_opening.glb": {
+    "modelId": "6ae1a207b6e45f59e55d4366",
+    "name": "Single shutter wardrobe 450 x 2080 3 shelf_hanger space with basic handles_left opening",
+    "shutters": [
+      6
+    ],
+    "handles": [
+      7
+    ]
+  },
+  "45451899-d14b-4b5c-a46e-da0ec75d336b_Single_shutter_wardrobe_450_x_2080_hanger_drawer_with_basic_handles_left_opening.glb": {
+    "modelId": "6ae1a208b6e45f59e55d436f",
+    "name": "Single shutter wardrobe 450 x 2080 hanger_drawer with basic handles_left opening",
+    "shutters": [
+      4,
+      8
+    ],
+    "handles": [
+      7,
+      9
+    ]
+  },
+  "cdb649a2-2fac-4c6f-9fa8-923c3a293085_Single_shutter_wardrobe_450_x_2080_shelf_with_basic_handles_left_opening.glb": {
+    "modelId": "6ae1a208b6e45f59e55d437a",
+    "name": "Single shutter wardrobe 450 x 2080 shelf with basic handles_left opening",
+    "shutters": [
+      6
+    ],
+    "handles": [
+      7
+    ]
+  },
+  "f0367786-081e-4288-a31b-8daa25d3b806_Single_shutter_wardrobe_450_x_2080_shelf_drawer_with_basic_handles_left_opening.glb": {
+    "modelId": "6ae1a209b6e45f59e55d4383",
+    "name": "Single shutter wardrobe 450 x 2080 shelf_drawer with basic handles_left opening",
+    "shutters": [
+      6,
+      10
+    ],
+    "handles": [
+      2,
+      5
+    ]
+  },
+  "3f5ff40f-3219-4afd-b464-02ea82b88e3e_Single_shutter_wardrobe_500_x_2080_shelf_hanger_space_with_basic_handles_left_opening.glb": {
+    "modelId": "6ae1a20ab6e45f59e55d438f",
+    "name": "Single shutter wardrobe 500 x 2080 shelf_hanger space with basic handles_left opening",
+    "shutters": [
+      5
+    ],
+    "handles": [
+      6
+    ]
+  },
+  "df6b1471-99d3-4120-9aa3-824a2f5ca9bb_Single_shutter_wardrobe_500_x_2080_3_shelf_hanger_space_with_basic_handles_left_opening.glb": {
+    "modelId": "6ae1a20ab6e45f59e55d4397",
+    "name": "Single shutter wardrobe 500 x 2080 3 shelf_hanger space with basic handles_left opening",
+    "shutters": [
+      6
+    ],
+    "handles": [
+      7
+    ]
+  },
+  "1fc9c6f7-0fbd-4f34-9023-32b16eb36fad_Single_shutter_wardrobe_500_x_2080_shelf_with_basic_handles_left_opening.glb": {
+    "modelId": "6ae1a20bb6e45f59e55d43a0",
+    "name": "Single shutter wardrobe 500 x 2080 shelf with basic handles_left opening",
+    "shutters": [
+      6
+    ],
+    "handles": [
+      7
+    ]
+  },
+  "d25643db-9e83-4955-8444-bb6ed48808f4_Single_shutter_wardrobe_500_x_2080_shelf_drawer_with_basic_handles_left_opening.glb": {
+    "modelId": "6ae1a20cb6e45f59e55d43a9",
+    "name": "Single shutter wardrobe 500 x 2080 shelf_drawer with basic handles_left opening",
+    "shutters": [
+      6,
+      10
+    ],
+    "handles": [
+      2,
+      5
+    ]
+  },
+  "2f461618-3dc8-4d55-86f9-bbe5615e6c59_Single_shutter_wardrobe_550_x_2080_shelf_drawer_with_basic_handles_left_opening.glb": {
+    "modelId": "6ae1a20cb6e45f59e55d43b5",
+    "name": "Single shutter wardrobe 550 x 2080 shelf_drawer with basic handles_left opening",
+    "shutters": [
+      2,
+      6
+    ],
+    "handles": [
+      5,
+      10
+    ]
+  },
+  "64c2dbf0-dcd2-4558-abc8-97127e1bae8a_Single_shutter_wardrobe_550_x_2080_3_shelf_hanger_space_with_basic_handles_left_opening.glb": {
+    "modelId": "6ae1a20db6e45f59e55d43c1",
+    "name": "Single shutter wardrobe 550 x 2080 3 shelf_hanger space with basic handles_left opening",
+    "shutters": [
+      6
+    ],
+    "handles": [
+      7
+    ]
+  },
+  "6072b5bd-4bcf-4661-b85d-afcb4ee8987c_Single_shutter_wardrobe_550_x_2080_hanger_space_drawer_with_basic_handles_left_opening.glb": {
+    "modelId": "6ae1a20eb6e45f59e55d43ca",
+    "name": "Single shutter wardrobe 550 x 2080 hanger space_drawer with basic handles_left opening",
+    "shutters": [
+      4,
+      9
+    ],
+    "handles": [
+      7,
+      8
+    ]
+  },
+  "d6999251-75e2-4406-8c40-6294480944ff_Single_shutter_wardrobe_550_x_2080_hanger_space_shelf_with_basic_handles_left_opening.glb": {
+    "modelId": "6ae1a20eb6e45f59e55d43d5",
+    "name": "Single shutter wardrobe 550 x 2080 hanger space_shelf with basic handles_left opening",
+    "shutters": [
+      6
+    ],
+    "handles": [
+      5
+    ]
+  },
+  "e41dbcdb-bfa0-413d-84bd-c6924659d2a3_Single_shutter_wardrobe_550_x_2080_shelf_with_basic_handles_left_opening.glb": {
+    "modelId": "6ae1a20fb6e45f59e55d43dd",
+    "name": "Single shutter wardrobe 550 x 2080 shelf with basic handles_left opening",
+    "shutters": [
+      7
+    ],
+    "handles": [
+      6
+    ]
+  },
+  "c6031f3f-9024-4de0-af0f-d4ef6e149723_Single_shutter_wardrobe_600_x_2080_shelf_drawer_with_basic_handles_left_opening.glb": {
+    "modelId": "6ae1a210b6e45f59e55d43e6",
+    "name": "Single shutter wardrobe 600 x 2080 shelf_drawer with basic handles_left opening",
+    "shutters": [
+      6,
+      10
+    ],
+    "handles": [
+      2,
+      5
+    ]
+  },
+  "08504343-ef09-48a8-b2a6-81d9ee962a73_Single_shutter_wardrobe_600_x_2080_3_shelf_hanger_space_with_basic_handles_left_opening.glb": {
+    "modelId": "6ae1a210b6e45f59e55d43f2",
+    "name": "Single shutter wardrobe 600 x 2080 3 shelf_hanger space with basic handles_left opening",
+    "shutters": [
+      7
+    ],
+    "handles": [
+      6
+    ]
+  },
+  "b992a3d2-d83c-4b49-9a33-fe94d0d56de5_Single_shutter_wardrobe_600_x_2080_hanger_space_drawer_with_basic_handles_left_opening.glb": {
+    "modelId": "6ae1a211b6e45f59e55d43fb",
+    "name": "Single shutter wardrobe 600 x 2080 hanger space_drawer with basic handles_left opening",
+    "shutters": [
+      4,
+      8
+    ],
+    "handles": [
+      7,
+      9
+    ]
+  },
+  "2d9d12d3-99e4-46e7-b72c-8d711a94e65e_Single_shutter_wardrobe_600_x_2080_hanger_space_shelf_with_basic_handles_left_opening.glb": {
+    "modelId": "6ae1a212b6e45f59e55d4406",
+    "name": "Single shutter wardrobe 600 x 2080 hanger space_shelf with basic handles_left opening",
+    "shutters": [
+      5
+    ],
+    "handles": [
+      6
+    ]
+  },
+  "997dcbf7-7e7d-4a01-9ec7-01da8d2462de_Single_shutter_wardrobe_600_x_2080_shelf_with_basic_handles_left_opening.glb": {
+    "modelId": "6ae1a212b6e45f59e55d440e",
+    "name": "Single shutter wardrobe 600 x 2080 shelf with basic handles_left opening",
+    "shutters": [
+      6
+    ],
+    "handles": [
+      7
+    ]
+  },
+  "a7e8836e-604f-4615-a100-171d48f1cc91_Single_Wardrobe_600_x_2080_shelf_and_drawer_.glb": {
+    "modelId": "6ae1a2b3b6e45f59e55d4417",
+    "name": "Single Wardrobe 600 x 2080 shelf and drawer",
+    "shutters": [
+      5
+    ],
+    "handles": [
+      4
+    ]
+  },
+  "a3e8202c-e046-4ab6-a098-105523c12a96_Single_Wardrobe_600_x_2080_drawer_and_hanger_space_.glb": {
+    "modelId": "6ae1a2b3b6e45f59e55d4428",
+    "name": "Single Wardrobe 600 x 2080 drawer and hanger space",
+    "shutters": [
+      4
+    ],
+    "handles": [
+      7
+    ]
+  },
+  "b2815db9-1e77-412f-97cb-449a89b64c87_Single_Wardrobe_550_x_2080_drawer_and_hanger_space.glb": {
+    "modelId": "6ae1a2b4b6e45f59e55d4444",
+    "name": "Single Wardrobe 550 x 2080 drawer and hanger space",
+    "shutters": [
+      4
+    ],
+    "handles": [
+      7
+    ]
+  },
+  "db166444-aa7c-4dd9-b80a-711bab0f35f8_Single_Wardrobe_500_x_2080_shelf_and_drawer.glb": {
+    "modelId": "6ae1a2b5b6e45f59e55d4461",
+    "name": "Single Wardrobe 500 x 2080 shelf and drawer",
+    "shutters": [
+      5
+    ],
+    "handles": [
+      4
+    ]
+  },
+  "452d0d41-65af-45be-9b3c-197a3ede4321_Single_Wardrobe_500_x_2080_drawer_and_hanger_space.glb": {
+    "modelId": "6ae1a2b6b6e45f59e55d446b",
+    "name": "Single Wardrobe 500 x 2080 drawer and hanger space",
+    "shutters": [
+      4
+    ],
+    "handles": [
+      7
+    ]
+  },
+  "f00c5ac4-3bfd-43af-9f29-30a4534b4c7d_Single_Wardrobe_450_x_2080_shelf_and_drawer_.glb": {
+    "modelId": "6ae1a2b7b6e45f59e55d4488",
+    "name": "Single Wardrobe 450 x 2080 shelf and drawer",
+    "shutters": [
+      5
+    ],
+    "handles": [
+      4
+    ]
+  },
+  "16e3941a-0b43-4bac-92d6-5bc5bf5c4aac_Single_Wardrobe_450_x_2080_drawer_and_hanger_space.glb": {
+    "modelId": "6ae1a2b7b6e45f59e55d4492",
+    "name": "Single Wardrobe 450 x 2080 drawer and hanger space",
+    "shutters": [
+      4
+    ],
+    "handles": [
+      7
+    ]
+  },
+  "3643b99e-274e-465f-b343-d7a5ea5d4e46_Fluted_single_shutter_wardrobe_600_x_2080_shelf_with_profile_handles_right_opening.glb": {
+    "modelId": "6ae1a694b6e45f59e55d44ab",
+    "name": "Fluted single shutter wardrobe 600 x 2080 shelf with profile handles_right opening",
+    "shutters": [
+      7
+    ],
+    "handles": []
+  },
+  "60eafebf-03ee-4a0a-947e-77b5cb94a5ee_Fluted_single_shutter_wardrobe_600_x_2080_shelf__drawer_with_profile_handles_right_opening.glb": {
+    "modelId": "6ae1a695b6e45f59e55d44b5",
+    "name": "Fluted single shutter wardrobe 600 x 2080 shelf _drawer with profile handles_right opening",
+    "shutters": [
+      2,
+      7
+    ],
+    "handles": [
+      6
+    ]
+  },
+  "e9b27f26-9336-407f-b5db-e2dc59393c9d_Fluted_single_shutter_wardrobe_600_x_2080_drawer_hanger_space_with_profile_handles_right_opening.glb": {
+    "modelId": "6ae1a695b6e45f59e55d44c2",
+    "name": "Fluted single shutter wardrobe 600 x 2080 drawer_hanger space with profile handles_right opening",
+    "shutters": [
+      5,
+      10
+    ],
+    "handles": [
+      8
+    ]
+  },
+  "18f9dfe6-4dc2-4283-89f7-5017f777be68_Fluted_single_shutter_wardrobe_600_x_2080_3_shelf_hanger_space_with_profile_handles_right_opening.glb": {
+    "modelId": "6ae1a696b6e45f59e55d44ce",
+    "name": "Fluted single shutter wardrobe 600 x 2080 3 shelf_hanger space with profile handles_right opening",
+    "shutters": [
+      6
+    ],
+    "handles": []
+  },
+  "096f2e28-7555-4296-bce3-97114696c737_Fluted_single_shutter_wardrobe_600_x_2080_shelf_hanger_space_with_profile_handles_right_opening.glb": {
+    "modelId": "6ae1a697b6e45f59e55d44d8",
+    "name": "Fluted single shutter wardrobe 600 x 2080 shelf_hanger space with profile handles_right opening",
+    "shutters": [
+      6
+    ],
+    "handles": []
+  },
+  "c8b0dc07-32d8-43d5-84c6-9152594366ec_Fluted_single_shutter_wardrobe_550_x_2080_shelf_with_profile_handles_right_opening.glb": {
+    "modelId": "6ae1a697b6e45f59e55d44e1",
+    "name": "Fluted single shutter wardrobe 550 x 2080 shelf with profile handles_right opening",
+    "shutters": [
+      8
+    ],
+    "handles": []
+  },
+  "b0cb012d-445d-4205-8b90-a051a0815689_Fluted_single_shutter_wardrobe_550_x_2080_shelf__drawer_with_profile_handles_right_opening.glb": {
+    "modelId": "6ae1a698b6e45f59e55d44eb",
+    "name": "Fluted single shutter wardrobe 550 x 2080 shelf _drawer with profile handles_right opening",
+    "shutters": [
+      3,
+      7
+    ],
+    "handles": [
+      6
+    ]
+  },
+  "9a97476d-d575-49ad-8e92-675c37d52fc0_Fluted_single_shutter_wardrobe_550_x_2080_drawer_hanger_space_with_profile_handles_right_opening.glb": {
+    "modelId": "6ae1a699b6e45f59e55d44f8",
+    "name": "Fluted single shutter wardrobe 550 x 2080 drawer_hanger space with profile handles_right opening",
+    "shutters": [
+      2,
+      5
+    ],
+    "handles": [
+      8
+    ]
+  },
+  "3304c332-aaeb-440b-96c3-46cb7e4e376e_Fluted_single_shutter_wardrobe_550_x_2080_3_shelf_hanger_space_with_profile_handles_right_opening.glb": {
+    "modelId": "6ae1a699b6e45f59e55d4504",
+    "name": "Fluted single shutter wardrobe 550 x 2080 3 shelf_hanger space with profile handles_right opening",
+    "shutters": [
+      7
+    ],
+    "handles": []
+  },
+  "51845d39-d2cd-4457-b17b-18bf2bad0c3a_Fluted_single_shutter_wardrobe_550_x_2080_shelf_hanger_space_with_profile_handles_right_opening.glb": {
+    "modelId": "6ae1a69ab6e45f59e55d450e",
+    "name": "Fluted single shutter wardrobe 550 x 2080 shelf_hanger space with profile handles_right opening",
+    "shutters": [
+      7
+    ],
+    "handles": []
+  },
+  "3a66724a-48ea-470c-a0ad-4ca4071bfdd0_Fluted_single_shutter_wardrobe_500_x_2080_shelf_with_profile_handles_right_opening.glb": {
+    "modelId": "6ae1a69bb6e45f59e55d4517",
+    "name": "Fluted single shutter wardrobe 500 x 2080 shelf with profile handles_right opening",
+    "shutters": [
+      2,
+      7
+    ],
+    "handles": [
+      6
+    ]
+  },
+  "f4c3ce39-3ffa-4ef0-8f2f-7c7898688e3f_Fluted_single_shutter_wardrobe_500_x_2080_shelf__drawer_with_profile_handles_right_opening.glb": {
+    "modelId": "6ae1a69bb6e45f59e55d4524",
+    "name": "Fluted single shutter wardrobe 500 x 2080 shelf _drawer with profile handles_right opening",
+    "shutters": [
+      2,
+      7
+    ],
+    "handles": [
+      6
+    ]
+  },
+  "a5d466f2-843f-4c0f-94c0-b2a10fb72f52_Fluted_single_shutter_wardrobe_500_x_2080_drawer_hanger_space_with_profile_handles_right_opening.glb": {
+    "modelId": "6ae1a69cb6e45f59e55d4531",
+    "name": "Fluted single shutter wardrobe 500 x 2080 drawer_hanger space with profile handles_right opening",
+    "shutters": [
+      5,
+      10
+    ],
+    "handles": [
+      8
+    ]
+  },
+  "0a7ca160-99e8-463a-9537-435202c89ce9_Fluted_single_shutter_wardrobe_500_x_2080_3_shelf_hanger_space_with_profile_handles_right_opening.glb": {
+    "modelId": "6ae1a69db6e45f59e55d453d",
+    "name": "Fluted single shutter wardrobe 500 x 2080 3 shelf_hanger space with profile handles_right opening",
+    "shutters": [
+      7
+    ],
+    "handles": []
+  },
+  "d75a8937-9aec-460e-b2ef-2c3be088c0fd_Fluted_single_shutter_wardrobe_500_x_2080_shelf_hanger_space_with_profile_handles_right_opening.glb": {
+    "modelId": "6ae1a69eb6e45f59e55d4547",
+    "name": "Fluted single shutter wardrobe 500 x 2080 shelf_hanger space with profile handles_right opening",
+    "shutters": [
+      6
+    ],
+    "handles": []
+  },
+  "d0303bdd-6ab2-4e70-b17d-a005f9cde406_Fluted_single_shutter_wardrobe_450_x_2080_shelf_with_profile_handles_right_opening.glb": {
+    "modelId": "6ae1a69eb6e45f59e55d4550",
+    "name": "Fluted single shutter wardrobe 450 x 2080 shelf with profile handles_right opening",
+    "shutters": [
+      7
+    ],
+    "handles": []
+  },
+  "9a89a507-526e-43f5-9b77-78d07172f087_Fluted_single_shutter_wardrobe_450_x_2080_shelf__drawer_with_profile_handles_right_opening.glb": {
+    "modelId": "6ae1a69fb6e45f59e55d455a",
+    "name": "Fluted single shutter wardrobe 450 x 2080 shelf _drawer with profile handles_right opening",
+    "shutters": [
+      2,
+      7
+    ],
+    "handles": [
+      6
+    ]
+  },
+  "6bc2fcd8-51f7-4156-9348-4a0db392a16b_Fluted_single_shutter_wardrobe_450_x_2080_drawer_hanger_space_with_profile_handles_right_opening.glb": {
+    "modelId": "6ae1a6a0b6e45f59e55d4567",
+    "name": "Fluted single shutter wardrobe 450 x 2080 drawer_hanger space with profile handles_right opening",
+    "shutters": [
+      3,
+      6
+    ],
+    "handles": [
+      5
+    ]
+  },
+  "e3c03d50-7db5-4c34-879b-80a1244ed36b_Fluted_single_shutter_wardrobe_450_x_2080_3_shelf_hanger_space_with_profile_handles_right_opening.glb": {
+    "modelId": "6ae1a6a1b6e45f59e55d4573",
+    "name": "Fluted single shutter wardrobe 450 x 2080 3 shelf_hanger space with profile handles_right opening",
+    "shutters": [
+      5
+    ],
+    "handles": []
+  },
+  "e60df2b3-c293-4c00-8125-658b7e8d2c48_Fluted_single_shutter_wardrobe_450_x_2080_shelf_hanger_space_with_profile_handles_right_opening.glb": {
+    "modelId": "6ae1a6a1b6e45f59e55d457d",
+    "name": "Fluted single shutter wardrobe 450 x 2080 shelf_hanger space with profile handles_right opening",
+    "shutters": [
+      4
+    ],
+    "handles": []
+  },
+  "1b946862-dac4-44ca-a2b1-29e73f9cd8f3_Fluted_single_shutter_wardrobe_600_x_2080_shelf_with_profile_handles_left_opening.glb": {
+    "modelId": "6ae1a740b6e45f59e55d4586",
+    "name": "Fluted single shutter wardrobe 600 x 2080 shelf with profile handles_left opening",
+    "shutters": [
+      7
+    ],
+    "handles": []
+  },
+  "35ba031d-71dd-46df-aa50-4aa106ef41d7_Fluted_single_shutter_wardrobe_600_x_2080_shelf__drawer_with_profile_handles_left_opening.glb": {
+    "modelId": "6ae1a741b6e45f59e55d4590",
+    "name": "Fluted single shutter wardrobe 600 x 2080 shelf _drawer with profile handles_left opening",
+    "shutters": [
+      9,
+      10
+    ],
+    "handles": [
+      0
+    ]
+  },
+  "2b873f28-c4d1-4fd1-b8de-b55e028c5a5c_Fluted_single_shutter_wardrobe_600_x_2080_drawer_hanger_space_with_profile_handles_left_opening.glb": {
+    "modelId": "6ae1a742b6e45f59e55d459d",
+    "name": "Fluted single shutter wardrobe 600 x 2080 drawer_hanger space with profile handles_left opening",
+    "shutters": [
+      2,
+      3
+    ],
+    "handles": [
+      9
+    ]
+  },
+  "7fe46a5a-7395-471c-8a37-dd36b7c1489b_Fluted_single_shutter_wardrobe_600_x_2080_3_shelf_hanger_space_with_profile_handles_left_opening.glb": {
+    "modelId": "6ae1a743b6e45f59e55d45a9",
+    "name": "Fluted single shutter wardrobe 600 x 2080 3 shelf_hanger space with profile handles_left opening",
+    "shutters": [
+      7
+    ],
+    "handles": []
+  },
+  "f867100e-8c3a-40c5-9c47-7615b85e76ee_Fluted_single_shutter_wardrobe_600_x_2080_shelf_hanger_space_with_profile_handles_left_opening.glb": {
+    "modelId": "6ae1a744b6e45f59e55d45b3",
+    "name": "Fluted single shutter wardrobe 600 x 2080 shelf_hanger space with profile handles_left opening",
+    "shutters": [
+      5
+    ],
+    "handles": []
+  },
+  "243b1064-a9b6-4e09-ac6b-52532499f606_Fluted_single_shutter_wardrobe_550_x_2080_shelf_with_profile_handles_left_opening.glb": {
+    "modelId": "6ae1a744b6e45f59e55d45bc",
+    "name": "Fluted single shutter wardrobe 550 x 2080 shelf with profile handles_left opening",
+    "shutters": [
+      6
+    ],
+    "handles": []
+  },
+  "1e72933a-ad7f-4457-89a1-a1f76e9a930e_Fluted_single_shutter_wardrobe_550_x_2080_shelf__drawer_with_profile_handles_left_opening.glb": {
+    "modelId": "6ae1a745b6e45f59e55d45c6",
+    "name": "Fluted single shutter wardrobe 550 x 2080 shelf _drawer with profile handles_left opening",
+    "shutters": [
+      4,
+      6
+    ],
+    "handles": [
+      9
+    ]
+  },
+  "4ae97a78-5422-4719-9c52-3a6d96cf3e43_Fluted_single_shutter_wardrobe_550_x_2080_drawer_hanger_space_with_profile_handles_left_opening.glb": {
+    "modelId": "6ae1a746b6e45f59e55d45d3",
+    "name": "Fluted single shutter wardrobe 550 x 2080 drawer_hanger space with profile handles_left opening",
+    "shutters": [
+      0,
+      10
+    ],
+    "handles": [
+      5
+    ]
+  },
+  "08c7e7bb-ed7e-488b-bb8e-e181b603e283_Fluted_single_shutter_wardrobe_550_x_2080_3_shelf_hanger_space_with_profile_handles_left_opening.glb": {
+    "modelId": "6ae1a747b6e45f59e55d45df",
+    "name": "Fluted single shutter wardrobe 550 x 2080 3 shelf_hanger space with profile handles_left opening",
+    "shutters": [
+      8
+    ],
+    "handles": []
+  },
+  "970588f1-a8e1-4f04-83c2-75b550f0f088_Fluted_single_shutter_wardrobe_550_x_2080_shelf_hanger_space_with_profile_handles_left_opening.glb": {
+    "modelId": "6ae1a747b6e45f59e55d45e9",
+    "name": "Fluted single shutter wardrobe 550 x 2080 shelf_hanger space with profile handles_left opening",
+    "shutters": [
+      7
+    ],
+    "handles": []
+  },
+  "d25d7516-7b97-418b-bfd9-d1c021da440f_Fluted_single_shutter_wardrobe_500_x_2080_shelf_with_profile_handles_left_opening.glb": {
+    "modelId": "6ae1a748b6e45f59e55d45f2",
+    "name": "Fluted single shutter wardrobe 500 x 2080 shelf with profile handles_left opening",
+    "shutters": [
+      2
+    ],
+    "handles": []
+  },
+  "917dfcd9-aa85-4c77-9d07-ab6615a28a7b_Fluted_single_shutter_wardrobe_500_x_2080_shelf__drawer_with_profile_handles_left_opening.glb": {
+    "modelId": "6ae1a749b6e45f59e55d45fc",
+    "name": "Fluted single shutter wardrobe 500 x 2080 shelf _drawer with profile handles_left opening",
+    "shutters": [
+      3,
+      9
+    ],
+    "handles": [
+      6
+    ]
+  },
+  "4361b30f-3805-42fb-97da-5bbb374dd52c_Fluted_single_shutter_wardrobe_500_x_2080_drawer_hanger_space_with_profile_handles_left_opening.glb": {
+    "modelId": "6ae1a74ab6e45f59e55d4609",
+    "name": "Fluted single shutter wardrobe 500 x 2080 drawer_hanger space with profile handles_left opening",
+    "shutters": [
+      5,
+      10
+    ],
+    "handles": [
+      8
+    ]
+  },
+  "ee0c5cd7-163b-473f-9577-c5b1510b206e_Fluted_single_shutter_wardrobe_500_x_2080_3_shelf_hanger_space_with_profile_handles_left_opening.glb": {
+    "modelId": "6ae1a74ab6e45f59e55d4615",
+    "name": "Fluted single shutter wardrobe 500 x 2080 3 shelf_hanger space with profile handles_left opening",
+    "shutters": [
+      7
+    ],
+    "handles": []
+  },
+  "3f9c7fbf-f6e2-48f2-a9f7-9c81623ba5b3_Fluted_single_shutter_wardrobe_500_x_2080_shelf_hanger_space_with_profile_handles_left_opening.glb": {
+    "modelId": "6ae1a74bb6e45f59e55d461f",
+    "name": "Fluted single shutter wardrobe 500 x 2080 shelf_hanger space with profile handles_left opening",
+    "shutters": [
+      6
+    ],
+    "handles": []
+  },
+  "ac3989f8-1226-4f77-a780-014b9903b49c_Fluted_single_shutter_wardrobe_450_x_2080_shelf_with_profile_handles_left_opening.glb": {
+    "modelId": "6ae1a74cb6e45f59e55d4628",
+    "name": "Fluted single shutter wardrobe 450 x 2080 shelf with profile handles_left opening",
+    "shutters": [
+      7
+    ],
+    "handles": []
+  },
+  "46a237de-cab4-452d-bc79-d4a75c41c893_Fluted_single_shutter_wardrobe_450_x_2080_shelf__drawer_with_profile_handles_left_opening.glb": {
+    "modelId": "6ae1a74db6e45f59e55d4632",
+    "name": "Fluted single shutter wardrobe 450 x 2080 shelf _drawer with profile handles_left opening",
+    "shutters": [
+      2,
+      7
+    ],
+    "handles": [
+      6
+    ]
+  },
+  "6100d80f-58ed-458c-a279-b9a4b5107f6a_Fluted_single_shutter_wardrobe_450_x_2080_drawer_hanger_space_with_profile_handles_left_opening.glb": {
+    "modelId": "6ae1a74eb6e45f59e55d463f",
+    "name": "Fluted single shutter wardrobe 450 x 2080 drawer_hanger space with profile handles_left opening",
+    "shutters": [
+      5,
+      10
+    ],
+    "handles": [
+      8
+    ]
+  },
+  "3f34cc36-ea4d-4772-be40-be5d6d27e739_Fluted_single_shutter_wardrobe_450_x_2080_3_shelf_hanger_space_with_profile_handles_left_opening.glb": {
+    "modelId": "6ae1a74eb6e45f59e55d464b",
+    "name": "Fluted single shutter wardrobe 450 x 2080 3 shelf_hanger space with profile handles_left opening",
+    "shutters": [
+      6
+    ],
+    "handles": []
+  },
+  "137fc9d3-c07e-40af-94d3-b908e3582dcc_Fluted_single_shutter_wardrobe_450_x_2080_shelf_hanger_space_with_profile_handles_left_opening.glb": {
+    "modelId": "6ae1a74fb6e45f59e55d4655",
+    "name": "Fluted single shutter wardrobe 450 x 2080 shelf_hanger space with profile handles_left opening",
+    "shutters": [
+      6
+    ],
+    "handles": []
+  }
+}
