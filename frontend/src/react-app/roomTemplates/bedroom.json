@@ -1,0 +1,75 @@
+{
+  "room": "Bedroom",
+  "modules": {
+    "cot": {
+      "label": "Cot",
+      "category": "BEDROOM > Cot",
+      "main": true
+    },
+    "wardrobe": {
+      "label": "Wardrobe",
+      "category": "BEDROOM > Wardrobe > Double Shutter Wardrobe with Basic handles",
+      "main": true
+    },
+    "wardrobeSingle": {
+      "label": "Wardrobe",
+      "category": "BEDROOM > Wardrobe > Single Shutter Wardrobe with Basic handles - Right opening",
+      "main": true
+    },
+    "wardrobeFluted": {
+      "label": "Wardrobe",
+      "category": "BEDROOM > Wardrobe > Double Shutter Fluted Glass Wardrobe with Aluminium profile handles",
+      "main": true
+    },
+    "wardrobeFlutedSingle": {
+      "label": "Wardrobe",
+      "category": "BEDROOM > Wardrobe > Single Shutter Fluted Glass Wardrobe with Aluminium profile handles - Right opening",
+      "main": true
+    },
+    "sideTable": {
+      "label": "Side table",
+      "category": "Interior Elements > Side table",
+      "main": false
+    },
+    "tableLamp": {
+      "label": "Table lamp",
+      "category": "Interior Elements > Table lamp",
+      "match": "lamp",
+      "exclude": "bird|decorative",
+      "main": false
+    },
+    "mirror": {
+      "label": "Mirror",
+      "category": "Interior Elements > Mirror",
+      "exclude": "standalone",
+      "main": false
+    },
+    "ac": {
+      "label": "AC",
+      "category": "Interior Elements > AC",
+      "main": false
+    },
+    "carpet": {
+      "label": "Carpet",
+      "category": "Interior Elements > Carpet",
+      "main": false
+    },
+    "light": {
+      "label": "Ceiling light",
+      "category": "Interior Elements > lights",
+      "match": "chandelier|round|lantern|pendant",
+      "main": false
+    }
+  },
+  "rules": {
+    "walkwayMm": 600,
+    "footClearanceMm": 600,
+    "wardrobeFrontClearanceMm": 750,
+    "maxWardrobeMm": 2400,
+    "doorClearanceMm": 100,
+    "doorSwingMinMm": 900,
+    "windowMarginMm": 50,
+    "sideTableGapMm": 30,
+    "wallItemGapMm": 150
+  }
+}

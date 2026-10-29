@@ -1,0 +1,38 @@
+{
+  "room": "Living Room",
+  "modules": {
+    "tvPanel": { "label": "TV back panel", "category": "LIVINGROOM > Tv back panel > Tv back panel", "main": true },
+    "tvPanelGroove": { "label": "TV back panel", "category": "LIVINGROOM > Tv back panel > Tv back panel - groove", "main": true },
+    "tvUnit": { "label": "TV drawer unit", "category": "LIVINGROOM > TV Draw Unit > Basic Handle", "main": true },
+    "tvUnitGroove": { "label": "TV drawer unit", "category": "LIVINGROOM > TV Draw Unit > finger groove", "main": true },
+    "cladding": { "label": "Wall cladding", "category": "LIVINGROOM > wall cladding", "main": true },
+    "sofa": { "label": "Sofa", "category": "LIVINGROOM > Sofa", "main": true },
+    "tv": { "label": "TV", "category": "Interior Elements > TV", "main": false },
+    "centerTable": { "label": "Center table", "category": "LIVINGROOM > Center Table", "main": false },
+    "coffeeTable": { "label": "Center table", "category": "LIVINGROOM > Coffee Table", "main": false },
+    "armchair": { "label": "Armchair", "category": "LIVINGROOM > Armchair", "main": false },
+    "bookshelf": { "label": "Bookshelf", "category": "LIVINGROOM > Bookshelf", "main": false },
+    "carpet": { "label": "Carpet", "category": "Interior Elements > Carpet", "main": false },
+    "sideTable": { "label": "Side table", "category": "Interior Elements > Side table", "main": false },
+    "tableLamp": { "label": "Table lamp", "category": "Interior Elements > Table lamp", "match": "lamp", "exclude": "bird|decorative", "main": false },
+    "floorLamp": { "label": "Floor lamp", "category": "Interior Elements > Floor lamp", "main": false },
+    "plant": { "label": "Plant", "category": "Interior Elements > Plant", "exclude": "hanging", "main": false },
+    "wallArt": { "label": "Wall art", "category": "Interior Elements > Decor items", "main": false },
+    "ac": { "label": "AC", "category": "Interior Elements > AC", "main": false },
+    "light": { "label": "Ceiling light", "category": "Interior Elements > lights", "match": "chandelier|round|lantern|pendant", "main": false }
+  },
+  "rules": {
+    "walkwayMm": 600,
+    "sofaToTvMinMm": 1800,
+    "centerTableGapMm": 450,
+    "armchairGapMm": 400,
+    "tvFrontClearanceMm": 600,
+    "bookshelfFrontClearanceMm": 600,
+    "claddingPerSide": 4,
+    "hangTopMm": 2134,
+    "doorClearanceMm": 100,
+    "doorSwingMinMm": 900,
+    "windowMarginMm": 50,
+    "wallItemGapMm": 150
+  }
+}
