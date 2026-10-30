@@ -6,6 +6,8 @@ import {
   viewBounds,
 } from "@pazl/main/core/configuration.js";
 import { dimMilliMeter } from "@pazl/main/core/constants.js";
+
+const UNIT_STORAGE_KEY = "pazl-display-unit";
 import * as lshape_room_json from "@pazl/rooms/Lshape.json";
 import { STORAGE_KEY } from "@pazl/main/core/constants.js";
 import { cornerTolerance } from "@pazl/main/core/configuration.js";
@@ -211,6 +213,16 @@ BlueprintInterface.init = () => {
     BlueprintInterface.blueprint3d.floorplanningHelper;
   BlueprintInterface.roomplanningHelper =
     BlueprintInterface.blueprint3d.roomplanningHelper;
+  // The unit chosen last time (mm until one is chosen). Only one the Units
+  // field still offers: anything else would leave that field blank.
+  try {
+    const savedUnit = localStorage.getItem(UNIT_STORAGE_KEY);
+    if (savedUnit === "m" || savedUnit === "feetAndInch") {
+      BlueprintInterface.configurationHelper.unit = savedUnit;
+    }
+  } catch (e) {
+    /* mm it is */
+  }
 
   handleItemPositionChanged(async (evt) => {
     console.debug(
@@ -344,8 +356,31 @@ BlueprintInterface.setSelectedRoom2D = (room) => {
   BlueprintInterface.floorplanningHelper.__selectedRoom = room;
 };
 
+/**
+ * Change the display unit, everywhere, at once. Sizes stay stored in cm, so
+ * nothing moves: only what is shown changes. The floor plan draws its labels
+ * into the scene, so it has to be told to draw again; panels hear UNIT_CHANGED.
+ */
 BlueprintInterface.setUnit = (unit) => {
   BlueprintInterface.blueprint3d.configurationHelper.unit = unit;
+  try {
+    localStorage.setItem(UNIT_STORAGE_KEY, unit);
+  } catch (e) {
+    /* still applies for this visit */
+  }
+  try {
+    const v2d = BlueprintInterface.blueprint3d.floorplanner;
+    v2d?.__redrawFloorplan?.();
+    const rp = BlueprintInterface.blueprint3d.roomplanner;
+    if (rp) rp.needsUpdate = true;
+  } catch (e) {
+    console.error("setUnit: redraw failed", e);
+  }
+  try {
+    window.dispatchEvent(new CustomEvent("pazl-unit-changed", { detail: { unit } }));
+  } catch (e) {
+    /* no window (tests) */
+  }
 };
 
 BlueprintInterface.setIsMultiSelectEnabled = (flag) => {

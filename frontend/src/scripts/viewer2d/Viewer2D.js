@@ -114,6 +114,9 @@ class TemporaryWall extends Graphics {
         ) {
           this.__textfield.text = Dimensioning.cmToMeasureUnit(vect.length(), 1, "m");
         }
+        if (Configuration.getData().dimUnit === "cm") {
+          this.__textfield.text = Dimensioning.cmToMeasureUnit(vect.length(), 1, "cm");
+        }
         if (Configuration.getData().dimUnit === "feetAndInch") {
           this.__textfield.text = Dimensioning.cmToMeasureUnit(
             vect.length(),

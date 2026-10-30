@@ -119,9 +119,16 @@ export class Dimensioning {
 
     static cmToMeasureUnit(cm, power = 1,unit) {
         switch (unit) {
-            case dimFeetAndInch: // dimFeetAndInch returns only the feet
-                var allInFeet = cm * Math.pow(0.032808416666669996953, power);
-                return parseFloat(allInFeet).toFixed(2)+' ft';
+            case dimFeetAndInch: {
+                // A length reads as feet and inches (3'6"); an area, which
+                // comes through here too, stays decimal for its "ft²".
+                if (power !== 1) {
+                    return parseFloat(cm * Math.pow(0.032808416666669996953, power)).toFixed(2)+' ft';
+                }
+                var totalInches = Math.round(cm / 2.54);
+                var feet = Math.floor(totalInches / 12);
+                return feet + "'" + (totalInches - feet * 12) + '"';
+            }
             case dimInch:
                 var inches = Math.round(decimals * (cm * Math.pow(0.393700, power))) / decimals;
                 return inches + "in";
@@ -129,7 +136,7 @@ export class Dimensioning {
                 var mm = Math.round(decimals * (cm * Math.pow(10, power))) / decimals;
                 return mm + "mm";
             case dimCentiMeter:
-                return Math.round(decimals * cm) / decimals;
+                return Math.round(decimals * cm) / decimals + "cm";
             case dimMeter:
             default:
                 var m = Math.round(decimals * (cm * Math.pow(0.01, power))) / decimals;

@@ -1,8 +1,70 @@
 import BlueprintInterface from "@pazl/blueprint-interface";
 import { Dimensioning } from "@pazl/main/core/dimensioning.js";
-import { dimMeter, dimCentiMeter, dimMilliMeter } from "@pazl/main/core/constants.js";
+import { useEffect, useState } from "react";
+import { dimMeter, dimCentiMeter, dimMilliMeter, dimFeetAndInch } from "@pazl/main/core/constants.js";
 
 export const NINTY_DEGREE_ROTATION_UNIT = 1.57;
+
+/** Announced by BlueprintInterface.setUnit, for panels showing sizes. */
+export const UNIT_CHANGED = "pazl-unit-changed";
+
+/** The display unit, kept current: a component using this redraws when it changes. */
+export function useDisplayUnit() {
+  const [unit, setUnit] = useState(() => BlueprintInterface.getUnit());
+  useEffect(() => {
+    const onChange = () => setUnit(BlueprintInterface.getUnit());
+    onChange();
+    window.addEventListener(UNIT_CHANGED, onChange);
+    return () => window.removeEventListener(UNIT_CHANGED, onChange);
+  }, []);
+  return unit;
+}
+
+export function unitSuffix(unit = BlueprintInterface.getUnit()) {
+  if (unit === dimFeetAndInch) return "ft";
+  if (unit === dimCentiMeter) return "cm";
+  if (unit === dimMeter) return "m";
+  if (unit === "inch") return "in";
+  return "mm";
+}
+
+/**
+ * A size held in mm (records, panels), as text in the display unit, without the
+ * suffix. Feet read as feet and inches, like the floor plan: 3'6".
+ */
+export function mmToDisplayText(mm, unit = BlueprintInterface.getUnit()) {
+  const n = Number(mm) || 0;
+  if (unit === dimFeetAndInch) {
+    const totalIn = Math.round(Math.abs(n) / 25.4);
+    const feet = Math.floor(totalIn / 12);
+    return `${n < 0 && totalIn ? "-" : ""}${feet}'${totalIn - feet * 12}"`;
+  }
+  if (unit === dimCentiMeter) return String(Math.round(n) / 10);
+  if (unit === dimMeter) return String(Math.round(n) / 1000);
+  if (unit === "inch") return String(Math.round((n / 25.4) * 100) / 100);
+  return String(Math.round(n));
+}
+
+/**
+ * Typed text in the display unit, in mm; null if it is not a length. Feet take
+ * 3.5 · 3' · 3'6 · 3'6" · 3 6. Negatives are for positions, which can be.
+ */
+export function displayTextToMm(text, unit = BlueprintInterface.getUnit()) {
+  const t = String(text ?? "").trim().replace(",", ".");
+  if (!t) return null;
+  if (unit === dimFeetAndInch) {
+    const m = t.match(/^(-?)(\d*\.?\d+)\s*(?:'|ft)?\s*(?:(\d*\.?\d+)\s*(?:"|in)?)?$/i);
+    if (!m) return null;
+    const mm = Number(m[2]) * 304.8 + (m[3] ? Number(m[3]) * 25.4 : 0);
+    return m[1] ? -mm : mm;
+  }
+  const n = Number(t);
+  if (!Number.isFinite(n)) return null;
+  if (unit === dimCentiMeter) return n * 10;
+  if (unit === dimMeter) return n * 1000;
+  if (unit === "inch") return n * 25.4;
+  return n;
+}
 
 function dimUnitWallLabel(wallSize) {
   console.debug("INFO: input wallSize value in raw pixi scale ", wallSize);

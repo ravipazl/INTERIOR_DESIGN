@@ -1,6 +1,7 @@
 import {
   Blending,
   Box3,
+  Matrix4,
   Vector3,
   Raycaster,
   Vector2,
@@ -259,15 +260,7 @@ function handleAddItemsToScene(
           let fitScaleVec = null; // per-axis [x,y,z] engine scale ÷ 100
           let fitInnerTurn = false; // needs a 90° Y turn (width on Z)
           const slot = currentUnitItem.__slot;
-          if (
-            slot &&
-            Number(slot.w) > 0 &&
-            Number(slot.h) > 0 &&
-            Number(slot.d) > 0 &&
-            size.x > 0 &&
-            size.y > 0 &&
-            size.z > 0
-          ) {
+          if (slot && (size.x > 0 || size.z > 0)) {
             // Target sizes in cm (engine units).
             const targetHcm = Number(slot.h) / 10;
             const targetWcm = Number(slot.w) / 10;
@@ -288,7 +281,13 @@ function handleAddItemsToScene(
             // ratio picks the right axis whatever the proportions. The old
             // measurement-only guess stays as the fallback for a model with no
             // declared dimensions.
-            let xIsWidth = size.x >= size.z;
+            //
+            // `keepAxes` (a floor or ceiling item being swapped): X is the width,
+            // no question asked. Those items take no inner turn (addItemScene
+            // does not pass one), so width on Z would come out with the width and
+            // depth exchanged — and several carpets share declared dimensions
+            // that are not their own, which would send this test the wrong way.
+            let xIsWidth = slot.keepAxes ? true : size.x >= size.z;
             const decDims = Array.isArray(currentUnitItem.dimensions)
               ? currentUnitItem.dimensions
               : null;
@@ -296,7 +295,10 @@ function handleAddItemsToScene(
               decDims &&
               decDims.length >= 3 &&
               Number(decDims[1]) > 0 &&
-              Number(decDims[2]) > 0
+              Number(decDims[2]) > 0 &&
+              size.x > 0 &&
+              size.z > 0 &&
+              !slot.keepAxes
             ) {
               const declaredRatio = Number(decDims[1]) / Number(decDims[2]);
               const measuredRatio = size.x / size.z;
@@ -306,10 +308,21 @@ function handleAddItemsToScene(
             }
             const nativeWidth = xIsWidth ? size.x : size.z;
             const nativeDepth = xIsWidth ? size.z : size.x;
-            const sHeight = targetHcm / size.y;
-            const sWidth = targetWcm / nativeWidth;
-            const sDepth = targetDcm / nativeDepth;
-            if (sHeight > 0 && sWidth > 0 && sDepth > 0) {
+            // A FLAT SIDE CANNOT BE STRETCHED TO A SIZE. A carpet's file can be
+            // 0 mm tall, and so can the carpet it replaces; a side like that
+            // takes the average stretch of the other two, so the item stays as
+            // thin as it was made. At least two sides must really fit.
+            const fit = (target, native) =>
+              target > 0 && native > 0 ? target / native : 0;
+            let sHeight = fit(targetHcm, size.y);
+            let sWidth = fit(targetWcm, nativeWidth);
+            let sDepth = fit(targetDcm, nativeDepth);
+            const fitted = [sHeight, sWidth, sDepth].filter((s) => s > 0);
+            if (fitted.length >= 2) {
+              const usual = fitted.reduce((a, b) => a + b, 0) / fitted.length;
+              sHeight = sHeight || usual;
+              sWidth = sWidth || usual;
+              sDepth = sDepth || usual;
               // Map width/depth scale back onto the real X/Z axes.
               const sceneScaleX = xIsWidth ? sWidth : sDepth;
               const sceneScaleZ = xIsWidth ? sDepth : sWidth;
@@ -512,6 +525,11 @@ function handleAddItemsToScene(
               topCm = TV_BOTTOM_MM / 10 + unitHeightCm;
             }
             if (topCm > 0) metadata.hangTopCm = topCm;
+          }
+          // A window swapped in keeps the height of the one it replaces (see
+          // handleSwapSelectedObject).
+          if (slot && Number(currentUnitItem.__hangTopCm) > 0) {
+            metadata.hangTopCm = Number(currentUnitItem.__hangTopCm);
           }
           console.debug(
             "viewer3d-state-interface.js ~ handleAddItemsToScene ~ metadata",
@@ -765,7 +783,41 @@ function handleDeleteSelectedModel() {
  * "Swap selected object". Purely ADDITIVE: it reuses removeFurnishedModel +
  * handleAddItemsToScene and changes no existing flow.
  */
-async function handleSwapSelectedObject(newModel) {
+/**
+ * The size (cm) of a drawn object measured in its WALL's frame: w along the
+ * wall, h up, d out of it. Each mesh's box is carried into that frame, so a
+ * wall at any angle, and a model turned inside its item, both measure right.
+ * Null when there is nothing drawn to measure.
+ */
+function measureAlongWall(obj, normal) {
+  if (!obj || !normal) return null;
+  const n = new Vector3(normal.x, 0, normal.z);
+  if (n.lengthSq() < 1e-9) return null;
+  n.normalize();
+  const up = new Vector3(0, 1, 0);
+  const along = new Vector3().crossVectors(up, n).normalize();
+  // World → wall frame: the transpose of the frame's rotation.
+  const toWall = new Matrix4().makeBasis(along, up, n).transpose();
+  const box = new Box3();
+  const part = new Box3();
+  obj.updateWorldMatrix(true, true);
+  obj.traverse((o) => {
+    if (!o.isMesh || !o.geometry || o.visible === false) return;
+    if (!o.geometry.boundingBox) o.geometry.computeBoundingBox();
+    part
+      .copy(o.geometry.boundingBox)
+      .applyMatrix4(new Matrix4().multiplyMatrices(toWall, o.matrixWorld));
+    box.union(part);
+  });
+  if (box.isEmpty()) return null;
+  const s = box.getSize(new Vector3());
+  return { w: s.x, h: s.y, d: s.z };
+}
+
+async function handleSwapSelectedObject(newModel, opts = {}) {
+  // A window is swapped like a door, except that it hangs in the wall at its
+  // own height instead of standing on the floor.
+  const isWindowSwap = opts && opts.kind === "window";
   try {
     const sel =
       BlueprintInterface.selectedModels &&
@@ -834,6 +886,20 @@ async function handleSwapSelectedObject(newModel) {
       );
       oldDims = [fh * 10, fw * 10, (t || 4) * 10]; // cm -> mm, [H, W, D]
     }
+    // A catalogue door or window: measure what the 3D view DRAWS, along its
+    // wall. Its record's [H, W, D] is the model's own X/Y/Z, which for a model
+    // turned a quarter inside its item (innerRotation) has the width and the
+    // depth the other way round — the width ALONG THE WALL is what the new one
+    // must fill.
+    if (!oldDims && wallEdge) {
+      const drawn = measureAlongWall(
+        sel.__loadedItem,
+        (item && item.__currentWallNormal) || wallEdge.normal
+      );
+      if (drawn && drawn.w > 0 && drawn.h > 0) {
+        oldDims = [drawn.h * 10, drawn.w * 10, drawn.d * 10].map((n) => Math.round(n));
+      }
+    }
     if (!oldDims) {
       try {
         const fm =
@@ -860,10 +926,38 @@ async function handleSwapSelectedObject(newModel) {
     // would otherwise fall to the floor or a random wall).
     const swapModel = { ...(newModel.model ? newModel.model : newModel) };
     if (wasWallDoor) {
-      swapModel.type = 7; // IN_WALL_FLOOR_UNIT
+      // A door stands on the floor in the wall; a window is in the wall, off it.
+      swapModel.type = isWindowSwap ? 3 : 7; // IN_WALL_UNIT : IN_WALL_FLOOR_UNIT
+    }
+    // THE NEW WINDOW KEEPS THE OLD ONE'S HEIGHT. Its middle goes where the old
+    // one's middle was (measured from what the 3D view drew, so it does not
+    // matter where the old window's own origin sits); the add flow hangs it by
+    // its top, so that is passed on as the top of a window of the old height.
+    if (isWindowSwap && wasWallDoor && oldDims) {
+      let centreY = null;
+      try {
+        const drawn = sel.__loadedItem || null;
+        if (drawn) {
+          const box = new Box3().setFromObject(drawn);
+          if (!box.isEmpty()) centreY = (box.min.y + box.max.y) / 2;
+        }
+      } catch (e) {
+        /* fall back to the item's own position */
+      }
+      if (centreY == null && oldPos) centreY = oldPos.y;
+      if (centreY != null && isFinite(centreY)) {
+        swapModel.__hangTopCm = centreY + Number(oldDims[0]) / 20; // + half the height, mm -> cm
+      }
     }
     if (oldDims) {
-      swapModel.dimensions = oldDims;
+      // The model's OWN declared dimensions stay on it: the fit below uses them
+      // to tell which way round the model is (is its width on X or on Z?).
+      // Overwriting them with the OLD door's numbers made it compare the new
+      // model's shape against the old door's — for DOOR+WINDOW (1350 × 150)
+      // against a 910 × 200 parametric door that tipped the wrong way, the door
+      // was turned side-on and saved 100 mm wide, and every later swap copied
+      // that. The opening's size travels in __slot instead.
+      //
       // FIT-TO-SLOT (Coohom method): tell the add flow the door's opening slot —
       // Width × Height × Depth(=wall thickness) in mm — so it stretches the new
       // model PER-AXIS (with axis detection) to fill the opening and sit flush in
@@ -1528,6 +1622,7 @@ export {
   handleModelSelect,
   handleDeleteSelectedModel,
   handleSwapSelectedObject,
+  measureAlongWall,
   handleRotateSelectedModel,
   handleLockSelectedModel,
   handleAddItem,

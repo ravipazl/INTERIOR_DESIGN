@@ -15,6 +15,7 @@ import {
 import { HISTORY_TITLES } from "@pazl/services/ProjectManager";
 import { ROTATION_MODES } from "@pazl/entities/FurnishedModel";
 import { WallItem } from "@pazl/main/items/wall_item.js";
+import { swapCategoryOf, OPEN_SWAP_EVENT } from "@pazl/helpers/swapCatalog";
 import "./itemToolbar3D.css";
 
 /**
@@ -230,8 +231,20 @@ const ItemToolbar3D: React.FC = () => {
   const [, setTick] = useState(0);
   const itemRef = useRef<any>(null);
   const frame = useRef<number | null>(null);
+  // SWAP: any item from a catalogue category (a window, an AC, a candle…) can
+  // be swapped for another model of it. The button opens the LEFT catalogue
+  // panel at that category, with "Swap" on its cards (helpers/swapCatalog).
+  // Worked out once per selection — the bar re-renders every frame while the
+  // camera moves.
+  const [swapCategory, setSwapCategory] = useState<{ id: string; name: string } | null>(
+    null
+  );
 
   const modelId = item?.itemModel?.__id || item?.__itemModel?.__id || null;
+
+  useEffect(() => {
+    setSwapCategory(item ? swapCategoryOf(item) : null);
+  }, [item]);
 
   // --- selection ----------------------------------------------------------
   useEffect(() => {
@@ -452,6 +465,18 @@ const ItemToolbar3D: React.FC = () => {
       save(HISTORY_TITLES.FLOOR_ITEM_UPDATED);
     }
   };
+  const onSwap = () => {
+    if (!swapCategory) return;
+    try {
+      window.dispatchEvent(
+        new CustomEvent(OPEN_SWAP_EVENT, {
+          detail: { itemId: modelId, categoryId: swapCategory.id, name: swapCategory.name },
+        })
+      );
+    } catch (e) {
+      console.error("ItemToolbar3D: could not open Swap", e);
+    }
+  };
 
   const Icon = ({
     icon,
@@ -518,6 +543,18 @@ const ItemToolbar3D: React.FC = () => {
             icon="flip_to_front"
             title={locked ? "Unlock to face the room" : "Face the room (R)"}
             onClick={onFaceRoom}
+            disabled={locked}
+          />
+        ) : null}
+        {swapCategory ? (
+          <Icon
+            icon="swap_horiz"
+            title={
+              locked
+                ? "Unlock to swap"
+                : `Swap for another ${swapCategory.name.toLowerCase()}`
+            }
+            onClick={onSwap}
             disabled={locked}
           />
         ) : null}
