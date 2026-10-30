@@ -2,6 +2,8 @@ import React, { useEffect, useState } from "react";
 import BlueprintInterface from "@pazl/blueprint-interface";
 import { TexturesService } from "@pazl/services/texturesService";
 import { swapModelsFor } from "@pazl/helpers/swapCatalog";
+import { mmToDisplayText, unitSuffix, useDisplayUnit } from "@pazl/utils/unitsUtils.js";
+import UnitLengthInput from "../MenuBar/UnitLengthInput";
 import { handleSwapSelectedObject } from "@pazl/viewer3d-state-interface";
 import { Finishing } from "@pazl/entities/Finishing";
 import { convertToTitleCase } from "@pazl/utils/genericFunctions";
@@ -59,6 +61,7 @@ const mmToCm = (key: string, v: number) => (isMmField(key) ? v / 10 : v);
 
 function DoorPropertiesModal({ doorClass, onClose }: DoorPropertiesModalProps) {
   const isDarkMode = localStorage.getItem("isDarkMode") === "true" || false;
+  const displayUnit = useDisplayUnit();
 
   const [params, setParams] = useState<{ [k: string]: any }>({});
   const [values, setValues] = useState<{ [k: string]: any }>({});
@@ -390,18 +393,25 @@ function DoorPropertiesModal({ doorClass, onClose }: DoorPropertiesModalProps) {
 
             return (
               <div className="py-1" key={key}>
-                <div className="wall-title">{label}</div>
+                <div className="wall-title">
+                  {String(label).replace("(mm)", `(${unitSuffix(displayUnit)})`)}
+                </div>
 
-                {p.type === "number" && (
-                  <input
-                    type="number"
-                    className="oh-input w-full h-8 pl-2 border border-[#ddd] focus:outline-none"
-                    value={cmToMm(key, values[key] ?? 0)}
-                    onChange={(e) =>
-                      applyValue(key, mmToCm(key, Number(e.target.value)))
-                    }
-                  />
-                )}
+                {p.type === "number" &&
+                  (isMmField(key) ? (
+                    <UnitLengthInput
+                      className="oh-input w-full h-8 pl-2 border border-[#ddd] focus:outline-none"
+                      valueMm={cmToMm(key, Number(values[key] ?? 0))}
+                      onCommit={(mm) => applyValue(key, mmToCm(key, mm))}
+                    />
+                  ) : (
+                    <input
+                      type="number"
+                      className="oh-input w-full h-8 pl-2 border border-[#ddd] focus:outline-none"
+                      value={values[key] ?? 0}
+                      onChange={(e) => applyValue(key, Number(e.target.value))}
+                    />
+                  ))}
 
                 {p.type === "range" && (
                   <div className="flex items-center gap-2">
@@ -418,7 +428,10 @@ function DoorPropertiesModal({ doorClass, onClose }: DoorPropertiesModalProps) {
                     />
                     <span className="text-xs w-10 text-right">
                       {isMmField(key)
-                        ? cmToMm(key, Number(values[key] ?? p.min)).toFixed(0)
+                        ? mmToDisplayText(
+                            cmToMm(key, Number(values[key] ?? p.min)),
+                            displayUnit
+                          )
                         : Number(values[key] ?? p.min).toFixed(2)}
                     </span>
                   </div>

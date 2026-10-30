@@ -23,6 +23,7 @@ import {
   dimMeter,
   dimMilliMeter,
 } from "@pazl/main/core/constants.js";
+import { useDisplayUnit } from "@pazl/utils/unitsUtils.js";
 import { EVENT_LOADED, EVENT_LOADING } from "@pazl/main/core/events";
 import { MENU_TABS } from ".";
 import templateList from "@pazl/utils/floorPlanTemplateList";
@@ -83,7 +84,7 @@ const FloorPlanMenu = ({
   // A selected door/window shown in the SAME unified panel as walls/corners.
   const [openingItem, setOpeningItem] = useState<any>(null);
   // Matches the engine's default (core/configuration.js) — millimetres.
-  const [unitMetric, setUnitMetric] = useState(dimMilliMeter);
+  const unitMetric = useDisplayUnit();
   const { setLoading } = useContext(LoaderContext);
   const [showLoader, setShowLoader] = useState(false);
   const [showClearConfirmModal, setShowClearConfirmModal] = useState(false);
@@ -109,13 +110,10 @@ const FloorPlanMenu = ({
     const v = String(value || "").toLowerCase();
     if (v === "m" || v === "meter" || v === "meters") {
       BlueprintInterface.setUnit(dimMeter);
-      setUnitMetric(dimMeter);
     } else if (v === "mm" || v === "millimeter" || v === "millimeters") {
       BlueprintInterface.setUnit(dimMilliMeter);
-      setUnitMetric(dimMilliMeter);
     } else {
       BlueprintInterface.setUnit(dimFeetAndInch);
-      setUnitMetric(dimFeetAndInch);
     }
     await BlueprintInterface.blueprint3d.floorplanner.__gridUnitChangedEvent({
       unit: value,

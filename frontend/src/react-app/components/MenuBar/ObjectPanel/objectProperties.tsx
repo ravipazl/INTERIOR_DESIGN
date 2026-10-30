@@ -4,6 +4,8 @@ import BlueprintInterface from "@pazl/blueprint-interface";
 import { EVENT_ITEM_SELECTED } from "@pazl/main/core/events";
 import { RenderService } from "../../../services/RenderService";
 import { ROTATION_MODES } from "@pazl/entities/FurnishedModel";
+import UnitLengthInput from "../UnitLengthInput";
+import { mmToDisplayText, unitSuffix, useDisplayUnit } from "@pazl/utils/unitsUtils.js";
 import { capitalizeText } from "@pazl/utils/genericFunctions";
 import { MODEL_TYPES } from "@pazl/entities/Model";
 import { WallItem } from "@pazl/main/items/wall_item.js";
@@ -38,6 +40,7 @@ function ObjectProperties({
   onHideObjectPanel,
   isMultiSelectMode,
 }: ObjectPropertiesProps) {
+  const displayUnit = useDisplayUnit();
   const [modelObject, setModelObject] = useState<any>(null);
   const [showCustomWidthInput, setShowCustomWidthInput] = useState(false);
   const [show2DDrawing, setShow2DDrawing] = useState(false);
@@ -813,7 +816,7 @@ function ObjectProperties({
                   <div className="flex flex-col max-w-sm mb-2">
                     <h6 className="text-xs font-semibold leading-tight text-primary dark:text-neutral-200">
                       Dimensions{" "}
-                      <span style={{ fontSize: "10px" }}>(in mm)</span>
+                      <span style={{ fontSize: "10px" }}>(in {unitSuffix(displayUnit)})</span>
                     </h6>
                     <div className="flex items-center justify-between">
                       <div className="relative flex w-full flex-wrap items-stretch">
@@ -846,48 +849,19 @@ function ObjectProperties({
                         {!WIDTH_PRESETS_ENABLED ||
                         showCustomWidthInput ||
                         !hasWidthPresets() ? (
-                          <input
-                            type="number"
+                          <UnitLengthInput
                             className="relative m-0 -mr-0.5 block w-[1px] min-w-0 flex-auto border-neutral-300 bg-[color:var(--pz-input-bg)] bg-clip-padding px-1 py-[0.25rem] text-xs text-center font-normal leading-[1.6] text-neutral-700 outline-none transition duration-200 ease-in-out focus:z-[3] focus:border-primary focus:text-neutral-700 focus:shadow-[inset_0_0_0_1px_rgb(59,113,202)] focus:outline-none dark:border-neutral-600 dark:text-neutral-200 dark:placeholder:text-neutral-200 dark:focus:border-primary"
                             id="widthFormControlInput"
                             placeholder="Width"
-                            value={
-                              modelObject.dimensions?.width
-                                ? Number(modelObject.dimensions.width).toFixed(
-                                    0
-                                  )
-                                : 0
-                            }
-                            /* onChange updates the displayed value only.
-                               The resize fires on blur / Enter — per-
-                               keystroke firing races the async engine
-                               update and corrupts the scale. */
-                            onChange={(e) => {
+                            valueMm={Number(modelObject.dimensions?.width) || 0}
+                            onCommit={(mm) => {
+                              if (mm < getCustomMinWidth() || mm > getCustomMaxWidth()) return;
+                              const v = mm.toFixed(0);
                               setModelObject({
                                 ...modelObject,
-                                dimensions: {
-                                  ...modelObject.dimensions,
-                                  width: e.target.value
-                                    ? Number(e.target.value).toFixed(0)
-                                    : 0,
-                                },
+                                dimensions: { ...modelObject.dimensions, width: v },
                               });
-                            }}
-                            onBlur={(e) => {
-                              const val = Number(e.target.value);
-                              if (
-                                e.target.value &&
-                                Number.isFinite(val) &&
-                                val >= getCustomMinWidth() &&
-                                val <= getCustomMaxWidth()
-                              ) {
-                                onWidthChange(val.toFixed(0));
-                              }
-                            }}
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter") {
-                                (e.target as HTMLInputElement).blur();
-                              }
+                              onWidthChange(v);
                             }}
                           />
                         ) : (
@@ -948,50 +922,18 @@ function ObjectProperties({
                         >
                           H
                         </button>
-                        <input
-                          type="number"
+                        <UnitLengthInput
                           className="relative m-0 -mr-0.5 block w-[1px] min-w-0 flex-auto border-neutral-300 bg-[color:var(--pz-input-bg)] bg-clip-padding px-1 py-[0.25rem] text-xs text-center font-normal leading-[1.6] text-neutral-700 outline-none transition duration-200 ease-in-out focus:z-[3] focus:border-primary focus:text-neutral-700 focus:shadow-[inset_0_0_0_1px_rgb(59,113,202)] focus:outline-none dark:border-neutral-600 dark:text-neutral-200 dark:placeholder:text-neutral-200 dark:focus:border-primary"
                           id="heightFormControlInput"
                           placeholder="Height"
-                          /* Height editable for all item types. The original
-                             rule locked H to wall units only (modular-
-                             furniture convention). Opened up so scraped-GLB
-                             catalog items with guessed dimensions can be
-                             corrected per placement. */
-                          disabled={false}
-                          value={
-                            modelObject.dimensions?.height
-                              ? Number(modelObject.dimensions.height).toFixed(0)
-                              : 0
-                          }
-                          /* onChange only updates the displayed value.
-                             The actual resize fires on blur / Enter — NOT
-                             per keystroke. Per-keystroke firing sent
-                             handleHeightChange(8) → (81) → (810) in rapid
-                             succession; each is async and races the
-                             engine's __initializeChildItem, producing
-                             garbage scale (the "sliver" bug). Blur fires
-                             exactly once with the final value. */
-                          onChange={(e) => {
+                          valueMm={Number(modelObject.dimensions?.height) || 0}
+                          onCommit={(mm) => {
+                            const v = mm.toFixed(0);
                             setModelObject({
                               ...modelObject,
-                              dimensions: {
-                                ...modelObject.dimensions,
-                                height: e.target.value
-                                  ? Number(e.target.value).toFixed(0)
-                                  : 0,
-                              },
+                              dimensions: { ...modelObject.dimensions, height: v },
                             });
-                          }}
-                          onBlur={(e) => {
-                            if (e.target.value) {
-                              onHeightChange(Number(e.target.value).toFixed(0));
-                            }
-                          }}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") {
-                              (e.target as HTMLInputElement).blur();
-                            }
+                            onHeightChange(v);
                           }}
                         />
                       </div>
@@ -1004,56 +946,33 @@ function ObjectProperties({
                         >
                           D
                         </button>
-                        <input
-                          type="number"
+                        <UnitLengthInput
                           className="relative m-0 -mr-0.5 block w-[1px] min-w-0 flex-auto border-neutral-300 bg-[color:var(--pz-input-bg)] bg-clip-padding px-1 py-[0.25rem] text-xs text-center font-normal leading-[1.6] text-neutral-700 outline-none transition duration-200 ease-in-out focus:z-[3] focus:border-primary focus:text-neutral-700 focus:shadow-[inset_0_0_0_1px_rgb(59,113,202)] focus:outline-none dark:border-neutral-600 dark:text-neutral-200 dark:placeholder:text-neutral-200 dark:focus:border-primary"
                           id="depthFormControlInput"
                           placeholder="Depth"
-                          /* Depth editable for all item types — see the
-                             Height field comment above for rationale. */
-                          value={
-                            modelObject.dimensions?.depth
-                              ? Number(modelObject.dimensions.depth).toFixed(0)
-                              : 0
-                          }
-                          /* Resize on blur / Enter only — see Height
-                             field above for why per-keystroke firing
-                             breaks. */
-                          onChange={(e) => {
+                          valueMm={Number(modelObject.dimensions?.depth) || 0}
+                          onCommit={(mm) => {
+                            const v = mm.toFixed(0);
                             setModelObject({
                               ...modelObject,
-                              dimensions: {
-                                ...modelObject.dimensions,
-                                depth: e.target.value
-                                  ? Number(e.target.value).toFixed(0)
-                                  : 0,
-                              },
+                              dimensions: { ...modelObject.dimensions, depth: v },
                             });
-                          }}
-                          onBlur={(e) => {
-                            if (e.target.value) {
-                              onDepthChange(Number(e.target.value).toFixed(0));
-                            }
-                          }}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") {
-                              (e.target as HTMLInputElement).blur();
-                            }
+                            onDepthChange(v);
                           }}
                         />
                       </div>
                     </div>
                     {showCustomWidthInput || !hasWidthPresets() ? (
                       <div className="text-xs font-normal text-primary dark:text-neutral-200">
-                        <span>min: {getCustomMinWidth()}</span>
-                        <span className="px-2">max: {getCustomMaxWidth()}</span>
+                        <span>min: {mmToDisplayText(getCustomMinWidth(), displayUnit)}</span>
+                        <span className="px-2">max: {mmToDisplayText(getCustomMaxWidth(), displayUnit)}</span>
                       </div>
                     ) : null}
                   </div>
                   <div className="flex flex-col max-w-sm mb-2">
                     <h6 className="text-xs font-semibold leading-tight text-primary dark:text-neutral-200">
                       Position{" "}
-                      <span style={{ fontSize: "10px" }}>(in mm)</span>
+                      <span style={{ fontSize: "10px" }}>(in {unitSuffix(displayUnit)})</span>
                     </h6>
                     <div className="flex items-center justify-between">
                       <div className="relative flex w-full flex-wrap items-stretch">
@@ -1065,31 +984,18 @@ function ObjectProperties({
                         >
                           X
                         </button>
-                        <input
-                          type="text"
+                        <UnitLengthInput
                           className="relative m-0 -mr-0.5 block w-[1px] min-w-0 flex-auto border-neutral-300 bg-[color:var(--pz-input-bg)] bg-clip-padding px-1 py-[0.25rem] text-xs text-center font-normal leading-[1.6] text-neutral-700 outline-none transition duration-200 ease-in-out focus:z-[3] focus:border-primary focus:text-neutral-700 focus:shadow-[inset_0_0_0_1px_rgb(59,113,202)] focus:outline-none dark:border-neutral-600 dark:text-neutral-200 dark:placeholder:text-neutral-200 dark:focus:border-primary"
                           aria-label="0"
                           aria-describedby="button-addon1"
-                          value={
-                            xToMm(modelObject.position[0])
-                          }
-                          onChange={(e) => {
-                            if (!Number.isNaN(Number(e.target.value)))
-                              setModelObject({
-                                ...modelObject,
-                                position: [
-                                  xFromMm(e.target.value),
-                                  modelObject?.position[1] ?? 0,
-                                  modelObject?.position[2] ?? 0,
-                                ],
-                              });
-                            if (!Number.isNaN(Number(e.target.value))) {
-                              onPositionChange("", [
-                                xFromMm(e.target.value),
-                                modelObject?.position[1] ?? 0,
-                                modelObject?.position[2] ?? 0,
-                              ]);
-                            }
+                          valueMm={Number(xToMm(modelObject.position[0]))}
+                          onCommit={(mm) => {
+                            const x = xFromMm(String(mm));
+                            setModelObject({
+                              ...modelObject,
+                              position: [x, modelObject?.position[1] ?? 0, modelObject?.position[2] ?? 0],
+                            });
+                            onPositionChange("", [x, modelObject?.position[1] ?? 0, modelObject?.position[2] ?? 0]);
                           }}
                         />
                       </div>
@@ -1108,8 +1014,7 @@ function ObjectProperties({
                             to the floor (disabled). A wall-mounted item's Y is
                             the height of its TOP, a below-counter or tall
                             unit's its BOTTOM (yToMm / yFromMm above). */}
-                        <input
-                          type="text"
+                        <UnitLengthInput
                           className="relative m-0 -mr-0.5 block w-[1px] min-w-0 flex-auto border-neutral-300 bg-[color:var(--pz-input-bg)] bg-clip-padding px-1 py-[0.25rem] text-xs text-center font-normal leading-[1.6] text-neutral-700 outline-none transition duration-200 ease-in-out focus:z-[3] focus:border-primary focus:text-neutral-700 focus:shadow-[inset_0_0_0_1px_rgb(59,113,202)] focus:outline-none dark:border-neutral-600 dark:text-neutral-200 dark:placeholder:text-neutral-200 dark:focus:border-primary"
                           aria-label="0"
                           aria-describedby="button-addon1"
@@ -1124,24 +1029,14 @@ function ObjectProperties({
                             placedType() === MODEL_TYPES.FLOOR_UNIT ||
                             placedType() === MODEL_TYPES.IN_WALL_FLOOR_UNIT
                           }
-                          value={yToMm(modelObject.position[1])}
-                          onChange={(e) => {
-                            if (!Number.isNaN(Number(e.target.value)))
-                              setModelObject({
-                                ...modelObject,
-                                position: [
-                                  modelObject.position[0] ?? 0,
-                                  yFromMm(e.target.value),
-                                  modelObject.position[2] ?? 0,
-                                ],
-                              });
-                            if (!Number.isNaN(Number(e.target.value))) {
-                              onPositionChange("", [
-                                modelObject.position[0] ?? 0,
-                                yFromMm(e.target.value),
-                                modelObject.position[2] ?? 0,
-                              ]);
-                            }
+                          valueMm={Number(yToMm(modelObject.position[1]))}
+                          onCommit={(mm) => {
+                            const y = yFromMm(String(mm));
+                            setModelObject({
+                              ...modelObject,
+                              position: [modelObject.position[0] ?? 0, y, modelObject.position[2] ?? 0],
+                            });
+                            onPositionChange("", [modelObject.position[0] ?? 0, y, modelObject.position[2] ?? 0]);
                           }}
                         />
                       </div>
@@ -1154,31 +1049,18 @@ function ObjectProperties({
                         >
                           Z
                         </button>
-                        <input
-                          type="text"
+                        <UnitLengthInput
                           className="relative m-0 -mr-0.5 block w-[1px] min-w-0 flex-auto border-neutral-300 bg-[color:var(--pz-input-bg)] bg-clip-padding px-1 py-[0.25rem] text-xs text-center font-normal leading-[1.6] text-neutral-700 outline-none transition duration-200 ease-in-out focus:z-[3] focus:border-primary focus:text-neutral-700 focus:shadow-[inset_0_0_0_1px_rgb(59,113,202)] focus:outline-none dark:border-neutral-600 dark:text-neutral-200 dark:placeholder:text-neutral-200 dark:focus:border-primary"
                           aria-label="0"
                           aria-describedby="button-addon1"
-                          value={
-                            zToMm(modelObject.position[2])
-                          }
-                          onChange={(e) => {
-                            if (!Number.isNaN(Number(e.target.value)))
-                              setModelObject({
-                                ...modelObject,
-                                position: [
-                                  modelObject.position[0] ?? 0,
-                                  modelObject.position[1] ?? 0,
-                                  zFromMm(e.target.value),
-                                ],
-                              });
-                            if (!Number.isNaN(Number(e.target.value))) {
-                              onPositionChange("", [
-                                modelObject.position[0] ?? 0,
-                                modelObject.position[1] ?? 0,
-                                zFromMm(e.target.value),
-                              ]);
-                            }
+                          valueMm={Number(zToMm(modelObject.position[2]))}
+                          onCommit={(mm) => {
+                            const z = zFromMm(String(mm));
+                            setModelObject({
+                              ...modelObject,
+                              position: [modelObject.position[0] ?? 0, modelObject.position[1] ?? 0, z],
+                            });
+                            onPositionChange("", [modelObject.position[0] ?? 0, modelObject.position[1] ?? 0, z]);
                           }}
                         />
                       </div>
@@ -1644,7 +1526,7 @@ function ObjectProperties({
                             {/* Height above worktop */}
                             <div>
                               <label className="text-[11px] text-neutral-600 dark:text-neutral-300">
-                                Height above worktop: {bsHeight} mm
+                                Height above worktop: {mmToDisplayText(bsHeight, displayUnit)} {unitSuffix(displayUnit)}
                               </label>
                               <input
                                 type="range"

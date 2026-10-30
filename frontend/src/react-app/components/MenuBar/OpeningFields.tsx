@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import BlueprintInterface from "@pazl/blueprint-interface.js";
+import { useDisplayUnit } from "@pazl/utils/unitsUtils.js";
 import { Dimensioning } from "@pazl/main/core/dimensioning.js";
 import {
   Configuration,
@@ -38,6 +39,7 @@ const OpeningFields: React.FC<{ item: any; onClose: () => void }> = ({
   item,
   onClose,
 }) => {
+  const displayUnit = useDisplayUnit();
   const dc = item?.parametricClass;
   const isWindow =
     !!(dc && (dc.__windowType !== undefined || dc.__name === "Window")) ||
@@ -61,7 +63,7 @@ const OpeningFields: React.FC<{ item: any; onClose: () => void }> = ({
       /* ignore */
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [item]);
+  }, [item, displayUnit]);
 
   const redraw = () => {
     try {

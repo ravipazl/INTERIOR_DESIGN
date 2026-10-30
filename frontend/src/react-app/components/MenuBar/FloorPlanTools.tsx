@@ -8,6 +8,7 @@ import {
   dimMeter,
   dimMilliMeter,
 } from "@pazl/main/core/constants.js";
+import { useDisplayUnit } from "@pazl/utils/unitsUtils.js";
 import FloorPlanAiImport from "./FloorPlanAiImport";
 import FloorPlanStandardImport from "./FloorPlanImport/FloorPlanStandardImport";
 import SaveTemplateButton from "./SaveTemplateButton";
@@ -198,13 +199,10 @@ const FloorPlanTools: React.FC = () => {
   // "mm" to match the engine's default (core/configuration.js). If this said
   // "ft" while the engine measured in mm, the dropdown would claim feet over a
   // plan labelled in millimetres until someone touched it.
-  const [unit, setUnit] = useState<string>("mm");
+  const unit = useDisplayUnit();
   const changeUnit = (v: string) => {
-    setUnit(v);
     try {
-      BlueprintInterface.setUnit(
-        v === "mm" ? dimMilliMeter : v === "m" ? dimMeter : dimFeetAndInch
-      );
+      BlueprintInterface.setUnit(v);
     } catch (e) {
       console.error("FloorPlanTools: set unit failed", e);
     }
@@ -384,9 +382,9 @@ const FloorPlanTools: React.FC = () => {
             onChange={(e) => changeUnit(e.target.value)}
             className="w-full rounded-lg border border-[color:var(--pz-panel-border)] bg-[color:var(--pz-panel-surface)] text-[color:var(--pz-text)] text-[12px] px-2 py-1.5"
           >
-            <option value="ft">Feet &amp; inches (ft)</option>
-            <option value="mm">Millimetres (mm)</option>
-            <option value="m">Metres (m)</option>
+            <option value={dimMilliMeter}>Millimetres (mm)</option>
+            <option value={dimMeter}>Metres (m)</option>
+            <option value={dimFeetAndInch}>Feet &amp; inches (ft)</option>
           </select>
         </label>
       </PanelSection>
