@@ -92,6 +92,8 @@ export interface roomPanelModalProps {
   selectMode?: boolean;
   selected?: boolean;
   onToggleSelect?: () => void;
+  /** Swapping an item: the button reads "Swap" and the card can't be dragged in. */
+  swapping?: boolean;
 }
 
 export interface roomPanelModalCardProps {

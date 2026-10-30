@@ -1,4 +1,5 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import { OPEN_SWAP_EVENT } from "@pazl/helpers/swapCatalog";
 import "./index.css";
 import { convertToTitleCase } from "@pazl/utils/genericFunctions";
 import { Model } from "@pazl/entities/Model";
@@ -111,6 +112,35 @@ const FurnishMenu = ({
   // requiring a click on Explore first was a toll on every visit.
   const [showRoomPanel, setShowRoomPanel] = useState(true);
   const [showObjectPanel, setShowObjectPanel] = useState(false);
+  // SWAP from the 3D item toolbar: the LEFT catalogue panel opens at the
+  // selected item's category, and its cards read "Swap" — picking one replaces
+  // the selected item in place (helpers/swapItem). Ends with the swap, with
+  // Cancel, or when the selection changes.
+  const [swapTarget, setSwapTarget] = useState<{
+    itemId: string;
+    categoryId: string;
+    name: string;
+    seq: number;
+  } | null>(null);
+  const endSwap = useCallback(() => setSwapTarget(null), []);
+  useEffect(() => {
+    const onOpenSwap = (evt: any) => {
+      const d = evt?.detail || {};
+      if (!d.categoryId) return;
+      setSwapTarget({
+        itemId: String(d.itemId || ""),
+        categoryId: String(d.categoryId),
+        name: String(d.name || "item"),
+        seq: Date.now(),
+      });
+      setShowRoomPanel(true);
+      setIsOnlyWallItems(false);
+      setIsOnlyFloorItems(false);
+    };
+    window.addEventListener(OPEN_SWAP_EVENT, onOpenSwap);
+    return () => window.removeEventListener(OPEN_SWAP_EVENT, onOpenSwap);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [showWallPropertiesModal, setShowWallPropertiesModal] = useState(false);
   // The wall side open in the Wall Editor (a HalfEdge), or null when closed.
   // Held here rather than read from the 3D selection each time: the page sits
@@ -335,6 +365,10 @@ const FurnishMenu = ({
         /* PERF-REMOVED */ // console.debug("furnishedMenu.tsx ~ handleSelectedModel ~ event", evt);
         if (evt?.itemModel?.__id) {
           const itemModel = evt.itemModel;
+          // A swap belongs to the item it was started on.
+          setSwapTarget((t) =>
+            t && t.itemId !== String(itemModel.__id) ? null : t
+          );
           const isParametricDoor =
             itemModel.isParametric && itemModel.parametricClass;
           if (isParametricDoor) {
@@ -382,6 +416,8 @@ const FurnishMenu = ({
         setSelectedDoorClass(null);
         setIsOnlyWallItems(false);
         setIsOnlyFloorItems(false);
+        // Nothing selected, nothing to swap.
+        setSwapTarget(null);
         //setMode(ACTION_MODES.NONE);
         setShowUndoPanel(false);
         // Room state is deliberately NOT cleared here.
@@ -1027,12 +1063,15 @@ const FurnishMenu = ({
             setShowRoomPanel(false);
             setIsOnlyWallItems(false);
             setIsOnlyFloorItems(false);
+            setSwapTarget(null);
           }}
           onHideObjectPanel={() => {
             setShowObjectPanel(true);
           }}
           isOnlyWallItems={isOnlyWallItems}
           isOnlyFloorItems={isOnlyFloorItems}
+          swapTarget={swapTarget}
+          onSwapEnd={endSwap}
           // Moved out of the toolbar into the panel's "Add model" section.
           // The modals stay here; only the trigger moved.
           onUpload={() => setShowToolbarUploadModal(true)}

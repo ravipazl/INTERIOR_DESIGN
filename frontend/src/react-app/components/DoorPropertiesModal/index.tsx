@@ -1,8 +1,7 @@
 import React, { useEffect, useState } from "react";
 import BlueprintInterface from "@pazl/blueprint-interface";
 import { TexturesService } from "@pazl/services/texturesService";
-import { ModelsService } from "@pazl/services/ModelsService";
-import { CategoriesService } from "@pazl/services/categoriesService";
+import { swapModelsFor } from "@pazl/helpers/swapCatalog";
 import { handleSwapSelectedObject } from "@pazl/viewer3d-state-interface";
 import { Finishing } from "@pazl/entities/Finishing";
 import { convertToTitleCase } from "@pazl/utils/genericFunctions";
@@ -82,6 +81,8 @@ function DoorPropertiesModal({ doorClass, onClose }: DoorPropertiesModalProps) {
   const [swapModels, setSwapModels] = useState<any[]>([]);
   const [swapLoading, setSwapLoading] = useState(false);
   const [swapError, setSwapError] = useState<string | null>(null);
+  // Which kind ("door" / "window") the loaded list is for.
+  const [swapKind, setSwapKind] = useState<string | null>(null);
 
   useEffect(() => {
     if (!doorClass) return;
@@ -208,55 +209,47 @@ function DoorPropertiesModal({ doorClass, onClose }: DoorPropertiesModalProps) {
     persistChange();
   };
 
-  // Load the DOOR-category catalog models for the Swap grid. Dynamic: it reads
-  // the same cached catalog the left panel uses, finds the "Door" category, and
-  // lists every model in it (and its sub-categories) — so new doors appear
-  // automatically, nothing is hardcoded.
-  const loadSwapModels = async () => {
+  // Doors and windows share this panel — and each swaps only for its own kind.
+  const isWindow =
+    (doorClass as any)?.__windowType !== undefined ||
+    (doorClass as any)?.__name === "Window";
+  const kindWord = isWindow ? "window" : "door";
+
+  // Load the catalog models for the Swap grid (see helpers/swapCatalog — the
+  // 3D toolbar's Swap button offers the same list).
+  const loadSwapModels = () => {
     setSwapLoading(true);
     setSwapError(null);
     try {
-      const categories =
-        (await CategoriesService.getCategoriesFromLocalStorage()) || [];
-      const allModels =
-        (await ModelsService.getModelsFromLocalStorage()) || [];
-      // The selected door's own category if it has one; otherwise the catalog
-      // category literally named "Door".
-      const doorCats = categories.filter((c: any) =>
-        String(c?.name || "")
-          .toLowerCase()
-          .includes("door")
-      );
-      const doorCatIds = new Set(doorCats.map((c: any) => c._id));
-      const models = allModels.filter(
-        (m: any) =>
-          doorCatIds.has(m.categoryId) ||
-          doorCats.some((c: any) => c._id === m.parentCategoryId)
-      );
+      const models = swapModelsFor(kindWord);
       setSwapModels(models);
       if (!models.length) {
-        setSwapError("No door models found in the catalog.");
+        setSwapError(`No ${kindWord} models found in the catalog.`);
       }
     } catch (e) {
       console.error("DoorPropertiesModal loadSwapModels failed", e);
-      setSwapError("Could not load door models.");
+      setSwapModels([]);
+      setSwapError(`Could not load ${kindWord} models.`);
     } finally {
       setSwapLoading(false);
     }
   };
 
-  // Fetch the swap models the first time the Swap tab is opened.
+  // Load the swap models when the Swap tab is opened — and again when the
+  // selection changes kind (a window picked after a door needs windows).
   useEffect(() => {
-    if (activeTab === "swap" && !swapModels.length && !swapLoading) {
+    if (activeTab === "swap" && swapKind !== kindWord) {
+      setSwapKind(kindWord);
       loadSwapModels();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab]);
+  }, [activeTab, kindWord]);
 
-  // Replace the currently selected door with the chosen catalog model, in place.
+  // Replace the currently selected door or window with the chosen catalog
+  // model, in place.
   const handleSwapClick = async (model: any) => {
     try {
-      await handleSwapSelectedObject(model);
+      await handleSwapSelectedObject(model, { kind: kindWord });
       // The old door (and this panel's door) is gone — close the now-stale panel.
       onClose();
     } catch (e) {
@@ -267,9 +260,6 @@ function DoorPropertiesModal({ doorClass, onClose }: DoorPropertiesModalProps) {
   if (!doorClass) return null;
 
   // Doors and windows share this panel — show the right title for each.
-  const isWindow =
-    (doorClass as any)?.__windowType !== undefined ||
-    (doorClass as any)?.__name === "Window";
   const panelTitle = isWindow ? "Window Properties" : "Door Properties";
 
   // Read the surface's REAL current colour straight from the door/window engine
@@ -459,7 +449,9 @@ function DoorPropertiesModal({ doorClass, onClose }: DoorPropertiesModalProps) {
             style={{ maxHeight: "60vh", overflowY: "auto" }}
           >
             <div className="text-xs text-[#666] mb-2">
-              Select a different door — it replaces this one in the same place.
+              {isWindow
+                ? "Select a different window — it replaces this one in the same place, at the same size and height."
+                : "Select a different door — it replaces this one in the same place."}
             </div>
             {swapLoading && (
               <div className="text-sm text-[#999] py-4 text-center">

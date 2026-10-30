@@ -16,6 +16,7 @@ import UploadModelModal from "@pazl/components/UploadModelModal";
 import AddCategoryModal from "@pazl/components/AddCategoryModal";
 import EditCategoryModal from "@pazl/components/EditCategoryModal";
 import useDockTop from "@pazl/react-app/hooks/useDockTop";
+import { swapSelectedItem } from "@pazl/helpers/swapItem";
 
 interface RoomPanelTypeProps {
   onHideRoomPanel: () => void;
@@ -30,6 +31,10 @@ interface RoomPanelTypeProps {
   onSearchModels?: () => void;
   /** Auto-furnish: fill the selected room from a room template. */
   onAutoFurnish?: () => void;
+  /** SWAP (from the 3D item toolbar): open at this category, and the cards'
+   *  "+ Add" becomes "Swap", replacing the selected item in place. */
+  swapTarget?: { itemId: string; categoryId: string; name: string; seq: number } | null;
+  onSwapEnd?: () => void;
 }
 
 // Placement-type pill tabs for the Explore panel. Each pill filters the
@@ -296,6 +301,8 @@ function RoomPanel({
   onGenerate,
   onSearchModels,
   onAutoFurnish,
+  swapTarget,
+  onSwapEnd,
 }: RoomPanelTypeProps) {
   const [treeData, setTreeData] = useState<TreeNode[]>([]);
   const [selectedTreeNode, setSelectedTreeNode] = useState({} as TreeNode);
@@ -369,6 +376,81 @@ function RoomPanel({
   useEffect(() => {
     getRoomPanelData();
   }, []);
+
+  // SWAP: open straight at the item's category — its branch unfolded in the
+  // tree, and its models in the grid beside it — once the tree is built.
+  //
+  // ONE CLICK, EVEN WITH THE PANEL CLOSED. Swap opens the panel, which then
+  // builds its tree from scratch: first the categories load, then treeData,
+  // then the tree's own nodes a render or two later. Looking the category up
+  // the moment treeData arrived found no node yet, so the panel opened bare and
+  // it took a second Swap to get to the category. It now keeps looking, for a
+  // few seconds, until the node exists.
+  const swapSeq = swapTarget?.seq;
+  useEffect(() => {
+    if (!swapTarget || !treeData.length) return;
+    let cancelled = false;
+    (async () => {
+      let node: any = null;
+      // The tree's LIVE handlers (the registry the rest of this panel uses):
+      // the hook's `handlers` captured here can still point at the tree as
+      // it was before its nodes were built.
+      const live = () =>
+        (treeHandlers as any)?.trees?.tree?.handlers || handlers;
+      // A category the tree does not list (a hidden one) will never appear —
+      // no point waiting for it.
+      const listed = roomPanelData.some(
+        (c: any) => String(c._id) === swapTarget.categoryId
+      );
+      for (let wait = 0; listed && wait < 40 && !cancelled; wait++) {
+        node = live().getNode?.(swapTarget.categoryId) || null;
+        if (node) break;
+        await new Promise((r) => setTimeout(r, 100));
+      }
+      if (cancelled) return;
+      if (!node) {
+        // NEVER LEAVE ANOTHER CATEGORY ON SCREEN. Without the category in the
+        // tree, the grid kept whatever was open last (Plant, under a "pick a
+        // door" note). Show the item's own models anyway, under its name.
+        const allModels = await ModelsService.getModelsFromLocalStorage();
+        if (cancelled) return;
+        setSelectedTreeNode({
+          data: { id: swapTarget.categoryId, name: swapTarget.name },
+          children: [],
+        } as any);
+        setShowRoomPanelModal(true);
+        setSearchQuery("");
+        setPage(1);
+        setSelectMode(false);
+        setSelectedIds(new Set());
+        setSelectedModels(
+          (allModels || []).filter((m: any) => m.categoryId === swapTarget.categoryId)
+        );
+        return;
+      }
+      setOpenSections((v) => (v.includes("category") ? v : [...v, "category"]));
+      // Unfold every level above it, so the tree shows where it is.
+      for (let up = node.getParent?.(); up; up = up.getParent?.()) {
+        up.setOpened?.(true);
+      }
+      live().setSelected?.(node, true);
+      setSelectedTreeNode(node);
+      setShowRoomPanelModal(true);
+      setSearchQuery("");
+      setPage(1);
+      setSelectMode(false);
+      setSelectedIds(new Set());
+      const allModels = await ModelsService.getModelsFromLocalStorage();
+      if (cancelled) return;
+      setSelectedModels(
+        (allModels || []).filter((m: any) => m.categoryId === swapTarget.categoryId)
+      );
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [swapSeq, treeData]);
 
   useEffect(() => {
     if (roomPanelData.length) {
@@ -804,7 +886,39 @@ function RoomPanel({
     }
   };
 
+  // SWAP: the card's button replaces the selected item instead of adding one —
+  // same place, size, placement and facing (helpers/swapItem).
+  const [swapBusy, setSwapBusy] = useState(false);
+  // Why the last swap did not happen. Swap mode stays on, so another model can
+  // be tried; a swap that quietly did nothing looked like a broken button.
+  const [swapError, setSwapError] = useState("");
+  useEffect(() => {
+    setSwapError("");
+  }, [swapTarget?.seq]);
+  const onSwapClick = async (model: Model) => {
+    if (swapBusy) return;
+    setSwapBusy(true);
+    setSwapError("");
+    let result: any = null;
+    try {
+      result = await swapSelectedItem(model);
+    } catch (e) {
+      console.error("roomPanel: swap failed", e);
+    }
+    setSwapBusy(false);
+    if (result?.ok) {
+      // Done: the list closes so the new item can be seen. The category tree
+      // stays, for carrying on browsing.
+      setShowRoomPanelModal(false);
+      onSwapEnd?.();
+    } else setSwapError(result?.reason || "The swap failed. Your item was not changed.");
+  };
+
   const onAddItemToSceneClick = (model: Model | FurnishedModel) => {
+    if (swapTarget) {
+      onSwapClick(model as Model);
+      return;
+    }
     console.debug("roomPanel.tsx ~ onAddItemToSceneClick ~ model", model);
     // From the "+ Add" button: a wall unit is hung on the wall at its height.
     handleAddItemsToScene(model, undefined, undefined, { hangWallUnit: true });
@@ -1292,6 +1406,7 @@ function RoomPanel({
                   src={require("../../../images/close.svg")}
                   onClick={() => {
                     setShowRoomPanelModal(false);
+                    if (swapTarget) onSwapEnd?.();
                   }}
                 />
               </div>
@@ -1342,6 +1457,30 @@ function RoomPanel({
                 </p>
               )}
             </div>
+            {/* SWAP: what the cards' button does right now, and the way out. */}
+            {swapTarget && (
+              <div className="flex items-start gap-2 px-3 py-2 bg-[color:var(--pz-accent-soft)] border-b border-neutral-200 dark:border-neutral-600">
+                <p
+                  className={`text-xs leading-snug ${
+                    swapError && !swapBusy
+                      ? "text-red-600"
+                      : "text-[color:var(--pz-accent)]"
+                  }`}
+                >
+                  {swapBusy
+                    ? "Swapping…"
+                    : swapError ||
+                      `Swapping: pick a ${swapTarget.name.toLowerCase()} to replace the selected one.`}
+                </p>
+                <button
+                  className="ml-auto shrink-0 text-xs underline text-[color:var(--pz-accent)] disabled:opacity-40"
+                  disabled={swapBusy}
+                  onClick={() => onSwapEnd?.()}
+                >
+                  Cancel
+                </button>
+              </div>
+            )}
             {/* Selection bar — only while picking models to delete. */}
             {selectMode && (
               /* flex-wrap, because this bar wants ~286px and the panel is 250:
@@ -1431,6 +1570,7 @@ function RoomPanel({
                           selectMode={selectMode}
                           selected={selectedIds.has(String(model._id))}
                           onToggleSelect={() => toggleSelected(String(model._id))}
+                          swapping={!!swapTarget}
                         />
                       );
                     })}
@@ -1493,6 +1633,7 @@ function RoomPanel({
                         selectMode={selectMode}
                         selected={selectedIds.has(String(model._id))}
                         onToggleSelect={() => toggleSelected(String(model._id))}
+                          swapping={!!swapTarget}
                       />
                     );
                   })}

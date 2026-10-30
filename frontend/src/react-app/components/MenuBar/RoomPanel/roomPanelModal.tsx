@@ -17,6 +17,7 @@ function RoomPanelModal({
   selectMode,
   selected,
   onToggleSelect,
+  swapping,
 }: roomPanelModalProps) {
   // In selection mode the whole card ticks; a model that can't be deleted
   // (the built-in catalogue) shows no tick box and stays quiet.
@@ -124,7 +125,8 @@ function RoomPanelModal({
       }}
       // Drag-to-place: pick up this model, then drop it onto the 3D canvas to
       // add it at that spot. The "+ Add" button (on hover) still works too.
-      draggable={!selectMode}
+      // Not while swapping: a drop would ADD the model, not swap it in.
+      draggable={!selectMode && !swapping}
       onDragStart={(e) => {
         setDraggedModel(modalData);
         try {
@@ -271,7 +273,7 @@ function RoomPanelModal({
               disabled={isDeleting}
               className="mt-0.5 rounded-lg px-3 py-0.5 text-[11px] bg-[color:var(--pz-accent)] text-white disabled:opacity-40"
             >
-              + Add
+              {swapping ? "Swap" : "+ Add"}
             </button>
           </div>
         )}
