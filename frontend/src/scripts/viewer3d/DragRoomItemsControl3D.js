@@ -476,6 +476,8 @@ export class DragRoomItemsControl3D extends EventDispatcher {
       // …and where the pointer holds the item is measured afresh.
       this.__grabOffset = null;
       this.__rememberSpots(this.__selected);
+      // …and which room it is in: a drag keeps it there.
+      this.__dragHomeRoom = this.__roomHolding(this.__selected.position);
 
       if (
         this.__raycaster.ray.intersectPlane(this.__plane, this.__intersection)
@@ -919,6 +921,18 @@ export class DragRoomItemsControl3D extends EventDispatcher {
     p.x += ux * dt + nx * dn;
     p.z += uz * dt + nz * dn;
     return p;
+  }
+
+  /** The room whose floor holds this point (x, z), or null when none does. */
+  __roomHolding(position) {
+    const fp = BlueprintInterface?.blueprint3d?.model?.__floorplan;
+    const rooms = (fp && (fp.rooms || (fp.getRooms && fp.getRooms()))) || [];
+    const at = new Vector2(position.x, position.z);
+    return (
+      rooms.find(
+        (r) => r && typeof r.pointInRoom === "function" && r.pointInRoom(at)
+      ) || null
+    );
   }
 
   /**
@@ -1455,17 +1469,15 @@ export class DragRoomItemsControl3D extends EventDispatcher {
             this.__lastInterectionPointObjet = intersectingPlane;
             // console.log(intersectingPlane,'intersectingPlane');
 
-            // Keep floor furniture INSIDE THE BUILDING but let it move FREELY to
-            // any floor spot / corner. We only stop the item from leaving the
-            // building outline — internal partition walls do NOT block dragging
-            // (so you can move furniture between compartments and into any
-            // corner). Overlapping a wall is prevented by the inside-only wall
-            // SNAP, not by a hard barrier. A move is blocked only if it pushes
-            // the item FURTHER outside the building than it already is — so you
-            // can always drag an outside item back in and slide along a wall.
-            // Only floor items are confined; wall/in-wall items keep their own
-            // logic below.
+            // KEEP FLOOR FURNITURE IN ITS OWN ROOM. A drag stays inside the room
+            // the item was in when it was picked up: at that room's walls it
+            // stops, and slides along the wall rather than crossing into the
+            // next room (dragging a sofa into the bedroom by accident moved it
+            // to the bedroom's BOQ). An item that was not in any room is only
+            // kept inside the building, as before. Only floor items are
+            // confined; wall/in-wall items keep their own logic below.
             if (this.__selected.__itemType == MODEL_TYPES.FLOOR_UNIT) {
+              const home = this.__dragHomeRoom;
               const cf =
                 this.__selected.__itemModel &&
                 this.__selected.__itemModel.__currentFloor;
@@ -1473,35 +1485,47 @@ export class DragRoomItemsControl3D extends EventDispatcher {
               // (whose .room is the Room). Resolve to the Room either way.
               const itemRoom =
                 cf && typeof cf.pointInRoom === "function" ? cf : cf && cf.room;
-
-              // Test against ALL rooms (the whole building interior), not just
-              // the item's own room, so furniture can be dragged to EVERY floor
-              // area and corner in the plan — only truly outside the building is
-              // blocked. Fall back to the item's own room if no room list.
-              const allRooms =
-                BlueprintInterface?.blueprint3d?.model?.__floorplan?.rooms ||
-                (itemRoom ? [itemRoom] : []);
-              const insideBuilding = (px, pz) => {
+              const allowedRooms = home
+                ? [home]
+                : BlueprintInterface?.blueprint3d?.model?.__floorplan?.rooms ||
+                  (itemRoom ? [itemRoom] : []);
+              const allowed = (px, pz) => {
                 const p = new Vector2(px, pz);
-                return allRooms.some(
+                return allowedRooms.some(
                   (r) => r && r.pointInRoom && r.pointInRoom(p)
                 );
               };
 
-              if (allRooms.length) {
-                // CORNER-FRIENDLY confinement (Coohom method): block a move only
-                // when it would take the item's CENTRE outside the building. The
-                // item's EDGES are allowed to overlap the walls freely, so a big
-                // item (like a tall bookshelf) can be pushed FULLY into a corner
-                // instead of stopping short. On release, __resolveFloorItemOffWalls
-                // settles it flush beside the corner walls. Never trap an item
-                // that is already outside (so it can always be dragged back in).
-                const newInside = insideBuilding(location.x, location.z);
-                if (!newInside) {
-                  const cur = this.__selected.position;
-                  const curInside = insideBuilding(cur.x, cur.z);
-                  if (curInside) {
+              if (allowedRooms.length) {
+                // CORNER-FRIENDLY confinement (Coohom method): only the item's
+                // CENTRE has to stay inside. Its EDGES may overlap the walls, so
+                // a big item can be pushed fully into a corner; on release,
+                // __resolveFloorItemOffWalls settles it flush beside the walls.
+                // Never trap an item that is already outside (so it can always
+                // be dragged back in).
+                const cur = this.__selected.position;
+                if (!allowed(location.x, location.z) && allowed(cur.x, cur.z)) {
+                  // Past the wall: keep whichever half of the move still lands
+                  // inside, so the item slides along the wall instead of
+                  // freezing the moment the pointer goes over it.
+                  if (allowed(location.x, cur.z)) {
+                    location.z = cur.z;
+                  } else if (allowed(cur.x, location.z)) {
+                    location.x = cur.x;
+                  } else {
                     return;
+                  }
+                }
+                // The pointer may be over the NEXT room's floor while the item
+                // stays here; land it on its own room's floor, or it would be
+                // filed under the other room.
+                if (home && intersectingPlane && intersectingPlane.room !== home) {
+                  const ownFloor = customIntersectingPlanes.find(
+                    (pl) => pl && pl.room === home
+                  );
+                  if (ownFloor) {
+                    intersectingPlane = ownFloor;
+                    this.__lastInterectionPointObjet = ownFloor;
                   }
                 }
               }
@@ -1531,6 +1555,7 @@ export class DragRoomItemsControl3D extends EventDispatcher {
               const maxY = Math.max(halfY, wallHeight - halfY);
               location.y = Math.min(Math.max(location.y, minY), maxY);
             }
+            const beforeSnap = location.clone();
             // SnapEngine (Phase 1): if the cursor is close to a wall or grid
             // line, override `location` with the snapped position. Holding
             // Shift bypasses snapping for this tick.
@@ -1607,6 +1632,17 @@ export class DragRoomItemsControl3D extends EventDispatcher {
                 "SnapEngine.query failed during drag — ignoring",
                 snapErr
               );
+            }
+            // A snap must not carry the item over into the next room either
+            // (a shared wall can be snapped to from both sides).
+            const home = this.__dragHomeRoom;
+            if (
+              home &&
+              this.__selected.__itemType == MODEL_TYPES.FLOOR_UNIT &&
+              !home.pointInRoom(new Vector2(location.x, location.z)) &&
+              home.pointInRoom(new Vector2(beforeSnap.x, beforeSnap.z))
+            ) {
+              location.copy(beforeSnap);
             }
             // A WALL UNIT DRAGS UP AND DOWN AS WELL AS ALONG THE WALL, and
             // settles at the studio's height (its top at 7 ft) when it comes

@@ -66,7 +66,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
   // narrower than the viewport by the width of the nav rail. 100vw overflowed
   // to the right and pushed the Save button off screen.
   return (
-    <div className="shadow-lg px-2 py-6 bg-[color:var(--pz-panel-header)] h-[40px] flex flex-row items-center w-full justify-between">
+    <div className="pz-app-header shadow-lg px-2 py-6 bg-[color:var(--pz-panel-header)] h-[40px] flex flex-row items-center w-full justify-between">
       <div className="flex flex-row items-center">
         <span className="flex items-center justify-center w-9 h-9 rounded-lg bg-[color:var(--pz-accent-tint)] mr-1">
           <img

@@ -12,6 +12,13 @@ import {
 } from "../core/configuration.js";
 import { isMobile } from "detect-touch-device";
 
+// On a touch screen the corner has a much bigger GRAB area than on a PC, so a
+// finger can pick it up — but it is DRAWN the same size as on a PC. Drawing it
+// at the full grab size made each dot ~100px across, covering the room corners
+// and wall ends.
+const TOUCH_HIT_SCALE = 2.5;
+const TOUCH_DRAW_SCALE = 1;
+
 // import {pointPolygon, pointBox} from 'intersects';
 
 export class CornerView2D extends BaseFloorplanViewElement2D {
@@ -31,7 +38,7 @@ export class CornerView2D extends BaseFloorplanViewElement2D {
     this.hitArea = new Circle(
       0,
       0,
-      (isMobile ? 2.5 : 1) * this.__options["corner-radius"]
+      (isMobile ? TOUCH_HIT_SCALE : 1) * this.__options["corner-radius"]
     );
 
     this.__cornerUpdateEvent = this.__updateWithModel.bind(this);
@@ -59,7 +66,7 @@ export class CornerView2D extends BaseFloorplanViewElement2D {
   __drawCornerState(radius, borderColor, fillColor) {
     this.clear();
     let alpha = 0.5; //1.0;//
-    let useRadius = isMobile ? radius * 2.5 : radius;
+    let useRadius = isMobile ? radius * TOUCH_DRAW_SCALE : radius;
     let insideRadius = useRadius * 0.55;
     let xOut = 0; //useRadius * 0.5;//
     let yOut = 0; //useRadius * 0.5;//

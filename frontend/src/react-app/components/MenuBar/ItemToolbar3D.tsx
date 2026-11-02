@@ -31,7 +31,15 @@ import "./itemToolbar3D.css";
 // x is the item's LEFT edge on screen and x2 its right edge — the bar sits off
 // the left side, and needs the right one to swap sides when the left is tight
 // against the edge of the canvas. y is the item's vertical middle.
-type Point = { x: number; y: number; x2: number } | null;
+// x / x2: the item's left and right edges on screen; y: its middle height;
+// yTop / yBottom: its top and bottom edges.
+type Point = {
+  x: number;
+  y: number;
+  x2: number;
+  yTop?: number;
+  yBottom?: number;
+} | null;
 
 const roomplanner = () =>
   (BlueprintInterface as any)?.blueprint3d?.roomplanner || null;
@@ -155,6 +163,8 @@ const anchorFor = (item: any): Point => {
       x: Math.min(...xs),
       x2: Math.max(...xs),
       y: (minY + maxY) / 2,
+      yTop: minY,
+      yBottom: maxY,
     };
   } catch (e) {
     return null;
@@ -175,7 +185,7 @@ const anchorFor = (item: any): Point => {
  * under the object panel.
  */
 const placeToolbar = (
-  point: { x: number; y: number; x2: number },
+  point: NonNullable<Point>,
   size: { w: number; h: number }
 ) => {
   const GAP = 12;
@@ -189,10 +199,12 @@ const placeToolbar = (
   let minLeft = PAD;
   let maxRight = window.innerWidth - PAD;
   let minTop = PAD;
+  let maxBottom = window.innerHeight - PAD;
   if (rect) {
     minLeft = rect.left + PAD;
     maxRight = rect.right - PAD;
     minTop = rect.top + PAD;
+    maxBottom = rect.bottom - PAD;
   }
   document
     .querySelectorAll('[data-pz-canvas-overlay="right"]')
@@ -209,6 +221,15 @@ const placeToolbar = (
     // of it. Only when neither side fits is it clamped into view.
     if (left < minLeft && point.x2 + GAP + size.w <= maxRight) {
       left = point.x2 + GAP;
+    } else if (left < minLeft && point.yTop !== undefined) {
+      // NEITHER SIDE FITS — a tablet with the item panel open leaves too
+      // little width. Clamping put the bar right across the item, so it goes
+      // above the item instead, or below when there is no room above.
+      left = (point.x + point.x2) / 2 - size.w / 2;
+      const above = point.yTop - GAP - size.h;
+      const below = (point.yBottom ?? point.yTop) + GAP;
+      if (above >= minTop) top = above;
+      else if (below + size.h <= maxBottom) top = below;
     }
     left = Math.min(Math.max(left, minLeft), Math.max(minLeft, maxRight - size.w));
   }
