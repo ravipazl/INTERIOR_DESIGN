@@ -106,7 +106,13 @@ const TOUCH_MAX_PIXEL_RATIO = 1.5;
 const INPUT_AWAKE_MS = 1000; // keeps drawing this long after the last input
 const IDLE_REDRAW_MS = 250; // and this often when nothing at all is happening
 const PINCH_STEP_PX = 6; // fingers must change their gap by this much to zoom
-const PINCH_TO_WHEEL = 4; // wheel units per pixel of pinch
+// Wheel units per pixel of pinch. Was 4: one ordinary pinch on a tablet took
+// the 3D view to 450 %, a second to "999+ %" with the camera 20 cm off the
+// floor, so a rug filled the screen, stretched.
+const PINCH_TO_WHEEL = 1.5;
+// A pinch zooms in no further than this, and never takes the camera below a
+// person's eye level (unless it is already lower). The wheel keeps its reach.
+const PINCH_LIMITS = { minY: 120, maxPct: 400 };
 const PINCH_WALK_CM_PER_PX = 2; // framing a shot: cm walked per pixel of pinch
 // Double-tap and drag moves the view (see __bindDoubleTapPan): the second tap
 // has to land this soon after the first, and this close to it.
@@ -1286,7 +1292,13 @@ export class Viewer3D extends Scene {
         !scope.__renderFraming
       ) {
         const notches = Math.min(Math.max(Math.abs(e.deltaY) / 100, 0.15), 3);
-        scope.dollyCamera(e.deltaY < 0 ? 1 : -1, notches, e.clientX, e.clientY);
+        scope.dollyCamera(
+          e.deltaY < 0 ? 1 : -1,
+          notches,
+          e.clientX,
+          e.clientY,
+          e.__limits
+        );
         return;
       }
       const step = e.deltaY < 0 ? 0.25 : -0.25;
@@ -1608,6 +1620,7 @@ export class Viewer3D extends Scene {
         }
         scope.__wheelZoomToCenter({
           preventDefault() {},
+          __limits: PINCH_LIMITS,
           deltaY: -pending * PINCH_TO_WHEEL,
           clientX: (e.touches[0].clientX + e.touches[1].clientX) / 2,
           clientY: (e.touches[0].clientY + e.touches[1].clientY) / 2,
@@ -2063,7 +2076,9 @@ export class Viewer3D extends Scene {
    * going once the orbit target is reached — the target is carried along — so
    * the camera can enter a room and look around from inside.
    */
-  dollyCamera(direction, notches = 1, clientX, clientY) {
+  // `limits` (a pinch): { minY, maxPct } — the lowest the camera may be taken
+  // (cm) and the most it may zoom in (the zoom bar's %).
+  dollyCamera(direction, notches = 1, clientX, clientY, limits) {
     const scope = this;
     const cam = scope.camera;
     const c = scope.controls;
@@ -2120,9 +2135,20 @@ export class Viewer3D extends Scene {
       }
     }
     newD = Math.min(newD, (c.maxDistance || 7500) * 0.98);
+    if (inward && limits && limits.maxPct && scope.__zoomRefDist) {
+      const closest = (scope.__zoomRefDist * 100) / limits.maxPct;
+      if (d <= closest + 0.5) return;
+      if (newD < closest) {
+        // Only the part of the step that reaches the limit.
+        shift.multiplyScalar((d - closest) / Math.max(d - newD, 1e-6));
+        newD = closest;
+      }
+    }
+    const startY = pos.y;
     const newPos = pos.add(shift);
-    // Stay above the floor.
-    if (newPos.y < 20) newPos.y = 20;
+    // Stay above the floor; a pinch stays at eye level.
+    const minY = limits ? Math.min(limits.minY, Math.max(startY, 20)) : 20;
+    if (newPos.y < minY) newPos.y = minY;
     // The view direction is unchanged, so the target is simply newD ahead.
     scope.__setCameraGoal(newPos, newPos.clone().addScaledVector(view, newD));
   }
