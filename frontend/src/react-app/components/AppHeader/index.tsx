@@ -36,7 +36,11 @@ const AppHeader: React.FC<AppHeaderProps> = ({
   }, [lastSavedTime, isErrorSyncing]);
 
   const getCurrentProject = async () => {
-    const projectId = AuthService.getCurrentProjectId();
+    // The address names the open project. The stored id can still be the last
+    // one opened while this page is starting, which showed that project's name.
+    const projectId =
+      new URLSearchParams(window.location.search).get("projectId") ||
+      AuthService.getCurrentProjectId();
     if (projectId && window.location.pathname != "/") {
       const project = await ProjectsService.getProjectById(projectId);
       console.debug("AppHeader ~ project", project);
@@ -104,7 +108,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
         ) : null}
         {lastSavedTime ? (
           <>
-            <div className="flex items-center gap-1 text-[color:var(--pz-text-2)] text-sm pr-4 py-1">
+            <div className="pz-saved-time flex items-center gap-1 text-[color:var(--pz-text-2)] text-sm pr-4 py-1">
               <span className="material-symbols-outlined text-[16px] leading-none text-[#1D9E75]">
                 cloud_done
               </span>

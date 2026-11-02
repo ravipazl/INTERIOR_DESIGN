@@ -17,6 +17,7 @@ import { EVENT_ITEM_SELECTED } from "@pazl/main/core/events";
 import { Finishing } from "@pazl/entities/Finishing";
 import { TexturesService } from "./texturesService";
 import { surfaceOfFinishing } from "@pazl/main/viewer3d/surfaceFinish";
+import { Box3, Vector3 } from "three";
 
 interface ProjectManagerProps {
   project: Project;
@@ -50,6 +51,9 @@ export enum HISTORY_TITLES {
   WALL_TEXTURE_CHANGED = "Wall texture changed",
 }
 
+// How long after Undo / Redo the reloaded scene is still saving itself.
+const RESTORING_HISTORY_MS = 3000;
+
 export class ProjectManager {
   project: Project;
   floorPlan: FloorPlan;
@@ -57,6 +61,8 @@ export class ProjectManager {
   furnishedModelComponents: FurnishedModelComponent[];
   floorPlanHistory: any[];
   selectedFloorPlan: any;
+  // Saves until this time come from Undo / Redo reloading a scene.
+  restoringHistoryUntil = 0;
 
   // Tracks furnishedModelIds whose components are currently being created,
   // so two concurrent createFurnishedModelComponents calls (e.g. a React
@@ -167,16 +173,100 @@ export class ProjectManager {
       await new FloorPlan({ ...this.floorPlan }).update(
         BlueprintInterface.blueprint3d.model.exportSerialized()
       );
-      let floorplan = BlueprintInterface.blueprint3d.model.exportSerialized();
-      floorplan = JSON.parse(floorplan);
-      floorplan = JSON.stringify({
+      const scene = BlueprintInterface.blueprint3d.model.exportSerialized();
+      // Undo and Redo reload a saved scene, and the reload saves itself. That is
+      // not a new step: recording it put the state being left back on top of
+      // the history, so the next Undo only returned there.
+      if (Date.now() < this.restoringHistoryUntil) return;
+      // Many saves change nothing in the scene (selecting an item, re-measuring
+      // it). Each one used to add a step, so Undo walked through identical
+      // copies and appeared to do nothing.
+      const sameAsCurrent = (() => {
+        try {
+          const { id, name: n, ...current } = JSON.parse(this.selectedFloorPlan);
+          return JSON.stringify(current) === JSON.stringify(JSON.parse(scene));
+        } catch (e) {
+          return false;
+        }
+      })();
+      if (sameAsCurrent) return;
+      const floorplan = JSON.stringify({
         id: uuidv4(),
         name: name,
-        ...floorplan,
+        ...JSON.parse(scene),
       });
+      // A real change after an Undo starts a new line: the steps undone are gone.
+      const at = this.floorPlanHistory.findIndex((item) => {
+        try {
+          return JSON.parse(item).id === JSON.parse(this.selectedFloorPlan).id;
+        } catch (e) {
+          return false;
+        }
+      });
+      const kept =
+        at >= 0 ? this.floorPlanHistory.slice(0, at + 1) : this.floorPlanHistory;
       this.selectedFloorPlan = floorplan;
-      this.floorPlanHistory = this.floorPlanHistory.concat([floorplan]);
+      this.floorPlanHistory = kept.concat([floorplan]);
     }
+  }
+
+  /**
+   * MEASURE EVERY PLACED UNIT BEFORE PRICING IT. A unit's parts start at a 1×1
+   * placeholder and were only given their real size when the unit was clicked,
+   * so a kitchen placed in one go reached the BOQ with most units at about ₹0.
+   * Returns how many parts were measured.
+   */
+  async measureUnmeasuredParts(): Promise<number> {
+    const items: any[] =
+      (BlueprintInterface as any)?.blueprint3d?.roomplanner?.__physicalRoomItems || [];
+    const isPlaceholder = (c: any) =>
+      String(c?.width) === "1" && String(c?.height) === "1";
+    // Part rows and models arrive a moment after a unit is placed.
+    const waiting = () =>
+      items.some((item) => {
+        const id = item?.__itemModel?.__metadata?.dbid;
+        return (
+          !!id &&
+          !item.__itemModel.isParametric &&
+          (!item.__loadedItem ||
+            !this.furnishedModelComponents.some((c) => c.furnishedModelId === id))
+        );
+      });
+    for (let tries = 0; tries < 40 && waiting(); tries++) {
+      await new Promise((resolve) => setTimeout(resolve, 250));
+    }
+    let measured = 0;
+    for (const item of items) {
+      const id = item?.__itemModel?.__metadata?.dbid;
+      const model = item?.__loadedItem;
+      if (!id || !model) continue;
+      const parts = this.furnishedModelComponents.filter(
+        (c) => c.furnishedModelId === id
+      );
+      if (!parts.some(isPlaceholder)) continue;
+      const meshes: any[] = [];
+      model.traverse?.((o: any) => {
+        if (o?.isMesh) meshes.push(o);
+      });
+      for (let i = 0; i < meshes.length; i++) {
+        const size = new Box3().setFromObject(meshes[i]).getSize(new Vector3());
+        const width = Math.max(size.x, size.z);
+        if (!size.y || !width) continue;
+        const name = String(meshes[i]?.name || "");
+        const part = await this.getFurnishedModelCompByNameAndFurnishedModelId(
+          /^Mesh_\d+$/.test(name) ? name : "Mesh_" + i,
+          id
+        );
+        if (
+          part &&
+          isPlaceholder(part) &&
+          (await this.updateFurnishedModelComponentSize(part._id, size.y, width))
+        ) {
+          measured++;
+        }
+      }
+    }
+    return measured;
   }
 
   async updateRoomNameInFloorPlan(roomName: string, roomId: string) {
@@ -246,8 +336,10 @@ export class ProjectManager {
         this.selectedFloorPlan = floorplan;
         const plan = JSON.parse(floorplan);
         const items = plan.items;
-        const removedItems = items.filter((item: any) =>
-          this.furnishedModels.some((item2) => item2._id !== item.dbid)
+        const removedItems = items.filter(
+          (item: any) =>
+            item.dbid &&
+            !this.furnishedModels.some((item2) => item2._id === item.dbid)
         );
         if (removedItems.length) {
           removedItems.map(async (removedItem: any) => {
@@ -258,7 +350,7 @@ export class ProjectManager {
             if (furnishedModel) {
               furnishedModel.isActive = true;
               furnishedModel.update();
-              this.furnishedModels.concat([furnishedModel]);
+              this.furnishedModels = this.furnishedModels.concat([furnishedModel]);
             }
           });
         } else if (!this.furnishedModels.length && items?.length === 1) {
@@ -341,6 +433,7 @@ export class ProjectManager {
             }
           })
         );
+        this.restoringHistoryUntil = Date.now() + RESTORING_HISTORY_MS;
         await BlueprintInterface.blueprint3d.model.loadSerialized(floorplan);
         await new FloorPlan({
           ...this.floorPlan,
@@ -367,6 +460,7 @@ export class ProjectManager {
       const floorplan = this.floorPlanHistory[selectedFloorplanIndex + 1];
       if (floorplan) {
         this.selectedFloorPlan = floorplan;
+        this.restoringHistoryUntil = Date.now() + RESTORING_HISTORY_MS;
         await BlueprintInterface.blueprint3d.model.loadSerialized(floorplan);
         await new FloorPlan({ ...this.floorPlan, scene: floorplan }).update(
           BlueprintInterface.blueprint3d.model.exportSerialized()

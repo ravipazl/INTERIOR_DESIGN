@@ -249,6 +249,10 @@ export class GenerateBoqServiceService {
           }
         }
         return [...byType].map(([type, { brands, finishes }]) => {
+          // Sorted: the parts of two identical units can arrive in any order, and
+          // "Wood 1, Wood 2" beside "Wood 2, Wood 1" split one line of the BOQ in two.
+          brands.sort()
+          finishes.sort()
           const parts = [type]
           if (brands.length) parts.push(brands.join(', '))
           if (nameFinishes && finishes.length) {

@@ -26,6 +26,9 @@ interface SavedView {
 
 const viewer = () => (BlueprintInterface as any)?.blueprint3d?.roomplanner || null;
 
+// A 1100 px window, less the nav rail: the tablet width used across the editor.
+const NARROW_CANVAS_PX = 1036;
+
 /**
  * The four sides a shot can be taken from. They are the floor plan's sides:
  * Front stands at the bottom of the plan, Back at the top, Left and Right at
@@ -163,13 +166,31 @@ const CameraFraming: React.FC<{
     };
   }, []);
 
+  // The saved views take a column beside the frame only when there is room to
+  // spare; otherwise they run in a row under the top bar.
+  const narrow = !!rect && rect.width <= NARROW_CANVAS_PX;
+
+  // The top bar wraps onto more rows in a smaller window, so how much it covers
+  // is measured, not assumed.
+  const [topClear, setTopClear] = useState(76);
+  const topBarsRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    const el = topBarsRef.current;
+    if (!el) return;
+    const measure = () => setTopClear(Math.ceil(el.getBoundingClientRect().height) + 12 + 8);
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [!!rect, narrow]);
+
   // The frame: the largest box of the chosen shape inside the canvas, leaving
   // room for the bars and the saved views.
   const frame = useMemo(() => {
     if (!rect) return null;
     const ratio = ASPECTS.find((a) => a.id === aspect)?.ratio || 16 / 9;
-    const side = Math.min(150, Math.max(24, rect.width * 0.11));
-    const top = 76;
+    const side = narrow ? 16 : Math.min(150, Math.max(24, rect.width * 0.11));
+    const top = topClear;
     const bottom = 70;
     const availW = Math.max(80, rect.width - side * 2);
     const availH = Math.max(80, rect.height - top - bottom);
@@ -180,7 +201,20 @@ const CameraFraming: React.FC<{
       w = h * ratio;
     }
     return { x: (rect.width - w) / 2, y: top + (availH - h) / 2, width: w, height: h };
-  }, [rect, aspect]);
+  }, [rect, aspect, narrow, topClear]);
+
+  // Keep the picture inside the frame the same at every window size.
+  const frameHeight = frame?.height;
+  const canvasHeight = rect?.height;
+  useEffect(() => {
+    if (frameHeight && canvasHeight) viewer()?.setRenderFrameHeight?.(frameHeight, canvasHeight);
+  }, [frameHeight, canvasHeight]);
+
+  // The heading box sits at the foot of the canvas, over the frame's corner.
+  useEffect(() => {
+    document.body.classList.add("pz-framing-shot");
+    return () => document.body.classList.remove("pz-framing-shot");
+  }, []);
 
   const eyeCm = cam ? Math.round(cam.heightCm) : 150;
 
@@ -234,6 +268,71 @@ const CameraFraming: React.FC<{
   // appears when the camera is outside the room or too close to a wall.
   const needsFix = cam && (!cam.inside || cam.nearWall) && cam.hasRoom;
 
+  const savedViews = (
+    <>
+      <div className="shrink-0 px-0.5 text-[11px] font-semibold text-white drop-shadow">Saved views</div>
+      {views.map((v) => (
+        <div key={v.name} className={`group relative shrink-0 rounded-lg bg-white p-1.5 text-[11.5px] shadow ${activeView === v.name ? "ring-2 ring-emerald-500" : ""}`}>
+          <button
+            type="button"
+            className="block w-full truncate text-left font-medium"
+            title={`Go to "${v.name}"`}
+            onClick={() => {
+              viewer()?.applyRenderView?.(v);
+              setLens(Math.round(viewer()?.getRenderLens?.() || lens));
+              setActiveView(v.name);
+            }}
+          >
+            {v.name}
+          </button>
+          <button
+            type="button"
+            aria-label={`Delete saved view ${v.name}`}
+            className="absolute right-1 top-1 hidden text-gray-400 hover:text-red-600 group-hover:block"
+            onClick={() => {
+              const next = views.filter((x) => x.name !== v.name);
+              setViews(next);
+              storeViews(projectId, next);
+            }}
+          >
+            ✕
+          </button>
+        </div>
+      ))}
+      {naming === null ? (
+        <button type="button" onClick={() => setNaming("")} className="shrink-0 rounded-lg bg-white p-1.5 text-[11.5px] font-medium text-indigo-700 shadow">
+          + Save this view
+        </button>
+      ) : (
+        <form
+          className="shrink-0 rounded-lg bg-white p-1.5 shadow"
+          onSubmit={(e) => {
+            e.preventDefault();
+            saveView();
+          }}
+        >
+          <input
+            autoFocus
+            value={naming}
+            onChange={(e) => setNaming(e.target.value)}
+            placeholder="Kitchen front"
+            aria-label="Name for this view"
+            className="w-full rounded border border-gray-300 px-1.5 py-0.5 text-[11.5px]"
+            onKeyDown={(e) => e.key === "Escape" && setNaming(null)}
+          />
+          <div className="mt-1 flex justify-between text-[11px]">
+            <button type="button" onClick={() => setNaming(null)} className="text-gray-500">
+              Cancel
+            </button>
+            <button type="submit" className="font-semibold text-indigo-700">
+              Save
+            </button>
+          </div>
+        </form>
+      )}
+    </>
+  );
+
   return createPortal(
     <div
       className="fixed z-[1150] pointer-events-none select-none"
@@ -261,8 +360,9 @@ const CameraFraming: React.FC<{
         </div>
       </div>
 
+      <div ref={topBarsRef} className="absolute left-3 right-3 top-3 flex flex-col items-center gap-2 pointer-events-none">
       {/* top bar */}
-      <div className="absolute left-1/2 top-3 -translate-x-1/2 pointer-events-auto flex max-w-[calc(100%-24px)] flex-wrap items-center gap-2 rounded-xl bg-white px-3 py-2 text-[13px] text-gray-800 shadow-lg">
+      <div className="pointer-events-auto flex max-w-full flex-wrap items-center gap-2 rounded-xl bg-white px-3 py-2 text-[13px] text-gray-800 shadow-lg">
         <b className="px-1">Frame your shot</b>
         <div className="flex gap-1" role="radiogroup" aria-label="Image shape">
           {ASPECTS.map((a) => (
@@ -339,70 +439,14 @@ const CameraFraming: React.FC<{
         )}
       </div>
 
-      {/* saved views */}
-      <div className="absolute right-3 top-[70px] pointer-events-auto grid w-[124px] gap-2">
-        <div className="px-0.5 text-[11px] font-semibold text-white drop-shadow">Saved views</div>
-        {views.map((v) => (
-          <div key={v.name} className={`group relative rounded-lg bg-white p-1.5 text-[11.5px] shadow ${activeView === v.name ? "ring-2 ring-emerald-500" : ""}`}>
-            <button
-              type="button"
-              className="block w-full truncate text-left font-medium"
-              title={`Go to "${v.name}"`}
-              onClick={() => {
-                viewer()?.applyRenderView?.(v);
-                setLens(Math.round(viewer()?.getRenderLens?.() || lens));
-                setActiveView(v.name);
-              }}
-            >
-              {v.name}
-            </button>
-            <button
-              type="button"
-              aria-label={`Delete saved view ${v.name}`}
-              className="absolute right-1 top-1 hidden text-gray-400 hover:text-red-600 group-hover:block"
-              onClick={() => {
-                const next = views.filter((x) => x.name !== v.name);
-                setViews(next);
-                storeViews(projectId, next);
-              }}
-            >
-              ✕
-            </button>
-          </div>
-        ))}
-        {naming === null ? (
-          <button type="button" onClick={() => setNaming("")} className="rounded-lg bg-white p-1.5 text-[11.5px] font-medium text-indigo-700 shadow">
-            + Save this view
-          </button>
-        ) : (
-          <form
-            className="rounded-lg bg-white p-1.5 shadow"
-            onSubmit={(e) => {
-              e.preventDefault();
-              saveView();
-            }}
-          >
-            <input
-              autoFocus
-              value={naming}
-              onChange={(e) => setNaming(e.target.value)}
-              placeholder="Kitchen front"
-              aria-label="Name for this view"
-              className="w-full rounded border border-gray-300 px-1.5 py-0.5 text-[11.5px]"
-              onKeyDown={(e) => e.key === "Escape" && setNaming(null)}
-            />
-            <div className="mt-1 flex justify-between text-[11px]">
-              <button type="button" onClick={() => setNaming(null)} className="text-gray-500">
-                Cancel
-              </button>
-              <button type="submit" className="font-semibold text-indigo-700">
-                Save
-              </button>
-            </div>
-          </form>
-        )}
+      {narrow && (
+        <div className="pointer-events-auto flex max-w-full items-center gap-2 overflow-x-auto">{savedViews}</div>
+      )}
       </div>
 
+      {!narrow && (
+        <div className="absolute right-3 top-[70px] pointer-events-auto grid w-[124px] gap-2">{savedViews}</div>
+      )}
       {/* error + actions */}
       <div className="absolute bottom-3 left-3 right-3 flex flex-wrap items-end justify-between gap-2">
         <div className="flex flex-wrap gap-2 pointer-events-none">

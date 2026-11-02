@@ -96,6 +96,18 @@ const POLAR_EPSILON = 0.01;
  * becomes undefined.
  */
 const MIN_ZOOM_DISTANCE = 15;
+// Tablets and other touch screens. See render() and getARenderer().
+const IS_TOUCH_DEVICE =
+  typeof navigator !== "undefined" &&
+  (navigator.maxTouchPoints > 0 ||
+    window.matchMedia?.("(pointer: coarse)").matches === true);
+const TOUCH_MAX_PIXEL_RATIO = 1.5;
+const INPUT_AWAKE_MS = 1000; // keeps drawing this long after the last input
+const IDLE_REDRAW_MS = 250; // and this often when nothing at all is happening
+const PINCH_STEP_PX = 6; // fingers must change their gap by this much to zoom
+const PINCH_TO_WHEEL = 4; // wheel units per pixel of pinch
+const NARROW_CANVAS_PX = 1036; // a 1100 px window, less the nav rail
+const TABLET_ROOM_FILL = 0.8; // share of the free space the fitted room takes
 import { Edge3D } from "./edge3d.js";
 import { Floor3D } from "./floor3d.js";
 import { Column3D } from "./column3d.js";
@@ -368,6 +380,146 @@ export class Viewer3D extends Scene {
     );
   }
 
+  /**
+   * What the catalogue and item panels leave of the canvas, right now. shiftPx
+   * is how far the middle of that space is from the middle of the canvas.
+   */
+  __freeCanvasArea() {
+    const el = this.domElement;
+    const box = el.getBoundingClientRect();
+    let left = box.left;
+    let right = box.right;
+    document.querySelectorAll("[data-pz-canvas-overlay]").forEach((panel) => {
+      const r = panel.getBoundingClientRect();
+      if (!r.width || getComputedStyle(panel).visibility === "hidden") return;
+      if (panel.getAttribute("data-pz-canvas-overlay") === "left") {
+        left = Math.max(left, r.right);
+      } else {
+        right = Math.min(right, r.left);
+      }
+    });
+    if (right - left < box.width * 0.25) {
+      left = box.left;
+      right = box.right;
+    }
+    return {
+      canvasWidth: box.width,
+      left,
+      width: right - left,
+      height: box.height,
+      shiftPx: (left + right) / 2 - (box.left + box.right) / 2,
+    };
+  }
+
+  /**
+   * A panel opened or closed. On a tablet the panels take so much of the canvas
+   * that the room would end up underneath the item panel, so the fitted view
+   * follows them, once no item is being held. On a PC there is room to spare and
+   * the view stays put, so the model does not jump with every panel.
+   */
+  refitAfterPanelChange() {
+    if (!IS_TOUCH_DEVICE && this.domElement.clientWidth > NARROW_CANVAS_PX) return;
+    clearTimeout(this.__panelRefitTimer);
+    const attempt = () => {
+      if (this.dragcontrols && this.dragcontrols.__selected) {
+        this.__panelRefitTimer = setTimeout(attempt, 200);
+        return;
+      }
+      this.refitIfStillFitted();
+    };
+    this.__panelRefitTimer = setTimeout(attempt, 50);
+  }
+
+  /**
+   * The plan can load well before the catalogue has taken its full width, so the
+   * first fit can be for a space that is about to shrink. Keep looking while the
+   * page settles. Only the CATALOGUE growing counts: the item panel opening, or
+   * the catalogue closing as an item is tapped, must not move the room. The
+   * canvas itself counts too: it is resized as the page changes from the floor
+   * plan's layout to this one, which can be in the middle of the camera's glide,
+   * when a refit is refused.
+   */
+  __watchForLateCatalogue(fitted) {
+    clearTimeout(this.__lateCatalogueTimer);
+    let looks = 0;
+    const look = () => {
+      const now = this.domElement.clientWidth ? this.__freeCanvasArea() : null;
+      // A refit starts its own watch.
+      if (
+        now &&
+        (now.left > fitted.left + 2 ||
+          Math.abs(now.canvasWidth - fitted.canvasWidth) > 2 ||
+          Math.abs(now.height - fitted.height) > 2) &&
+        this.refitIfStillFitted()
+      ) {
+        return;
+      }
+      if (++looks < 60) this.__lateCatalogueTimer = setTimeout(look, 500);
+    };
+    this.__lateCatalogueTimer = setTimeout(look, 500);
+  }
+
+  /**
+   * How far back the camera must stand along `dir` for the walls, as actually
+   * drawn from there, to fill TABLET_ROOM_FILL of the free space. Measured from
+   * the room's corners, because from an angle a room's size on screen depends on
+   * the window's shape as much as on the room's.
+   */
+  __distanceToFill(center, dir, startDist, free) {
+    const corners = this.floorplan?.corners;
+    if (!corners || !corners.length) return startDist;
+    const probe = this.camera.clone();
+    probe.clearViewOffset();
+    probe.zoom = 1;
+    probe.aspect = free.canvasWidth / free.height;
+    probe.updateProjectionMatrix();
+    const height = corners[0].elevation || 270;
+    const widthShare = free.width / free.canvasWidth;
+    const p = new Vector3();
+    let dist = startDist;
+    for (let pass = 0; pass < 4; pass++) {
+      probe.position.set(center.x + dir.x * dist, dir.y * dist, center.z + dir.z * dist);
+      probe.lookAt(center);
+      probe.updateMatrixWorld(true);
+      let minX = Infinity;
+      let maxX = -Infinity;
+      let minY = Infinity;
+      let maxY = -Infinity;
+      corners.forEach((c) => {
+        [0, height].forEach((y) => {
+          p.set(c.x, y, c.y).project(probe);
+          minX = Math.min(minX, p.x);
+          maxX = Math.max(maxX, p.x);
+          minY = Math.min(minY, p.y);
+          maxY = Math.max(maxY, p.y);
+        });
+      });
+      const fill = Math.max((maxX - minX) / 2 / widthShare, (maxY - minY) / 2);
+      if (!(fill > 0)) break;
+      dist *= fill / TABLET_ROOM_FILL;
+    }
+    return dist;
+  }
+
+  /**
+   * Draw the view shifted sideways on the canvas, by shifting the lens rather
+   * than moving the camera, so the room still turns about its own middle and
+   * picking and dragging stay exact (they read the same projection).
+   */
+  __setViewShift(px) {
+    const cam = this.camera;
+    if (!cam || !cam.isPerspectiveCamera) return;
+    this.__viewShiftPx = px || 0;
+    const w = this.domElement.clientWidth;
+    const h = this.domElement.clientHeight;
+    if (this.__viewShiftPx && w && h && !this.__renderFraming) {
+      cam.setViewOffset(w, h, -this.__viewShiftPx, 0, w, h);
+    } else {
+      cam.clearViewOffset();
+    }
+    this.needsUpdate = true;
+  }
+
   // Frame the WHOLE floor plan in a pulled-back, angled "dollhouse" view (like
   // Coohom) — instead of the old fixed top-down position that left the camera
   // too close / poorly framed. Auto-fits the distance to the plan's size so any
@@ -391,9 +543,15 @@ export class Viewer3D extends Scene {
       // camera.aspect can be stale (init'd to a placeholder) — read the live
       // canvas aspect so the fit is correct on wide and tall viewports alike.
       const el = scope.domElement;
+      // Fit to the part of the canvas the panels leave free, and centre there:
+      // the panels sit ON TOP of the canvas, so the middle of the canvas is not
+      // the middle of what can be seen.
+      const free = scope.__freeCanvasArea();
+      scope.__setViewShift(free.shiftPx);
+      scope.__watchForLateCatalogue(free);
       const aspect =
-        el && el.clientWidth && el.clientHeight
-          ? el.clientWidth / el.clientHeight
+        free.width && free.height
+          ? free.width / free.height
           : window.innerWidth / Math.max(1, window.innerHeight);
       // Distance so the larger of width/height fits the frustum, plus padding.
       //
@@ -407,17 +565,24 @@ export class Viewer3D extends Scene {
       const FRAME_PADDING = 2.4;
       const fitForHeight = extent / 2 / Math.tan(fov / 2);
       const fitForWidth = fitForHeight / Math.min(1, aspect);
-      const dist = Math.max(fitForHeight, fitForWidth) * FRAME_PADDING;
+      // Dollhouse direction: pulled back, elevated, angled.
+      const dir = new Vector3(0.55, 0.72, 0.55).normalize();
+      let dist = Math.max(fitForHeight, fitForWidth) * FRAME_PADDING;
+      // A tablet has less screen to spare: the room fills the free space there.
+      if (IS_TOUCH_DEVICE || free.canvasWidth <= NARROW_CANVAS_PX) {
+        dist = scope.__distanceToFill(center, dir, dist, free);
+      }
       // This distance is "100 %" on the zoom bar; a pending glide is dropped.
       scope.__zoomRefDist = dist;
       scope.__camGoal = null;
-      // Dollhouse direction: pulled back, elevated, angled.
-      const dir = new Vector3(0.55, 0.72, 0.55).normalize();
       const endPos = new Vector3(
         center.x + dir.x * dist,
         dir.y * dist,
         center.z + dir.z * dist
       );
+      // Remembered so a new window size can tell "still the fitted view" from a
+      // view the user has moved to and would not want taken away.
+      scope.__fittedCameraAt = endPos.clone();
       if (animate && scope.controls) {
         // Glide into the dollhouse overview instead of snapping (Coohom-style).
         scope.__animateCameraTo(endPos, center.clone(), 900);
@@ -1036,6 +1201,8 @@ export class Viewer3D extends Scene {
     scope.domElement.addEventListener("wheel", scope.__wheelZoomToCenter, {
       passive: false,
     });
+    scope.__bindPinchZoom();
+    scope.__bindIdleWatch();
     scope.__applyCameraSettings();
     scope.__bindCameraKeys();
     scope.axes = new AxesHelper(500);
@@ -1295,6 +1462,96 @@ export class Viewer3D extends Scene {
     // reports no headset, so it only ever showed a grey "VR NOT SUPPORTED" box
     // across the bottom of the 3D view that could not be dismissed. Nothing in
     // the app uses VR, so the button and renderer.xr are gone.
+  }
+
+  // PINCH TO ZOOM. OrbitControls' own pinch is off along with its wheel zoom
+  // (enableZoom), so two fingers only panned. A pinch goes through the wheel's
+  // zoom, so both behave the same in the 3D and the top-down views.
+  //
+  // touch-action: none stops the browser taking the same gesture to scroll or
+  // zoom the whole page. It only affects touch, not the mouse.
+  __bindPinchZoom() {
+    const scope = this;
+    const el = scope.domElement;
+    el.style.touchAction = "none";
+    scope.renderer.domElement.style.touchAction = "none";
+    const gap = (t) =>
+      Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
+    let last = null;
+    let pending = 0;
+    el.addEventListener(
+      "touchstart",
+      (e) => {
+        if (e.touches.length === 2) {
+          last = gap(e.touches);
+          pending = 0;
+        }
+      },
+      { passive: true }
+    );
+    el.addEventListener(
+      "touchmove",
+      (e) => {
+        if (last === null || e.touches.length !== 2) return;
+        const now = gap(e.touches);
+        pending += now - last;
+        last = now;
+        if (Math.abs(pending) < PINCH_STEP_PX) return;
+        scope.__wheelZoomToCenter({
+          preventDefault() {},
+          deltaY: -pending * PINCH_TO_WHEEL,
+          clientX: (e.touches[0].clientX + e.touches[1].clientX) / 2,
+          clientY: (e.touches[0].clientY + e.touches[1].clientY) / 2,
+        });
+        pending = 0;
+      },
+      { passive: true }
+    );
+    const end = (e) => {
+      if (e.touches.length < 2) last = null;
+    };
+    el.addEventListener("touchend", end, { passive: true });
+    el.addEventListener("touchcancel", end, { passive: true });
+  }
+
+  // Any input keeps the view drawing at full speed for a moment (see render).
+  __bindIdleWatch() {
+    if (!IS_TOUCH_DEVICE) return;
+    const scope = this;
+    const wake = () => {
+      scope.__lastInputAt = Date.now();
+    };
+    wake();
+    ["pointerdown", "pointermove", "touchstart", "touchmove", "wheel", "keydown"].forEach(
+      (type) =>
+        window.addEventListener(type, wake, { capture: true, passive: true })
+    );
+  }
+
+  // Does this frame need drawing on a touch device? See render().
+  __idleFrameIsDue() {
+    const scope = this;
+    const now = Date.now();
+    const cam = scope.camera;
+    const seen = scope.__seenCamera;
+    const moved =
+      !seen ||
+      !seen.pos.equals(cam.position) ||
+      !seen.quat.equals(cam.quaternion) ||
+      seen.zoom !== cam.zoom;
+    if (moved) {
+      scope.__seenCamera = {
+        pos: cam.position.clone(),
+        quat: cam.quaternion.clone(),
+        zoom: cam.zoom,
+      };
+    }
+    return (
+      moved ||
+      !!scope.__renderFraming ||
+      now - (scope.__lastInputAt || 0) < INPUT_AWAKE_MS ||
+      now - scope.lastRender >= IDLE_REDRAW_MS
+    );
   }
 
   __zoom(evt) {
@@ -2053,6 +2310,16 @@ export class Viewer3D extends Scene {
     }
 
     this.dispatchEvent(evt);
+  }
+
+  /** The selected item has just been deleted: close its panels, drop the box. */
+  clearDeletedSelection() {
+    if (BlueprintInterface) BlueprintInterface.selectedModels = [];
+    this.__currentItemSelected = null;
+    this.__removeTransformControls3D();
+    this.controls.enabled = true;
+    this.needsUpdate = true;
+    this.dispatchEvent({ type: EVENT_NO_ITEM_SELECTED });
   }
 
   __roomItemUnselected(evt) {
@@ -2867,7 +3134,13 @@ export class Viewer3D extends Scene {
     // renderer.gammaOutput = false;
     // renderer.physicallyCorrectLights =
     renderer.outputEncoding = sRGBEncoding;
-    renderer.setPixelRatio(window.devicePixelRatio);
+    // A tablet's sharp screen would otherwise mean several times the pixels of a
+    // PC, on a much weaker graphics chip.
+    renderer.setPixelRatio(
+      IS_TOUCH_DEVICE
+        ? Math.min(window.devicePixelRatio, TOUCH_MAX_PIXEL_RATIO)
+        : window.devicePixelRatio
+    );
     // renderer.sortObjects = false;
     return renderer;
   }
@@ -2891,10 +3164,36 @@ export class Viewer3D extends Scene {
     if (!elementWidth || !elementHeight) {
       return;
     }
+    const sizeChanged =
+      elementWidth !== this.__lastCanvasWidth ||
+      elementHeight !== this.__lastCanvasHeight;
+    this.__lastCanvasWidth = elementWidth;
+    this.__lastCanvasHeight = elementHeight;
     this.camera.aspect = elementWidth / elementHeight;
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(elementWidth, elementHeight);
     this.needsUpdate = true;
+    if (sizeChanged && !this.refitIfStillFitted()) {
+      this.__setViewShift(this.__viewShiftPx);
+    }
+  }
+
+  /**
+   * Fit again, but only while the camera is still on the fitted view. A view
+   * the user has moved to is theirs, and only keeps its place on the new canvas.
+   */
+  refitIfStillFitted() {
+    if (
+      !this.__fittedCameraAt ||
+      this.__renderFraming ||
+      this.__camTween ||
+      !this.domElement.clientWidth ||
+      this.camera.position.distanceTo(this.__fittedCameraAt) >= 1
+    ) {
+      return false;
+    }
+    this.frameFloorplan(false);
+    return true;
   }
 
   render() {
@@ -2970,6 +3269,9 @@ export class Viewer3D extends Scene {
       scope.needsUpdate = true;
     }
     scope.updateDimensionLabels();
+    if (IS_TOUCH_DEVICE && !scope.needsUpdate && scope.__idleFrameIsDue()) {
+      scope.needsUpdate = true;
+    }
     if (!scope.needsUpdate) {
       return;
     }
@@ -3006,7 +3308,12 @@ export class Viewer3D extends Scene {
 
     scope.renderer.render(scope, scope.camera);
     scope.lastRender = Date.now();
-    this.needsUpdate = true;
+    // Setting this back to true draws every screen refresh for ever, even with
+    // nothing moving, which a tablet pays for in heat and lag. There it is
+    // cleared, so a frame is drawn when something asks for one, while the camera
+    // or a finger is moving, and a few times a second for changes nobody flagged
+    // (a texture finishing loading). PC and laptop keep drawing as they did.
+    this.needsUpdate = !IS_TOUCH_DEVICE;
   }
 
   // Coohom-style EDITABLE position labels for a selected door/window: the gap
@@ -4552,6 +4859,9 @@ export class Viewer3D extends Scene {
     c.maxPolarAngle = Math.PI / 2;
     c.minDistance = 1;
     cam.zoom = 1;
+    // The shot frame is centred on the canvas, so the lens must be too.
+    cam.clearViewOffset();
+    scope.__renderFrameScale = 1;
     if (view && view.position && view.target) scope.applyRenderView(view);
     else if (!scope.isCameraInsideRoom()) {
       if (!scope.fixRenderCamera()) scope.__levelRenderCamera();
@@ -4564,6 +4874,7 @@ export class Viewer3D extends Scene {
     const f = scope.__renderFraming;
     if (!f) return;
     scope.__renderFraming = null;
+    scope.__renderFrameScale = 1;
     const c = scope.controls;
     const cam = scope.camera;
     if (c) {
@@ -4575,6 +4886,7 @@ export class Viewer3D extends Scene {
       cam.zoom = f.zoom;
       cam.fov = f.fov;
       cam.position.copy(f.position);
+      scope.__setViewShift(scope.__viewShiftPx);
       cam.updateProjectionMatrix();
     }
     if (c) {
@@ -4617,14 +4929,21 @@ export class Viewer3D extends Scene {
   getRenderView() {
     const p = this.camera.position;
     const t = this.controls.target;
-    return { position: [p.x, p.y, p.z], target: [t.x, t.y, t.z], fov: this.camera.fov };
+    return {
+      position: [p.x, p.y, p.z],
+      target: [t.x, t.y, t.z],
+      fov: this.camera.fov,
+      // The fov alone only means the same picture in a window of the same size.
+      lensMm: this.getRenderLens(),
+    };
   }
 
   applyRenderView(view) {
     if (!view || !view.position || !view.target) return;
     this.camera.position.set(view.position[0], view.position[1], view.position[2]);
     this.controls.target.set(view.target[0], view.target[1], view.target[2]);
-    if (Number.isFinite(view.fov)) this.camera.fov = view.fov;
+    if (Number.isFinite(view.lensMm)) this.setRenderLens(view.lensMm);
+    else if (Number.isFinite(view.fov)) this.camera.fov = view.fov;
     this.__levelRenderCamera();
   }
 
@@ -4796,7 +5115,8 @@ export class Viewer3D extends Scene {
   /** Lens in full-frame mm (24 mm frame height): 16 mm wide … 50 mm normal. */
   setRenderLens(mm) {
     const f = Math.min(Math.max(Number(mm) || 24, 10), 85);
-    this.camera.fov = (2 * Math.atan(12 / f) * 180) / Math.PI;
+    const scale = this.__renderFrameScale || 1;
+    this.camera.fov = (2 * Math.atan((12 / f) * scale) * 180) / Math.PI;
     this.camera.zoom = 1;
     this.camera.updateProjectionMatrix();
     this.needsUpdate = true;
@@ -4804,7 +5124,22 @@ export class Viewer3D extends Scene {
 
   getRenderLens() {
     const fov = (this.camera && this.camera.fov) || 45;
-    return 12 / Math.tan((fov * Math.PI) / 360);
+    const scale = this.__renderFrameScale || 1;
+    return (12 * scale) / Math.tan((fov * Math.PI) / 360);
+  }
+
+  /**
+   * THE LENS DESCRIBES THE SHOT FRAME, NOT THE CANVAS. The frame takes a
+   * different share of the canvas in each window, so a lens measured on the
+   * canvas showed a different picture in each window: the same front view had a
+   * cabinet filling a tablet's frame and a third of a PC's. Told how tall the
+   * frame is, the canvas is opened up so the frame shows the same picture.
+   */
+  setRenderFrameHeight(frameHeight, canvasHeight) {
+    if (!(frameHeight > 0) || !(canvasHeight > 0)) return;
+    const mm = this.getRenderLens();
+    this.__renderFrameScale = canvasHeight / frameHeight;
+    this.setRenderLens(mm);
   }
 
   /** What the framing step's checks show. */

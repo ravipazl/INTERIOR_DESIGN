@@ -25,6 +25,9 @@ const ObjectFinishingsModal = ({
   // Optional: every brand (the dropdown list is only the priced ones), used to
   // name a saved brand that is not in that list.
   allFinishingBrands,
+  // Optional: the brand to show when the part has none saved (Merino for
+  // laminates). Only shown; the caller saves it once a swatch is applied.
+  defaultBrandId = "",
   finishingsList,
   handleSelectedGrainDirection,
   handleFinishingTextureSelection,
@@ -73,9 +76,9 @@ const ObjectFinishingsModal = ({
     brandIdOf(selectedChildComponent, "internal") ||
     brandIdOf(selectedComponentGroup?.components?.[0], "internal");
   const selectedBrandId =
-    selectedFinishingType === "exterior"
+    (selectedFinishingType === "exterior"
       ? externalFinishBrandId
-      : internalFinishBrandId;
+      : internalFinishBrandId) || defaultBrandId;
   // The list shows brands priced for the style; keep the saved brand in it
   // even when it is not, so the dropdown can still show it.
   const brandOptions: FinishingBrand[] = (() => {
@@ -323,7 +326,7 @@ const ObjectFinishingsModal = ({
                             onChange={handleSelectedBrand}
                             className="type-pattern-dropdown bg-[#F9F9FA] border-0 w-full h-[28px]"
                           >
-                            <option value="">Select…</option>
+                            <option value="">All brands</option>
                             {brandOptions.map((brand: FinishingBrand) => (
                               <option key={brand._id} value={brand._id}>
                                 {brand.name}

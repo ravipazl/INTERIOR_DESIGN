@@ -317,9 +317,12 @@
 .bq-xadd { border: 1px dashed #5b3df5; background: none; color: #5b3df5; border-radius: 4px; padding: 3px 10px; font-size: 12px; cursor: pointer; }
 .bq-xadd:hover { background: #f4f1ff; }
 .bq-xdel:focus-visible, .bq-xadd:focus-visible { outline: 2px solid #414063; outline-offset: 1px; }
-@media (max-width: 760px) {
+@media (max-width: 1180px) {
+  /* A tablet: keep the columns readable and scroll the table sideways. Squeezed
+     to fit, its text ran one word to a line. */
   .bq-rooms { margin: 16px 0; overflow-x: auto; }
-  .bq-table { min-width: 980px; }
+  .bq-room { overflow-x: auto; }
+  .bq-table { min-width: 1080px; }
 }
 
 /* MATERIAL — chips in the cell, the editor on its own row.

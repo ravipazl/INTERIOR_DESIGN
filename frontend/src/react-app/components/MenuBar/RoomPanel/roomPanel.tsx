@@ -1309,7 +1309,7 @@ function RoomPanel({
   return (
     <>
       {showRoomPanelModal && (
-        <div className="fixed block z-10 scrollbar shadow-[0_4px_4px_0px_rgba(0,0,0,0.25)] bg-white dark:bg-neutral-700"
+        <div data-pz-canvas-overlay="left" className="fixed block z-10 scrollbar shadow-[0_4px_4px_0px_rgba(0,0,0,0.25)] bg-white dark:bg-neutral-700"
           style={{
             width: ITEMS_W,
             left: `calc(var(--pz-nav-w, 0px) + ${ITEMS_LEFT}px)`,
@@ -1658,7 +1658,7 @@ function RoomPanel({
           </div>
         </div>
       )}
-      <div className="fixed block z-10 scrollbar shadow-[0_4px_4px_0px_rgba(0,0,0,0.25)] bg-white dark:bg-neutral-700"
+      <div data-pz-canvas-overlay="left" className="fixed block z-10 scrollbar shadow-[0_4px_4px_0px_rgba(0,0,0,0.25)] bg-white dark:bg-neutral-700"
         style={{
           width: CAT_W,
           left: `calc(var(--pz-nav-w, 0px) + ${CAT_INSET}px)`,

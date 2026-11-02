@@ -42,6 +42,9 @@ import { PlanImage2D } from "./PlanImage2D";
 import BlueprintInterface from "@pazl/blueprint-interface";
 
 // TOOL: a drawing tool from DrawTools2D (Arc, Rectangle, Split, …) has the mouse.
+// Clear space kept around the plan when it is fitted to the view.
+const PLAN_FIT_MARGIN_PX = 60;
+
 export const floorplannerModes = { MOVE: 0, DRAW: 1, EDIT_ISLANDS: 2, TOOL: 3 };
 
 class TemporaryWall extends Graphics {
@@ -901,7 +904,77 @@ export class Viewer2D extends Application {
     }
   }
 
+  /** The plan's outline on the canvas's own pixels at zoom 1, or null if empty. */
+  __planBounds() {
+    const corners = this.__floorplan?.corners;
+    if (!corners || !corners.length) return null;
+    const xs = corners.map((c) => Dimensioning.cmToPixel(c.x));
+    const ys = corners.map((c) => Dimensioning.cmToPixel(c.y));
+    return {
+      minX: Math.min(...xs),
+      maxX: Math.max(...xs),
+      minY: Math.min(...ys),
+      maxY: Math.max(...ys),
+    };
+  }
+
+  /**
+   * CENTRE THE PLAN IN THE VIEW, zooming out only if it would not otherwise fit.
+   * Never zooms in: a small room stays at the scale it was drawn at.
+   */
+  __fitPlanInView() {
+    const b = this.__planBounds();
+    const w = this.__currentWidth;
+    const h = this.__currentHeight;
+    if (!b || !w || !h) return false;
+    const room = Math.max(1, b.maxX - b.minX);
+    const deep = Math.max(1, b.maxY - b.minY);
+    const zoom = Math.min(
+      this.__floorplanContainer.scale.x,
+      (w - PLAN_FIT_MARGIN_PX * 2) / room,
+      (h - PLAN_FIT_MARGIN_PX * 2) / deep
+    );
+    if (zoom > 0) {
+      this.__floorplanContainer.scale.x = this.__floorplanContainer.scale.y = zoom;
+      this.__zoomed();
+    }
+    const z = this.__floorplanContainer.scale.x;
+    const x = w / 2 - ((b.minX + b.maxX) / 2) * z;
+    const y = h / 2 - ((b.minY + b.maxY) / 2) * z;
+    this.__floorplanContainer.x = this.__tempWallHolder.x = x;
+    this.__floorplanContainer.y = this.__tempWallHolder.y = y;
+    this.__panned();
+    this.__fittedView = {
+      x: this.__floorplanContainer.x,
+      y: this.__floorplanContainer.y,
+      zoom: this.__floorplanContainer.scale.x,
+    };
+    return true;
+  }
+
+  /** Is the view exactly where the last fit left it (not panned or zoomed since)? */
+  __planIsStillFitted() {
+    const f = this.__fittedView;
+    const c = this.__floorplanContainer;
+    return !!f && f.x === c.x && f.y === c.y && f.zoom === c.scale.x;
+  }
+
+  /** Is any of the plan outside the canvas, at the current zoom and pan? */
+  __planIsCutOff() {
+    const b = this.__planBounds();
+    if (!b) return false;
+    const c = this.__floorplanContainer;
+    const z = c.scale.x;
+    return (
+      c.x + b.minX * z < 0 ||
+      c.y + b.minY * z < 0 ||
+      c.x + b.maxX * z > this.__currentWidth ||
+      c.y + b.maxY * z > this.__currentHeight
+    );
+  }
+
   __center() {
+    if (this.__fitPlanInView()) return;
     let floorplanCenter = this.__floorplan.getCenter();
     let zoom = this.__floorplanContainer.scale.x;
     let windowSize = new Vector2(this.__currentWidth, this.__currentHeight);
@@ -2148,6 +2221,7 @@ export class Viewer2D extends Application {
       return;
     }
 
+    const sizeChanged = w !== this.__currentWidth || h !== this.__currentHeight;
     this.__currentWidth = w;
     this.__currentHeight = h;
 
@@ -2162,9 +2236,17 @@ export class Viewer2D extends Application {
       this.__worldHeight
     );
 
+    const stillFitted = this.__planIsStillFitted();
     this.renderer.render(this.stage);
     this.__zoomed();
     this.__panned();
+    // A new window size re-centres a plan the user has not moved, and must never
+    // leave the room off the edge. A plan the user placed, still fully in view,
+    // stays exactly where they put it.
+    if (sizeChanged && (stillFitted || this.__planIsCutOff())) {
+      this.__fitPlanInView();
+      this.renderer.render(this.stage);
+    }
   }
 
   addFloorplanListener(type, listener) {

@@ -289,9 +289,11 @@ const KitchenPlanner2D: React.FC = () => {
       {slots.length ? (
         <>
           <p className="text-[11px] text-[color:var(--pz-text-2)] mb-2">
-            {slots.filter((s: any) => s.level === "floor").length} base ·{" "}
-            {slots.filter((s: any) => s.level === "wall").length} wall units
-            {slots.some((s: any) => s.kind === "corner") ? " · corner unit" : ""}
+            {slots.filter((s: any) => s.level === "floor" && s.kind !== "tall").length} base ·{" "}
+            {slots.filter((s: any) => s.level === "wall").length} wall
+            {slots.some((s: any) => s.kind === "tall")
+              ? ` · ${slots.filter((s: any) => s.kind === "tall").length} tall`
+              : ""}
           </p>
           <button
             type="button"

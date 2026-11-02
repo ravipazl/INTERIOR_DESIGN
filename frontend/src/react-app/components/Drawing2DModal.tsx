@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import BlueprintInterface from "@pazl/blueprint-interface";
 import {
   generateItemDrawing,
@@ -195,6 +196,7 @@ const Drawing2DModal: React.FC<Drawing2DModalProps> = ({
         color: "#fff",
         fontSize: 13,
         fontWeight: 600,
+        whiteSpace: "nowrap",
         cursor: enabled ? "pointer" : "not-allowed",
       }}
     >
@@ -551,11 +553,16 @@ const Drawing2DModal: React.FC<Drawing2DModalProps> = ({
     </button>
   );
 
-  return (
+  // On the page itself: inside the item panel it sat below the Snap button,
+  // which then covered Regenerate.
+  return createPortal(
     <div
       style={{
         position: "fixed",
         inset: 0,
+        // Beside the nav rail, not under it: the rail sits above this overlay,
+        // so a popup centred on the whole window lost its left edge on a tablet.
+        left: "var(--pz-nav-w, 0px)",
         zIndex: 1000,
         background: "rgba(0,0,0,0.55)",
         display: "flex",
@@ -567,7 +574,7 @@ const Drawing2DModal: React.FC<Drawing2DModalProps> = ({
       <div
         onClick={(e) => e.stopPropagation()}
         style={{
-          width: "min(1000px, 94vw)",
+          width: "min(1000px, calc(100vw - var(--pz-nav-w, 0px) - 24px))",
           height: "min(720px, 92vh)",
           background: "#fff",
           borderRadius: 10,
@@ -980,6 +987,8 @@ const Drawing2DModal: React.FC<Drawing2DModalProps> = ({
         <div
           style={{
             display: "flex",
+            flexWrap: "wrap",
+            gap: 10,
             alignItems: "center",
             justifyContent: "space-between",
             padding: "12px 16px",
@@ -992,7 +1001,7 @@ const Drawing2DModal: React.FC<Drawing2DModalProps> = ({
               ? "Front / Top / Left / Right · solid = visible, dashed = hidden"
               : "Single-unit architectural sheet with legend, key plan and title block"}
           </div>
-          <div style={{ display: "flex", gap: 10 }}>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
             {btn("#6b7280", generate, "Regenerate", !loading)}
             {tab === "shop" ? (
               <>
@@ -1035,6 +1044,8 @@ const Drawing2DModal: React.FC<Drawing2DModalProps> = ({
         </div>
       </div>
     </div>
+    ,
+    document.body
   );
 };
 
