@@ -314,6 +314,7 @@ const FullRoomViewModal: React.FC<FullRoomViewModalProps> = ({
         color: "#fff",
         fontSize: 13,
         fontWeight: 600,
+        whiteSpace: "nowrap",
         cursor: enabled ? "pointer" : "not-allowed",
       }}
     >
@@ -376,6 +377,9 @@ const FullRoomViewModal: React.FC<FullRoomViewModalProps> = ({
       style={{
         position: "fixed",
         inset: 0,
+        // Beside the nav rail, not under it: the rail sits above this overlay,
+        // so a popup centred on the whole window lost its left edge on a tablet.
+        left: "var(--pz-nav-w, 0px)",
         zIndex: 1000,
         background: "rgba(0,0,0,0.55)",
         display: "flex",
@@ -387,7 +391,7 @@ const FullRoomViewModal: React.FC<FullRoomViewModalProps> = ({
       <div
         onClick={(e) => e.stopPropagation()}
         style={{
-          width: "min(1040px, 95vw)",
+          width: "min(1040px, calc(100vw - var(--pz-nav-w, 0px) - 24px))",
           height: "min(760px, 94vh)",
           background: "#fff",
           borderRadius: 10,
@@ -439,6 +443,8 @@ const FullRoomViewModal: React.FC<FullRoomViewModalProps> = ({
         <div
           style={{
             display: "flex",
+            flexShrink: 0,
+            overflowX: "auto",
             gap: 4,
             padding: "0 12px",
             borderBottom: "1px solid #e5e7eb",
@@ -738,6 +744,8 @@ const FullRoomViewModal: React.FC<FullRoomViewModalProps> = ({
         <div
           style={{
             display: "flex",
+            flexWrap: "wrap",
+            gap: 10,
             alignItems: "center",
             justifyContent: "space-between",
             padding: "12px 16px",
@@ -752,7 +760,7 @@ const FullRoomViewModal: React.FC<FullRoomViewModalProps> = ({
                 ? "Orthographic renders of the whole room"
                 : "Single-wall architectural sheet with legend, key plan and title block"}
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 10 }}>
             {/* Applies to all three tabs — the line drawing, the renders and
                 the working drawing are all built from the same scene. Changing
                 it regenerates, because the fronts have to be off while the

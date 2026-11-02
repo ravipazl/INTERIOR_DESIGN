@@ -236,7 +236,9 @@
 }
 
 .production-container {
-  height: 90vh;
+  /* The whole height below the header: at 90vh a strip of the 3D or floor plan
+     canvas behind it showed along the foot of the BOQ page. */
+  height: calc(100vh - 60px);
   /* Scroll the BOQ/estimate inside this panel instead of scrolling the whole
      page (fixed height with no overflow made the content spill onto the page). */
   overflow-y: auto;
@@ -269,4 +271,52 @@
   display: flex;
   justify-content: center;
   align-items: center;
+}
+
+/* Tablet: keep as much of the 3D view on screen as the panels can spare. The
+   width matches NARROW_SCREEN_PX in furnishMenu.tsx. The saved time gives its
+   room to the tools; Save itself stays. !important because Tailwind's utilities
+   on these elements all carry it (tailwind.config.js, important: true). */
+@media (max-width: 1100px) {
+  [data-pz-canvas-overlay="right"].pz-object-panel {
+    max-width: 300px !important;
+  }
+  div.pz-saved-time {
+    display: none !important;
+  }
+}
+
+
+/* Framing a shot: the heading box would sit over the frame's corner. */
+body.pz-framing-shot .pz-cam-angle {
+  display: none !important;
+}
+
+/* Tablet toolbar: tighter buttons and smaller labels so more tools fit in the
+   bar. The bar still scrolls sideways if a tab has more tools than fit. */
+@media (max-width: 1100px) {
+  #pz-toolbar-slot {
+    padding-left: 4px !important;
+    padding-right: 4px !important;
+  }
+  #pz-toolbar-slot button {
+    min-width: 34px !important;
+    padding-left: 1px !important;
+    padding-right: 1px !important;
+  }
+  #pz-toolbar-slot .menu-button-text {
+    font-size: 9px !important;
+    line-height: 10px !important;
+    white-space: normal !important;
+    max-width: 42px;
+    text-align: center;
+  }
+}
+@media (max-width: 900px) {
+  .app-header-flex-container h5 {
+    max-width: 70px;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
 }

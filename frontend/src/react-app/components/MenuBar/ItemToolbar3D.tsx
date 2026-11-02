@@ -457,6 +457,7 @@ const ItemToolbar3D: React.FC = () => {
     }
     itemRef.current = null;
     setItem(null);
+    BI.blueprint3d?.roomplanner?.clearDeletedSelection?.();
   };
   const onLock = () => {
     const next = !locked;
@@ -564,7 +565,10 @@ const ItemToolbar3D: React.FC = () => {
           onClick={onLock}
           active={locked}
         />
-        <Icon icon="content_copy" title="Duplicate (Ctrl+D)" onClick={onDuplicate} />
+        {/* A door or window is added to a wall from its own panel; it has no copy. */}
+        {(item?.itemModel || item?.__itemModel)?.isParametric ? null : (
+          <Icon icon="content_copy" title="Duplicate (Ctrl+D)" onClick={onDuplicate} />
+        )}
         <Icon
           icon={hidden ? "visibility" : "visibility_off"}
           title={hidden ? "Show" : "Hide"}

@@ -288,7 +288,8 @@ const buildLines = (items: TableRowType[]): BoqLine[] => {
       Math.round(Number(it.heightMm) || 0),
       it.boqWidthFt ?? "",
       it.boqHeightFt ?? "",
-      it.material || "",
+      // The same finishes in another order are still the same line.
+      (it.material || "").split(/\s*[,;·]\s*/).sort().join("|"),
       it.boqExcluded ? 1 : 0,
     ].join("|");
     const list = byKey.get(key);
@@ -2132,6 +2133,14 @@ const BoqTable: React.FC<BoqTableProps> = ({
         // still waiting in the browser first (a material applied a moment ago),
         // so the bill includes it. A failed sync must not block the BOQ.
         try {
+          // Units placed and never clicked would price at about ₹0. A quote the
+          // client has accepted keeps the figures it was accepted on.
+          const current = projectId
+            ? await ProjectsService.getProjectById(projectId)
+            : null;
+          if (!/accept|closed|complet/i.test(String(current?.status || ""))) {
+            await (BlueprintInterface as any)?.ProjectManagerService?.measureUnmeasuredParts?.();
+          }
           await SyncService.syncToDB();
         } catch (e) {
           console.warn("BoqTable ~ sync before BOQ failed", e);

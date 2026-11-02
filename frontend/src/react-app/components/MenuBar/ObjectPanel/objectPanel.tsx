@@ -75,7 +75,7 @@ function ObjectPanel({
         item toolbar keeps itself to the left of it instead of hiding under. */}
     <div
       data-pz-canvas-overlay="right"
-      className="pz-animate-in flex flex-col justify-between fixed top-[100px] bottom-0 right-0 z-10 w-full max-w-sm h-auto shadow-[0_4px_4px_0px_rgba(0,0,0,0.25)] bg-[color:var(--pz-panel-surface)]"
+      className="pz-object-panel pz-animate-in flex flex-col justify-between fixed top-[100px] bottom-0 right-0 z-10 w-full max-w-sm h-auto shadow-[0_4px_4px_0px_rgba(0,0,0,0.25)] bg-[color:var(--pz-panel-surface)]"
     >
       {/* This wrapper is a flex COLUMN that claims the panel's remaining
           height (flex-1) and is allowed to shrink below its content

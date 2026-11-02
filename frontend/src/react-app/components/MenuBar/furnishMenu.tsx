@@ -97,6 +97,9 @@ export enum ACTION_MODES {
   SHORTCUTS = "shortcuts",
 }
 
+// Matches the tablet rules in ./index.css.
+const NARROW_SCREEN_PX = 1100;
+
 const FurnishMenu = ({
   furnishTabData,
   active = true,
@@ -324,6 +327,21 @@ const FurnishMenu = ({
     }
   }, [exploreSignal]);
 
+  // The catalogue has just opened over the canvas: while the view is still the
+  // fitted one, fit it to the space left beside the catalogue. Not when it
+  // closes, which happens as an item is tapped: the room must not move then.
+  useEffect(() => {
+    if (!showRoomPanel) return;
+    const frame = requestAnimationFrame(() =>
+      (BlueprintInterface as any)?.blueprint3d?.roomplanner?.refitIfStillFitted?.()
+    );
+    return () => cancelAnimationFrame(frame);
+  }, [showRoomPanel]);
+
+  useEffect(() => {
+    (BlueprintInterface as any)?.blueprint3d?.roomplanner?.refitAfterPanelChange?.();
+  }, [showRoomPanel, showObjectPanel]);
+
   // The catalogue and the render panel occupy the SAME left slot, so exactly
   // one is shown at a time. Driven by navView because both are the FURNISH tab
   // and cannot be told apart from activeTab alone.
@@ -369,6 +387,11 @@ const FurnishMenu = ({
           setSwapTarget((t) =>
             t && t.itemId !== String(itemModel.__id) ? null : t
           );
+          // On a tablet the catalogue and the item's panel together leave
+          // almost no 3D to see. The 3D button in the rail reopens it.
+          if (window.innerWidth <= NARROW_SCREEN_PX) {
+            setShowRoomPanel(false);
+          }
           const isParametricDoor =
             itemModel.isParametric && itemModel.parametricClass;
           if (isParametricDoor) {

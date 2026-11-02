@@ -30,6 +30,7 @@ import BlueprintInterface from "@pazl/blueprint-interface";
 import { HISTORY_TITLES } from "@pazl/services/ProjectManager";
 import { MODEL_TYPES } from "@pazl/entities/Model";
 import {
+  isKitchenCabinetModel,
   isWallUnitModel,
   wallUnitTopCm,
 } from "@pazl/react-app/roomTemplates/wallUnitPlacement";
@@ -67,6 +68,7 @@ export const CLICK_SELECTS_PART = true;
 // A press and release closer than this (px) is a click; anything further is a
 // drag, and a drag never picks a part.
 const CLICK_MOVE_TOLERANCE_PX = 5;
+const DOUBLE_TAP_MS = 350;
 
 /**
  * This is a custom implementation of the DragControls class
@@ -389,6 +391,30 @@ export class DragRoomItemsControl3D extends EventDispatcher {
       "DragRoomItemsControl3D.js ~ __releaseListener ~ __pressListener",
       evt
     );
+    // A SECOND FINGER makes this a camera gesture (pinch / two-finger pan), not
+    // a drag: let go of any item the first finger picked up, in place.
+    if (evt.touches && evt.touches.length > 1) {
+      evt.preventDefault();
+      this.__twoFingers = true;
+      this.__pendingMove = null;
+      if (this.__selected) {
+        const item = this.__selected;
+        item.__dragRawTarget = null;
+        this.__selected = null;
+        this.dispatchEvent({ type: EVENT_ITEM_MOVE_FINISH, item });
+      }
+      return;
+    }
+    const pressed = evt.changedTouches !== undefined ? evt.changedTouches[0] : evt;
+    let rect = this.__domElement.getBoundingClientRect();
+    // A FINGER HAS NO HOVER. __mouse is otherwise only updated by moves, so a
+    // mouse has always told us where it is before the press. A finger lands
+    // with no move first, so the pick below tested wherever the last touch
+    // ended: the item under the finger was missed and the camera turned instead.
+    if (evt.changedTouches !== undefined) {
+      this.__mouse.x = ((pressed.clientX - rect.left) / rect.width) * 2 - 1;
+      this.__mouse.y = -((pressed.clientY - rect.top) / rect.height) * 2 + 1;
+    }
     this.dispatchEvent({
       type: EVENT_MOVED_DRAG,
       event: evt,
@@ -397,10 +423,9 @@ export class DragRoomItemsControl3D extends EventDispatcher {
     // outline so it isn't left floating where the part used to be.
     this.__setPartHoverHighlight(null);
     this.__allowDragging = true;
-    let rect = this.__domElement.getBoundingClientRect();
     this.__intialModelMovementParams = {
-      startX: evt.clientX,
-      startY: evt.clientY,
+      startX: pressed.clientX,
+      startY: pressed.clientY,
       startLeft: rect.left,
     };
     // console.log(
@@ -448,6 +473,9 @@ export class DragRoomItemsControl3D extends EventDispatcher {
       }
       // A new drag: a wall unit's held height is read from where it is now.
       this.__selected.__wallUnitSnapTop = undefined;
+      // …and where the pointer holds the item is measured afresh.
+      this.__grabOffset = null;
+      this.__rememberSpots(this.__selected);
 
       if (
         this.__raycaster.ray.intersectPlane(this.__plane, this.__intersection)
@@ -473,6 +501,12 @@ export class DragRoomItemsControl3D extends EventDispatcher {
       }
       this.__domElement.style.cursor = "move";
       this.dispatchEvent({ type: EVENT_ITEM_SELECTED, item: this.__selected });
+      // A finger on an item holds the camera still from the very start. Moves
+      // arrive once per frame here but straight away in OrbitControls, so
+      // otherwise the view turned a little before the item began to move.
+      if (evt.identifier !== undefined) {
+        this.dispatchEvent({ type: EVENT_ITEM_MOVE, item: this.__selected });
+      }
       return;
     }
     //if (deltaTime < 300) {
@@ -546,9 +580,17 @@ export class DragRoomItemsControl3D extends EventDispatcher {
       "DragRoomItemsControl3D.js ~ __releaseListener ~ release the drag",
       evt
     );
+    // The end of a two-finger camera gesture is not a tap on whatever is under
+    // the fingers. Wait until the last finger has lifted.
+    if (this.__twoFingers) {
+      evt.preventDefault();
+      if (!evt.touches || evt.touches.length === 0) this.__twoFingers = false;
+      return;
+    }
     this.__allowDragging = true;
     // The drag is over — clear the snap guide line.
     this.__snapIndicator?.hide();
+    this.__showBackLabel(false);
 
     let time = Date.now();
     //  this.checkThresholdAndSetPosition();
@@ -575,6 +617,16 @@ export class DragRoomItemsControl3D extends EventDispatcher {
             pt.clientX,
             pt.clientY
           );
+          // The press cancels the browser's own dblclick on a touch screen, so
+          // a double-tap has to be recognised here.
+          if (evt.changedTouches !== undefined) {
+            if (time - (this.__lastTapTime || 0) < DOUBLE_TAP_MS) {
+              this.__dblClickListener(pt);
+              this.__lastTapTime = 0;
+            } else {
+              this.__lastTapTime = time;
+            }
+          }
         }
       } catch (e) {
         // The pick is a UI shortcut — it must never break a release.
@@ -587,6 +639,10 @@ export class DragRoomItemsControl3D extends EventDispatcher {
         if (t && t.location) {
           this.__selected.snapToPoint(t.location, t.normal, t.intersectingPlane);
         }
+        // Only a real drag settles a cabinet: this release also runs for a plain
+        // click, and clicking a cabinet must never move it. Nor does one that
+        // came back to its old spot: that spot is exactly where it belongs.
+        this.__selected.__settleCabinet = !!t && !this.__selected.__wentBack;
         this.__selected.__dragRawTarget = null;
       } catch (e) {
         /* non-fatal — fall through to the wall-cleanup below */
@@ -598,8 +654,11 @@ export class DragRoomItemsControl3D extends EventDispatcher {
       // (free dragging is allowed during the drag; overlap is cleaned up here).
       try {
         const resolved = this.__resolveFloorItemOffWalls(this.__selected);
-        if (resolved && this.__selected.__itemModel) {
-          this.__selected.__itemModel.position = resolved;
+        // A kitchen cabinet then closes a small gap to the cabinet beside it.
+        const closed = this.__closeCabinetGap(this.__selected, resolved);
+        const settled = closed || resolved;
+        if (settled && this.__selected.__itemModel) {
+          this.__selected.__itemModel.position = settled;
         }
       } catch (e) {
         console.warn("release resolve off walls failed", e);
@@ -620,7 +679,21 @@ export class DragRoomItemsControl3D extends EventDispatcher {
       });
       this.__selected = null;
     } else {
-      evt = evt.changedTouches !== undefined ? evt.changedTouches[0] : evt;
+      const isTouch = evt.changedTouches !== undefined;
+      evt = isTouch ? evt.changedTouches[0] : evt;
+      if (isTouch) {
+        // Lifting a finger that turned the view is not a tap on what it ended
+        // over, and it leaves no hover behind to clear later.
+        this.__clearPartHover();
+        const p0 = this.__pressPoint;
+        if (
+          p0 &&
+          Math.hypot(evt.clientX - p0.x, evt.clientY - p0.y) >=
+            CLICK_MOVE_TOLERANCE_PX
+        ) {
+          return;
+        }
+      }
       this.__raycaster.setFromCamera(this.__mouse, this.__camera);
       let wallPlanesThatIntersect = this.__raycaster.intersectObjects(
         this.__pickable(this.__walls),
@@ -868,7 +941,18 @@ export class DragRoomItemsControl3D extends EventDispatcher {
    * when the item stands in no room (the caller then uses the estimate).
    */
   __settleOnRoomWalls(item) {
-    const SNAP = 3; // cm
+    // A KITCHEN CABINET belongs against its wall, so a dragged one reaches
+    // further: 30 cm to the wall behind it, 5 cm to one beside it (a corner unit
+    // has both). Anything else, or a drop with Shift held, keeps the 3 cm.
+    const facing = item.__settleCabinet
+      ? this.__kitchenCabinetFacing(item)
+      : null;
+    const snapFor = (f) =>
+      !facing
+        ? 3
+        : f.nx * facing.x + f.nz * facing.z > 0.7
+        ? 30.01
+        : 5;
     const fp = BlueprintInterface?.blueprint3d?.model?.__floorplan;
     const rooms = (fp && (fp.rooms || (fp.getRooms && fp.getRooms()))) || [];
     const at = { x: item.position.x, y: item.position.z };
@@ -938,7 +1022,7 @@ export class DragRoomItemsControl3D extends EventDispatcher {
         // Only a wall the item is actually beside, and only when it is into
         // the wall or almost touching it — not one far across the room.
         if (hi <= 0 || lo >= f.len) continue;
-        if (gap >= SNAP || Math.abs(gap) < 0.01) continue;
+        if (gap >= snapFor(f) || Math.abs(gap) < 0.01) continue;
         const depth = Math.max(
           Math.abs(f.nx) * (box.max.x - box.min.x) +
             Math.abs(f.nz) * (box.max.z - box.min.z),
@@ -962,6 +1046,83 @@ export class DragRoomItemsControl3D extends EventDispatcher {
     return p;
   }
 
+  /**
+   * Which way a below-counter or tall unit faces, or null for any other item
+   * (or while Shift is held, which places it freely). Its saved turn, in
+   * degrees: 0 faces +Z.
+   */
+  __kitchenCabinetFacing(item) {
+    try {
+      if (!item || this.__shiftHeld) return null;
+      if (parseInt(item.__itemType, 10) !== MODEL_TYPES.FLOOR_UNIT) return null;
+      const record =
+        BlueprintInterface?.ProjectManagerService?.getFurnishedModelById?.(
+          item.__itemModel?.id
+        );
+      if (!record || !isKitchenCabinetModel(record.model || record)) return null;
+      const turn = ((Number(record.rotation?.[1]) || 0) * Math.PI) / 180;
+      return { x: Math.sin(turn), z: Math.cos(turn) };
+    } catch (e) {
+      return null; // never let the check break a drop
+    }
+  }
+
+  /**
+   * A kitchen cabinet let go within 10 cm of the one beside it closes the gap.
+   * Only along the way the row runs, and only with a cabinet standing in the
+   * same row (they share at least half their depth). `at` is where the item is
+   * being settled to, or null for where it stands. Returns the new position, or
+   * null when there is nothing to close.
+   */
+  __closeCabinetGap(item, at) {
+    const REACH = 10; // cm
+    if (!item.__settleCabinet) return null;
+    const facing = this.__kitchenCabinetFacing(item);
+    if (!facing) return null;
+    // Square rooms only: on a slanted wall these outlines say nothing exact.
+    const alongX = Math.abs(facing.z) > 0.99;
+    if (!alongX && Math.abs(facing.x) <= 0.99) return null;
+
+    const from = at || item.position;
+    if (typeof item.updateMatrixWorld === "function") item.updateMatrixWorld(true);
+    const mine = new Box3().setFromObject(item.__loadedItem || item);
+    if (!isFinite(mine.min.x)) return null;
+    mine.translate(from.clone().sub(item.position));
+    const run = alongX ? "x" : "z";
+    const across = alongX ? "z" : "x";
+
+    let best = REACH;
+    let shift = 0;
+    (this.__draggableItems || []).forEach((other) => {
+      if (other === item || other.visible === false) return;
+      if (!this.__kitchenCabinetFacing(other)) return;
+      const box = new Box3().setFromObject(other.__loadedItem || other);
+      if (!isFinite(box.min.x)) return;
+      const shared =
+        Math.min(mine.max[across], box.max[across]) -
+        Math.max(mine.min[across], box.min[across]);
+      const depth = Math.min(
+        mine.max[across] - mine.min[across],
+        box.max[across] - box.min[across]
+      );
+      if (shared < depth / 2) return;
+      const ahead = box.min[run] - mine.max[run];
+      const behind = mine.min[run] - box.max[run];
+      if (ahead > 0.01 && ahead <= best) {
+        best = ahead;
+        shift = ahead;
+      }
+      if (behind > 0.01 && behind <= best) {
+        best = behind;
+        shift = -behind;
+      }
+    });
+    if (!shift) return null;
+    const p = from.clone();
+    p[run] += shift;
+    return p;
+  }
+
   // Pointer moves arrive far faster than the screen refreshes — a mouse can
   // emit 120+ events a second, and each one used to run the FULL drag pipeline
   // (raycasts, wall/room containment, snap queries, polygon collision). Most of
@@ -972,6 +1133,7 @@ export class DragRoomItemsControl3D extends EventDispatcher {
   // mouse reports. This is what makes a fast drag stop stuttering.
   __moveListener(evt) {
     evt.preventDefault();
+    if (this.__twoFingers) return;
     const src = evt.changedTouches !== undefined ? evt.changedTouches[0] : evt;
     // Copy the fields the pipeline reads; the event object itself must not be
     // held across a frame boundary.
@@ -994,6 +1156,163 @@ export class DragRoomItemsControl3D extends EventDispatcher {
         }
       }
     });
+  }
+
+  /**
+   * WHERE AN ITEM CAME FROM, so it can go back exactly.
+   *
+   * A drag ends wherever the mouse is, and nobody can hit a spot to the
+   * millimetre by hand. Each item keeps two spots, on the 3D item itself, so
+   * only while the page is open (a reload starts from the saved position):
+   *
+   *   home  where it was the first time it was picked up;
+   *   last  where it was when this drag began.
+   *
+   * A spot only pulls once the item has been dragged clear of it: without that,
+   * a small nudge of 30 mm would be snapped straight back and could never be
+   * made. An item let go 30 mm from home can likewise still be nudged away.
+   * Shift places it anywhere at all.
+   */
+  __rememberSpots(item) {
+    const p = item.position;
+    const spot = {
+      x: p.x,
+      y: p.y,
+      z: p.z,
+      wall: item.__itemModel?.__currentWall || null,
+    };
+    if (!item.__homeSpot) item.__homeSpot = spot;
+    item.__lastSpot = spot;
+    item.__armedSpots = [];
+    item.__wentBack = false;
+  }
+
+  /**
+   * Within 15 cm of a spot, the cursor's point becomes that spot. A wall item
+   * measures along the wall and up it, on the same wall only (the wall's own
+   * placement then gives it the same distance out, and the same facing). A floor
+   * or ceiling item measures across the room; its height stays its own business
+   * (the floor, or the table it rests on).
+   */
+  __snapBackToSpot(item, location, intersectingPlane) {
+    item.__wentBack = false;
+    const TOLERANCE_CM = 15;
+    const type = parseInt(item.__itemType, 10);
+    const onWall = [2, 3, 7, 9].includes(type);
+    // These stand on the floor in their wall: only along it matters.
+    const heightFree = !onWall || type === 7 || type === 9;
+    const plane = intersectingPlane;
+    const planeWall = plane?.wall || plane?.edge?.wall || null;
+    const normal = plane?.edge?.normal || null;
+    if (onWall && (!planeWall || !normal)) return false;
+
+    const gapTo = (spot) => {
+      if (onWall && spot.wall !== planeWall) return Infinity;
+      let dx = spot.x - location.x;
+      let dz = spot.z - location.z;
+      if (onWall) {
+        // Along the wall only: the spot stands out from the wall, the cursor
+        // is on its face.
+        const out = dx * normal.x + dz * normal.z;
+        dx -= normal.x * out;
+        dz -= normal.z * out;
+      }
+      const dy = heightFree ? 0 : spot.y - location.y;
+      return Math.sqrt(dx * dx + dy * dy + dz * dz);
+    };
+
+    let best = null;
+    let bestGap = TOLERANCE_CM;
+    [item.__homeSpot, item.__lastSpot].forEach((spot) => {
+      if (!spot) return;
+      const gap = gapTo(spot);
+      if (gap > TOLERANCE_CM) {
+        if (!item.__armedSpots.includes(spot)) item.__armedSpots.push(spot);
+      } else if (item.__armedSpots.includes(spot) && gap <= bestGap) {
+        best = spot;
+        bestGap = gap;
+      }
+    });
+    if (!best) return false;
+    location.x = best.x;
+    location.z = best.z;
+    if (!heightFree) location.y = best.y;
+    item.__wentBack = true;
+    return true;
+  }
+
+  /**
+   * A wall unit lines up with the other wall units on its wall, within 5 cm:
+   * the same top, and side by side with no gap.
+   */
+  __lineUpWallUnit(item, location, intersectingPlane) {
+    if (parseInt(item.__itemType, 10) !== MODEL_TYPES.WALL_UNIT) return;
+    const wall = intersectingPlane?.wall || intersectingPlane?.edge?.wall;
+    const normal = intersectingPlane?.edge?.normal;
+    const half = item.__itemModel?.__halfSize;
+    if (!wall || !normal || !half) return;
+    const TOLERANCE_CM = 5;
+    const along = { x: -normal.z, z: normal.x };
+    const alongOf = (p) => p.x * along.x + p.z * along.z;
+
+    let bestTop = TOLERANCE_CM;
+    let topY = null;
+    let bestSide = TOLERANCE_CM;
+    let shift = null;
+    (this.__draggableItems || []).forEach((other) => {
+      if (other === item || other.visible === false) return;
+      if (parseInt(other.__itemType, 10) !== MODEL_TYPES.WALL_UNIT) return;
+      if (other.__itemModel?.__currentWall !== wall) return;
+      const otherHalf = other.__itemModel?.__halfSize;
+      if (!otherHalf) return;
+
+      const topGap = Math.abs(
+        other.position.y + otherHalf.y - (location.y + half.y)
+      );
+      if (topGap <= bestTop) {
+        bestTop = topGap;
+        topY = other.position.y + otherHalf.y - half.y;
+      }
+      const reach = half.x + otherHalf.x;
+      const apart = alongOf(location) - alongOf(other.position);
+      const sideGap = Math.abs(Math.abs(apart) - reach);
+      if (sideGap <= bestSide) {
+        bestSide = sideGap;
+        shift = (apart >= 0 ? reach : -reach) - apart;
+      }
+    });
+    if (topY !== null) location.y = topY;
+    if (shift !== null) {
+      location.x += along.x * shift;
+      location.z += along.z * shift;
+    }
+  }
+
+  /** A small note by the cursor while the item is held at its old spot. */
+  __showBackLabel(show) {
+    try {
+      if (!show) {
+        if (this.__backLabel) this.__backLabel.style.display = "none";
+        return;
+      }
+      if (!this.__backLabel) {
+        const el = document.createElement("div");
+        el.textContent = "Original position";
+        el.style.cssText =
+          "position:fixed;z-index:40;pointer-events:none;padding:2px 8px;" +
+          "border-radius:4px;background:#111827;color:#fff;font-size:11px;";
+        document.body.appendChild(el);
+        this.__backLabel = el;
+      }
+      const rect = this.__domElement.getBoundingClientRect();
+      this.__backLabel.style.left =
+        rect.left + ((this.__mouse.x + 1) / 2) * rect.width + 14 + "px";
+      this.__backLabel.style.top =
+        rect.top + ((1 - this.__mouse.y) / 2) * rect.height + 14 + "px";
+      this.__backLabel.style.display = "block";
+    } catch (e) {
+      /* only a note: never let it break a drag */
+    }
   }
 
   /**
@@ -1073,12 +1392,62 @@ export class DragRoomItemsControl3D extends EventDispatcher {
             customIntersectingPlanes,
             false
           );
+          // THE POINTER CAN BE OVER THE ITEM WHILE THE FLOOR UNDER IT IS NOT.
+          // A tall unit near a wall is grabbed high up; the line through the
+          // pointer meets floor level beyond the wall, off the room's floor, so
+          // nothing was hit and the unit could not be moved at all from there.
+          // Floor level is used instead; the room confinement below still keeps
+          // the unit inside.
+          if (
+            !customPlanesThatIntersect.length &&
+            this.__selected.__itemType == MODEL_TYPES.FLOOR_UNIT &&
+            customIntersectingPlanes[0]
+          ) {
+            const floor = customIntersectingPlanes[0];
+            floor.updateMatrixWorld();
+            const floorY = new Vector3().setFromMatrixPosition(floor.matrixWorld).y;
+            const point = new Vector3();
+            if (
+              this.__raycaster.ray.intersectPlane(
+                new Plane(new Vector3(0, 1, 0), -floorY),
+                point
+              )
+            ) {
+              // Shaped like a hit on the floor plane itself (its own +Z is up).
+              customPlanesThatIntersect = [
+                { point, face: { normal: new Vector3(0, 0, 1) }, object: floor },
+              ];
+            }
+          }
 
           /* PERF-REMOVED console.debug — ran on every pointer move */
           if (customPlanesThatIntersect.length) {
             let intersectionData = customPlanesThatIntersect[0];
             this.__intersection = intersectionData.point;
             let location = intersectionData.point;
+            // KEEP THE ITEM WHERE IT WAS GRABBED. The pointer lands on the item
+            // part-way up it, but the floor point under the pointer is further
+            // away than the item's foot, so the first move threw the item about
+            // a metre to that point. The gap between the two is taken at the
+            // first move and kept for the whole drag. Floor planes only: a wall
+            // item's height is held by its own rules below.
+            // (The face normal is in the plane's own frame — a floor plane is
+            // a rotated XY plane, so it reads +Z there — hence the world turn.)
+            const upward =
+              intersectionData.face &&
+              intersectionData.face.normal
+                .clone()
+                .transformDirection(intersectionData.object.matrixWorld);
+            if (upward && Math.abs(upward.y) > 0.9) {
+              if (!this.__grabOffset) {
+                this.__grabOffset = {
+                  x: this.__selected.position.x - location.x,
+                  z: this.__selected.position.z - location.z,
+                };
+              }
+              location.x += this.__grabOffset.x;
+              location.z += this.__grabOffset.z;
+            }
             this.__lastInterectionPoint = location;
             let normal = intersectionData.face.normal;
             this.__lastInterectionPointNormal = normal;
@@ -1180,6 +1549,17 @@ export class DragRoomItemsControl3D extends EventDispatcher {
               if (snap?.position) {
                 location.copy(snap.position);
               }
+              // Back where it came from wins over every other snap. Otherwise a
+              // wall unit lines up with its neighbours on the wall.
+              const snappingOn =
+                this.__snapManager.active && !this.__shiftHeld;
+              const wentBack =
+                snappingOn &&
+                this.__snapBackToSpot(this.__selected, location, intersectingPlane);
+              this.__showBackLabel(wentBack);
+              if (snappingOn && !wentBack) {
+                this.__lineUpWallUnit(this.__selected, location, intersectingPlane);
+              }
               // Mark the item when this position came from a WALL snap. A wall
               // snap sits the item flush against the wall, so its polygon edge
               // lands right on the room's interior boundary — the strict
@@ -1194,7 +1574,9 @@ export class DragRoomItemsControl3D extends EventDispatcher {
               // is one-sided and would override it. The flag tells that code to
               // keep the snap instead.
               this.__selected.__activeObjectSnap =
-                snap?.kind === "objectEdge" || snap?.kind === "objectCenter";
+                wentBack ||
+                snap?.kind === "objectEdge" ||
+                snap?.kind === "objectCenter";
               // (Auto-orient removed: rotating the item mid-snap changed its
               // footprint and destabilised corner/floor placement. Rotation is
               // manual again; the snap's `normal` field below is left unused.)
@@ -1233,7 +1615,11 @@ export class DragRoomItemsControl3D extends EventDispatcher {
             // it does every other snap. The clamp above already keeps it
             // between the floor and the ceiling.
             const snapTop = this.__wallUnitSnapTopCm(this.__selected);
-            if (snapTop !== null && !this.__shiftHeld) {
+            if (
+              snapTop !== null &&
+              !this.__shiftHeld &&
+              !this.__selected.__wentBack
+            ) {
               const halfY = this.__selected.__itemModel?.__halfSize?.y ?? 0;
               if (Math.abs(location.y + halfY - snapTop) <= 5) {
                 location.y = snapTop - halfY;
@@ -1603,6 +1989,13 @@ export class DragRoomItemsControl3D extends EventDispatcher {
       this.__releaseListenerEvent,
       false
     );
+    // The system can take a touch back (a palm, an edge swipe). Treat it as a
+    // release, or the item stays stuck to a finger that has gone.
+    this.__domElement.addEventListener(
+      "touchcancel",
+      this.__releaseListenerEvent,
+      false
+    );
   }
 
   deactivate() {
@@ -1651,6 +2044,11 @@ export class DragRoomItemsControl3D extends EventDispatcher {
     );
     this.__domElement.removeEventListener(
       "touchend",
+      this.__releaseListenerEvent,
+      false
+    );
+    this.__domElement.removeEventListener(
+      "touchcancel",
       this.__releaseListenerEvent,
       false
     );

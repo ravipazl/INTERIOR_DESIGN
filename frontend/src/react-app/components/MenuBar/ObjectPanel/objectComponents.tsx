@@ -19,6 +19,10 @@ import { CategoriesService } from "@pazl/services/categoriesService";
 import { Model } from "@pazl/entities/Model";
 import { Category } from "@pazl/entities/Category";
 
+// The brand a laminate panel opens on when the part has none yet.
+const DEFAULT_BRAND = /^merino$/i;
+const DEFAULT_BRAND_TYPE = /laminate/i;
+
 interface ObjectComponentsProp {
   selectedModel: FurnishedModel;
   isDarkMode: boolean;
@@ -65,6 +69,8 @@ function ObjectComponents({
     useState<FurnishedModelComponent | null>(null);
   const [selectedGrainDirection, setSelectedGrainDirection] = useState("");
   const [selectedMaterialBrand, setSelectedMaterialBrand] = useState("");
+  // Set when "All brands" is picked, so Merino is not put back in its place.
+  const [allBrandsChosen, setAllBrandsChosen] = useState(false);
   const [selectedStyle, setSelectedStyle] = useState<Finishing | null>(null);
   const [selectedCategoryType, setSelectedCategoryType] = useState("");
   const [selectedFinishingType, setSelectedFinishingType] = useState("");
@@ -798,6 +804,8 @@ function ObjectComponents({
   const handleSelectedBrand = async (event: any) => {
     const brandId = event.target.value;
     setSelectedMaterialBrand(brandId);
+    // "All brands": the designer wants the whole catalogue, not the default.
+    setAllBrandsChosen(!brandId);
     const isExt = selectedFinishingType === Finishing_Types.EXTERIOR;
     // Resolve the brand object so the dropdown reflects the choice (the select
     // value reads externalFinishBrand?._id / internalFinishBrand?._id).
@@ -1230,6 +1238,55 @@ function ObjectComponents({
         );
       }
     }
+    await saveDefaultBrandWith(finishing);
+  };
+
+  /**
+   * The brand was only shown (defaultBrandId); a swatch from it has now been
+   * applied, so the part really is that brand. Saved after the finish, through
+   * the store's own copy of each part, so the finish just written is kept.
+   */
+  const saveDefaultBrandWith = async (finishing: Finishing) => {
+    if (!defaultBrandId) return;
+    const owners = [
+      (finishing as any)?.brandId,
+      ...(((finishing as any)?.brandIds as string[]) || []),
+    ].map((id) => String(id || ""));
+    if (!owners.includes(String(defaultBrandId))) return;
+    const isExt = selectedFinishingType === Finishing_Types.EXTERIOR;
+    const idField = isExt ? "externalFinishBrandId" : "internalFinishBrandId";
+    const objField = isExt ? "externalFinishBrand" : "internalFinishBrand";
+    const brand = (finishingBrandsMaster || []).find(
+      (b: any) => b._id === defaultBrandId
+    );
+    const parts: any[] = selectedChildComponent
+      ? [selectedChildComponent]
+      : selectedComponentGroup?.components ?? [];
+    for (const part of parts) {
+      try {
+        if (isExt)
+          await BlueprintInterface.ProjectManagerService.onFurnisheModelComponentExtBrandChange(
+            part,
+            defaultBrandId
+          );
+        else
+          await BlueprintInterface.ProjectManagerService.onFurnisheModelComponentIntBrandChange(
+            part,
+            defaultBrandId
+          );
+      } catch (e) {
+        console.warn("objectComponents ~ saving the default brand failed", e);
+      }
+    }
+    const withBrand = (c: any) =>
+      c ? { ...c, [idField]: defaultBrandId, [objField]: brand } : c;
+    if (selectedChildComponent) {
+      setSelectedChildComponent((prev: any) => withBrand(prev));
+    } else if (selectedComponentGroup?.components?.length) {
+      setSelectedComponentGroup((prev: any) =>
+        prev ? { ...prev, components: (prev.components || []).map(withBrand) } : prev
+      );
+    }
   };
 
   const toggleColorPicker = (index: number) => {
@@ -1411,7 +1468,7 @@ function ObjectComponents({
    * is selected. The id is what is stored; the brand object is not always
    * attached (a part picked in 3D arrives without it).
    */
-  const pickedBrandId = (() => {
+  const savedBrandId = (() => {
     const side =
       selectedFinishingType === Finishing_Types.EXTERIOR
         ? "external"
@@ -1424,6 +1481,23 @@ function ObjectComponents({
       ""
     );
   })();
+
+  /**
+   * LAMINATES OPEN ON MERINO. With no brand chosen the panel listed every
+   * brandless original and the Brand box read "Select…". A part that has no
+   * brand yet is shown Merino's catalogue instead. Shown only: nothing is saved
+   * until a Merino swatch is applied (see handleFinishingTextureSelection), so a
+   * part keeping its old finish is not relabelled as Merino in the BOQ.
+   */
+  const defaultBrandId = (() => {
+    if (savedBrandId || allBrandsChosen) return "";
+    if (!DEFAULT_BRAND_TYPE.test(String(selectedType?.name || ""))) return "";
+    const brand = (finishingBrandsMaster || []).find((b: any) =>
+      DEFAULT_BRAND.test(String(b?.name || "").trim())
+    );
+    return brand?._id || "";
+  })();
+  const pickedBrandId = savedBrandId || defaultBrandId;
 
   const gradesForPicker = (() => {
     const pictured = (finishingsList || []).filter(
@@ -1543,8 +1617,14 @@ function ObjectComponents({
   // the user already chose; the user can still change it in the dropdown.
   const applyDefaultExtBrandIfEmpty = async () => {
     if (selectedFinishingType !== Finishing_Types.EXTERIOR) return;
+    // Laminates are shown Merino without saving it (defaultBrandId). Checked on
+    // the type, not on defaultBrandId: that is still empty while the brand list
+    // loads, and the save then went ahead on opening.
+    if (!selectedType || DEFAULT_BRAND_TYPE.test(String(selectedType?.name || ""))) return;
     const brands = getBrandListForPicker();
-    const first = brands?.[0];
+    const first =
+      brands?.find((b: any) => DEFAULT_BRAND.test(String(b?.name || "").trim())) ||
+      brands?.[0];
     if (!first) return;
     const save = async (comp: any) =>
       BlueprintInterface.ProjectManagerService.onFurnisheModelComponentExtBrandChange(
@@ -1594,6 +1674,9 @@ function ObjectComponents({
   };
 
   useEffect(() => {
+    // A laminate's default brand is only shown (defaultBrandId) and saved with
+    // the first swatch applied from it: saving it here, on opening, labelled a
+    // part still on its old finish as that brand in the BOQ.
     if (showObjectComponentsModal) {
       applyDefaultExtBrandIfEmpty();
     }
@@ -2153,6 +2236,7 @@ function ObjectComponents({
           // and the auto-default could disagree about which brands exist.
           finishingBrands={getBrandListForPicker()}
           allFinishingBrands={finishingBrandsMaster}
+          defaultBrandId={defaultBrandId}
           finishingsList={finishingsList}
           handleSelectedGrainDirection={handleSelectedGrainDirection}
           handleFinishingTextureSelection={handleFinishingTextureSelection}
