@@ -29,6 +29,7 @@ import {
   Object3D,
   Raycaster,
   Mesh,
+  Plane,
   PlaneGeometry,
   MeshBasicMaterial,
   BufferGeometry,
@@ -106,6 +107,12 @@ const INPUT_AWAKE_MS = 1000; // keeps drawing this long after the last input
 const IDLE_REDRAW_MS = 250; // and this often when nothing at all is happening
 const PINCH_STEP_PX = 6; // fingers must change their gap by this much to zoom
 const PINCH_TO_WHEEL = 4; // wheel units per pixel of pinch
+const PINCH_WALK_CM_PER_PX = 2; // framing a shot: cm walked per pixel of pinch
+// Double-tap and drag moves the view (see __bindDoubleTapPan): the second tap
+// has to land this soon after the first, and this close to it.
+const DOUBLE_TAP_PAN_MS = 350;
+const DOUBLE_TAP_PAN_REACH_PX = 40;
+const TAP_MAX_MOVE_PX = 10; // a first "tap" that moved more was a drag
 const NARROW_CANVAS_PX = 1036; // a 1100 px window, less the nav rail
 // Bands at the foot (compass, zoom bar) and the head of the canvas that a
 // selected item is moved out of on a tablet (see __keepInFreeArea).
@@ -1295,6 +1302,7 @@ export class Viewer3D extends Scene {
       passive: false,
     });
     scope.__bindPinchZoom();
+    scope.__bindDoubleTapPan();
     scope.__bindIdleWatch();
     scope.__applyCameraSettings();
     scope.__bindCameraKeys();
@@ -1590,6 +1598,14 @@ export class Viewer3D extends Scene {
         pending += now - last;
         last = now;
         if (Math.abs(pending) < PINCH_STEP_PX) return;
+        // Framing a shot, a pinch walks the camera in and out, as the mouse
+        // wheel does there (CameraFraming). Magnifying the picture instead
+        // left the Lens reading and a saved view describing a different shot.
+        if (scope.__renderFraming && scope.walkRenderCamera) {
+          scope.walkRenderCamera(pending * PINCH_WALK_CM_PER_PX, 0, 0);
+          pending = 0;
+          return;
+        }
         scope.__wheelZoomToCenter({
           preventDefault() {},
           deltaY: -pending * PINCH_TO_WHEEL,
@@ -1605,6 +1621,235 @@ export class Viewer3D extends Scene {
     };
     el.addEventListener("touchend", end, { passive: true });
     el.addEventListener("touchcancel", end, { passive: true });
+  }
+
+  // DOUBLE-TAP AND DRAG MOVES THE VIEW, as one finger does on the floor plan.
+  // One finger alone turns the room and two zoom, so the room could not be slid
+  // across the screen — to put it in the middle, say. Tap once, then put the
+  // finger down again and drag: the floor point under the finger stays under
+  // it, so the room slides with the finger without turning.
+  //
+  // Listened for on the window, capturing, so the gesture is taken before the
+  // orbit controls (which would turn the view) and the item drag see it. A
+  // second tap that lands on an item is left alone: double-tapping an item
+  // picks one of its parts (DragRoomItemsControl3D).
+  //
+  // A plain one-finger turn is taken over here too while the view has been
+  // slid off the room, so the room turns about itself (see __roomPivot).
+  __bindDoubleTapPan() {
+    const scope = this;
+    const canvas = scope.renderer && scope.renderer.domElement;
+    if (!canvas) return;
+    const floor = new Plane(new Vector3(0, 1, 0), 0);
+    const ray = new Raycaster();
+    const floorPointAt = (x, y) => {
+      const r = canvas.getBoundingClientRect();
+      if (!r.width || !r.height) return null;
+      ray.setFromCamera(
+        new Vector2(
+          ((x - r.left) / r.width) * 2 - 1,
+          -((y - r.top) / r.height) * 2 + 1
+        ),
+        scope.camera
+      );
+      return ray.ray.intersectPlane(floor, new Vector3());
+    };
+    const itemAt = (x, y) => {
+      const dc = scope.dragcontrols;
+      const items = ((dc && dc.__draggableItems) || []).filter(
+        (d) => d && d.visible
+      );
+      if (!items.length || !floorPointAt(x, y)) return false;
+      return ray.intersectObjects(items, false).length > 0;
+    };
+    let lastTap = null; // { at, x, y } of the last short, still touch
+    let down = null; // the current single finger's start
+    let grab = null; // the floor point being dragged, while moving the view
+    let turn = null; // { pivot, x, y } while turning the view about the room
+    const ownTouch = (e) => canvas.contains(e.target);
+    const stop = (e) => {
+      e.stopImmediatePropagation();
+      if (e.cancelable) e.preventDefault();
+    };
+
+    window.addEventListener(
+      "touchstart",
+      (e) => {
+        if (!ownTouch(e) || scope.__renderFraming || !scope.enabled) return;
+        if (e.touches.length !== 1) {
+          // A second finger: a pinch, not this.
+          down = null;
+          grab = null;
+          return;
+        }
+        const t = e.touches[0];
+        down = { at: Date.now(), x: t.clientX, y: t.clientY };
+        const second =
+          lastTap &&
+          down.at - lastTap.at < DOUBLE_TAP_PAN_MS &&
+          Math.hypot(t.clientX - lastTap.x, t.clientY - lastTap.y) <
+            DOUBLE_TAP_PAN_REACH_PX;
+        lastTap = null;
+        turn = null;
+        if (itemAt(t.clientX, t.clientY)) return;
+        if (!second) {
+          // A plain one-finger drag turns the view. When the view has been
+          // slid off the room it turns about the room instead (the press
+          // itself still goes through, so a tap still clears a selection).
+          const pivot = scope.__roomPivot();
+          if (pivot) turn = { pivot, x: t.clientX, y: t.clientY };
+          return;
+        }
+        const p = floorPointAt(t.clientX, t.clientY);
+        if (!p) return;
+        grab = p;
+        stop(e);
+      },
+      { capture: true, passive: false }
+    );
+
+    window.addEventListener(
+      "touchmove",
+      (e) => {
+        if (!turn) return;
+        if (e.touches.length !== 1) {
+          turn = null;
+          return;
+        }
+        stop(e);
+        const t = e.touches[0];
+        scope.__turnAbout(turn.pivot, t.clientX - turn.x, t.clientY - turn.y);
+        turn.x = t.clientX;
+        turn.y = t.clientY;
+      },
+      { capture: true, passive: false }
+    );
+
+    window.addEventListener(
+      "touchmove",
+      (e) => {
+        if (!grab) return;
+        if (e.touches.length !== 1) {
+          grab = null;
+          return;
+        }
+        stop(e);
+        const t = e.touches[0];
+        const p = floorPointAt(t.clientX, t.clientY);
+        if (!p) return;
+        const move = grab.clone().sub(p);
+        scope.camera.position.add(move);
+        if (scope.controls) {
+          scope.controls.target.add(move);
+          scope.controls.update();
+        }
+        scope.camera.updateMatrixWorld();
+        scope.needsUpdate = true;
+        scope.shouldRender = true;
+      },
+      { capture: true, passive: false }
+    );
+
+    const end = (e) => {
+      if (!e.touches.length) turn = null;
+      if (grab) {
+        grab = null;
+        stop(e);
+        return;
+      }
+      if (!ownTouch(e) || !down || e.touches.length) return;
+      const t = e.changedTouches[0];
+      const still =
+        t && Math.hypot(t.clientX - down.x, t.clientY - down.y) < TAP_MAX_MOVE_PX;
+      lastTap =
+        still && Date.now() - down.at < DOUBLE_TAP_PAN_MS
+          ? { at: Date.now(), x: t.clientX, y: t.clientY }
+          : null;
+      down = null;
+    };
+    window.addEventListener("touchend", end, { capture: true, passive: false });
+    window.addEventListener("touchcancel", end, {
+      capture: true,
+      passive: false,
+    });
+  }
+
+  /**
+   * Where turning and zooming should pivot, when not about the view's middle.
+   *
+   * They normally pivot about the point in the middle of the view, which is the
+   * room as fitted. Once the room has been slid aside (double-tap and drag),
+   * that point is bare floor: the room swung around it and off the screen. So
+   * while the middle of the view is off the room, the room's own middle is the
+   * pivot. Null while the middle of the view is on the room — nothing changes.
+   */
+  __roomPivot() {
+    const fp = this.floorplan;
+    const cam = this.camera;
+    if (!fp || !fp.getCenter || !cam || !cam.isPerspectiveCamera) return null;
+    if (this.__renderFraming) return null;
+    const c = fp.getCenter();
+    const size = fp.getSize();
+    if (!c || !size || !(size.x > 0) || !(size.z > 0)) return null;
+    const dir = cam.getWorldDirection(new Vector3());
+    const mid = new Raycaster(cam.position.clone(), dir).ray.intersectPlane(
+      new Plane(new Vector3(0, 1, 0), 0),
+      new Vector3()
+    );
+    if (
+      mid &&
+      Math.abs(mid.x - c.x) <= size.x / 2 &&
+      Math.abs(mid.z - c.z) <= size.z / 2
+    ) {
+      return null;
+    }
+    return new Vector3(c.x, 0, c.z);
+  }
+
+  /**
+   * Turn the view about `pivot` for a finger move of (dx, dy) px, at the orbit
+   * controls' own speed. Camera and orbit target are turned TOGETHER about the
+   * pivot, so the pivot keeps its place on screen and the camera still looks
+   * at its target; the controls carry on from there.
+   */
+  __turnAbout(pivot, dx, dy) {
+    const cam = this.camera;
+    const c = this.controls;
+    if (!cam || !c) return;
+    const h = this.renderer.domElement.clientHeight || 1;
+    const speed = c.rotateSpeed || 1;
+    const turnRig = (q) => {
+      cam.position.sub(pivot).applyQuaternion(q).add(pivot);
+      c.target.sub(pivot).applyQuaternion(q).add(pivot);
+    };
+    const up = new Vector3(0, 1, 0);
+    // Across: about the upright through the pivot, as the controls turn.
+    turnRig(
+      new Quaternion().setFromAxisAngle(up, (-2 * Math.PI * dx * speed) / h)
+    );
+    // Up and down: about the level line through the pivot, within the
+    // controls' own tilt limits.
+    const offset = cam.position.clone().sub(c.target);
+    const axis = new Vector3().crossVectors(up, offset);
+    if (axis.lengthSq() > 1e-9 && dy) {
+      axis.normalize();
+      const q = new Quaternion().setFromAxisAngle(
+        axis,
+        (-2 * Math.PI * dy * speed) / h
+      );
+      const tilted = offset.clone().applyQuaternion(q);
+      const polar = tilted.angleTo(up);
+      if (
+        polar >= (c.minPolarAngle || 0) &&
+        polar <= (c.maxPolarAngle == null ? Math.PI : c.maxPolarAngle)
+      ) {
+        turnRig(q);
+      }
+    }
+    c.update();
+    cam.updateMatrixWorld();
+    this.needsUpdate = true;
+    this.shouldRender = true;
   }
 
   // Any input keeps the view drawing at full speed for a moment (see render).
@@ -1839,7 +2084,9 @@ export class Viewer3D extends Scene {
     const f = Math.pow(0.86, notches * speed); // < 1
     const inward = direction > 0;
 
-    let pivot = target;
+    // The room, when the view has been slid off it (see __roomPivot): zooming
+    // toward a point keeps that point still on screen, so the room stays put.
+    let pivot = scope.__roomPivot() || target;
     if (s.zoomCenter === "mouse") {
       // Reuse the last pick for a burst of notches: the cursor has barely moved
       // and a scene-wide raycast per event is wasted work.

@@ -71,6 +71,25 @@ const DrawingComponent = ({
     }
   }, [projectId]);
 
+  // NO PAGE ZOOM IN THE EDITOR. On a tablet a pinch that started off the 3D
+  // canvas (on the render frame, a toolbar, a panel) zoomed the whole page:
+  // both sides went off the screen with no way back to the buttons. Pinch and
+  // double-tap belong to the 3D view and the plan here, so the browser's own
+  // zoom is off while the editor is open. iOS Safari ignores touch-action for
+  // this and needs its gesture events stopped as well.
+  useEffect(() => {
+    const root = document.documentElement;
+    root.classList.add("pz-no-page-zoom");
+    const block = (e: Event) => e.preventDefault();
+    document.addEventListener("gesturestart", block, { passive: false });
+    document.addEventListener("gesturechange", block, { passive: false });
+    return () => {
+      root.classList.remove("pz-no-page-zoom");
+      document.removeEventListener("gesturestart", block);
+      document.removeEventListener("gesturechange", block);
+    };
+  }, []);
+
   useEffect(() => {
     if (
       project &&

@@ -362,7 +362,7 @@ const CameraFraming: React.FC<{
 
       <div ref={topBarsRef} className="absolute left-3 right-3 top-3 flex flex-col items-center gap-2 pointer-events-none">
       {/* top bar */}
-      <div className="pointer-events-auto flex max-w-full flex-wrap items-center gap-2 rounded-xl bg-white px-3 py-2 text-[13px] text-gray-800 shadow-lg">
+      <div className="pz-framing-bar pointer-events-auto flex max-w-full flex-wrap items-center gap-2 rounded-xl bg-white px-3 py-2 text-[13px] text-gray-800 shadow-lg">
         <b className="px-1">Frame your shot</b>
         <div className="flex gap-1" role="radiogroup" aria-label="Image shape">
           {ASPECTS.map((a) => (

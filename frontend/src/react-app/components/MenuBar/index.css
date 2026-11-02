@@ -287,9 +287,52 @@
 }
 
 
-/* Framing a shot: the heading box would sit over the frame's corner. */
-body.pz-framing-shot .pz-cam-angle {
+/* Framing a shot: the heading box would sit over the frame's corner, and the
+   zoom bar's percentage means nothing there (a pinch walks the camera). The
+   selected item's toolbar and its Material panel, and the Room Properties box,
+   belong to the 3D page: left open they sat over the shot. */
+body.pz-framing-shot .pz-cam-angle,
+body.pz-framing-shot .pz-cam-bar,
+body.pz-framing-shot .pz-it3d,
+body.pz-framing-shot .pz-object-panel,
+body.pz-framing-shot .pz-room-props {
   display: none !important;
+}
+
+/* The framing controls on a tablet: finger-sized buttons, a longer lens
+   slider and larger text. A PC keeps the compact bar. */
+@media (max-width: 1100px), (pointer: coarse) {
+  .pz-framing-bar {
+    gap: 10px !important;
+    font-size: 15px !important;
+  }
+  .pz-framing-bar button,
+  .pz-framing-bar select {
+    min-height: 38px;
+    padding: 6px 14px !important;
+    font-size: 14px !important;
+  }
+  .pz-framing-bar label,
+  .pz-framing-bar span {
+    font-size: 14px !important;
+    white-space: nowrap;
+  }
+  /* The lens reading's fixed width was set for the small type. */
+  .pz-framing-bar span.tabular-nums {
+    width: auto !important;
+    min-width: 52px;
+  }
+  .pz-framing-bar input[type="range"] {
+    width: 150px !important;
+    height: 32px;
+  }
+}
+
+/* The editor owns pinch and double-tap; the page itself must not zoom (see
+   DrawingComponent). pan-x pan-y keeps panels scrolling. */
+html.pz-no-page-zoom,
+html.pz-no-page-zoom body {
+  touch-action: pan-x pan-y;
 }
 
 /* Tablet toolbar: roomier buttons so each tool is an easy finger target and
