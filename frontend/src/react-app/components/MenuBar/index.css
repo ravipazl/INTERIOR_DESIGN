@@ -330,14 +330,19 @@ body.pz-framing-shot .pz-room-props {
 
 /* RENDER STUDIO ON A PORTRAIT TABLET. Three columns (280 + picture + 330 px)
    left the picture a thin strip at 768 px, its +/- buttons over it and the tool
-   row under the Render button. Below 900 px the picture takes the full width
-   on top, and History and the render settings sit side by side under it; the
-   whole screen scrolls. */
-@media (max-width: 900px) {
+   row under the Render button. Below 900 px, and on any upright screen up to
+   1100 px, the picture takes the full width on top, and History and the render
+   settings sit side by side under it.
+   The upright case matters most: the app has no viewport tag, so an iPad lays
+   the page out about 980 px wide whichever way it is held — a width-only rule
+   never applied there, and the picture stayed a strip in a tall empty column. */
+@media (max-width: 900px), (orientation: portrait) and (max-width: 1100px) {
   /* Element-qualified: Tailwind's utilities are !important too. */
   main.pz-rs-main {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
-    grid-template-rows: minmax(320px, 58vh) auto;
+    /* A 16:9 shot across the full width is about 0.56 of it tall; 60vw
+       leaves it a small margin instead of a tall empty box. */
+    grid-template-rows: minmax(320px, min(58vh, 60vw)) auto;
     overflow-y: auto;
   }
   .pz-rs-centre {
@@ -367,6 +372,41 @@ body.pz-framing-shot .pz-room-props {
     grid-column: 2;
     grid-row: 2;
     overflow-y: visible !important;
+  }
+  .pz-rs-tools {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+}
+
+/* RENDER STUDIO ON A SIDEWAYS TABLET (an iPad lays the page out ~980-1024 px
+   wide). Three columns left the picture under 300 px wide and the tool row
+   spilling over History. Two columns instead: the picture large on the left
+   with Recapture / History under it, the render settings down the right. */
+@media (min-width: 901px) and (max-width: 1100px) and (orientation: landscape) {
+  main.pz-rs-main {
+    grid-template-columns: minmax(0, 1fr) 300px !important;
+    grid-template-rows: minmax(300px, 64vh) auto;
+    overflow-y: auto;
+  }
+  .pz-rs-centre {
+    grid-column: 1;
+    grid-row: 1;
+  }
+  .pz-rs-left {
+    grid-column: 1;
+    grid-row: 2;
+  }
+  aside.pz-rs-left {
+    min-height: max-content !important;
+  }
+  .pz-rs-left > div:last-child {
+    min-height: 220px !important; /* over Tailwind's min-h-0 */
+    max-height: 320px;
+  }
+  .pz-rs-right {
+    grid-column: 2;
+    grid-row: 1 / span 2;
   }
   .pz-rs-tools {
     flex-wrap: wrap;
