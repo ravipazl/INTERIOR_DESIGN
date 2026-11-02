@@ -107,6 +107,10 @@ const IDLE_REDRAW_MS = 250; // and this often when nothing at all is happening
 const PINCH_STEP_PX = 6; // fingers must change their gap by this much to zoom
 const PINCH_TO_WHEEL = 4; // wheel units per pixel of pinch
 const NARROW_CANVAS_PX = 1036; // a 1100 px window, less the nav rail
+// Bands at the foot (compass, zoom bar) and the head of the canvas that a
+// selected item is moved out of on a tablet (see __keepInFreeArea).
+const KEEP_CLEAR_BOTTOM_PX = 150;
+const KEEP_CLEAR_TOP_PX = 60;
 const TABLET_ROOM_FILL = 0.8; // share of the free space the fitted room takes
 import { Edge3D } from "./edge3d.js";
 import { Floor3D } from "./floor3d.js";
@@ -425,9 +429,90 @@ export class Viewer3D extends Scene {
         this.__panelRefitTimer = setTimeout(attempt, 200);
         return;
       }
-      this.refitIfStillFitted();
+      // Placement only: a failure here must never reach the page.
+      try {
+        if (!this.refitIfStillFitted()) this.__keepInFreeArea();
+      } catch (e) {
+        console.warn("keeping the item in view failed — ignored", e);
+      }
     };
     this.__panelRefitTimer = setTimeout(attempt, 50);
+  }
+
+  /**
+   * A view the user has turned or zoomed is not refitted, but the selected item
+   * (or, with nothing selected, the room) must not be left under a panel: the
+   * item panel covers half a tablet's canvas, and the cabinet being edited sat
+   * behind it. The view is slid sideways, by the lens like the fit's own shift,
+   * so the point lands in the middle of the free space, and up when it is down
+   * among the controls at the foot of the canvas. Nothing moves while the point
+   * is already clear.
+   */
+  __keepInFreeArea() {
+    if (this.__renderFraming || this.__camTween || !this.domElement.clientWidth) {
+      return;
+    }
+    const item = this.__currentItemSelected;
+    let point = null;
+    if (item && item.selected && item.visible !== false && item.position) {
+      point =
+        typeof item.getWorldPosition === "function" && item.parent
+          ? item.getWorldPosition(new Vector3())
+          : new Vector3().copy(item.position);
+    } else if (this.floorplan && this.floorplan.getCenter) {
+      point = this.floorplan.getCenter().clone();
+    }
+    if (!point) return;
+    const box = this.domElement.getBoundingClientRect();
+    const free = this.__freeCanvasArea();
+    const ndc = point.project(this.camera);
+    if (ndc.z > 1) return; // behind the camera
+    const x = box.left + ((ndc.x + 1) / 2) * box.width;
+    const y = box.top + ((1 - ndc.y) / 2) * box.height;
+    // The item's top and bottom on screen (its box corners), so a tall unit
+    // standing low is caught by its foot, not only by its middle.
+    let yTop = y;
+    let yBottom = y;
+    // worldBox throws for an item whose model is not loaded yet (or was just
+    // removed): it has no box. Its middle point is enough then.
+    let wb = null;
+    try {
+      wb = item && item.selected ? item.worldBox : null;
+    } catch (e) {
+      wb = null;
+    }
+    if (wb && isFinite(wb.max.x)) {
+      for (const cx of [wb.min.x, wb.max.x]) {
+        for (const cy of [wb.min.y, wb.max.y]) {
+          for (const cz of [wb.min.z, wb.max.z]) {
+            const c = new Vector3(cx, cy, cz).project(this.camera);
+            if (c.z > 1) continue;
+            const cyPx = box.top + ((1 - c.y) / 2) * box.height;
+            yTop = Math.min(yTop, cyPx);
+            yBottom = Math.max(yBottom, cyPx);
+          }
+        }
+      }
+    }
+    const margin = Math.min(80, free.width * 0.15);
+    let shiftX = this.__viewShiftPx || 0;
+    let shiftY = this.__viewShiftPy || 0;
+    if (x < free.left + margin || x > free.left + free.width - margin) {
+      shiftX += free.left + free.width / 2 - x;
+    }
+    // Low down, the compass and the zoom bar sit over it; right at the top,
+    // the item's own toolbar has nowhere to go.
+    if (
+      yBottom > box.bottom - KEEP_CLEAR_BOTTOM_PX ||
+      yTop < box.top + KEEP_CLEAR_TOP_PX
+    ) {
+      shiftY += box.top + box.height * 0.45 - (yTop + yBottom) / 2;
+    }
+    if (shiftX === (this.__viewShiftPx || 0) && shiftY === (this.__viewShiftPy || 0)) {
+      return;
+    }
+    const clamp = (v, lim) => Math.max(-lim, Math.min(lim, v));
+    this.__setViewShift(clamp(shiftX, box.width), clamp(shiftY, box.height / 2));
   }
 
   /**
@@ -506,14 +591,22 @@ export class Viewer3D extends Scene {
    * than moving the camera, so the room still turns about its own middle and
    * picking and dragging stay exact (they read the same projection).
    */
-  __setViewShift(px) {
+  // `py` (down) is left as it was when not given; only __keepInFreeArea sets it,
+  // and a fit puts it back to 0.
+  __setViewShift(px, py = this.__viewShiftPy) {
     const cam = this.camera;
     if (!cam || !cam.isPerspectiveCamera) return;
     this.__viewShiftPx = px || 0;
+    this.__viewShiftPy = py || 0;
     const w = this.domElement.clientWidth;
     const h = this.domElement.clientHeight;
-    if (this.__viewShiftPx && w && h && !this.__renderFraming) {
-      cam.setViewOffset(w, h, -this.__viewShiftPx, 0, w, h);
+    if (
+      (this.__viewShiftPx || this.__viewShiftPy) &&
+      w &&
+      h &&
+      !this.__renderFraming
+    ) {
+      cam.setViewOffset(w, h, -this.__viewShiftPx, -this.__viewShiftPy, w, h);
     } else {
       cam.clearViewOffset();
     }
@@ -547,7 +640,7 @@ export class Viewer3D extends Scene {
       // the panels sit ON TOP of the canvas, so the middle of the canvas is not
       // the middle of what can be seen.
       const free = scope.__freeCanvasArea();
-      scope.__setViewShift(free.shiftPx);
+      scope.__setViewShift(free.shiftPx, 0);
       scope.__watchForLateCatalogue(free);
       const aspect =
         free.width && free.height
@@ -2232,6 +2325,9 @@ export class Viewer3D extends Scene {
       evt.itemModel = this.__currentItemSelected.itemModel;
       this.needsUpdate = true;
       this.dispatchEvent(evt);
+      // The item panel is (or is about to be) open: on a tablet, keep the item
+      // out from under it. Waits until a held item is let go.
+      this.refitAfterPanelChange();
     } else {
       this.dispatchEvent("test");
     }

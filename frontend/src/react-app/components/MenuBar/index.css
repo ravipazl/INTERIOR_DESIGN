@@ -292,23 +292,46 @@ body.pz-framing-shot .pz-cam-angle {
   display: none !important;
 }
 
-/* Tablet toolbar: tighter buttons and smaller labels so more tools fit in the
-   bar. The bar still scrolls sideways if a tab has more tools than fit. */
+/* Tablet toolbar: roomier buttons so each tool is an easy finger target and
+   its icon and label read clearly. When a tab has more tools than fit in one
+   row (the floor plan has 17), they wrap onto a second row and the header
+   grows, rather than scrolling sideways with the last tools clipped beside
+   Save. The tool groups are flattened (display: contents) so the wrap happens
+   between buttons, not whole groups — a whole group dropping down left a
+   third row. The page below is a flex column, so it simply gets shorter. */
 @media (max-width: 1100px) {
+  /* div. prefix: Tailwind's h-[40px] / py-6 are !important too (important:
+     true) with the same specificity, so a bare class loses on source order. */
+  div.pz-app-header {
+    height: auto !important;
+    min-height: 48px;
+    padding-top: 4px !important;
+    padding-bottom: 4px !important;
+  }
   #pz-toolbar-slot {
-    padding-left: 4px !important;
-    padding-right: 4px !important;
+    overflow: visible !important;
+    padding-left: 6px !important;
+    padding-right: 6px !important;
+  }
+  #pz-toolbar-slot > div {
+    flex-wrap: wrap !important;
+    row-gap: 2px;
+  }
+  #pz-toolbar-slot > div > div,
+  #pz-toolbar-slot > div > div > div,
+  #pz-toolbar-slot > div > div > div > div.flex {
+    display: contents !important;
   }
   #pz-toolbar-slot button {
-    min-width: 34px !important;
-    padding-left: 1px !important;
-    padding-right: 1px !important;
+    min-width: 47px !important;
+    padding-left: 6px !important;
+    padding-right: 6px !important;
   }
   #pz-toolbar-slot .menu-button-text {
-    font-size: 9px !important;
-    line-height: 10px !important;
+    font-size: 10px !important;
+    line-height: 11px !important;
     white-space: normal !important;
-    max-width: 42px;
+    max-width: 56px;
     text-align: center;
   }
 }
