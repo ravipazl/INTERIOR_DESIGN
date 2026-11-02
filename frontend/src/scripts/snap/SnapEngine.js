@@ -110,10 +110,60 @@ const PRIORITY = {
 const GUIDE_Y = 2;
 
 // Compute a world-space bounding box from the VISIBLE meshes of an item.
-// Mirrors the dragged-item bbox derivation in SnapManager.query so
-// dragged-item and "other items" use the same convention.
+// Used for the dragged item (SnapManager.query) and for "other items" alike,
+// so both follow the same convention.
+//
+// REMEMBERED, NOT RE-MEASURED. This reads every vertex of every mesh, and the
+// snap sources ask for it for each nearby item — up to four times per item on
+// every pointer move. With a sofa, a rug and a few cabinets in the room that
+// was the bulk of the work in a drag, and on a tablet it made dragging lag.
+// The box only changes when the item is turned, resized or swapped, so it is
+// kept relative to the item's own position and simply moved with it: an item
+// that is only being dragged (or not moving at all) is measured once.
+const BOX_CACHE = new WeakMap();
+
+// Everything about an item that changes its box apart from where it stands.
+function boxShapeKey(physicalItem) {
+  const loaded = physicalItem.__loadedItem;
+  const e = physicalItem.matrixWorld.elements;
+  // A parametric item (door, cabinet) rebuilds its geometry in place.
+  const g = loaded.geometry;
+  const parts = [
+    loaded.uuid,
+    loaded.children.length,
+    g ? g.uuid : "",
+    g && g.attributes && g.attributes.position
+      ? g.attributes.position.version
+      : "",
+  ];
+  for (let i = 0; i < 11; i++) parts.push(e[i].toFixed(5));
+  for (const v of [loaded.position, loaded.scale]) {
+    parts.push(v.x.toFixed(4), v.y.toFixed(4), v.z.toFixed(4));
+  }
+  const q = loaded.quaternion;
+  parts.push(q.x.toFixed(5), q.y.toFixed(5), q.z.toFixed(5), q.w.toFixed(5));
+  return parts.join(",");
+}
+
 function tightBoxOf(physicalItem) {
   if (!physicalItem?.__loadedItem) return null;
+  physicalItem.updateWorldMatrix(true, false);
+  const e = physicalItem.matrixWorld.elements;
+  const at = new Vector3(e[12], e[13], e[14]);
+  const key = boxShapeKey(physicalItem);
+  const cached = BOX_CACHE.get(physicalItem);
+  if (cached && cached.key === key) {
+    return cached.box ? cached.box.clone().translate(at) : null;
+  }
+  const box = measureTightBox(physicalItem);
+  BOX_CACHE.set(physicalItem, {
+    key,
+    box: box ? box.clone().translate(at.clone().negate()) : null,
+  });
+  return box;
+}
+
+function measureTightBox(physicalItem) {
   const box = new Box3();
   box.makeEmpty();
   physicalItem.__loadedItem.traverse((o) => {
@@ -663,16 +713,41 @@ class GridSnap {
 // orthogonal to the horizontal snaps: a pot can edge-align in X/Z AND rest on
 // a table at the same time.
 
+// How much wider than its support an item may be and still rest on it (cm).
+const SUPPORT_FIT_CM = 2;
+// A resting item takes at most this share of the support's top: a vase on a
+// table, not a side table on an identical side table.
+const SUPPORT_MAX_AREA_SHARE = 0.7;
+// Highest top that counts as a surface to set things on (cm): tables,
+// counters and sideboards — not the top of a wardrobe or a tall unit, which
+// lifted whatever passed over it two metres up.
+const SUPPORT_MAX_TOP_CM = 150;
+
+// Floor-standing: free-standing items (type 0) and floor units (type 1).
+// Items whose type is not known yet are not ruled out.
+function isFloorStanding(item) {
+  const t = item.__itemType;
+  return t == null || t === 0 || t === 1 || t === "0" || t === "1";
+}
+
 class SurfaceSnap {
   findSupport(ctx) {
     if (ctx.config.enabled.surface === false) return null;
     const cx = ctx.candidate.x;
     const cz = ctx.candidate.z;
 
+    // The dragged item's own footprint, to check it fits on a support.
+    const dBox = tightBoxOf(ctx.dragged);
+    const dSize = dBox ? dBox.getSize(new Vector3()) : null;
+
     let best = null; // the highest top surface under the cursor
     for (const other of ctx.draggableItems) {
       if (!other || other === ctx.dragged) continue;
       if (!other.position) continue;
+      // ONLY SOMETHING STANDING ON THE FLOOR CAN CARRY AN ITEM. A ceiling
+      // light, a wall unit or a TV were bases too: dragging a side table under
+      // a pendant lamp lifted it to the ceiling and left it floating there.
+      if (!isFloorStanding(other)) continue;
 
       // Cheap proximity reject before the (more expensive) bbox build.
       const dx = other.position.x - cx;
@@ -690,8 +765,19 @@ class SurfaceSnap {
       // The dragged item's centre must be over this item's footprint.
       if (Math.abs(cx - center.x) > half.x) continue;
       if (Math.abs(cz - center.z) > half.z) continue;
+      // …and it must FIT on top: a vase on a table, never a side table on a
+      // floor lamp's shade or a sofa on a stool.
+      if (
+        dSize &&
+        (dSize.x > half.x * 2 + SUPPORT_FIT_CM ||
+          dSize.z > half.z * 2 + SUPPORT_FIT_CM ||
+          dSize.x * dSize.z > SUPPORT_MAX_AREA_SHARE * (half.x * 2) * (half.z * 2))
+      ) {
+        continue;
+      }
 
       const topY = center.y + half.y;
+      if (topY > SUPPORT_MAX_TOP_CM) continue;
       if (!best || topY > best.topY) {
         best = { topY, item: other };
       }
@@ -704,7 +790,6 @@ class SurfaceSnap {
     // floats above or sinks into the surface. `bottomOffset` is the gap from
     // the item's pivot (position.y) down to its lowest visible point, which is
     // invariant under Y-rotation, so it holds wherever the item currently is.
-    const dBox = tightBoxOf(ctx.dragged);
     const bottomOffset =
       dBox && typeof ctx.dragged.position?.y === "number"
         ? ctx.dragged.position.y - dBox.min.y
@@ -775,24 +860,8 @@ export class SnapManager {
     // wall" math. Falls back to metadata halfSize if no loaded item yet.
     let halfSize;
     if (input.dragged?.__loadedItem) {
-      const tight = new Box3();
-      tight.makeEmpty();
-      input.dragged.__loadedItem.traverse((o) => {
-        if (
-          o.isMesh &&
-          o.visible &&
-          o.geometry &&
-          o.geometry.attributes?.position
-        ) {
-          o.updateWorldMatrix(true, false);
-          const localBox = new Box3().setFromBufferAttribute(
-            o.geometry.attributes.position
-          );
-          localBox.applyMatrix4(o.matrixWorld);
-          tight.union(localBox);
-        }
-      });
-      if (!tight.isEmpty()) {
+      const tight = tightBoxOf(input.dragged);
+      if (tight) {
         const size = new Vector3();
         tight.getSize(size);
         halfSize = size.multiplyScalar(0.5);
