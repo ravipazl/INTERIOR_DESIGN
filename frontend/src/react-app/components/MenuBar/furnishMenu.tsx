@@ -346,13 +346,19 @@ const FurnishMenu = ({
   // one is shown at a time. Driven by navView because both are the FURNISH tab
   // and cannot be told apart from activeTab alone.
   const [renderCloseSignal, setRenderCloseSignal] = useState(0);
+  const prevNavViewRef = useRef<string | undefined>(navView);
   useEffect(() => {
+    const leftRender = prevNavViewRef.current === "render";
+    prevNavViewRef.current = navView;
     if (navView === "render") {
       setShowRoomPanel(false);
     } else {
       // Leaving Render for ANY page (3D, BOQ, floor plan…) closes the render
       // flow — otherwise its camera-step buttons stayed on top of the new page.
-      setRenderCloseSignal((n) => n + 1);
+      // Only on actually LEAVING it: this also ran as the page loaded, and a
+      // page opened at ?tab=render got this close in the same update as its
+      // open — the close won, so a reload on Render showed the bare 3D view.
+      if (leftRender) setRenderCloseSignal((n) => n + 1);
       if (navView === "furnish") setShowRoomPanel(true);
     }
   }, [navView]);

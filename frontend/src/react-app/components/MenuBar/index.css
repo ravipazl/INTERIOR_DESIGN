@@ -328,6 +328,52 @@ body.pz-framing-shot .pz-room-props {
   }
 }
 
+/* RENDER STUDIO ON A PORTRAIT TABLET. Three columns (280 + picture + 330 px)
+   left the picture a thin strip at 768 px, its +/- buttons over it and the tool
+   row under the Render button. Below 900 px the picture takes the full width
+   on top, and History and the render settings sit side by side under it; the
+   whole screen scrolls. */
+@media (max-width: 900px) {
+  /* Element-qualified: Tailwind's utilities are !important too. */
+  main.pz-rs-main {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+    grid-template-rows: minmax(320px, 58vh) auto;
+    overflow-y: auto;
+  }
+  .pz-rs-centre {
+    grid-column: 1 / -1;
+    grid-row: 1;
+  }
+  .pz-rs-left {
+    grid-column: 1;
+    grid-row: 2;
+  }
+  .pz-rs-left > div:last-child {
+    min-height: 220px !important; /* over Tailwind's min-h-0 */
+    max-height: 360px;
+  }
+  /* Their full height: squeezed to what was left of the screen, the Render
+     button sat over Scene type. The screen scrolls instead. */
+  aside.pz-rs-left,
+  aside.pz-rs-right {
+    min-height: max-content !important;
+  }
+  /* Kept at the foot of the settings, not stuck to the screen's bottom edge:
+     on a short screen it covered Interior / Exterior. */
+  div.pz-rs-go {
+    position: static !important;
+  }
+  aside.pz-rs-right {
+    grid-column: 2;
+    grid-row: 2;
+    overflow-y: visible !important;
+  }
+  .pz-rs-tools {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+}
+
 /* The editor owns pinch and double-tap; the page itself must not zoom (see
    DrawingComponent). pan-x pan-y keeps panels scrolling. */
 html.pz-no-page-zoom,

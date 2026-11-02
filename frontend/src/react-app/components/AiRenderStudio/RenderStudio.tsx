@@ -640,7 +640,7 @@ const RenderStudio: React.FC<{
         </div>
 
       </div>
-      <div className="sticky bottom-0 bg-[#f6f6f8] pb-1 pt-1">
+      <div className="pz-rs-go sticky bottom-0 bg-[#f6f6f8] pb-1 pt-1">
         {primary("Render", renderNow)}
         <div className="mt-1.5 text-center text-[12px] text-gray-500">
           {relight ? "About 1–1½ min (render + lighting)" : "About 15–30 s"}
@@ -770,9 +770,9 @@ const RenderStudio: React.FC<{
         </button>
       </div>
 
-      <main className="grid min-h-0 grid-cols-[280px_minmax(0,1fr)_330px] gap-3.5 p-3.5">
+      <main className="pz-rs-main grid min-h-0 grid-cols-[280px_minmax(0,1fr)_330px] gap-3.5 p-3.5">
         {/* left */}
-        <aside className="flex min-h-0 flex-col gap-3">
+        <aside className="pz-rs-left flex min-h-0 flex-col gap-3">
           <button type="button" onClick={onRecapture} disabled={busy} className="flex items-center justify-between rounded-2xl border border-gray-200 bg-white px-4 py-3 text-[14.5px] font-medium disabled:opacity-50">
             Recapture view <Icon name="arrow_forward" />
           </button>
@@ -824,7 +824,7 @@ const RenderStudio: React.FC<{
         </aside>
 
         {/* centre */}
-        <div className="grid min-h-0 min-w-0 grid-cols-[minmax(0,1fr)] grid-rows-[minmax(0,1fr)_auto] gap-2.5">
+        <div className="pz-rs-centre grid min-h-0 min-w-0 grid-cols-[minmax(0,1fr)] grid-rows-[minmax(0,1fr)_auto] gap-2.5">
           <div
             ref={stageRef}
             className="relative grid min-h-0 min-w-0 place-items-center overflow-hidden rounded-2xl border border-gray-200 bg-white"
@@ -962,7 +962,7 @@ const RenderStudio: React.FC<{
             )}
           </div>
           <div className="flex justify-center">
-            <div className="flex items-center gap-1 rounded-2xl border border-gray-200 bg-white p-1.5 text-[13px]">
+            <div className="pz-rs-tools flex items-center gap-1 rounded-2xl border border-gray-200 bg-white p-1.5 text-[13px]">
               <button type="button" title="Previous" disabled={idx <= 0} onClick={() => setView(order[idx - 1])} className="grid h-9 w-9 place-items-center rounded-lg hover:bg-gray-100 disabled:opacity-30">
                 <Icon name="undo" />
               </button>
@@ -1009,7 +1009,7 @@ const RenderStudio: React.FC<{
         </div>
 
         {/* right */}
-        <aside className="flex min-h-0 flex-col gap-3 overflow-y-auto pr-0.5">
+        <aside className="pz-rs-right flex min-h-0 flex-col gap-3 overflow-y-auto pr-0.5">
           {error && (
             <div className="flex items-start gap-2 rounded-xl bg-red-50 p-3 text-[13px] text-red-800" role="alert">
               <Icon name="error" />
