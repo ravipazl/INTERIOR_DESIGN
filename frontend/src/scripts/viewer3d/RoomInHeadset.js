@@ -14,7 +14,15 @@
  * At life size the menu follows you, a little below your eyes: back to the
  * miniature, "Centre on me" (the chosen spot under your feet again, after you
  * have walked off), turn 90° / 5° (about you, to line the design up with the
- * real walls), raise or lower the floor, wall outlines on/off, exit.
+ * real walls), raise or lower the floor, wall outlines on/off, exit. The ✕
+ * closes the menu to see the room clear; a small "Menu" tab brings it back.
+ * A press counts the button the pinch STARTED on, so a hand that moves while
+ * pinching does not miss.
+ *
+ * "Line up room" fits the design to the real room: air-tap two corners on the
+ * miniature, then pinch with your fingers on the same two corners for real.
+ * The design turns and moves so those corners sit on the real ones, and says
+ * how far the real wall length differs from the plan's.
  *
  * The room's centre is the room's own — from its corners — not the middle of
  * the furniture, which sat by one wall when that is where the furniture was.
@@ -43,6 +51,7 @@ import {
   Mesh,
   MeshBasicMaterial,
   PerspectiveCamera,
+  Plane,
   PlaneGeometry,
   Quaternion,
   Raycaster,
@@ -83,6 +92,14 @@ const CENTRE_SEARCH_CM = 250;
 
 const BLINK_MS = 240; // the design disappears this long while it changes scale
 
+// Line up with the real room: on the miniature, a corner counts when the ray
+// lands within this far (plan cm) of it. Real corners closer together than
+// LINE_UP_MIN_M cannot set the turn well; lengths off by more than
+// LINE_UP_WARN_CM mean a wrong corner was touched.
+const CORNER_PICK_CM = 70;
+const LINE_UP_MIN_M = 0.5;
+const LINE_UP_WARN_CM = 15;
+
 /** Which kind of session this browser can open, or null. AR first. */
 export async function headsetMode() {
   const xr = typeof navigator !== "undefined" ? navigator.xr : null;
@@ -114,7 +131,8 @@ export async function enterHeadset(viewer, { mode, onEnd } = {}) {
 
   // Ask first, while the click still counts as a click.
   const session = await xr.requestSession(want, {
-    optionalFeatures: ["local-floor"],
+    // hand-tracking: the fingertip, for touching a real corner when lining up
+    optionalFeatures: ["local-floor", "hand-tracking"],
   });
 
   try {
@@ -197,6 +215,8 @@ async function start(viewer, session, onEnd) {
   scene.add(pointer.line);
   const marker = makeMarker();
   scene.add(marker.group);
+  const dots = makeCornerDots(plan.corners);
+  scaler.add(dots.group);
 
   // --- the 3D view stops drawing while you are in the headset -----------------
   const mainRenderer = viewer && viewer.renderer;
@@ -233,6 +253,17 @@ async function start(viewer, session, onEnd) {
   let miniPlaced = false;
   let menuOpen = true;
   let menuSet = false;
+  // The button lit up now. It stays lit a moment after the ray slips off, so
+  // a shaky hand does not make it flicker or miss.
+  let hover = null;
+  let hoverSeenAt = 0;
+  // The button each hand was on when its pinch STARTED: pinching moves the
+  // hand, so by the release the ray has often slid off it.
+  const pressedAt = new Map();
+  // Lining up with the real room: { step, a, b, realA }. Steps: pickA, pickB
+  // (corners on the miniature), touchA, touchB (the same corners for real).
+  let lineUp = null;
+  let cornerAimed = null; // the corner the ray is on, while picking
 
   const setScale = () => scaler.scale.setScalar(mode === "mini" ? CM * miniFit * zoom : CM);
 
@@ -260,11 +291,30 @@ async function start(viewer, session, onEnd) {
     blink = { until: performance.now() + BLINK_MS, change, changed: false };
   };
 
+  const LINE_UP_STEPS = {
+    pickA: ["Line up · 1 of 4", "On the model, air-tap a corner you can reach"],
+    pickB: ["Line up · 2 of 4", "Air-tap a second corner, best along one wall"],
+    touchA: ["Line up · 3 of 4", "Go to the real GREEN corner · pinch on it"],
+    touchB: ["Line up · 4 of 4", "Now the real ORANGE corner · pinch on it"],
+  };
+  const showLineUp = () => {
+    const [title, status] = LINE_UP_STEPS[lineUp.step];
+    menu.setButtons(LINE_UP_BUTTONS);
+    menu.setTitle(title);
+    menu.setStatus(status);
+    marker.hide();
+  };
+
   const showMode = () => {
     setScale();
     plan.floors.forEach((f) => (f.visible = mode === "mini"));
     if (plan.walls) plan.walls.visible = mode === "mini" || wallsOn;
     marker.group.visible = false;
+    dots.group.visible = mode === "mini" && !!lineUp;
+    if (lineUp) {
+      showLineUp();
+      return;
+    }
     menu.setButtons(mode === "mini" ? MINI_BUTTONS : LIFE_BUTTONS);
     menu.setTitle(mode === "mini" ? "Pazl · choose where to stand" : "Pazl · your design in this room");
     menu.setWalls(wallsOn);
@@ -295,6 +345,135 @@ async function start(viewer, session, onEnd) {
     });
   };
 
+  /** Start lining up: on the miniature, with the room's corners shown. */
+  const startLineUp = () => {
+    if (plan.corners.length < 3) {
+      menu.setStatus("No room outline to line up with");
+      return;
+    }
+    const begin = () => {
+      lineUp = { step: "pickA", a: null, b: null, realA: null };
+      showMode();
+    };
+    if (mode === "mini") begin();
+    else
+      blinkTo(() => {
+        mode = "mini";
+        anchor.rotation.y = 0;
+        placeMini();
+        begin();
+      });
+  };
+  const stopLineUp = () => {
+    lineUp = null;
+    cornerAimed = null;
+    showMode();
+  };
+
+  /** The corner of the room nearest where a ray meets the miniature's floor. */
+  const cornerAim = (ray) => {
+    if (!ray || mode !== "mini" || !lineUp) return null;
+    const floorAt = scaler.localToWorld(new Vector3(0, 0.5, 0)).y;
+    const point = new Vector3();
+    raycaster.set(ray.origin, ray.dir);
+    if (!raycaster.ray.intersectPlane(new Plane(UP.clone(), -floorAt), point)) return null;
+    const p = scaler.worldToLocal(point);
+    let best = null;
+    plan.corners.forEach((c, i) => {
+      if (lineUp.step === "pickB" && i === lineUp.a) return;
+      const d = Math.hypot(c.x - p.x, c.z - p.z);
+      if (d < CORNER_PICK_CM && (!best || d < best.d)) best = { i, d };
+    });
+    return best ? best.i : null;
+  };
+
+  /** Where the pinching hand is: the fingertip, else the hand, else the ray's start. */
+  const touchPoint = (frame, source) => {
+    const ref = renderer.xr.getReferenceSpace();
+    const at = (pose) => {
+      const p = pose.transform.position;
+      return new Vector3(p.x, p.y, p.z);
+    };
+    try {
+      const tip = source.hand && source.hand.get && source.hand.get("index-finger-tip");
+      const pose = tip && frame.getJointPose && frame.getJointPose(tip, ref);
+      if (pose) return at(pose);
+    } catch (e) {
+      /* no finger joints here */
+    }
+    try {
+      const pose = source.gripSpace && frame.getPose(source.gripSpace, ref);
+      if (pose) return at(pose);
+    } catch (e) {
+      /* no grip */
+    }
+    const ray = rayFrom(frame, source);
+    return ray ? ray.origin.clone() : head.clone();
+  };
+
+  /**
+   * Both real corners touched: turn and place the life-size design so its two
+   * corners sit on them. The turn comes from the line between them, the place
+   * from their middle, which shares out any small error between the two.
+   */
+  const finishLineUp = (realA, realB) => {
+    const pa = plan.corners[lineUp.a];
+    const pb = plan.corners[lineUp.b];
+    const real = new Vector3(realB.x - realA.x, 0, realB.z - realA.z);
+    const inPlan = new Vector3(pb.x - pa.x, 0, pb.z - pa.z);
+    if (real.length() < LINE_UP_MIN_M) {
+      lineUp.step = "touchA";
+      showLineUp();
+      menu.setStatus("Those were too close together · touch GREEN again");
+      return;
+    }
+    const turn = yawOf(real) - yawOf(inPlan);
+    const midPlan = pa.clone().add(pb).multiplyScalar(0.5 * CM).applyAxisAngle(UP, turn);
+    const midReal = realA.clone().add(realB).multiplyScalar(0.5);
+    const offCm = Math.round(Math.abs(real.length() - inPlan.length() * CM) * 100);
+    lineUp = null;
+    cornerAimed = null;
+    blinkTo(() => {
+      mode = "life";
+      showMode();
+      anchor.rotation.y = turn;
+      anchor.position.set(midReal.x - midPlan.x, floorY, midReal.z - midPlan.z);
+      // Where you stand now, so "Centre on me" keeps to it.
+      anchor.updateMatrixWorld(true);
+      const here = scaler.worldToLocal(new Vector3(head.x, anchor.position.y, head.z));
+      spot = { p: new Vector3(here.x, 0, here.z), facing: yawOf(headDir) - turn };
+      menu.setStatus(
+        offCm > LINE_UP_WARN_CM
+          ? `Lined up · lengths differ by ${offCm} cm · check the corners`
+          : `Lined up with the real room · within ${offCm} cm`
+      );
+    });
+  };
+
+  /** An air-tap while lining up: pick a corner, or take the hand's place. */
+  const lineUpSelect = (frame, source, ray) => {
+    const step = lineUp.step;
+    if (step === "pickA" || step === "pickB") {
+      const i = cornerAim(ray);
+      if (i === null) {
+        menu.setStatus("Point closer to a corner of the room");
+        return;
+      }
+      if (step === "pickA") ((lineUp.a = i), (lineUp.step = "pickB"));
+      else ((lineUp.b = i), (lineUp.step = "touchA"));
+      showLineUp();
+      return;
+    }
+    const p = touchPoint(frame, source);
+    if (step === "touchA") {
+      lineUp.realA = p;
+      lineUp.step = "touchB";
+      showLineUp();
+      return;
+    }
+    finishLineUp(lineUp.realA, p);
+  };
+
   /** Turn the life-size design about you, so you stay where you are in it. */
   const turnAboutYou = (angle) => {
     const from = anchor.position.clone().sub(new Vector3(head.x, anchor.position.y, head.z));
@@ -323,6 +502,8 @@ async function start(viewer, session, onEnd) {
     },
     miniTurn: () => (anchor.rotation.y += Math.PI / 2),
     // life size
+    more: () => menu.setButtons(LIFE_MORE_BUTTONS),
+    back: () => menu.setButtons(LIFE_BUTTONS),
     mini: () => goMini(),
     me: () => standOnSpot(),
     left90: () => turnAboutYou(Math.PI / 2),
@@ -343,6 +524,8 @@ async function start(viewer, session, onEnd) {
       menu.setWalls(wallsOn);
     },
     exit: () => session.end(),
+    lineUp: () => startLineUp(),
+    cancelLineUp: () => stopLineUp(),
     // the menu itself: close it to see the room, open it from the small tab
     close: () => {
       menuOpen = false;
@@ -375,7 +558,14 @@ async function start(viewer, session, onEnd) {
     raycaster.set(ray.origin, ray.dir);
     if (!menuOpen) return raycaster.intersectObject(menuTab.mesh, false)[0] ? "open" : null;
     const hit = raycaster.intersectObject(menu.mesh, false)[0];
-    return hit && hit.uv ? menu.buttonAt(hit.uv) : null;
+    return hit && hit.uv ? menu.buttonAt(hit.uv, hover) : null;
+  };
+  /** A button pressed: a flash to show it took, then what it does. */
+  const press = (key) => {
+    if (!actions[key]) return;
+    if (menuOpen) menu.flash(key);
+    hover = null;
+    actions[key]();
   };
   /** Where a ray meets the miniature's floor: the world point and the spot. */
   const miniFloorHit = (ray) => {
@@ -391,9 +581,13 @@ async function start(viewer, session, onEnd) {
   };
 
   const onSelectStart = (event) => {
-    if (mode !== "mini" || blink) return;
+    if (blink) return;
     const ray = rayFrom(event.frame, event.inputSource);
-    if (!ray || menuHit(ray) || !miniFloorHit(ray)) return;
+    const button = (ray && menuHit(ray)) || hover;
+    pressedAt.set(event.inputSource, button || null);
+    // No turning the model while touching real corners.
+    const touching = lineUp && lineUp.step.startsWith("touch");
+    if (button || touching || mode !== "mini" || !ray || !miniFloorHit(ray)) return;
     drag = {
       source: event.inputSource,
       start: yawOf(ray.dir),
@@ -402,6 +596,7 @@ async function start(viewer, session, onEnd) {
     };
   };
   const onSelectEnd = (event) => {
+    pressedAt.delete(event.inputSource);
     if (drag && drag.source === event.inputSource) {
       // "select" comes before "selectend": let it see the drag first.
       setTimeout(() => (drag = null), 0);
@@ -410,12 +605,20 @@ async function start(viewer, session, onEnd) {
   const onSelect = (event) => {
     if (blink) return;
     const ray = rayFrom(event.frame, event.inputSource);
-    const button = menuHit(ray);
+    // The button the pinch started on wins; with no start seen, where it is now.
+    const started = pressedAt.has(event.inputSource);
+    const button = started ? pressedAt.get(event.inputSource) : menuHit(ray);
+    pressedAt.delete(event.inputSource);
     if (button) {
-      actions[button]();
+      press(button);
       return;
     }
-    if (mode !== "mini" || (drag && drag.moved)) return;
+    if (drag && drag.moved) return;
+    if (lineUp) {
+      lineUpSelect(event.frame, event.inputSource, ray);
+      return;
+    }
+    if (mode !== "mini") return;
     const hit = miniFloorHit(ray);
     if (!hit) return;
     if (!hit.clear) {
@@ -472,7 +675,6 @@ async function start(viewer, session, onEnd) {
     // Pointer, menu hover, the marker on the miniature's floor, and a drag.
     // With both hands up, the one pointing at something wins — not simply the
     // first in the list, which left the other hand's ray dead.
-    let hover = null;
     aim = null;
     let best = null;
     const sources = session.inputSources || [];
@@ -486,16 +688,29 @@ async function start(viewer, session, onEnd) {
         if (drag.moved) anchor.rotation.y = drag.turn + turned * MINI_DRAG_GAIN;
       }
       const onMenu = menuHit(ray);
-      const hit = onMenu || blink ? null : miniFloorHit(ray);
-      const rank = onMenu ? 2 : hit ? 1 : 0;
-      if (!best || rank > best.rank) best = { ray, onMenu, hit, rank };
+      // While lining up there is no spot to stand on, only corners to pick.
+      const picking = lineUp && lineUp.step.startsWith("pick");
+      const hit = onMenu || blink || lineUp ? null : miniFloorHit(ray);
+      const corner = onMenu || blink || !picking ? null : cornerAim(ray);
+      const rank = onMenu ? 2 : hit || corner !== null ? 1 : 0;
+      if (!best || rank > best.rank) best = { ray, onMenu, hit, corner, rank };
+    }
+    cornerAimed = best && !best.onMenu ? best.corner : null;
+    if (lineUp && mode === "mini") dots.show(cornerAimed, lineUp.a, lineUp.b);
+    const now = performance.now();
+    if (best && best.onMenu) {
+      hover = best.onMenu;
+      hoverSeenAt = now;
+    } else if (now - hoverSeenAt > HOVER_HOLD_MS || (best && best.hit)) {
+      hover = null;
     }
     if (best) {
-      hover = best.onMenu;
       aim = best.hit;
       const end = aim
         ? aim.world
-        : best.ray.origin.clone().addScaledVector(best.ray.dir, hover ? 0.6 : 2);
+        : cornerAimed !== null
+          ? scaler.localToWorld(plan.corners[cornerAimed].clone().setY(0.5))
+          : best.ray.origin.clone().addScaledVector(best.ray.dir, hover ? 0.6 : 2);
       pointer.show(best.ray.origin, end);
     } else {
       pointer.hide();
@@ -529,6 +744,7 @@ async function start(viewer, session, onEnd) {
     menuTab.dispose();
     pointer.dispose();
     marker.dispose();
+    dots.dispose();
     plan.dispose();
     try {
       renderer.dispose();
@@ -559,6 +775,8 @@ async function start(viewer, session, onEnd) {
         zoom,
         wallsOn,
         menuOpen,
+        lineUp: lineUp && { step: lineUp.step, a: lineUp.a, b: lineUp.b },
+        cornerAimed,
         spot: spot && { x: spot.p.x, z: spot.p.z, facing: spot.facing },
         aim: aim && { x: aim.spot.p.x, z: aim.spot.p.z, clear: aim.clear },
         drag: drag && { moved: drag.moved },
@@ -576,8 +794,14 @@ async function start(viewer, session, onEnd) {
     },
     /** Where a design spot (cm about the room's centre) is in the headset. */
     worldOf: (x, z) => scaler.localToWorld(new Vector3(x, 0, z)),
+    /** The room's corners (cm about its centre), as lining up uses them. */
+    corners: plan.corners.map((c) => ({ x: c.x, z: c.z })),
     /** Press a menu button by its key, as an air-tap on it would. */
-    press: (key) => actions[key] && actions[key](),
+    press: (key) => press(key),
+    /** The keys on the menu now. */
+    get buttons() {
+      return menu.keys();
+    },
   };
   if (viewer) viewer.__headset = handle;
   return handle;
@@ -673,6 +897,13 @@ function buildPlan(viewer) {
       centre.set((Math.min(...xs) + Math.max(...xs)) / 2, 0, (Math.min(...zs) + Math.max(...zs)) / 2);
     }
   }
+
+  // The room's corners as you can touch them — the walls' inside faces, not
+  // their centre lines — in cm about the centre, for lining up.
+  const inner = room && room.interiorCorners && room.interiorCorners.length > 2 ? room.interiorCorners : null;
+  const corners = ((room && (inner || room.corners)) || []).map(
+    (c) => new Vector3(c.x - centre.x, 0, c.y - centre.z)
+  );
 
   // The whole plan's size, for the miniature's scale.
   const all = [];
@@ -780,6 +1011,7 @@ function buildPlan(viewer) {
 
   return {
     centre,
+    corners,
     size,
     floors,
     walls: wallLines,
@@ -796,12 +1028,18 @@ function buildPlan(viewer) {
   };
 }
 
+// HoloLens 2 shows only about 15° above and below where you look, so the menu
+// sits just under eye level, where all of it is in view without bowing your head.
+const MENU_AHEAD_M = 0.7;
+const MENU_BELOW_EYES_M = 0.07;
 // The small "Menu" tab: near the bottom edge of what you see, out of the way.
 const TAB_AHEAD_M = 0.8;
-const TAB_BELOW_EYES_M = 0.24;
+const TAB_BELOW_EYES_M = 0.17;
+// How long a button stays lit after the hand ray slips off it.
+const HOVER_HOLD_MS = 250;
 
 /** Keep the menu in sight: ahead and a little low, catching up when you turn. */
-function followHead(mesh, head, dir, snap, ahead = 0.7, below = 0.28) {
+function followHead(mesh, head, dir, snap, ahead = MENU_AHEAD_M, below = MENU_BELOW_EYES_M) {
   const want = new Vector3(head.x + dir.x * ahead, head.y - below, head.z + dir.z * ahead);
   const toMenu = mesh.position.clone().sub(head).setY(0).normalize();
   const off = Math.acos(Math.max(-1, Math.min(1, toMenu.dot(dir))));
@@ -814,58 +1052,77 @@ function followHead(mesh, head, dir, snap, ahead = 0.7, below = 0.28) {
   mesh.lookAt(head.x, head.y, head.z); // tilted up to face your eyes
 }
 
-// [key, label, column, row] — four columns, up to three rows.
+// [key, label, column, row] — three big buttons a row, two rows; the rarer
+// life-size ones are under "More".
+// (The walls always show on the miniature, so its menu has "Line up" instead.)
 const MINI_BUTTONS = [
   ["centre", "Stand in centre", 0, 0],
   ["miniTurn", "Turn 90°", 1, 0],
-  ["bigger", "Bigger", 2, 0],
-  ["smaller", "Smaller", 3, 0],
-  ["walls", "Walls", 0, 1],
-  ["exit", "Exit", 3, 1],
+  ["lineUp", "Line up room", 2, 0],
+  ["bigger", "Bigger", 0, 1],
+  ["smaller", "Smaller", 1, 1],
+  ["exit", "Exit", 2, 1],
 ];
 const LIFE_BUTTONS = [
   ["mini", "Miniature", 0, 0],
   ["me", "Centre on me", 1, 0],
-  ["walls", "Walls", 3, 0],
+  ["walls", "Walls", 2, 0],
   ["left90", "Turn 90°", 0, 1],
-  ["left5", "Turn ⟲ 5°", 1, 1],
-  ["right5", "Turn 5° ⟳", 2, 1],
-  ["up", "Floor ▲", 0, 2],
-  ["down", "Floor ▼", 1, 2],
-  ["exit", "Exit", 3, 2],
+  ["more", "More…", 1, 1],
+  ["exit", "Exit", 2, 1],
 ];
+const LIFE_MORE_BUTTONS = [
+  ["left5", "Turn ⟲ 5°", 0, 0],
+  ["right5", "Turn 5° ⟳", 1, 0],
+  ["back", "‹ Back", 2, 0],
+  ["up", "Floor ▲", 0, 1],
+  ["down", "Floor ▼", 1, 1],
+  ["lineUp", "Line up room", 2, 1],
+];
+const LINE_UP_BUTTONS = [["cancelLineUp", "Cancel", 2, 1]];
 
 /** The floating menu: a picture of buttons on a small panel. */
 function makeMenu() {
   const W = 1024;
-  const H = 700;
+  const H = 582;
   const canvas = document.createElement("canvas");
   canvas.width = W;
   canvas.height = H;
   const ctx = canvas.getContext("2d");
   const texture = new CanvasTexture(canvas);
+  // 42 cm wide: each button about 13 × 8 cm, easy to land a ray on.
   const mesh = new Mesh(
-    new PlaneGeometry(0.5, 0.5 * (H / W)),
+    new PlaneGeometry(0.42, 0.42 * (H / W)),
     new MeshBasicMaterial({ map: texture, transparent: true })
   );
   mesh.renderOrder = 10;
 
   const TOP = 130;
   const PAD = 24;
-  const ROWS = 3;
-  const BW = (W - PAD * 5) / 4;
+  const COLS = 3;
+  const ROWS = 2;
+  const BW = (W - PAD * (COLS + 1)) / COLS;
   const BH = (H - TOP - PAD * (ROWS + 1)) / ROWS;
   const rect = (col, row) => [PAD + col * (BW + PAD), TOP + PAD + row * (BH + PAD), BW, BH];
   // The close "✕", top right beside the title.
   const CLOSE = [W - PAD - 96, PAD, 96, 96];
-  const inside = (px, py, [x, y, w, h]) => px >= x && px <= x + w && py >= y && py <= y + h;
+  const inside = (px, py, [x, y, w, h], m = 0) =>
+    px >= x - m && px <= x + w + m && py >= y - m && py <= y + h + m;
+  const rectOf = (key) => {
+    if (key === "close") return CLOSE;
+    const b = buttons.find(([k]) => k === key);
+    return b ? rect(b[2], b[3]) : null;
+  };
 
   let buttons = [];
   let title = "";
   let status = "";
   let hover = null;
+  let flashed = null; // just pressed: green for a moment
   let wallsOn = false;
+  let gone = false;
   const draw = () => {
+    if (gone) return;
     ctx.clearRect(0, 0, W, H);
     ctx.fillStyle = "rgba(20,26,38,0.92)";
     roundRect(ctx, 0, 0, W, H, 36);
@@ -881,16 +1138,30 @@ function makeMenu() {
     buttons.forEach(([key, label, col, row]) => {
       const [x, y, w, h] = rect(col, row);
       const on = key === "walls" && wallsOn;
-      ctx.fillStyle = key === hover ? "#3b82f6" : on ? "#1f6f9f" : key === "exit" ? "#7f1d1d" : "#2a3446";
+      ctx.fillStyle =
+        key === flashed
+          ? "#22c55e"
+          : key === hover
+            ? "#3b82f6"
+            : on
+              ? "#1f6f9f"
+              : key === "exit"
+                ? "#7f1d1d"
+                : "#2a3446";
       roundRect(ctx, x, y, w, h, 22);
       ctx.fill();
+      if (key === hover && key !== flashed) {
+        ctx.strokeStyle = "#ffffff";
+        ctx.lineWidth = 6;
+        ctx.stroke();
+      }
       ctx.fillStyle = "#ffffff";
-      ctx.font = "600 34px Segoe UI, Arial, sans-serif";
+      ctx.font = "600 42px Segoe UI, Arial, sans-serif";
       ctx.textAlign = "center";
       ctx.fillText(key === "walls" ? (wallsOn ? "Walls: on" : "Walls: off") : label, x + w / 2, y + h / 2);
     });
     const [cx, cy, cw, ch] = CLOSE;
-    ctx.fillStyle = hover === "close" ? "#3b82f6" : "#2a3446";
+    ctx.fillStyle = flashed === "close" ? "#22c55e" : hover === "close" ? "#3b82f6" : "#2a3446";
     roundRect(ctx, cx, cy, cw, ch, cw / 2);
     ctx.fill();
     ctx.strokeStyle = "#ffffff";
@@ -923,14 +1194,26 @@ function makeMenu() {
     setWalls: (on) => {
       if (on !== wallsOn) ((wallsOn = on), draw());
     },
-    buttonAt: (uv) => {
+    /** The button at a point; the lit one (`keep`) reaches out into the gap round it. */
+    buttonAt: (uv, keep) => {
       const px = uv.x * W;
       const py = (1 - uv.y) * H;
+      const kept = keep && rectOf(keep);
+      if (kept && inside(px, py, kept, PAD)) return keep;
       if (inside(px, py, CLOSE)) return "close";
       const found = buttons.find(([, , col, row]) => inside(px, py, rect(col, row)));
       return found ? found[0] : null;
     },
+    flash: (key) => {
+      flashed = key;
+      draw();
+      setTimeout(() => {
+        if (flashed === key) ((flashed = null), draw());
+      }, 200);
+    },
+    keys: () => ["close", ...buttons.map(([k]) => k)],
     dispose: () => {
+      gone = true;
       mesh.geometry.dispose();
       mesh.material.dispose();
       texture.dispose();
@@ -1060,6 +1343,47 @@ function makeMarker() {
       ring.geometry.dispose();
       arrowGeometry.dispose();
       ringMaterial.dispose();
+    },
+  };
+}
+
+/**
+ * The room's corners on the miniature, for lining up: white to pick from,
+ * yellow under the ray, GREEN for the first corner chosen, ORANGE the second.
+ * In the scaler's cm, so they shrink and turn with the model.
+ */
+function makeCornerDots(corners) {
+  const group = new Group();
+  group.visible = false;
+  const disc = new RingGeometry(0, 1, 24).rotateX(-Math.PI / 2);
+  const colours = {
+    idle: new Color(0xffffff),
+    aimed: new Color(0xfacc15),
+    a: new Color(0x22c55e),
+    b: new Color(0xf97316),
+  };
+  const dots = corners.map((c) => {
+    const material = new MeshBasicMaterial({ transparent: true, opacity: 0.95, side: DoubleSide, depthTest: false });
+    const mesh = new Mesh(disc, material);
+    mesh.position.set(c.x, 1, c.z);
+    mesh.renderOrder = 5;
+    group.add(mesh);
+    return mesh;
+  });
+  return {
+    group,
+    show: (aimed, a, b) => {
+      dots.forEach((mesh, i) => {
+        const role = i === a ? "a" : i === b ? "b" : i === aimed ? "aimed" : "idle";
+        mesh.material.color.copy(colours[role]);
+        // Chosen and aimed corners stand out a little bigger (radius in cm).
+        mesh.scale.setScalar(role === "idle" ? 14 : 22);
+      });
+      group.visible = true;
+    },
+    dispose: () => {
+      disc.dispose();
+      dots.forEach((mesh) => mesh.material.dispose());
     },
   };
 }
