@@ -1,28 +1,38 @@
 /**
  * SEE THE DESIGN IN THE REAL ROOM — a HoloLens 2 (or any WebXR headset) view.
  *
- * The furniture of the 3D view is shown as holograms at real size, standing in
- * the room you are in. On HoloLens black is see-through, so nothing else is
- * drawn: no walls, no floor, no sky — only the furniture, plus faint wall lines
- * when you ask for them, to help line the design up with the real walls.
+ * It opens on a MINIATURE of the design: the floor, the wall outlines and the
+ * furniture as a model about 0.6 m across, floating ahead at table height. You
+ * turn it (menu, or pinch on it and drag sideways), make it bigger or smaller,
+ * and point at its floor: a marker shows the spot and an arrow the way you
+ * would face — green on clear floor, red too close to a wall or furniture, or
+ * outside the room. Air-tap a green spot and the design blinks up to LIFE SIZE
+ * with that spot under your feet, facing the arrow's way. "Stand in room
+ * centre" does the same for the room's middle, facing the way the 3D view was
+ * looking.
  *
- *   air-tap the floor   the design's middle moves to that spot;
- *   the floating menu   turn it (90° / 5°), raise or lower the floor, walls
- *                       on/off, exit. It follows you around, a little below
- *                       your eyes.
+ * At life size the menu follows you, a little below your eyes: back to the
+ * miniature, "Centre on me" (the chosen spot under your feet again, after you
+ * have walked off), turn 90° / 5° (about you, to line the design up with the
+ * real walls), raise or lower the floor, wall outlines on/off, exit.
  *
- * It runs in its OWN renderer and its own scene, so nothing here can touch the
- * 3D view, the plan or the saved project: the items are clones that share the
- * real ones' meshes and materials. The 3D view stops drawing while you are in
- * the headset (it cannot be seen anyway, and the HoloLens needs the power) and
+ * The room's centre is the room's own — from its corners — not the middle of
+ * the furniture, which sat by one wall when that is where the furniture was.
+ *
+ * On HoloLens black is see-through, so only the design is drawn. It runs in
+ * its OWN renderer and scene, so nothing here can touch the 3D view, the plan
+ * or the saved project: the items are clones that share the real ones' meshes
+ * and materials. The 3D view stops drawing while you are in the headset and
  * starts again when you leave.
  */
 
 import {
+  Box3,
   BufferGeometry,
   CanvasTexture,
   Color,
   DirectionalLight,
+  DoubleSide,
   Float32BufferAttribute,
   Group,
   HemisphereLight,
@@ -38,6 +48,9 @@ import {
   Raycaster,
   RingGeometry,
   Scene,
+  Shape,
+  ShapeGeometry,
+  Vector2,
   Vector3,
   WebGLRenderer,
 } from "three";
@@ -45,6 +58,30 @@ import BlueprintInterface from "@pazl/blueprint-interface.js";
 
 const CM = 0.01; // the design is in cm, the headset in metres
 const FALLBACK_EYE_M = 1.6; // floor below the eyes when the headset cannot say
+const UP = new Vector3(0, 1, 0);
+
+// The miniature: its longest side, and where it floats relative to your eyes.
+const MINI_SIZE_M = 0.6;
+const MINI_AHEAD_M = 0.75;
+const MINI_BELOW_EYES_M = 0.5;
+const MINI_ZOOM_STEP = 1.25;
+const MINI_ZOOM_MIN = 0.5;
+const MINI_ZOOM_MAX = 3;
+// Pinch on the miniature and move sideways to turn it: the hand ray turns a
+// few degrees, the model turns this many times as far.
+const MINI_DRAG_GAIN = 3;
+const MINI_DRAG_START_RAD = 0.04; // less than this is a tap, not a drag
+
+// A spot to stand on: this far (cm) from any wall and any furniture lower
+// than HEADROOM_CM. Furniture higher up (a wall cabinet, a ceiling light) does
+// not stop you standing under it.
+const CLEAR_CM = 25;
+const HEADROOM_CM = 150;
+// "Stand in room centre" moves off furniture that stands right there, to the
+// nearest clear spot within this far.
+const CENTRE_SEARCH_CM = 250;
+
+const BLINK_MS = 240; // the design disappears this long while it changes scale
 
 /** Which kind of session this browser can open, or null. AR first. */
 export async function headsetMode() {
@@ -98,6 +135,9 @@ export function exitHeadset() {
   if (active) active.exit();
 }
 
+/** Compass angle of a horizontal direction (0 = +z), the way rotation.y adds. */
+const yawOf = (v) => Math.atan2(v.x, v.z);
+
 async function start(viewer, session, onEnd) {
   // A context of our own, made ready for the headset before it is handed over.
   const canvas = document.createElement("canvas");
@@ -126,33 +166,33 @@ async function start(viewer, session, onEnd) {
   const sun = new DirectionalLight(0xffffff, 0.6);
   sun.position.set(1, 3, 2);
   scene.add(sun);
-  const camera = new PerspectiveCamera(70, 1, 0.05, 100);
+  const camera = new PerspectiveCamera(70, 1, 0.01, 100);
   scene.add(camera);
 
-  // anchor (metres, on the real floor, turned) → scaled to cm → design, with
-  // its middle at the anchor.
+  // anchor (metres; placed and turned) → scaler (cm → m, and the miniature's
+  // shrink) → design (cm, the room's centre at the origin).
   const anchor = new Group();
   const scaler = new Group();
-  scaler.scale.setScalar(CM);
   const design = new Group();
   anchor.add(scaler);
   scaler.add(design);
   scene.add(anchor);
 
+  const plan = buildPlan(viewer);
   const built = buildDesign(viewer);
   built.items.forEach((o) => design.add(o));
-  design.position.set(-built.centre.x, 0, -built.centre.z);
-  const walls = buildWalls(viewer);
-  if (walls) {
-    walls.visible = false;
-    design.add(walls);
-  }
-  anchor.position.y = floorY;
+  if (plan.walls) design.add(plan.walls);
+  plan.floors.forEach((f) => design.add(f));
+  design.position.set(-plan.centre.x, 0, -plan.centre.z);
+  const extentM = Math.max(plan.size.x, plan.size.z, 100) * CM;
+  const miniFit = MINI_SIZE_M / extentM;
 
   const menu = makeMenu();
   scene.add(menu.mesh);
   const pointer = makePointer();
-  scene.add(pointer.line, pointer.ring);
+  scene.add(pointer.line);
+  const marker = makeMarker();
+  scene.add(marker.group);
 
   // --- the 3D view stops drawing while you are in the headset -----------------
   const mainRenderer = viewer && viewer.renderer;
@@ -162,30 +202,142 @@ async function start(viewer, session, onEnd) {
     /* keeps drawing; only slower */
   }
 
-  let placed = false;
-  let turn = 0;
-  const applyTurn = () => {
+  // The way the 3D view was looking, as a facing in the design.
+  const viewFacing = (() => {
+    try {
+      const dir = viewer.controls.target.clone().sub(viewer.camera.position);
+      dir.y = 0;
+      return dir.lengthSq() > 1e-6 ? yawOf(dir) : 0;
+    } catch (e) {
+      return 0;
+    }
+  })();
+
+  // --- what is going on ---------------------------------------------------------
+  const head = new Vector3();
+  const headDir = new Vector3(0, 0, -1);
+  let tracked = false;
+  let mode = "mini";
+  let zoom = 1;
+  let wallsOn = true;
+  // The spot chosen to stand on: p in design cm about the room's centre, and
+  // the facing (compass angle in the design) you look along when standing.
+  let spot = null;
+  let aim = null; // what the hand ray points at on the miniature this frame
+  let drag = null; // pinch-and-drag on the miniature
+  let blink = null;
+  let miniPlaced = false;
+
+  const setScale = () => scaler.scale.setScalar(mode === "mini" ? CM * miniFit * zoom : CM);
+
+  /** The miniature ahead of you, at table height, its turn kept. */
+  const placeMini = () => {
+    anchor.position.set(
+      head.x + headDir.x * MINI_AHEAD_M,
+      head.y - MINI_BELOW_EYES_M,
+      head.z + headDir.z * MINI_AHEAD_M
+    );
+    miniPlaced = true;
+  };
+
+  /** Life size: `spot` under your feet, facing along where you are looking. */
+  const standOnSpot = () => {
+    if (!spot) return;
+    const turn = yawOf(headDir) - spot.facing;
     anchor.rotation.y = turn;
+    const at = new Vector3(spot.p.x * CM, 0, spot.p.z * CM).applyAxisAngle(UP, turn);
+    anchor.position.set(head.x - at.x, floorY, head.z - at.z);
+  };
+
+  /** Show the change with the design hidden for a moment, like a blink. */
+  const blinkTo = (change) => {
+    blink = { until: performance.now() + BLINK_MS, change, changed: false };
+  };
+
+  const showMode = () => {
+    setScale();
+    plan.floors.forEach((f) => (f.visible = mode === "mini"));
+    if (plan.walls) plan.walls.visible = mode === "mini" || wallsOn;
+    marker.group.visible = false;
+    menu.setButtons(mode === "mini" ? MINI_BUTTONS : LIFE_BUTTONS);
+    menu.setTitle(mode === "mini" ? "Pazl · choose where to stand" : "Pazl · your design in this room");
+    menu.setWalls(wallsOn);
+    menu.setStatus(
+      mode === "mini"
+        ? built.items.length
+          ? "Point at the floor · air-tap to step in"
+          : "No furniture in this view · point at the floor"
+        : "Life size · 'Miniature' to choose another spot"
+    );
+  };
+
+  const goLife = (chosen) => {
+    spot = chosen;
+    blinkTo(() => {
+      mode = "life";
+      showMode();
+      standOnSpot();
+    });
+  };
+
+  const goMini = () => {
+    blinkTo(() => {
+      mode = "mini";
+      anchor.rotation.y = 0;
+      placeMini();
+      showMode();
+    });
+  };
+
+  /** Turn the life-size design about you, so you stay where you are in it. */
+  const turnAboutYou = (angle) => {
+    const from = anchor.position.clone().sub(new Vector3(head.x, anchor.position.y, head.z));
+    from.applyAxisAngle(UP, angle);
+    anchor.position.set(head.x + from.x, anchor.position.y, head.z + from.z);
+    anchor.rotation.y += angle;
   };
 
   const actions = {
-    left90: () => ((turn += Math.PI / 2), applyTurn()),
-    left5: () => ((turn += Math.PI / 36), applyTurn()),
-    right5: () => ((turn -= Math.PI / 36), applyTurn()),
-    walls: () => {
-      if (walls) walls.visible = !walls.visible;
-      menu.setWalls(!!(walls && walls.visible));
+    // miniature
+    centre: () => {
+      const p = plan.nearestClear(new Vector3(0, 0, 0));
+      if (!p) {
+        menu.setStatus("No clear floor near the room's centre");
+        return;
+      }
+      goLife({ p, facing: viewFacing });
     },
-    up: () => ((floorY += 0.02), (anchor.position.y = floorY)),
-    down: () => ((floorY -= 0.02), (anchor.position.y = floorY)),
+    bigger: () => {
+      zoom = Math.min(MINI_ZOOM_MAX, zoom * MINI_ZOOM_STEP);
+      setScale();
+    },
+    smaller: () => {
+      zoom = Math.max(MINI_ZOOM_MIN, zoom / MINI_ZOOM_STEP);
+      setScale();
+    },
+    miniTurn: () => (anchor.rotation.y += Math.PI / 2),
+    // life size
+    mini: () => goMini(),
+    me: () => standOnSpot(),
+    left90: () => turnAboutYou(Math.PI / 2),
+    left5: () => turnAboutYou(Math.PI / 36),
+    right5: () => turnAboutYou(-Math.PI / 36),
+    up: () => {
+      floorY += 0.02;
+      if (mode === "life") anchor.position.y = floorY;
+    },
+    down: () => {
+      floorY -= 0.02;
+      if (mode === "life") anchor.position.y = floorY;
+    },
+    // both
+    walls: () => {
+      wallsOn = !wallsOn;
+      if (plan.walls) plan.walls.visible = mode === "mini" || wallsOn;
+      menu.setWalls(wallsOn);
+    },
     exit: () => session.end(),
   };
-  menu.setStatus(
-    built.items.length
-      ? `${built.items.length} items · air-tap the floor to place`
-      : "No furniture in this view"
-  );
-  menu.setWalls(false);
 
   const raycaster = new Raycaster();
   const rayFrom = (frame, source) => {
@@ -198,37 +350,66 @@ async function start(viewer, session, onEnd) {
     const dir = new Vector3(0, 0, -1).applyQuaternion(new Quaternion().setFromRotationMatrix(m));
     return { origin, dir };
   };
-  const onFloor = (ray) => {
-    if (!ray || ray.dir.y > -0.05) return null; // pointing at or above the horizon
-    const t = (floorY - ray.origin.y) / ray.dir.y;
-    if (t <= 0 || t > 15) return null;
-    return ray.origin.clone().addScaledVector(ray.dir, t);
-  };
   const menuHit = (ray) => {
     if (!ray) return null;
     raycaster.set(ray.origin, ray.dir);
     const hit = raycaster.intersectObject(menu.mesh, false)[0];
     return hit && hit.uv ? menu.buttonAt(hit.uv) : null;
   };
+  /** Where a ray meets the miniature's floor: the world point and the spot. */
+  const miniFloorHit = (ray) => {
+    if (!ray || mode !== "mini") return null;
+    raycaster.set(ray.origin, ray.dir);
+    const hit = raycaster.intersectObjects(plan.floors, false)[0];
+    if (!hit) return null;
+    const p = scaler.worldToLocal(hit.point.clone());
+    p.y = 0;
+    // You will face the way you look across the model now.
+    const facing = yawOf(headDir) - anchor.rotation.y;
+    return { world: hit.point, spot: { p, facing }, clear: plan.isClear(p) };
+  };
 
+  const onSelectStart = (event) => {
+    if (mode !== "mini" || blink) return;
+    const ray = rayFrom(event.frame, event.inputSource);
+    if (!ray || menuHit(ray) || !miniFloorHit(ray)) return;
+    drag = {
+      source: event.inputSource,
+      start: yawOf(ray.dir),
+      turn: anchor.rotation.y,
+      moved: false,
+    };
+  };
+  const onSelectEnd = (event) => {
+    if (drag && drag.source === event.inputSource) {
+      // "select" comes before "selectend": let it see the drag first.
+      setTimeout(() => (drag = null), 0);
+    }
+  };
   const onSelect = (event) => {
+    if (blink) return;
     const ray = rayFrom(event.frame, event.inputSource);
     const button = menuHit(ray);
     if (button) {
       actions[button]();
       return;
     }
-    const spot = onFloor(ray);
-    if (spot) {
-      anchor.position.set(spot.x, floorY, spot.z);
-      placed = true;
+    if (mode !== "mini" || (drag && drag.moved)) return;
+    const hit = miniFloorHit(ray);
+    if (!hit) return;
+    if (!hit.clear) {
+      menu.setStatus("Not there · too close to a wall or furniture");
+      return;
     }
+    goLife(hit.spot);
   };
+  session.addEventListener("selectstart", onSelectStart);
+  session.addEventListener("selectend", onSelectEnd);
   session.addEventListener("select", onSelect);
 
+  showMode();
+
   // --- every frame -----------------------------------------------------------
-  const head = new Vector3();
-  const headDir = new Vector3();
   let menuSet = false;
   renderer.setAnimationLoop((time, frame) => {
     const ref = renderer.xr.getReferenceSpace();
@@ -240,33 +421,66 @@ async function start(viewer, session, onEnd) {
       headDir.y = 0;
       if (headDir.lengthSq() < 1e-6) headDir.set(0, 0, -1);
       headDir.normalize();
-
-      // Start with the design 1.5 m ahead, its front towards you.
-      if (!placed) {
-        anchor.position.set(head.x + headDir.x * 1.5, floorY, head.z + headDir.z * 1.5);
-        turn = Math.atan2(headDir.x, headDir.z) + Math.PI;
-        applyTurn();
-        placed = true;
+      tracked = true;
+      if (!miniPlaced) {
+        placeMini();
+        setScale();
       }
       followHead(menu.mesh, head, headDir, !menuSet);
       menuSet = true;
     }
 
-    // The pointer: the first hand (or gaze) ray, ending on the menu or floor.
-    let shown = false;
+    // The blink: hide, change once hidden, show again.
+    if (blink) {
+      const now = performance.now();
+      anchor.visible = false;
+      if (!blink.changed && now >= blink.until - BLINK_MS / 2) {
+        blink.changed = true;
+        blink.change();
+      }
+      if (now >= blink.until) {
+        blink = null;
+        anchor.visible = true;
+      }
+    }
+
+    // Pointer, menu hover, the marker on the miniature's floor, and a drag.
+    // With both hands up, the one pointing at something wins — not simply the
+    // first in the list, which left the other hand's ray dead.
     let hover = null;
+    aim = null;
+    let best = null;
     const sources = session.inputSources || [];
-    for (let i = 0; i < sources.length && !shown; i++) {
+    for (let i = 0; i < sources.length; i++) {
       const ray = rayFrom(frame, sources[i]);
       if (!ray) continue;
-      hover = menuHit(ray);
-      const spot = hover ? null : onFloor(ray);
-      const end = spot || ray.origin.clone().addScaledVector(ray.dir, hover ? 0.6 : 2);
-      pointer.show(ray.origin, end, spot);
-      shown = true;
+      if (drag && drag.source === sources[i]) {
+        let turned = yawOf(ray.dir) - drag.start;
+        turned = Math.atan2(Math.sin(turned), Math.cos(turned));
+        if (Math.abs(turned) > MINI_DRAG_START_RAD) drag.moved = true;
+        if (drag.moved) anchor.rotation.y = drag.turn + turned * MINI_DRAG_GAIN;
+      }
+      const onMenu = menuHit(ray);
+      const hit = onMenu || blink ? null : miniFloorHit(ray);
+      const rank = onMenu ? 2 : hit ? 1 : 0;
+      if (!best || rank > best.rank) best = { ray, onMenu, hit, rank };
     }
-    if (!shown) pointer.hide();
+    if (best) {
+      hover = best.onMenu;
+      aim = best.hit;
+      const end = aim
+        ? aim.world
+        : best.ray.origin.clone().addScaledVector(best.ray.dir, hover ? 0.6 : 2);
+      pointer.show(best.ray.origin, end);
+    } else {
+      pointer.hide();
+    }
     menu.setHover(hover);
+    if (aim && !(drag && drag.moved)) {
+      marker.show(aim.world, yawOf(headDir), aim.clear, miniFit * zoom);
+    } else {
+      marker.hide();
+    }
 
     renderer.render(scene, camera);
   });
@@ -275,6 +489,8 @@ async function start(viewer, session, onEnd) {
   const finish = () => {
     if (done) return;
     done = true;
+    session.removeEventListener("selectstart", onSelectStart);
+    session.removeEventListener("selectend", onSelectEnd);
     session.removeEventListener("select", onSelect);
     renderer.setAnimationLoop(null);
     // three.js tidies its side of the session in its own "end" handler, which
@@ -282,10 +498,11 @@ async function start(viewer, session, onEnd) {
     setTimeout(release, 0);
   };
   const release = () => {
-    // Only the clones' own bits; the meshes and materials belong to the 3D view.
+    // Only the copies' own bits; the meshes and materials belong to the 3D view.
     menu.dispose();
     pointer.dispose();
-    if (walls) walls.geometry.dispose();
+    marker.dispose();
+    plan.dispose();
     try {
       renderer.dispose();
       renderer.forceContextLoss();
@@ -297,28 +514,55 @@ async function start(viewer, session, onEnd) {
     } catch (e) {
       console.error("headset: could not restart the 3D view", e);
     }
+    if (viewer) viewer.__headset = null;
     active = null;
     if (onEnd) onEnd();
   };
   session.addEventListener("end", finish, { once: true });
 
   await renderer.xr.setSession(session);
-  return { session, exit: () => session.end().catch(() => finish()) };
+  const handle = {
+    session,
+    exit: () => session.end().catch(() => finish()),
+    // What the view is doing, for a look from the console (and the emulator).
+    get state() {
+      return {
+        mode,
+        tracked,
+        zoom,
+        wallsOn,
+        spot: spot && { x: spot.p.x, z: spot.p.z, facing: spot.facing },
+        aim: aim && { x: aim.spot.p.x, z: aim.spot.p.z, clear: aim.clear },
+        drag: drag && { moved: drag.moved },
+        anchor: {
+          x: anchor.position.x,
+          y: anchor.position.y,
+          z: anchor.position.z,
+          turn: anchor.rotation.y,
+          scale: scaler.scale.x,
+        },
+        head: { x: head.x, y: head.y, z: head.z, facing: yawOf(headDir) },
+        roomCentre: { x: plan.centre.x, z: plan.centre.z },
+        items: built.items.length,
+      };
+    },
+    /** Where a design spot (cm about the room's centre) is in the headset. */
+    worldOf: (x, z) => scaler.localToWorld(new Vector3(x, 0, z)),
+    /** Press a menu button by its key, as an air-tap on it would. */
+    press: (key) => actions[key] && actions[key](),
+  };
+  if (viewer) viewer.__headset = handle;
+  return handle;
 }
 
 /**
- * Clones of every piece of furniture the 3D view is showing (a focused room
- * shows only its own), placed as they are in the design, plus the middle of
- * them all on the floor.
+ * Copies of every piece of furniture the 3D view is showing (a focused room
+ * shows only its own), placed as they are in the design, with their outlines
+ * on the floor for the spot check.
  */
 function buildDesign(viewer) {
   const list = (viewer && viewer.__physicalRoomItems) || [];
   const items = [];
-  let minX = Infinity;
-  let maxX = -Infinity;
-  let minZ = Infinity;
-  let maxZ = -Infinity;
-  const at = new Vector3();
   list.forEach((phys) => {
     const loaded = phys && phys.__loadedItem;
     if (!loaded || !shownInView(phys)) return;
@@ -328,16 +572,8 @@ function buildDesign(viewer) {
     copy.matrix.copy(loaded.matrixWorld);
     copy.updateMatrixWorld(true);
     items.push(copy);
-    at.setFromMatrixPosition(loaded.matrixWorld);
-    minX = Math.min(minX, at.x);
-    maxX = Math.max(maxX, at.x);
-    minZ = Math.min(minZ, at.z);
-    maxZ = Math.max(maxZ, at.z);
   });
-  const centre = items.length
-    ? new Vector3((minX + maxX) / 2, 0, (minZ + maxZ) / 2)
-    : new Vector3();
-  return { items, centre };
+  return { items };
 }
 
 function shownInView(obj) {
@@ -346,36 +582,190 @@ function shownInView(obj) {
 }
 
 /**
- * Faint lines where the walls are: the focused room's outline (or every wall)
- * on the floor and at the top, and an upright at each corner.
+ * The plan as the headset needs it, in design cm: the room's centre and the
+ * plan's size, floors to point at on the miniature, faint wall outlines, and
+ * the check for a clear spot to stand on.
+ *
+ * The centre is the room's own: the focused room, else the room the 3D view
+ * is looking at, else the largest. Its middle is its area centre, or the
+ * middle of its outline when that falls outside an L-shaped room.
  */
-function buildWalls(viewer) {
-  const plan = (viewer && viewer.floorplan) || null;
-  const focusId = BlueprintInterface?.__roomFocusId || null;
-  const segments = [];
-  const rooms = (plan && plan.getRooms && plan.getRooms()) || [];
-  const room = focusId ? rooms.find((r) => r && r.roomByCornersId === focusId) : null;
-  if (room && room.corners && room.corners.length > 2) {
-    const cs = room.corners;
-    cs.forEach((c, i) => segments.push([c, cs[(i + 1) % cs.length]]));
-  } else {
-    const ws = (plan && plan.getWalls && plan.getWalls()) || [];
-    ws.forEach((w) => w && w.start && w.end && segments.push([w.start, w.end]));
-  }
-  if (!segments.length) return null;
-  const pts = [];
-  const height = (c) => Number(c.elevation) || 270;
-  segments.forEach(([a, b]) => {
-    pts.push(a.x, 0, a.y, b.x, 0, b.y); // on the floor
-    pts.push(a.x, height(a), a.y, b.x, height(b), b.y); // along the top
-    pts.push(a.x, 0, a.y, a.x, height(a), a.y); // the corner upright
-  });
-  const geometry = new BufferGeometry();
-  geometry.setAttribute("position", new Float32BufferAttribute(pts, 3));
-  return new LineSegments(
-    geometry,
-    new LineBasicMaterial({ color: new Color(0x5fd0ff), transparent: true, opacity: 0.8 })
+function buildPlan(viewer) {
+  const fp = (viewer && viewer.floorplan) || null;
+  const rooms = ((fp && fp.getRooms && fp.getRooms()) || []).filter(
+    (r) => r && r.corners && r.corners.length > 2
   );
+  const walls = ((fp && fp.getWalls && fp.getWalls()) || []).filter(
+    (w) => w && w.start && w.end
+  );
+  const inRoom = (r, x, z) => {
+    try {
+      return !!r.pointInRoom(new Vector2(x, z));
+    } catch (e) {
+      return false;
+    }
+  };
+  const areaOf = (cs) => {
+    let a = 0;
+    cs.forEach((c, i) => {
+      const n = cs[(i + 1) % cs.length];
+      a += c.x * n.y - n.x * c.y;
+    });
+    return a / 2;
+  };
+
+  const focusId = BlueprintInterface?.__roomFocusId || null;
+  let room = focusId ? rooms.find((r) => r.roomByCornersId === focusId) : null;
+  if (!room && viewer && viewer.controls) {
+    const t = viewer.controls.target;
+    room = rooms.find((r) => inRoom(r, t.x, t.z)) || null;
+  }
+  if (!room && rooms.length) {
+    room = rooms.reduce((a, b) =>
+      Math.abs(areaOf(b.corners)) > Math.abs(areaOf(a.corners)) ? b : a
+    );
+  }
+
+  const centre = new Vector3();
+  if (room) {
+    const cs = room.corners;
+    const a = areaOf(cs);
+    let cx = 0;
+    let cz = 0;
+    cs.forEach((c, i) => {
+      const n = cs[(i + 1) % cs.length];
+      const k = c.x * n.y - n.x * c.y;
+      cx += (c.x + n.x) * k;
+      cz += (c.y + n.y) * k;
+    });
+    if (Math.abs(a) > 1e-6) centre.set(cx / (6 * a), 0, cz / (6 * a));
+    if (!inRoom(room, centre.x, centre.z)) {
+      const xs = cs.map((c) => c.x);
+      const zs = cs.map((c) => c.y);
+      centre.set((Math.min(...xs) + Math.max(...xs)) / 2, 0, (Math.min(...zs) + Math.max(...zs)) / 2);
+    }
+  }
+
+  // The whole plan's size, for the miniature's scale.
+  const all = [];
+  rooms.forEach((r) => r.corners.forEach((c) => all.push(c)));
+  walls.forEach((w) => all.push(w.start, w.end));
+  const size = new Vector3(100, 0, 100);
+  if (all.length) {
+    const xs = all.map((c) => c.x);
+    const zs = all.map((c) => c.y);
+    size.set(Math.max(...xs) - Math.min(...xs), 0, Math.max(...zs) - Math.min(...zs));
+  }
+
+  // Floors, to point at on the miniature (hidden at life size).
+  const floorMaterial = new MeshBasicMaterial({
+    color: new Color(0x8fc6e8),
+    transparent: true,
+    opacity: 0.35,
+    side: DoubleSide,
+    depthWrite: false,
+  });
+  const floors = rooms.map((r) => {
+    const shape = new Shape(r.corners.map((c) => new Vector2(c.x, c.y)));
+    const geometry = new ShapeGeometry(shape).rotateX(Math.PI / 2);
+    const mesh = new Mesh(geometry, floorMaterial);
+    mesh.position.y = 0.5; // just above the furniture's feet
+    return mesh;
+  });
+
+  // Faint wall outlines: on the floor, along the top, an upright at each end.
+  let wallLines = null;
+  if (walls.length) {
+    const pts = [];
+    const height = (c) => Number(c.elevation) || 270;
+    walls.forEach((w) => {
+      const a = w.start;
+      const b = w.end;
+      pts.push(a.x, 0, a.y, b.x, 0, b.y);
+      pts.push(a.x, height(a), a.y, b.x, height(b), b.y);
+      pts.push(a.x, 0, a.y, a.x, height(a), a.y);
+    });
+    const geometry = new BufferGeometry();
+    geometry.setAttribute("position", new Float32BufferAttribute(pts, 3));
+    wallLines = new LineSegments(
+      geometry,
+      new LineBasicMaterial({ color: new Color(0x5fd0ff), transparent: true, opacity: 0.8 })
+    );
+  }
+
+  // What stands on the floor and would be in the way (plan cm, x and z).
+  const obstacles = [];
+  ((viewer && viewer.__physicalRoomItems) || []).forEach((phys) => {
+    const loaded = phys && phys.__loadedItem;
+    if (!loaded || !shownInView(phys)) return;
+    try {
+      const box = new Box3().setFromObject(loaded);
+      if (box.isEmpty() || box.min.y > HEADROOM_CM) return;
+      obstacles.push(box);
+    } catch (e) {
+      /* an item that cannot be measured does not block */
+    }
+  });
+  const distToSegment = (px, pz, a, b) => {
+    const dx = b.x - a.x;
+    const dz = b.y - a.y;
+    const l2 = dx * dx + dz * dz || 1;
+    const t = Math.max(0, Math.min(1, ((px - a.x) * dx + (pz - a.y) * dz) / l2));
+    return Math.hypot(px - (a.x + t * dx), pz - (a.y + t * dz));
+  };
+
+  /** Can you stand at p (cm about the room's centre)? */
+  const isClear = (p) => {
+    const x = p.x + centre.x;
+    const z = p.z + centre.z;
+    if (rooms.length && !rooms.some((r) => inRoom(r, x, z))) return false;
+    for (const w of walls) {
+      const half = (Number(w.thickness) || 10) / 2;
+      if (distToSegment(x, z, w.start, w.end) < CLEAR_CM + half) return false;
+    }
+    for (const b of obstacles) {
+      if (
+        x > b.min.x - CLEAR_CM &&
+        x < b.max.x + CLEAR_CM &&
+        z > b.min.z - CLEAR_CM &&
+        z < b.max.z + CLEAR_CM
+      ) {
+        return false;
+      }
+    }
+    return true;
+  };
+
+  /** p itself when clear, else the nearest clear spot within reach, or null. */
+  const nearestClear = (p) => {
+    if (isClear(p)) return p.clone();
+    for (let r = 10; r <= CENTRE_SEARCH_CM; r += 10) {
+      const steps = Math.max(8, Math.round((2 * Math.PI * r) / 10));
+      for (let i = 0; i < steps; i++) {
+        const a = (i / steps) * Math.PI * 2;
+        const q = new Vector3(p.x + Math.sin(a) * r, 0, p.z + Math.cos(a) * r);
+        if (isClear(q)) return q;
+      }
+    }
+    return null;
+  };
+
+  return {
+    centre,
+    size,
+    floors,
+    walls: wallLines,
+    isClear,
+    nearestClear,
+    dispose: () => {
+      floors.forEach((f) => f.geometry.dispose());
+      floorMaterial.dispose();
+      if (wallLines) {
+        wallLines.geometry.dispose();
+        wallLines.material.dispose();
+      }
+    },
+  };
 }
 
 /** Keep the menu in sight: ahead and a little low, catching up when you turn. */
@@ -392,10 +782,31 @@ function followHead(mesh, head, dir, snap) {
   mesh.lookAt(head.x, head.y, head.z); // tilted up to face your eyes
 }
 
+// [key, label, column, row] — four columns, up to three rows.
+const MINI_BUTTONS = [
+  ["centre", "Stand in centre", 0, 0],
+  ["miniTurn", "Turn 90°", 1, 0],
+  ["bigger", "Bigger", 2, 0],
+  ["smaller", "Smaller", 3, 0],
+  ["walls", "Walls", 0, 1],
+  ["exit", "Exit", 3, 1],
+];
+const LIFE_BUTTONS = [
+  ["mini", "Miniature", 0, 0],
+  ["me", "Centre on me", 1, 0],
+  ["walls", "Walls", 3, 0],
+  ["left90", "Turn 90°", 0, 1],
+  ["left5", "Turn ⟲ 5°", 1, 1],
+  ["right5", "Turn 5° ⟳", 2, 1],
+  ["up", "Floor ▲", 0, 2],
+  ["down", "Floor ▼", 1, 2],
+  ["exit", "Exit", 3, 2],
+];
+
 /** The floating menu: a picture of buttons on a small panel. */
 function makeMenu() {
   const W = 1024;
-  const H = 560;
+  const H = 700;
   const canvas = document.createElement("canvas");
   canvas.width = W;
   canvas.height = H;
@@ -407,22 +818,15 @@ function makeMenu() {
   );
   mesh.renderOrder = 10;
 
-  // [key, label, column, row]
-  const BUTTONS = [
-    ["left90", "Turn 90°", 0, 0],
-    ["left5", "Turn ⟲ 5°", 1, 0],
-    ["right5", "Turn 5° ⟳", 2, 0],
-    ["walls", "Walls", 3, 0],
-    ["up", "Floor ▲", 0, 1],
-    ["down", "Floor ▼", 1, 1],
-    ["exit", "Exit", 3, 1],
-  ];
   const TOP = 130;
   const PAD = 24;
+  const ROWS = 3;
   const BW = (W - PAD * 5) / 4;
-  const BH = (H - TOP - PAD * 3) / 2;
+  const BH = (H - TOP - PAD * (ROWS + 1)) / ROWS;
   const rect = (col, row) => [PAD + col * (BW + PAD), TOP + PAD + row * (BH + PAD), BW, BH];
 
+  let buttons = [];
+  let title = "";
   let status = "";
   let hover = null;
   let wallsOn = false;
@@ -435,18 +839,18 @@ function makeMenu() {
     ctx.font = "600 44px Segoe UI, Arial, sans-serif";
     ctx.textBaseline = "middle";
     ctx.textAlign = "left";
-    ctx.fillText("Pazl · your design in this room", PAD + 8, 52);
+    ctx.fillText(title, PAD + 8, 52);
     ctx.fillStyle = "#9fd8ff";
     ctx.font = "34px Segoe UI, Arial, sans-serif";
     ctx.fillText(status, PAD + 8, 104);
-    BUTTONS.forEach(([key, label, col, row]) => {
+    buttons.forEach(([key, label, col, row]) => {
       const [x, y, w, h] = rect(col, row);
       const on = key === "walls" && wallsOn;
       ctx.fillStyle = key === hover ? "#3b82f6" : on ? "#1f6f9f" : key === "exit" ? "#7f1d1d" : "#2a3446";
       roundRect(ctx, x, y, w, h, 22);
       ctx.fill();
       ctx.fillStyle = "#ffffff";
-      ctx.font = "600 38px Segoe UI, Arial, sans-serif";
+      ctx.font = "600 34px Segoe UI, Arial, sans-serif";
       ctx.textAlign = "center";
       ctx.fillText(key === "walls" ? (wallsOn ? "Walls: on" : "Walls: off") : label, x + w / 2, y + h / 2);
     });
@@ -456,6 +860,12 @@ function makeMenu() {
 
   return {
     mesh,
+    setButtons: (list) => {
+      if (list !== buttons) ((buttons = list), (hover = null), draw());
+    },
+    setTitle: (text) => {
+      if (text !== title) ((title = text), draw());
+    },
     setStatus: (text) => {
       if (text !== status) ((status = text), draw());
     },
@@ -468,7 +878,7 @@ function makeMenu() {
     buttonAt: (uv) => {
       const px = uv.x * W;
       const py = (1 - uv.y) * H;
-      const found = BUTTONS.find(([, , col, row]) => {
+      const found = buttons.find(([, , col, row]) => {
         const [x, y, w, h] = rect(col, row);
         return px >= x && px <= x + w && py >= y && py <= y + h;
       });
@@ -492,7 +902,7 @@ function roundRect(ctx, x, y, w, h, r) {
   ctx.closePath();
 }
 
-/** The hand ray and, on the floor, a ring where an air-tap would place it. */
+/** The hand ray. */
 function makePointer() {
   const geometry = new BufferGeometry();
   geometry.setAttribute("position", new Float32BufferAttribute([0, 0, 0, 0, 0, -1], 3));
@@ -501,33 +911,63 @@ function makePointer() {
     new LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.6 })
   );
   line.frustumCulled = false;
-  const ring = new Mesh(
-    new RingGeometry(0.07, 0.1, 32).rotateX(-Math.PI / 2),
-    new MeshBasicMaterial({ color: 0x5fd0ff, transparent: true, opacity: 0.9 })
-  );
   line.visible = false;
-  ring.visible = false;
   return {
     line,
-    ring,
-    show: (from, to, spot) => {
+    show: (from, to) => {
       const p = geometry.attributes.position;
       p.setXYZ(0, from.x, from.y, from.z);
       p.setXYZ(1, to.x, to.y, to.z);
       p.needsUpdate = true;
       line.visible = true;
-      ring.visible = !!spot;
-      if (spot) ring.position.set(spot.x, spot.y + 0.005, spot.z);
     },
     hide: () => {
       line.visible = false;
-      ring.visible = false;
     },
     dispose: () => {
       geometry.dispose();
       line.material.dispose();
+    },
+  };
+}
+
+/**
+ * Where you would stand, on the miniature: a ring the size of a person's
+ * footprint in the model, and an arrow the way you would face. Green when you
+ * can stand there, red when you cannot.
+ */
+function makeMarker() {
+  const group = new Group();
+  const ringMaterial = new MeshBasicMaterial({ transparent: true, opacity: 0.9, side: DoubleSide });
+  const ring = new Mesh(new RingGeometry(0.7, 1, 32).rotateX(-Math.PI / 2), ringMaterial);
+  const arrowGeometry = new BufferGeometry();
+  // A flat triangle pointing along +z, from the ring's edge outwards.
+  arrowGeometry.setAttribute(
+    "position",
+    new Float32BufferAttribute([-0.45, 0, 1.05, 0.45, 0, 1.05, 0, 0, 2.1], 3)
+  );
+  const arrow = new Mesh(arrowGeometry, ringMaterial);
+  group.add(ring, arrow);
+  group.visible = false;
+  const green = new Color(0x34d399);
+  const red = new Color(0xf87171);
+  return {
+    group,
+    show: (at, facing, clear, miniScale) => {
+      // A person is about 50 cm across; in the miniature, that shrunk.
+      group.scale.setScalar(Math.max(0.006, 25 * CM * miniScale));
+      group.position.set(at.x, at.y + 0.002, at.z);
+      group.rotation.y = facing;
+      ringMaterial.color.copy(clear ? green : red);
+      group.visible = true;
+    },
+    hide: () => {
+      group.visible = false;
+    },
+    dispose: () => {
       ring.geometry.dispose();
-      ring.material.dispose();
+      arrowGeometry.dispose();
+      ringMaterial.dispose();
     },
   };
 }
