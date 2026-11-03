@@ -14,7 +14,8 @@
  * At life size the menu follows you, a little below your eyes: back to the
  * miniature, "Centre on me" (the chosen spot under your feet again, after you
  * have walked off), turn 90° / 5° (about you, to line the design up with the
- * real walls), raise or lower the floor, wall outlines on/off, exit. The ✕
+ * real walls), raise or lower the floor, "Show" (everything → no wall
+ * outlines → furniture only, without doors and windows), exit. The ✕
  * closes the menu to see the room clear; a small "Menu" tab brings it back.
  * A press counts the button the pinch STARTED on, so a hand that moves while
  * pinching does not miss.
@@ -243,7 +244,10 @@ async function start(viewer, session, onEnd) {
   let tracked = false;
   let mode = "mini";
   let zoom = 1;
-  let wallsOn = true;
+  // What the life-size view shows, one tap of "Show" to the next: everything,
+  // no wall outlines, or the furniture alone (no doors or windows either — in
+  // the real room the real ones are there).
+  let show = "all";
   // The spot chosen to stand on: p in design cm about the room's centre, and
   // the facing (compass angle in the design) you look along when standing.
   let spot = null;
@@ -305,10 +309,20 @@ async function start(viewer, session, onEnd) {
     marker.hide();
   };
 
+  /** Wall outlines, doors and windows as "Show" says. The miniature shows all. */
+  const applyShow = () => {
+    const life = mode === "life";
+    if (plan.walls) plan.walls.visible = !life || show === "all";
+    built.items.forEach((o) => {
+      if (o.userData.opening) o.visible = !life || show !== "furniture";
+    });
+    menu.setShow(SHOW_LABELS[show], show !== "all");
+  };
+
   const showMode = () => {
     setScale();
     plan.floors.forEach((f) => (f.visible = mode === "mini"));
-    if (plan.walls) plan.walls.visible = mode === "mini" || wallsOn;
+    applyShow();
     marker.group.visible = false;
     dots.group.visible = mode === "mini" && !!lineUp;
     if (lineUp) {
@@ -317,7 +331,6 @@ async function start(viewer, session, onEnd) {
     }
     menu.setButtons(mode === "mini" ? MINI_BUTTONS : LIFE_BUTTONS);
     menu.setTitle(mode === "mini" ? "Pazl · choose where to stand" : "Pazl · your design in this room");
-    menu.setWalls(wallsOn);
     menu.setStatus(
       mode === "mini"
         ? built.items.length
@@ -517,11 +530,9 @@ async function start(viewer, session, onEnd) {
       floorY -= 0.02;
       if (mode === "life") anchor.position.y = floorY;
     },
-    // both
-    walls: () => {
-      wallsOn = !wallsOn;
-      if (plan.walls) plan.walls.visible = mode === "mini" || wallsOn;
-      menu.setWalls(wallsOn);
+    show: () => {
+      show = SHOW_NEXT[show];
+      applyShow();
     },
     exit: () => session.end(),
     lineUp: () => startLineUp(),
@@ -773,7 +784,7 @@ async function start(viewer, session, onEnd) {
         mode,
         tracked,
         zoom,
-        wallsOn,
+        show,
         menuOpen,
         lineUp: lineUp && { step: lineUp.step, a: lineUp.a, b: lineUp.b },
         cornerAimed,
@@ -820,12 +831,30 @@ function buildDesign(viewer) {
     if (!loaded || !shownInView(phys)) return;
     loaded.updateWorldMatrix(true, false);
     const copy = loaded.clone(true);
+    copy.userData.opening = isOpening(phys);
     copy.matrixAutoUpdate = false;
     copy.matrix.copy(loaded.matrixWorld);
     copy.updateMatrixWorld(true);
     items.push(copy);
   });
   return { items };
+}
+
+/**
+ * A door or a window: set in a wall (item types 3 and 7), or a parametric one
+ * whose type says so. "Show: Furniture only" hides these, as the real room
+ * has its own.
+ */
+function isOpening(phys) {
+  try {
+    const md = (phys.__itemModel && phys.__itemModel.__metadata) || {};
+    const type = Number(phys.__itemType != null ? phys.__itemType : md.itemType);
+    if (type === 3 || type === 7) return true;
+    const kind = String(md.baseParametricType || "").toUpperCase();
+    return kind.indexOf("DOOR") >= 0 || kind.indexOf("WINDOW") >= 0;
+  } catch (e) {
+    return false;
+  }
 }
 
 function shownInView(obj) {
@@ -1066,7 +1095,7 @@ const MINI_BUTTONS = [
 const LIFE_BUTTONS = [
   ["mini", "Miniature", 0, 0],
   ["me", "Centre on me", 1, 0],
-  ["walls", "Walls", 2, 0],
+  ["show", "Show", 2, 0],
   ["left90", "Turn 90°", 0, 1],
   ["more", "More…", 1, 1],
   ["exit", "Exit", 2, 1],
@@ -1080,6 +1109,9 @@ const LIFE_MORE_BUTTONS = [
   ["lineUp", "Line up room", 2, 1],
 ];
 const LINE_UP_BUTTONS = [["cancelLineUp", "Cancel", 2, 1]];
+// "Show", tap by tap, and what its button reads.
+const SHOW_NEXT = { all: "noWalls", noWalls: "furniture", furniture: "all" };
+const SHOW_LABELS = { all: "Show: Everything", noWalls: "Show: No walls", furniture: "Furniture only" };
 
 /** The floating menu: a picture of buttons on a small panel. */
 function makeMenu() {
@@ -1119,7 +1151,8 @@ function makeMenu() {
   let status = "";
   let hover = null;
   let flashed = null; // just pressed: green for a moment
-  let wallsOn = false;
+  let showLabel = "Show";
+  let showOn = false; // lit while the view hides something
   let gone = false;
   const draw = () => {
     if (gone) return;
@@ -1137,7 +1170,7 @@ function makeMenu() {
     ctx.fillText(status, PAD + 8, 104);
     buttons.forEach(([key, label, col, row]) => {
       const [x, y, w, h] = rect(col, row);
-      const on = key === "walls" && wallsOn;
+      const on = key === "show" && showOn;
       ctx.fillStyle =
         key === flashed
           ? "#22c55e"
@@ -1156,9 +1189,16 @@ function makeMenu() {
         ctx.stroke();
       }
       ctx.fillStyle = "#ffffff";
-      ctx.font = "600 42px Segoe UI, Arial, sans-serif";
       ctx.textAlign = "center";
-      ctx.fillText(key === "walls" ? (wallsOn ? "Walls: on" : "Walls: off") : label, x + w / 2, y + h / 2);
+      // Long labels ("Show: Everything") step down in size to fit the button.
+      const text = key === "show" ? showLabel : label;
+      let size = 42;
+      ctx.font = `600 ${size}px Segoe UI, Arial, sans-serif`;
+      while (size > 26 && ctx.measureText(text).width > w - 28) {
+        size -= 2;
+        ctx.font = `600 ${size}px Segoe UI, Arial, sans-serif`;
+      }
+      ctx.fillText(text, x + w / 2, y + h / 2);
     });
     const [cx, cy, cw, ch] = CLOSE;
     ctx.fillStyle = flashed === "close" ? "#22c55e" : hover === "close" ? "#3b82f6" : "#2a3446";
@@ -1191,8 +1231,8 @@ function makeMenu() {
     setHover: (key) => {
       if (key !== hover) ((hover = key), draw());
     },
-    setWalls: (on) => {
-      if (on !== wallsOn) ((wallsOn = on), draw());
+    setShow: (label, on) => {
+      if (label !== showLabel || on !== showOn) ((showLabel = label), (showOn = on), draw());
     },
     /** The button at a point; the lit one (`keep`) reaches out into the gap round it. */
     buttonAt: (uv, keep) => {
