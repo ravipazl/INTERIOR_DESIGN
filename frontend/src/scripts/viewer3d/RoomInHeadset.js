@@ -189,6 +189,10 @@ async function start(viewer, session, onEnd) {
 
   const menu = makeMenu();
   scene.add(menu.mesh);
+  // With the menu closed, a small "Menu" tab low in view brings it back.
+  const menuTab = makeMenuTab();
+  menuTab.mesh.visible = false;
+  scene.add(menuTab.mesh);
   const pointer = makePointer();
   scene.add(pointer.line);
   const marker = makeMarker();
@@ -227,6 +231,8 @@ async function start(viewer, session, onEnd) {
   let drag = null; // pinch-and-drag on the miniature
   let blink = null;
   let miniPlaced = false;
+  let menuOpen = true;
+  let menuSet = false;
 
   const setScale = () => scaler.scale.setScalar(mode === "mini" ? CM * miniFit * zoom : CM);
 
@@ -337,6 +343,19 @@ async function start(viewer, session, onEnd) {
       menu.setWalls(wallsOn);
     },
     exit: () => session.end(),
+    // the menu itself: close it to see the room, open it from the small tab
+    close: () => {
+      menuOpen = false;
+      menu.mesh.visible = false;
+      menuTab.mesh.visible = true;
+      menuTab.mesh.userData.placed = false;
+    },
+    open: () => {
+      menuOpen = true;
+      menuSet = false; // straight in front of you, not drifting in
+      menu.mesh.visible = true;
+      menuTab.mesh.visible = false;
+    },
   };
 
   const raycaster = new Raycaster();
@@ -350,9 +369,11 @@ async function start(viewer, session, onEnd) {
     const dir = new Vector3(0, 0, -1).applyQuaternion(new Quaternion().setFromRotationMatrix(m));
     return { origin, dir };
   };
+  // The ray finds hidden meshes too, so only the one on show is tried.
   const menuHit = (ray) => {
     if (!ray) return null;
     raycaster.set(ray.origin, ray.dir);
+    if (!menuOpen) return raycaster.intersectObject(menuTab.mesh, false)[0] ? "open" : null;
     const hit = raycaster.intersectObject(menu.mesh, false)[0];
     return hit && hit.uv ? menu.buttonAt(hit.uv) : null;
   };
@@ -410,7 +431,6 @@ async function start(viewer, session, onEnd) {
   showMode();
 
   // --- every frame -----------------------------------------------------------
-  let menuSet = false;
   renderer.setAnimationLoop((time, frame) => {
     const ref = renderer.xr.getReferenceSpace();
     const viewerPose = frame && ref ? frame.getViewerPose(ref) : null;
@@ -426,8 +446,13 @@ async function start(viewer, session, onEnd) {
         placeMini();
         setScale();
       }
-      followHead(menu.mesh, head, headDir, !menuSet);
-      menuSet = true;
+      if (menuOpen) {
+        followHead(menu.mesh, head, headDir, !menuSet);
+        menuSet = true;
+      } else {
+        followHead(menuTab.mesh, head, headDir, !menuTab.mesh.userData.placed, TAB_AHEAD_M, TAB_BELOW_EYES_M);
+        menuTab.mesh.userData.placed = true;
+      }
     }
 
     // The blink: hide, change once hidden, show again.
@@ -476,6 +501,7 @@ async function start(viewer, session, onEnd) {
       pointer.hide();
     }
     menu.setHover(hover);
+    menuTab.setHover(hover === "open");
     if (aim && !(drag && drag.moved)) {
       marker.show(aim.world, yawOf(headDir), aim.clear, miniFit * zoom);
     } else {
@@ -500,6 +526,7 @@ async function start(viewer, session, onEnd) {
   const release = () => {
     // Only the copies' own bits; the meshes and materials belong to the 3D view.
     menu.dispose();
+    menuTab.dispose();
     pointer.dispose();
     marker.dispose();
     plan.dispose();
@@ -531,6 +558,7 @@ async function start(viewer, session, onEnd) {
         tracked,
         zoom,
         wallsOn,
+        menuOpen,
         spot: spot && { x: spot.p.x, z: spot.p.z, facing: spot.facing },
         aim: aim && { x: aim.spot.p.x, z: aim.spot.p.z, clear: aim.clear },
         drag: drag && { moved: drag.moved },
@@ -768,9 +796,13 @@ function buildPlan(viewer) {
   };
 }
 
+// The small "Menu" tab: near the bottom edge of what you see, out of the way.
+const TAB_AHEAD_M = 0.8;
+const TAB_BELOW_EYES_M = 0.24;
+
 /** Keep the menu in sight: ahead and a little low, catching up when you turn. */
-function followHead(mesh, head, dir, snap) {
-  const want = new Vector3(head.x + dir.x * 0.7, head.y - 0.28, head.z + dir.z * 0.7);
+function followHead(mesh, head, dir, snap, ahead = 0.7, below = 0.28) {
+  const want = new Vector3(head.x + dir.x * ahead, head.y - below, head.z + dir.z * ahead);
   const toMenu = mesh.position.clone().sub(head).setY(0).normalize();
   const off = Math.acos(Math.max(-1, Math.min(1, toMenu.dot(dir))));
   if (snap) mesh.position.copy(want);
@@ -824,6 +856,9 @@ function makeMenu() {
   const BW = (W - PAD * 5) / 4;
   const BH = (H - TOP - PAD * (ROWS + 1)) / ROWS;
   const rect = (col, row) => [PAD + col * (BW + PAD), TOP + PAD + row * (BH + PAD), BW, BH];
+  // The close "✕", top right beside the title.
+  const CLOSE = [W - PAD - 96, PAD, 96, 96];
+  const inside = (px, py, [x, y, w, h]) => px >= x && px <= x + w && py >= y && py <= y + h;
 
   let buttons = [];
   let title = "";
@@ -854,6 +889,19 @@ function makeMenu() {
       ctx.textAlign = "center";
       ctx.fillText(key === "walls" ? (wallsOn ? "Walls: on" : "Walls: off") : label, x + w / 2, y + h / 2);
     });
+    const [cx, cy, cw, ch] = CLOSE;
+    ctx.fillStyle = hover === "close" ? "#3b82f6" : "#2a3446";
+    roundRect(ctx, cx, cy, cw, ch, cw / 2);
+    ctx.fill();
+    ctx.strokeStyle = "#ffffff";
+    ctx.lineWidth = 8;
+    ctx.lineCap = "round";
+    ctx.beginPath();
+    ctx.moveTo(cx + 32, cy + 32);
+    ctx.lineTo(cx + cw - 32, cy + ch - 32);
+    ctx.moveTo(cx + cw - 32, cy + 32);
+    ctx.lineTo(cx + 32, cy + ch - 32);
+    ctx.stroke();
     texture.needsUpdate = true;
   };
   draw();
@@ -878,11 +926,55 @@ function makeMenu() {
     buttonAt: (uv) => {
       const px = uv.x * W;
       const py = (1 - uv.y) * H;
-      const found = buttons.find(([, , col, row]) => {
-        const [x, y, w, h] = rect(col, row);
-        return px >= x && px <= x + w && py >= y && py <= y + h;
-      });
+      if (inside(px, py, CLOSE)) return "close";
+      const found = buttons.find(([, , col, row]) => inside(px, py, rect(col, row)));
       return found ? found[0] : null;
+    },
+    dispose: () => {
+      mesh.geometry.dispose();
+      mesh.material.dispose();
+      texture.dispose();
+    },
+  };
+}
+
+/** The small tab that opens the menu again once it is closed. */
+function makeMenuTab() {
+  const W = 320;
+  const H = 120;
+  const canvas = document.createElement("canvas");
+  canvas.width = W;
+  canvas.height = H;
+  const ctx = canvas.getContext("2d");
+  const texture = new CanvasTexture(canvas);
+  const mesh = new Mesh(
+    new PlaneGeometry(0.14, 0.14 * (H / W)),
+    new MeshBasicMaterial({ map: texture, transparent: true })
+  );
+  mesh.renderOrder = 10;
+  let hover = null;
+  const draw = () => {
+    ctx.clearRect(0, 0, W, H);
+    ctx.fillStyle = hover ? "rgba(59,130,246,0.95)" : "rgba(20,26,38,0.85)";
+    roundRect(ctx, 0, 0, W, H, H / 2);
+    ctx.fill();
+    // three bars, then the word
+    ctx.fillStyle = "#ffffff";
+    [36, 56, 76].forEach((y) => {
+      roundRect(ctx, 44, y, 56, 9, 4);
+      ctx.fill();
+    });
+    ctx.font = "600 48px Segoe UI, Arial, sans-serif";
+    ctx.textBaseline = "middle";
+    ctx.textAlign = "left";
+    ctx.fillText("Menu", 124, H / 2 + 2);
+    texture.needsUpdate = true;
+  };
+  draw();
+  return {
+    mesh,
+    setHover: (on) => {
+      if (on !== hover) ((hover = on), draw());
     },
     dispose: () => {
       mesh.geometry.dispose();
