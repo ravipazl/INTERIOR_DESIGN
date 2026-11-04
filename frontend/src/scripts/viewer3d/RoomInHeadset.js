@@ -25,6 +25,15 @@
  * The design turns and moves so those corners sit on the real ones, and says
  * how far the real wall length differs from the plan's.
  *
+ * "On real wall" checks a fit: pick an item (or the whole run of units on its
+ * wall), then point at the two ends of the free space on a real wall. The
+ * item stands against that wall with its back on it, as it sits on its wall
+ * in the plan, alone in view, and the menu says whether it fits and by how
+ * much. Slide it along the wall with the buttons or by pinching and moving.
+ * Where the headset can see the room (WebXR hit-test, e.g. Quest 3) you point
+ * at the wall itself; where it cannot (HoloLens in Edge), at the line where
+ * the wall meets the floor.
+ *
  * The room's centre is the room's own — from its corners — not the middle of
  * the furniture, which sat by one wall when that is where the furniture was.
  *
@@ -101,6 +110,14 @@ const CORNER_PICK_CM = 70;
 const LINE_UP_MIN_M = 0.5;
 const LINE_UP_WARN_CM = 15;
 
+// On a real wall: units within RUN_CM of the same wall count as one run; the
+// two ends must be WALL_MIN_M apart; a slide button moves SLIDE_M; a point
+// on the floor counts only within WALL_REACH_M of you.
+const RUN_CM = 20;
+const WALL_MIN_M = 0.1;
+const SLIDE_M = 0.05;
+const WALL_REACH_M = 8;
+
 /** Which kind of session this browser can open, or null. AR first. */
 export async function headsetMode() {
   const xr = typeof navigator !== "undefined" ? navigator.xr : null;
@@ -132,8 +149,9 @@ export async function enterHeadset(viewer, { mode, onEnd } = {}) {
 
   // Ask first, while the click still counts as a click.
   const session = await xr.requestSession(want, {
-    // hand-tracking: the fingertip, for touching a real corner when lining up
-    optionalFeatures: ["local-floor", "hand-tracking"],
+    // hand-tracking: the fingertip, for touching a real corner when lining up;
+    // hit-test: where the headset sees real walls, for "On real wall"
+    optionalFeatures: ["local-floor", "hand-tracking", "hit-test"],
   });
 
   try {
@@ -218,6 +236,12 @@ async function start(viewer, session, onEnd) {
   scene.add(marker.group);
   const dots = makeCornerDots(plan.corners);
   scaler.add(dots.group);
+  // On a real wall: an outline round the chosen item (design cm), and the
+  // free wall space you marked (headset metres).
+  const selBox = makeSelBox();
+  design.add(selBox.lines);
+  const span = makeSpan();
+  scene.add(span.group);
 
   // --- the 3D view stops drawing while you are in the headset -----------------
   const mainRenderer = viewer && viewer.renderer;
@@ -268,6 +292,14 @@ async function start(viewer, session, onEnd) {
   // (corners on the miniature), touchA, touchB (the same corners for real).
   let lineUp = null;
   let cornerAimed = null; // the corner the ray is on, while picking
+  // On a real wall: { step, sel, run, A, B, n, slide, fit }. Steps: pick (the
+  // item), touchA, touchB (the two ends of the free space), placed.
+  let wall = null;
+  let wallAimed = null; // the real point the ray is on, while marking the wall
+  let wallDrag = null; // pinch-and-move along the wall
+  const pickable = built.items.filter((o) => !o.userData.opening && o.userData.box);
+  const lastWallAim = new Map(); // per hand, the last frame's point
+  const hitSources = new Map(); // per hand, its hit-test source (or null)
 
   const setScale = () => scaler.scale.setScalar(mode === "mini" ? CM * miniFit * zoom : CM);
 
@@ -309,12 +341,16 @@ async function start(viewer, session, onEnd) {
     marker.hide();
   };
 
-  /** Wall outlines, doors and windows as "Show" says. The miniature shows all. */
+  /**
+   * Wall outlines, doors and windows as "Show" says. The miniature shows all.
+   * On a real wall, once the wall is being marked, only the chosen item.
+   */
   const applyShow = () => {
     const life = mode === "life";
-    if (plan.walls) plan.walls.visible = !life || show === "all";
+    const keep = wall && wall.step !== "pick" ? new Set(selection()) : null;
+    if (plan.walls) plan.walls.visible = !keep && (!life || show === "all");
     built.items.forEach((o) => {
-      if (o.userData.opening) o.visible = !life || show !== "furniture";
+      o.visible = keep ? keep.has(o) : !o.userData.opening || !life || show !== "furniture";
     });
     menu.setShow(SHOW_LABELS[show], show !== "all");
   };
@@ -325,6 +361,12 @@ async function start(viewer, session, onEnd) {
     applyShow();
     marker.group.visible = false;
     dots.group.visible = mode === "mini" && !!lineUp;
+    selBox.lines.visible = !!wall && wall.step === "pick";
+    span.group.visible = !!wall && wall.step === "placed";
+    if (wall) {
+      showWall();
+      return;
+    }
     if (lineUp) {
       showLineUp();
       return;
@@ -495,6 +537,306 @@ async function start(viewer, session, onEnd) {
     anchor.rotation.y += angle;
   };
 
+  // --- an item on a real wall -------------------------------------------------
+  // Design cm here are the 3D view's own (the design group's inside), and the
+  // plan's x, y are its x, z.
+
+  /** The item chosen, or with "Whole run" every unit on the same wall. */
+  const selection = () => {
+    if (!wall || !pickable.length) return [];
+    const one = pickable[wall.sel];
+    if (!wall.run) return [one];
+    const w = wallOf([one]);
+    if (!w) return [one];
+    // Units that stand on this same wall (a corner unit on the next wall is
+    // that wall's), close to its face.
+    return pickable.filter((o) => {
+      if (o === one) return true;
+      const own = wallOf([o]);
+      return own && own.seg === w.seg && alongWall(w, [o]).off < RUN_CM;
+    });
+  };
+
+  /** The items' footprint corners (plan x, z). */
+  const footprint = (items) => {
+    const pts = [];
+    items.forEach((o) => {
+      const b = o.userData.box;
+      pts.push(
+        new Vector2(b.min.x, b.min.z),
+        new Vector2(b.max.x, b.min.z),
+        new Vector2(b.max.x, b.max.z),
+        new Vector2(b.min.x, b.max.z)
+      );
+    });
+    return pts;
+  };
+
+  /**
+   * The plan wall the items stand against: the one nearest their middle.
+   * `u` runs along it, `nrm` points from it into the room, `face` is how far
+   * its inside face is from its centre line.
+   */
+  const wallOf = (items) => {
+    const pts = footprint(items);
+    if (!pts.length || !plan.wallSegs.length) return null;
+    const c = new Vector2();
+    pts.forEach((p) => c.add(p));
+    c.divideScalar(pts.length);
+    let best = null;
+    plan.wallSegs.forEach((s) => {
+      const d = s.b.clone().sub(s.a);
+      const len = d.length();
+      if (len < 1) return;
+      const u = d.divideScalar(len);
+      const t = Math.max(0, Math.min(len, c.clone().sub(s.a).dot(u)));
+      const dist = c.distanceTo(s.a.clone().addScaledVector(u, t));
+      if (!best || dist < best.dist) {
+        let nrm = new Vector2(-u.y, u.x);
+        if (c.clone().sub(s.a).dot(nrm) < 0) nrm = nrm.negate();
+        best = { seg: s, dist, a: s.a, u, nrm, face: s.half, len };
+      }
+    });
+    return best;
+  };
+
+  /** Where items reach along a wall (cm from its start), and how far off its face. */
+  const alongWall = (w, items) => {
+    let min = Infinity;
+    let max = -Infinity;
+    let off = Infinity;
+    footprint(items).forEach((p) => {
+      const q = p.clone().sub(w.a);
+      const s = q.dot(w.u);
+      min = Math.min(min, s);
+      max = Math.max(max, s);
+      off = Math.min(off, Math.abs(q.dot(w.nrm) - w.face));
+    });
+    return { min, max, off };
+  };
+
+  const nameOf = (o) => (o && o.userData.name) || "Item";
+  const mmOf = (items) => {
+    const w = wallOf(items.slice(0, 1));
+    if (w) {
+      const s = alongWall(w, items);
+      return Math.round((s.max - s.min) * 10);
+    }
+    const b = items[0].userData.box;
+    return Math.round(Math.max(b.max.x - b.min.x, b.max.z - b.min.z) * 10);
+  };
+
+  /** Outline the chosen item(s) while choosing. */
+  const outlineSelection = () => {
+    const items = selection();
+    if (!items.length) return;
+    const box = new Box3();
+    items.forEach((o) => box.union(o.userData.box));
+    selBox.set(box);
+  };
+
+  /**
+   * Stand the chosen item(s) against the marked real wall: the plan wall's
+   * inside face on the real line A–B, into the room on your side, the middle
+   * of the item(s) at the middle of the space, moved along by `slide`.
+   */
+  const placeOnWall = () => {
+    const items = selection();
+    // The chosen item's own wall (a whole run shares it).
+    const w = wallOf(items.slice(0, 1));
+    if (!w || !wall.A || !wall.B) return;
+    const real = wall.B.clone().sub(wall.A).setY(0);
+    const lengthM = real.length();
+    const dir = real.divideScalar(lengthM);
+    const nrm = new Vector3(w.nrm.x, 0, w.nrm.y);
+    const turn = yawOf(wall.n) - yawOf(nrm);
+    const s = alongWall(w, items);
+    const mid = (s.min + s.max) / 2;
+    const inPlan = new Vector3(
+      w.a.x + w.nrm.x * w.face + w.u.x * mid - plan.centre.x,
+      0,
+      w.a.y + w.nrm.y * w.face + w.u.y * mid - plan.centre.z
+    )
+      .multiplyScalar(CM)
+      .applyAxisAngle(UP, turn);
+    const at = wall.A.clone().addScaledVector(dir, lengthM / 2 + wall.slide);
+    mode = "life";
+    setScale();
+    anchor.rotation.y = turn;
+    anchor.position.set(at.x - inPlan.x, floorY, at.z - inPlan.z);
+    const needMm = Math.round((s.max - s.min) * 10);
+    const freeMm = Math.round(lengthM * 1000);
+    wall.fit = { needMm, freeMm, spareMm: freeMm - needMm, lengthM };
+    span.set(wall.A, wall.B, floorY, wall.fit.spareMm >= 0);
+  };
+
+  const fitText = () => {
+    const f = wall.fit;
+    if (!f) return "";
+    return f.spareMm >= 0
+      ? `Fits · ${f.needMm} mm in ${f.freeMm} mm · ${f.spareMm} mm spare`
+      : `Too wide by ${-f.spareMm} mm · ${f.needMm} mm in ${f.freeMm} mm`;
+  };
+
+  // Can this headset see the real walls? (Asked for; it may say no.)
+  const canScan = () =>
+    !!session.requestHitTestSource &&
+    (!session.enabledFeatures || session.enabledFeatures.indexOf("hit-test") >= 0);
+
+  const showWall = () => {
+    menu.setLabel("wallRun", wall.run ? "One item" : "Whole run");
+    const items = selection();
+    const what = items.length > 1 ? `${items.length} units` : nameOf(items[0]);
+    if (wall.step === "pick") {
+      menu.setButtons(WALL_PICK_BUTTONS);
+      menu.setTitle("On real wall · 1 of 3 · choose");
+      menu.setStatus(`${what} · ${mmOf(items)} mm · air-tap another or Next`);
+      outlineSelection();
+      return;
+    }
+    if (wall.step === "placed") {
+      menu.setButtons(WALL_PLACED_BUTTONS);
+      menu.setTitle(`${what} on your wall`);
+      menu.setStatus(fitText());
+      return;
+    }
+    menu.setButtons(WALL_TOUCH_BUTTONS);
+    const end = wall.step === "touchA" ? "START" : "END";
+    menu.setTitle(`On real wall · ${wall.step === "touchA" ? 2 : 3} of 3`);
+    menu.setStatus(
+      canScan()
+        ? `Point at the real wall where the space ${end}S · air-tap`
+        : `Point where the wall meets the floor · its ${end} · air-tap`
+    );
+  };
+
+  const startWall = () => {
+    if (!pickable.length) {
+      menu.setStatus("No furniture in this view to place");
+      return;
+    }
+    const begin = () => {
+      wall = { step: "pick", sel: 0, run: false, A: null, B: null, n: null, slide: 0, fit: null };
+      showMode();
+    };
+    if (mode === "life") begin();
+    else
+      blinkTo(() => {
+        mode = "life";
+        if (!spot) spot = { p: plan.nearestClear(new Vector3()) || new Vector3(), facing: viewFacing };
+        standOnSpot();
+        begin();
+      });
+  };
+
+  const stopWall = () => {
+    wall = null;
+    wallAimed = null;
+    wallDrag = null;
+    showMode();
+  };
+
+  /** A real point marked on the wall: the start, then the end, then place. */
+  const wallMark = (p) => {
+    if (!p) {
+      menu.setStatus(
+        canScan() ? "Point at the real wall or floor" : "Point lower · at the floor by the wall"
+      );
+      return;
+    }
+    if (wall.step === "touchA") {
+      wall.A = p.clone();
+      wall.step = "touchB";
+      span.mark(wall.A, floorY);
+      showWall();
+      return;
+    }
+    if (p.distanceTo(wall.A) < WALL_MIN_M) {
+      menu.setStatus("Too close to the start · point at the END");
+      return;
+    }
+    wall.B = p.clone();
+    // Into the room: the side of the line you are standing on.
+    const d = wall.B.clone().sub(wall.A).setY(0).normalize();
+    wall.n = new Vector3(-d.z, 0, d.x);
+    if (wall.n.dot(head.clone().sub(wall.A).setY(0)) < 0) wall.n.negate();
+    wall.slide = 0;
+    wall.step = "placed";
+    blinkTo(() => {
+      placeOnWall();
+      showMode();
+    });
+  };
+
+  /** Slide along the wall: "◀" to your left as you face it. */
+  const slideBy = (m) => {
+    const d = wall.B.clone().sub(wall.A).setY(0).normalize();
+    const left = new Vector3().crossVectors(UP, wall.n.clone().negate());
+    wall.slide += m * Math.sign(left.dot(d) || 1);
+    placeOnWall();
+    menu.setStatus(fitText());
+  };
+
+  /** Where a ray meets the marked wall's upright plane, along the wall (m from A). */
+  const alongRealWall = (ray) => {
+    if (!wall || !wall.A || !wall.n) return null;
+    const point = new Vector3();
+    raycaster.set(ray.origin, ray.dir);
+    const plane = new Plane().setFromNormalAndCoplanarPoint(wall.n, wall.A);
+    if (!raycaster.ray.intersectPlane(plane, point)) return null;
+    const d = wall.B.clone().sub(wall.A).setY(0).normalize();
+    return point.sub(wall.A).dot(d);
+  };
+
+  /** This hand's hit-test source, asked for once. */
+  const hitSourceFor = (source) => {
+    if (!canScan() || !source.targetRaySpace) return null;
+    if (!hitSources.has(source)) {
+      hitSources.set(source, null);
+      session
+        .requestHitTestSource({ space: source.targetRaySpace })
+        .then((hs) => hitSources.set(source, hs))
+        .catch(() => hitSources.set(source, null));
+    }
+    return hitSources.get(source);
+  };
+
+  /**
+   * The real point a hand points at, at floor height: the real wall where the
+   * headset sees it, else where the ray meets the floor (aim at the skirting).
+   */
+  const wallAimFrom = (frame, source, ray) => {
+    const hs = hitSourceFor(source);
+    if (hs) {
+      try {
+        const result = frame.getHitTestResults(hs)[0];
+        const pose = result && result.getPose(renderer.xr.getReferenceSpace());
+        if (pose) {
+          const p = pose.transform.position;
+          return new Vector3(p.x, floorY, p.z);
+        }
+      } catch (e) {
+        /* no result this frame */
+      }
+    }
+    if (ray.dir.y > -0.05) return null;
+    const point = new Vector3();
+    raycaster.set(ray.origin, ray.dir);
+    if (!raycaster.ray.intersectPlane(new Plane(UP.clone(), -floorY), point)) return null;
+    return point.distanceTo(head) < WALL_REACH_M ? point.setY(floorY) : null;
+  };
+
+  /** The item a ray lands on, as its place in `pickable`. */
+  const itemHit = (ray) => {
+    raycaster.set(ray.origin, ray.dir);
+    const hit = raycaster.intersectObjects(pickable, true)[0];
+    for (let o = hit && hit.object; o; o = o.parent) {
+      const i = pickable.indexOf(o);
+      if (i >= 0) return i;
+    }
+    return null;
+  };
+
   const actions = {
     // miniature
     centre: () => {
@@ -537,6 +879,34 @@ async function start(viewer, session, onEnd) {
     exit: () => session.end(),
     lineUp: () => startLineUp(),
     cancelLineUp: () => stopLineUp(),
+    // on a real wall
+    wall: () => startWall(),
+    wallNext: () => {
+      wall.sel = (wall.sel + 1) % pickable.length;
+      if (wall.step === "placed") placeOnWall();
+      showMode();
+    },
+    wallRun: () => {
+      wall.run = !wall.run;
+      if (wall.step === "placed") placeOnWall();
+      showMode();
+    },
+    wallGo: () => {
+      wall.step = "touchA";
+      wall.A = wall.B = null;
+      span.clear();
+      showMode();
+    },
+    wallAgain: () => actions.wallGo(),
+    slideL: () => slideBy(SLIDE_M),
+    slideR: () => slideBy(-SLIDE_M),
+    // Done keeps the design where it now stands, lined up on that wall.
+    wallDone: () => stopWall(),
+    wallCancel: () => {
+      const placed = wall && wall.fit;
+      stopWall();
+      if (!placed) standOnSpot();
+    },
     // the menu itself: close it to see the room, open it from the small tab
     close: () => {
       menuOpen = false;
@@ -596,6 +966,13 @@ async function start(viewer, session, onEnd) {
     const ray = rayFrom(event.frame, event.inputSource);
     const button = (ray && menuHit(ray)) || hover;
     pressedAt.set(event.inputSource, button || null);
+    // Placed on a real wall: pinch and move to slide it along.
+    if (wall) {
+      const s = !button && ray && wall.step === "placed" ? alongRealWall(ray) : null;
+      if (s !== null)
+        wallDrag = { source: event.inputSource, start: s, slide: wall.slide, moved: false };
+      return;
+    }
     // No turning the model while touching real corners.
     const touching = lineUp && lineUp.step.startsWith("touch");
     if (button || touching || mode !== "mini" || !ray || !miniFloorHit(ray)) return;
@@ -608,6 +985,7 @@ async function start(viewer, session, onEnd) {
   };
   const onSelectEnd = (event) => {
     pressedAt.delete(event.inputSource);
+    if (wallDrag && wallDrag.source === event.inputSource) setTimeout(() => (wallDrag = null), 0);
     if (drag && drag.source === event.inputSource) {
       // "select" comes before "selectend": let it see the drag first.
       setTimeout(() => (drag = null), 0);
@@ -624,7 +1002,18 @@ async function start(viewer, session, onEnd) {
       press(button);
       return;
     }
-    if (drag && drag.moved) return;
+    if ((drag && drag.moved) || (wallDrag && wallDrag.moved)) return;
+    if (wall) {
+      if (wall.step === "pick") {
+        const i = ray ? itemHit(ray) : null;
+        if (i !== null) ((wall.sel = i), showWall());
+      } else if (wall.step.startsWith("touch")) {
+        // The point from the last frame: hit-test answers only on a frame.
+        const p = lastWallAim.get(event.inputSource) || (ray && wallAimFrom(event.frame, event.inputSource, ray));
+        wallMark(p || null);
+      }
+      return;
+    }
     if (lineUp) {
       lineUpSelect(event.frame, event.inputSource, ray);
       return;
@@ -698,15 +1087,33 @@ async function start(viewer, session, onEnd) {
         if (Math.abs(turned) > MINI_DRAG_START_RAD) drag.moved = true;
         if (drag.moved) anchor.rotation.y = drag.turn + turned * MINI_DRAG_GAIN;
       }
+      if (wallDrag && wallDrag.source === sources[i]) {
+        const s = alongRealWall(ray);
+        if (s !== null) {
+          const moved = s - wallDrag.start;
+          if (Math.abs(moved) > 0.01) wallDrag.moved = true;
+          if (wallDrag.moved) {
+            wall.slide = wallDrag.slide + moved;
+            placeOnWall();
+            menu.setStatus(fitText());
+          }
+        }
+      }
       const onMenu = menuHit(ray);
       // While lining up there is no spot to stand on, only corners to pick.
       const picking = lineUp && lineUp.step.startsWith("pick");
-      const hit = onMenu || blink || lineUp ? null : miniFloorHit(ray);
+      const hit = onMenu || blink || lineUp || wall ? null : miniFloorHit(ray);
       const corner = onMenu || blink || !picking ? null : cornerAim(ray);
-      const rank = onMenu ? 2 : hit || corner !== null ? 1 : 0;
-      if (!best || rank > best.rank) best = { ray, onMenu, hit, corner, rank };
+      // Marking a real wall: the real point this hand is on.
+      const marking = wall && wall.step.startsWith("touch") && !blink;
+      const real = !onMenu && marking ? wallAimFrom(frame, sources[i], ray) : null;
+      if (marking) lastWallAim.set(sources[i], real);
+      const rank = onMenu ? 2 : hit || corner !== null || real ? 1 : 0;
+      if (!best || rank > best.rank) best = { ray, onMenu, hit, corner, real, rank };
     }
     cornerAimed = best && !best.onMenu ? best.corner : null;
+    wallAimed = best && !best.onMenu ? best.real || null : null;
+    if (wall && wall.step === "touchB" && wall.A) span.preview(wall.A, wallAimed, floorY);
     if (lineUp && mode === "mini") dots.show(cornerAimed, lineUp.a, lineUp.b);
     const now = performance.now();
     if (best && best.onMenu) {
@@ -719,6 +1126,8 @@ async function start(viewer, session, onEnd) {
       aim = best.hit;
       const end = aim
         ? aim.world
+        : wallAimed
+          ? wallAimed
         : cornerAimed !== null
           ? scaler.localToWorld(plan.corners[cornerAimed].clone().setY(0.5))
           : best.ray.origin.clone().addScaledVector(best.ray.dir, hover ? 0.6 : 2);
@@ -730,6 +1139,9 @@ async function start(viewer, session, onEnd) {
     menuTab.setHover(hover === "open");
     if (aim && !(drag && drag.moved)) {
       marker.show(aim.world, yawOf(headDir), aim.clear, miniFit * zoom);
+    } else if (wallAimed) {
+      // A small ring (about 6 cm) on the spot, arrow along your view.
+      marker.show(wallAimed, yawOf(headDir), true, 0.24);
     } else {
       marker.hide();
     }
@@ -756,6 +1168,15 @@ async function start(viewer, session, onEnd) {
     pointer.dispose();
     marker.dispose();
     dots.dispose();
+    selBox.dispose();
+    span.dispose();
+    hitSources.forEach((hs) => {
+      try {
+        if (hs) hs.cancel();
+      } catch (e) {
+        /* gone with the session */
+      }
+    });
     plan.dispose();
     try {
       renderer.dispose();
@@ -788,6 +1209,15 @@ async function start(viewer, session, onEnd) {
         menuOpen,
         lineUp: lineUp && { step: lineUp.step, a: lineUp.a, b: lineUp.b },
         cornerAimed,
+        wall: wall && {
+          step: wall.step,
+          sel: wall.sel,
+          run: wall.run,
+          items: selection().map(nameOf),
+          fit: wall.fit,
+          slide: wall.slide,
+          scan: canScan(),
+        },
         spot: spot && { x: spot.p.x, z: spot.p.z, facing: spot.facing },
         aim: aim && { x: aim.spot.p.x, z: aim.spot.p.z, clear: aim.clear },
         drag: drag && { moved: drag.moved },
@@ -809,6 +1239,16 @@ async function start(viewer, session, onEnd) {
     corners: plan.corners.map((c) => ({ x: c.x, z: c.z })),
     /** Press a menu button by its key, as an air-tap on it would. */
     press: (key) => press(key),
+    /** Mark a real floor point (m) on the wall, as an air-tap on it would. */
+    wallTouch: (x, z) => wall && wallMark(new Vector3(x, floorY, z)),
+    /** Where the chosen item's design spot (cm) is now, for checking a placement. */
+    itemWorld: (i) => {
+      const o = pickable[i];
+      if (!o) return null;
+      const c = new Vector3();
+      o.userData.box.getCenter(c);
+      return design.localToWorld(c.setY(o.userData.box.min.y));
+    },
     /** The keys on the menu now. */
     get buttons() {
       return menu.keys();
@@ -832,6 +1272,19 @@ function buildDesign(viewer) {
     loaded.updateWorldMatrix(true, false);
     const copy = loaded.clone(true);
     copy.userData.opening = isOpening(phys);
+    // Its footprint in the design (cm) and its name, for "On real wall".
+    try {
+      const box = new Box3().setFromObject(loaded);
+      if (!box.isEmpty()) copy.userData.box = box;
+    } catch (e) {
+      /* cannot be measured: it cannot be placed on its own */
+    }
+    try {
+      const md = (phys.__itemModel && phys.__itemModel.__metadata) || {};
+      copy.userData.name = md.itemName || md.name || "";
+    } catch (e) {
+      copy.userData.name = "";
+    }
     copy.matrixAutoUpdate = false;
     copy.matrix.copy(loaded.matrixWorld);
     copy.updateMatrixWorld(true);
@@ -1044,6 +1497,12 @@ function buildPlan(viewer) {
     size,
     floors,
     walls: wallLines,
+    // The walls as lines (plan cm, not about the centre), for "On real wall".
+    wallSegs: walls.map((w) => ({
+      a: new Vector2(w.start.x, w.start.y),
+      b: new Vector2(w.end.x, w.end.y),
+      half: (Number(w.thickness) || 10) / 2,
+    })),
     isClear,
     nearestClear,
     dispose: () => {
@@ -1096,19 +1555,36 @@ const LIFE_BUTTONS = [
   ["mini", "Miniature", 0, 0],
   ["me", "Centre on me", 1, 0],
   ["show", "Show", 2, 0],
-  ["left90", "Turn 90°", 0, 1],
+  ["wall", "On real wall", 0, 1],
   ["more", "More…", 1, 1],
   ["exit", "Exit", 2, 1],
 ];
+// (Line up room is on the miniature's menu.)
 const LIFE_MORE_BUTTONS = [
-  ["left5", "Turn ⟲ 5°", 0, 0],
-  ["right5", "Turn 5° ⟳", 1, 0],
-  ["back", "‹ Back", 2, 0],
+  ["left90", "Turn 90°", 0, 0],
+  ["left5", "Turn ⟲ 5°", 1, 0],
+  ["right5", "Turn 5° ⟳", 2, 0],
   ["up", "Floor ▲", 0, 1],
   ["down", "Floor ▼", 1, 1],
-  ["lineUp", "Line up room", 2, 1],
+  ["back", "‹ Back", 2, 1],
 ];
 const LINE_UP_BUTTONS = [["cancelLineUp", "Cancel", 2, 1]];
+// On a real wall: choose the item, mark the wall, then slide and check.
+const WALL_PICK_BUTTONS = [
+  ["wallNext", "Next item", 0, 0],
+  ["wallRun", "Whole run", 1, 0],
+  ["wallGo", "Mark wall ▶", 2, 0],
+  ["wallCancel", "Cancel", 2, 1],
+];
+const WALL_TOUCH_BUTTONS = [["wallCancel", "Cancel", 2, 1]];
+const WALL_PLACED_BUTTONS = [
+  ["slideL", "◀ 5 cm", 0, 0],
+  ["slideR", "5 cm ▶", 1, 0],
+  ["wallAgain", "Mark again", 2, 0],
+  ["wallNext", "Next item", 0, 1],
+  ["wallRun", "Whole run", 1, 1],
+  ["wallDone", "Done", 2, 1],
+];
 // "Show", tap by tap, and what its button reads.
 const SHOW_NEXT = { all: "noWalls", noWalls: "furniture", furniture: "all" };
 const SHOW_LABELS = { all: "Show: Everything", noWalls: "Show: No walls", furniture: "Furniture only" };
@@ -1153,6 +1629,7 @@ function makeMenu() {
   let flashed = null; // just pressed: green for a moment
   let showLabel = "Show";
   let showOn = false; // lit while the view hides something
+  const labels = {}; // a button's label for now ("Whole run" ↔ "One item")
   let gone = false;
   const draw = () => {
     if (gone) return;
@@ -1191,7 +1668,7 @@ function makeMenu() {
       ctx.fillStyle = "#ffffff";
       ctx.textAlign = "center";
       // Long labels ("Show: Everything") step down in size to fit the button.
-      const text = key === "show" ? showLabel : label;
+      const text = key === "show" ? showLabel : labels[key] || label;
       let size = 42;
       ctx.font = `600 ${size}px Segoe UI, Arial, sans-serif`;
       while (size > 26 && ctx.measureText(text).width > w - 28) {
@@ -1233,6 +1710,9 @@ function makeMenu() {
     },
     setShow: (label, on) => {
       if (label !== showLabel || on !== showOn) ((showLabel = label), (showOn = on), draw());
+    },
+    setLabel: (key, text) => {
+      if (labels[key] !== text) ((labels[key] = text), draw());
     },
     /** The button at a point; the lit one (`keep`) reaches out into the gap round it. */
     buttonAt: (uv, keep) => {
@@ -1383,6 +1863,91 @@ function makeMarker() {
       ring.geometry.dispose();
       arrowGeometry.dispose();
       ringMaterial.dispose();
+    },
+  };
+}
+
+/** A box outline round the item being chosen, in design cm. */
+function makeSelBox() {
+  const geometry = new BufferGeometry();
+  geometry.setAttribute("position", new Float32BufferAttribute(new Array(72).fill(0), 3));
+  const lines = new LineSegments(
+    geometry,
+    new LineBasicMaterial({ color: 0xfacc15, transparent: true, opacity: 0.95, depthTest: false })
+  );
+  lines.renderOrder = 6;
+  lines.frustumCulled = false;
+  lines.visible = false;
+  return {
+    lines,
+    set: (box) => {
+      const { min: a, max: b } = box;
+      const c = [
+        [a.x, a.y, a.z], [b.x, a.y, a.z], [b.x, a.y, b.z], [a.x, a.y, b.z],
+        [a.x, b.y, a.z], [b.x, b.y, a.z], [b.x, b.y, b.z], [a.x, b.y, b.z],
+      ];
+      const edges = [0, 1, 1, 2, 2, 3, 3, 0, 4, 5, 5, 6, 6, 7, 7, 4, 0, 4, 1, 5, 2, 6, 3, 7];
+      const p = geometry.attributes.position;
+      edges.forEach((k, i) => p.setXYZ(i, c[k][0], c[k][1], c[k][2]));
+      p.needsUpdate = true;
+    },
+    dispose: () => {
+      geometry.dispose();
+      lines.material.dispose();
+    },
+  };
+}
+
+/**
+ * The free wall space marked on the real wall, in headset metres: a line on
+ * the floor along the wall, an upright at each end. White while marking,
+ * green when the item fits, red when it does not.
+ */
+function makeSpan() {
+  const group = new Group();
+  group.visible = false;
+  const geometry = new BufferGeometry();
+  geometry.setAttribute("position", new Float32BufferAttribute(new Array(18).fill(0), 3));
+  const material = new LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.95, depthTest: false });
+  const lines = new LineSegments(geometry, material);
+  lines.renderOrder = 6;
+  lines.frustumCulled = false;
+  group.add(lines);
+  const TICK_M = 0.3;
+  const write = (a, b, y) => {
+    const p = geometry.attributes.position;
+    const end = b || a;
+    p.setXYZ(0, a.x, y + 0.005, a.z);
+    p.setXYZ(1, end.x, y + 0.005, end.z);
+    p.setXYZ(2, a.x, y, a.z);
+    p.setXYZ(3, a.x, y + TICK_M, a.z);
+    p.setXYZ(4, end.x, y, end.z);
+    p.setXYZ(5, end.x, y + (b ? TICK_M : 0), end.z);
+    p.needsUpdate = true;
+    group.visible = true;
+  };
+  return {
+    group,
+    /** The start marked: its upright alone. */
+    mark: (a, y) => {
+      material.color.set(0xffffff);
+      write(a, null, y);
+    },
+    /** Marking the end: from the start to where you point. */
+    preview: (a, b, y) => {
+      material.color.set(0xffffff);
+      write(a, b, y);
+    },
+    set: (a, b, y, fits) => {
+      material.color.set(fits ? 0x22c55e : 0xef4444);
+      write(a, b, y);
+    },
+    clear: () => {
+      group.visible = false;
+    },
+    dispose: () => {
+      geometry.dispose();
+      material.dispose();
     },
   };
 }
