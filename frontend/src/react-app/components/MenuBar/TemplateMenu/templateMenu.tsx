@@ -1,12 +1,6 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import TemplateCard from "./templateCard";
-import {
-  TEModal,
-  TEModalDialog,
-  TEModalContent,
-  TEModalBody,
-} from "tw-elements-react";
 import {
   TemplateMenuProps,
   TemplateCardProps,
@@ -31,24 +25,52 @@ const TemplateMenu: React.FC<TemplateMenuProps> = ({
     setPendingDelete(null);
   };
 
+  // Esc closes, as the old modal did: the delete confirm first if it is open.
+  useEffect(() => {
+    if (!isModalVisible) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      if (pendingDelete) setPendingDelete(null);
+      else onHide(e as any); // the only caller ignores the event
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [isModalVisible, pendingDelete, onHide]);
+
   return (
     <>
-      <TEModal show={isModalVisible} setShow={onHide}>
-        <TEModalDialog centered className="max-w-4xl">
-          <TEModalContent className="bg-white dark:bg-[#333333]">
-            <TEModalBody>
-              <div className="template-menu-close-container">
-                <div className="w-100" />
-                <h5 className="mb-2.5 text-center font-semibold text-base text-[#414063] dark:text-[#999999]">
-                  Choose a pre-made floor plan
-                </h5>
-                <img
-                  className="finishing-modal-close-icon"
-                  src={require("../../../images/close.svg")}
+      {isModalVisible &&
+        createPortal(
+          // A click on the backdrop closes it, as before.
+          <div className="pz-tm-backdrop" onClick={onHide}>
+            <div
+              className="pz-tm"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="pz-tm-title"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="pz-tm-head">
+                <div>
+                  <h5 id="pz-tm-title" className="pz-tm-title">
+                    Choose a floor plan
+                  </h5>
+                  <p className="pz-tm-sub">
+                    Start from a ready-made room or one of your saved plans.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  className="pz-tm-close"
+                  aria-label="Close"
                   onClick={onHide}
-                />
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true">
+                    <path d="M6 6l12 12M18 6 6 18" />
+                  </svg>
+                </button>
               </div>
-              <div className="flex flex-nowrap gap-3 overflow-x-auto py-2 px-1">
+              <div className="pz-tm-list">
                 {templateList.map((item) => (
                   <TemplateCard
                     key={item.id}
@@ -59,46 +81,55 @@ const TemplateMenu: React.FC<TemplateMenuProps> = ({
                 ))}
               </div>
               {!isFloorPlanCleared ? (
-                <h5 className="text-sm font-normal text-[#333333] dark:text-[#ffffff] m-2">
-                  Note: A floorplan already exists for your current project,
-                  selecting a new floorplan will clear your existing floorplan
-                  and all of it's saved data.
-                </h5>
+                <div className="pz-tm-warn" role="note">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z" />
+                    <path d="M12 9v4M12 17h.01" />
+                  </svg>
+                  <span>
+                    A floor plan already exists for this project. Choosing a
+                    new one will clear your existing floor plan and all of its
+                    saved data.
+                  </span>
+                </div>
               ) : null}
-            </TEModalBody>
-          </TEModalContent>
-        </TEModalDialog>
-      </TEModal>
+            </div>
+          </div>,
+          document.body
+        )}
 
       {pendingDelete &&
         createPortal(
           <div
-            className="fixed inset-0 z-[1100] flex items-center justify-center bg-black/40"
+            className="pz-tm-backdrop pz-tm-backdrop--top"
             onClick={() => setPendingDelete(null)}
           >
             <div
-              className="w-80 rounded-md bg-white dark:bg-[#333333] p-4 shadow-lg"
+              className="pz-tm pz-tm-confirm"
+              role="alertdialog"
+              aria-modal="true"
+              aria-labelledby="pz-tm-del-title"
               onClick={(e) => e.stopPropagation()}
             >
-              <h3 className="mb-1 font-semibold text-black dark:text-white">
+              <h3 id="pz-tm-del-title" className="pz-tm-title">
                 Delete template
               </h3>
-              <p className="text-sm text-gray-600 dark:text-gray-300">
-                Delete <span className="font-semibold">"{pendingDelete.title}"</span>?
-                This can't be undone.
+              <p className="pz-tm-sub">
+                Delete <strong>"{pendingDelete.title}"</strong>? This can't be
+                undone.
               </p>
-              <div className="mt-4 flex justify-end gap-2">
+              <div className="pz-tm-actions">
                 <button
                   type="button"
                   onClick={() => setPendingDelete(null)}
-                  className="rounded px-3 py-1.5 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#4E4E4E]"
+                  className="pz-tm-btn pz-tm-btn--ghost"
                 >
                   Cancel
                 </button>
                 <button
                   type="button"
                   onClick={confirmDelete}
-                  className="rounded bg-red-500 px-3 py-1.5 text-sm font-medium text-white hover:bg-red-600"
+                  className="pz-tm-btn pz-tm-btn--danger"
                 >
                   Delete
                 </button>

@@ -1,0 +1,836 @@
+/* Teams and Rate card, on top of Projects.css (same `.pz-projects` scope, same
+   tokens). Only what those two pages need beyond what Projects already has.
+   Nothing here reaches outside `.pz-projects`. */
+
+/* --- page title row: title on the left, the main action on the right ------ */
+.pzp-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+}
+.pz-projects .pzp-btn-lg {
+  height: 42px;
+  padding: 0 18px !important;
+  border-radius: 11px !important;
+  font-size: 14px !important;
+}
+.pzp-head-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+/* --- a destructive action icon, and a disabled one ------------------------ */
+.pz-projects button.pzp-act--danger:hover {
+  background: #fef3f2;
+  border-color: #f4cdc8;
+  color: #b42318;
+  box-shadow: 0 6px 14px rgba(180, 35, 24, 0.14);
+}
+.pz-projects button.pzp-act:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* --- people: role badge and avatar colour --------------------------------- */
+.pz-projects .pzp-role {
+  display: inline-flex;
+  align-items: center;
+  height: 26px;
+  padding: 0 11px;
+  border-radius: 999px;
+  font: 600 12px/1 Inter, Arial, sans-serif;
+  white-space: nowrap;
+  background: #f1f2f5;
+  color: #4d5566;
+}
+.pz-projects .pzp-role--super_admin,
+.pz-projects .pzp-role--admin {
+  background: #172033;
+  color: #fff;
+}
+.pz-projects .pzp-role--architect {
+  background: #f1edff;
+  color: #4b30dc;
+}
+.pz-projects .pzp-role--user {
+  background: #e9f8ef;
+  color: #167a3e;
+}
+.pz-projects .pzp-av {
+  width: 34px;
+  height: 34px;
+  font-size: 12px;
+}
+.pz-projects .pzp-av--super_admin,
+.pz-projects .pzp-av--admin {
+  background: #172033;
+}
+.pz-projects .pzp-av--architect {
+  background: #5b3df5;
+}
+.pz-projects .pzp-av--user {
+  background: #0e7c86;
+}
+
+/* ===========================================================================
+   Rate card. Its tabs, add forms and tables are Bootstrap's own (the page's
+   save / edit / delete code is untouched); this only restyles them.
+   =========================================================================== */
+
+/* Rate card sits in the same window-tall frame as the list pages (the top bar,
+   then this box), but its forms, tables and lists are as long as they are: the
+   content keeps its full height and THIS box scrolls, so the last list and its
+   Add box are always reachable. */
+.pz-rates .pz-projects-inner {
+  flex: none;
+}
+.pz-rates .pzp-note {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  padding: 12px 16px;
+  border-radius: 12px;
+  background: #f4f2ff;
+  border: 1px solid #e6e1fd;
+  font: 500 13px/1.45 Inter, Arial, sans-serif;
+  color: #3e3a6b;
+}
+.pz-rates .pzp-note svg {
+  flex: none;
+  color: #5b3df5;
+}
+
+/* The card the tabs and their tables sit in; the catalogue drawer beside it. */
+.pz-rates .pz-rates-body {
+  display: flex;
+  gap: 18px;
+  align-items: flex-start;
+}
+/* Full width, like the Projects list. (.pzp-card on its own does not grow —
+   on Projects it sits in a column — so the row here must say so.) */
+.pz-rates .pz-rates-body > .pz-rates-card {
+  flex: 1 1 auto !important;
+  width: 100%;
+  min-width: 0;
+  overflow: visible;
+}
+/* The tab's count, as "All Projects 6" on the Projects list. */
+.pz-rates .nav-tabs .nav-link .pzp-count {
+  margin-left: 8px;
+  vertical-align: 1px;
+  background: #eef0f5;
+  color: #697386;
+}
+.pz-rates .nav-tabs .nav-link.active .pzp-count {
+  background: #f1edff;
+  color: #4b30dc;
+}
+
+/* --- tabs: an underline strip across the card's top ----------------------- */
+.pz-rates .nav-tabs {
+  gap: 26px;
+  margin: 0 !important;
+  padding: 0 22px;
+  border-bottom: 1px solid #e9ebf0;
+}
+.pz-rates .nav-tabs .nav-link {
+  position: relative;
+  height: 52px;
+  margin: 0;
+  padding: 0 !important;
+  border: none !important;
+  background: transparent !important;
+  font: 600 14px Inter, Arial, sans-serif;
+  color: #697386;
+  transition: color 0.15s;
+}
+.pz-rates .nav-tabs .nav-link:hover {
+  color: #172033;
+}
+.pz-rates .nav-tabs .nav-link.active {
+  color: #4b30dc !important;
+}
+.pz-rates .nav-tabs .nav-link.active::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 3px;
+  border-radius: 3px 3px 0 0;
+  background: #5b3df5;
+}
+.pz-rates .tab-content {
+  padding: 20px 22px 8px;
+}
+
+/* --- the add / edit row above each table: a tinted bar ------------------- */
+.pz-rates .tab-pane > .row:first-child {
+  margin: 0 0 18px !important;
+  padding: 16px 12px 16px;
+  border-radius: 14px;
+  background: #faf9ff;
+  border: 1px solid #ece8fe;
+}
+.pz-rates .form-label {
+  margin-bottom: 6px;
+  font: 600 12px Inter, Arial, sans-serif !important;
+  letter-spacing: 0.02em;
+  color: #2b3247;
+}
+.pz-rates .form-select,
+.pz-rates .form-control {
+  height: 42px;
+  border: 1px solid #e2e5eb;
+  border-radius: 10px;
+  background-color: #fff;
+  font: 400 14px Inter, Arial, sans-serif;
+  color: #172033;
+  box-shadow: 0 1px 2px rgba(23, 32, 51, 0.04);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.pz-rates .form-select:hover,
+.pz-rates .form-control:hover {
+  border-color: #cdd2dc;
+}
+.pz-rates .form-select:focus,
+.pz-rates .form-control:focus {
+  border-color: #5b3df5;
+  box-shadow: 0 0 0 4px rgba(91, 61, 245, 0.14);
+}
+.pz-rates .form-select:disabled,
+.pz-rates .form-control:disabled {
+  background-color: #f3f4f7;
+  color: #8a91a2;
+}
+
+/* --- buttons: Bootstrap's, wearing the Projects look ----------------------
+   Only the page header's and the tabs' buttons. The Manage lists drawer keeps
+   its own small link buttons. */
+.pz-rates :is(.pzp-head, .tab-content) .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 42px;
+  padding: 0 16px;
+  border-radius: 10px;
+  font: 600 14px/1 Inter, Arial, sans-serif;
+  white-space: nowrap;
+  transition: transform 0.15s ease, box-shadow 0.2s ease, background-color 0.2s ease,
+    border-color 0.2s ease;
+}
+.pz-rates :is(.pzp-head, .tab-content) .btn:active {
+  transform: scale(0.98);
+}
+.pz-rates :is(.pzp-head, .tab-content) .btn-primary {
+  background: linear-gradient(180deg, #6a50f7 0%, #5b3df5 100%);
+  border-color: transparent;
+  color: #fff;
+  box-shadow: 0 1px 2px rgba(23, 32, 51, 0.14), 0 4px 12px rgba(91, 61, 245, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+.pz-rates :is(.pzp-head, .tab-content) .btn-primary:hover:not(:disabled) {
+  transform: translateY(-1px);
+  background: linear-gradient(180deg, #6a50f7 0%, #5b3df5 100%);
+  box-shadow: 0 2px 4px rgba(23, 32, 51, 0.14), 0 10px 22px rgba(91, 61, 245, 0.36),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+.pz-rates :is(.pzp-head, .tab-content) .btn-primary:disabled {
+  opacity: 0.5;
+  box-shadow: none;
+}
+.pz-rates :is(.pzp-head, .tab-content) .btn-outline-secondary,
+.pz-rates :is(.pzp-head, .tab-content) .btn-outline-primary,
+.pz-rates :is(.pzp-head, .tab-content) .btn-secondary {
+  background: #fff;
+  border: 1px solid #e2e5eb;
+  color: #172033;
+  box-shadow: 0 1px 2px rgba(23, 32, 51, 0.06), 0 2px 6px rgba(23, 32, 51, 0.05);
+}
+.pz-rates :is(.pzp-head, .tab-content) .btn-outline-secondary:hover,
+.pz-rates :is(.pzp-head, .tab-content) .btn-outline-primary:hover {
+  transform: translateY(-1px);
+  background: #fff;
+  border-color: #cdd2dc;
+  color: #172033;
+  box-shadow: 0 2px 4px rgba(23, 32, 51, 0.07), 0 8px 18px rgba(23, 32, 51, 0.08);
+}
+/* "Manage lists" while its drawer is open. */
+.pz-rates :is(.pzp-head, .tab-content) .btn-secondary {
+  background: #f1edff;
+  border-color: #d9d2fd;
+  color: #4b30dc;
+}
+
+/* --- the rate tables ------------------------------------------------------ */
+/* Every rate table the same fixed height, whatever its tab or row count: the
+   rows scroll inside it under a header that stays put, and the pager sits
+   right below. */
+.pz-rates .table-responsive {
+  height: clamp(360px, calc(100vh - 430px), 760px);
+  overflow-y: auto;
+  border: 1px solid #ecedf2;
+  border-radius: 12px;
+  background: #fff;
+}
+.pz-rates .table > thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+.pz-rates .table {
+  margin: 0;
+  font: 400 14px Inter, Arial, sans-serif;
+  color: #172033;
+  cursor: default;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+.pz-rates .table > thead th {
+  padding: 13px 16px;
+  background: #f6f5fe;
+  border: none;
+  border-bottom: 1px solid #e8e5fb;
+  font: 700 12px/1 Inter, Arial, sans-serif;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #2b3247;
+  white-space: nowrap;
+}
+.pz-rates .table > tbody td {
+  padding: 10px 16px;
+  border: none;
+  border-bottom: 1px solid #f0f1f4;
+  background: #fff;
+  transition: background-color 0.15s;
+}
+.pz-rates .table > tbody tr:last-child td {
+  border-bottom: none;
+}
+.pz-rates .table > tbody tr {
+  transition: background-color 0.15s;
+}
+/* Row hover: the Projects list's soft indigo. Bootstrap paints its hover as
+   an inset shadow in a grey of its own, over the cell — which is why the rows
+   went grey — so its colour variables are set to the indigo instead. */
+.pz-rates .table {
+  --bs-table-bg: #fff;
+  --bs-table-hover-bg: #f8f6ff;
+  --bs-table-hover-color: #172033;
+  --bs-table-accent-bg: transparent;
+}
+.pz-rates .table-hover > tbody > tr:hover > * {
+  --bs-table-bg-state: #f8f6ff;
+  --bs-table-color-state: #172033;
+  --bs-table-accent-bg: #f8f6ff;
+  background: #f8f6ff;
+  color: #172033;
+}
+/* Above each rate table: how many, and its search. Below it: the pager. */
+.pz-rates .pz-rates-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 0 12px;
+}
+.pz-rates .pz-rates-tools-title {
+  font: 700 15px Inter, Arial, sans-serif;
+  color: #172033;
+}
+.pz-rates .tab-pane .pzp-pager {
+  margin-top: 12px;
+  border: 1px solid #ecedf2;
+  border-radius: 12px;
+}
+.pz-rates .table td.text-end {
+  font-variant-numeric: tabular-nums;
+}
+.pz-rates .pzp-actions {
+  justify-content: flex-end;
+}
+
+/* --- Manage lists: a page of its own -------------------------------------- */
+.pz-rates .pzp-crumbs {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+  font: 500 13px Inter, Arial, sans-serif;
+  color: #697386;
+}
+.pz-rates button.pzp-crumb {
+  padding: 0;
+  border: none;
+  background: transparent;
+  font: 600 13px Inter, Arial, sans-serif;
+  color: #5b3df5;
+  cursor: pointer;
+}
+.pz-rates button.pzp-crumb:hover {
+  text-decoration: underline;
+}
+
+.pz-rates .pz-lists {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.pz-rates .pz-lists-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+/* Material · Coating · Interior */
+.pz-rates .pz-lists-switch {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 12px;
+  background: #eef0f5;
+}
+.pz-rates .pz-lists-switch button {
+  height: 36px;
+  padding: 0 18px;
+  border: none;
+  border-radius: 9px;
+  background: transparent;
+  font: 600 14px Inter, Arial, sans-serif;
+  color: #697386;
+  cursor: pointer;
+  transition: background-color 0.15s, color 0.15s, box-shadow 0.2s;
+}
+.pz-rates .pz-lists-switch button:hover:not(:disabled) {
+  color: #172033;
+}
+.pz-rates .pz-lists-switch button.is-on {
+  background: #fff;
+  color: #4b30dc;
+  box-shadow: 0 1px 2px rgba(23, 32, 51, 0.08), 0 4px 10px rgba(23, 32, 51, 0.06);
+}
+.pz-rates .pz-lists-hint,
+.pz-rates .pz-lists-busy {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font: 500 13px Inter, Arial, sans-serif;
+  color: #697386;
+}
+.pz-rates .pz-lists-busy {
+  color: #4b30dc;
+}
+
+/* The lists, side by side, EVERY CARD THE SAME SIZE: tall enough for a page of
+   six rows, its pager and its Add box, and filling the window below the
+   switch where there is room. A long list pages; a short one leaves its card
+   as tall as the others, so the row of cards reads as one. */
+.pz-rates .pz-lists-grid {
+  --pz-list-h: max(500px, calc(100vh - 400px));
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 18px;
+  align-items: stretch;
+}
+.pz-rates .pz-list-card {
+  height: var(--pz-list-h);
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  border: 1px solid #e9ebf0;
+  border-radius: 14px;
+  box-shadow: 0 1px 2px rgba(23, 32, 51, 0.04), 0 6px 18px rgba(23, 32, 51, 0.04);
+  overflow: hidden;
+}
+
+/* Head: name and count on the left, the card's own search on the right. */
+.pz-rates .pz-list-head {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px 10px 16px;
+  border-bottom: 1px solid #e8e5fb;
+  background: #f6f5fe;
+}
+.pz-rates .pz-list-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  font: 700 15px Inter, Arial, sans-serif;
+  color: #172033;
+  white-space: nowrap;
+}
+.pz-rates .pz-list-search {
+  position: relative;
+  display: block;
+  flex: 0 1 180px;
+  min-width: 120px;
+}
+.pz-rates .pz-list-search svg.pzp-search-icon {
+  position: absolute;
+  left: 10px;
+  top: 10px;
+  width: 14px;
+  height: 14px;
+  pointer-events: none;
+}
+.pz-rates .pz-list-search input {
+  width: 100%;
+  height: 34px;
+  box-sizing: border-box;
+  padding: 0 30px 0 30px;
+  border: 1px solid #e2e5eb;
+  border-radius: 9px;
+  background: #fff;
+  font: 400 13px Inter, Arial, sans-serif;
+  color: #172033;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.pz-rates .pz-list-search input::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+  display: none;
+}
+.pz-rates .pz-list-search input:focus {
+  border-color: #5b3df5;
+  box-shadow: 0 0 0 3px rgba(91, 61, 245, 0.14);
+}
+.pz-rates .pz-list-search button {
+  position: absolute;
+  right: 5px;
+  top: 5px;
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: 7px;
+  background: #f1f2f6;
+  color: #697386;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+/* Body: this page of rows. Scrolls only if a row opens up (a grade's 3D look
+   sliders), so nothing is ever cut off. */
+.pz-rates .pz-list-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+/* One entry: its name, then Rename and Delete — every row the same height. */
+.pz-rates .pz-list-body > .border-bottom {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  min-height: 54px;
+  padding: 8px 12px 8px 16px !important;
+  border-bottom-color: #f0f1f4 !important;
+  font: 500 14px Inter, Arial, sans-serif;
+  color: #172033;
+  transition: background-color 0.15s;
+}
+.pz-rates .pz-list-body > .border-bottom:hover {
+  background: #faf9ff;
+}
+.pz-rates .pz-list-body > .border-bottom > .d-flex > .flex-grow-1 {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pz-rates .pz-list-card button.pzp-act {
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+}
+
+/* A coating grade: its 3D look sits on the same line as a small chip, between
+   the name and the icons, instead of on a second line. The row's own parts
+   are laid out in one grid (display: contents lifts them out of their box);
+   the gloss / metal sliders, when opened, take a full line below. */
+.pz-rates .pz-list-body > .pz-row-has-extra {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto auto;
+  align-items: center;
+  column-gap: 8px;
+  row-gap: 6px;
+}
+/* (The name line and the closed 3D look carry the same Bootstrap classes, so
+   they are told apart by place: the name line is the row's first child.) */
+.pz-rates .pz-row-has-extra > .d-flex:first-child {
+  display: contents !important;
+}
+.pz-rates .pz-row-has-extra > .d-flex:first-child > * {
+  order: 2;
+}
+.pz-rates .pz-row-has-extra > .d-flex:first-child > .flex-grow-1,
+.pz-rates .pz-row-has-extra > .d-flex:first-child > .form-control {
+  order: 0;
+}
+/* The 3D look, closed: a chip. */
+.pz-rates .pz-row-has-extra > .d-flex:not(:first-child) {
+  order: 1;
+  display: inline-flex !important;
+  gap: 6px !important;
+  height: 26px;
+  padding: 0 4px 0 10px;
+  border-radius: 999px;
+  background: #f4f2ff;
+  white-space: nowrap;
+}
+.pz-rates .pz-row-has-extra > .d-flex:not(:first-child) small {
+  font: 500 12px Inter, Arial, sans-serif;
+  color: #4d5566 !important;
+}
+.pz-rates .pz-row-has-extra > .d-flex:not(:first-child) .btn-link {
+  height: 20px;
+  padding: 0 8px !important;
+  border-radius: 999px;
+  background: #fff;
+  font-size: 12px;
+  line-height: 20px;
+}
+/* The 3D look, open: its sliders across the whole row, below. */
+.pz-rates .pz-row-has-extra > .py-1 {
+  order: 3;
+  grid-column: 1 / -1;
+}
+
+.pz-rates .pz-list-empty {
+  height: 100%;
+  min-height: 160px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 24px;
+  text-align: center;
+  font: 500 13px Inter, Arial, sans-serif;
+  color: #697386;
+}
+
+/* Pager: "1–6 of 24" and the page buttons. */
+.pz-rates .pz-list-pager {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 12px 8px 16px;
+  border-top: 1px solid #f0f1f4;
+  background: #fafbfc;
+}
+.pz-rates .pz-list-range {
+  font: 500 12px Inter, Arial, sans-serif;
+  color: #697386;
+  font-variant-numeric: tabular-nums;
+}
+.pz-rates .pz-list-pages {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.pz-rates .pz-list-pages button {
+  min-width: 28px;
+  height: 28px;
+  padding: 0 6px;
+  border: none;
+  border-radius: 7px;
+  background: transparent;
+  font: 600 12px Inter, Arial, sans-serif;
+  color: #172033;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  transition: background-color 0.15s, box-shadow 0.2s;
+}
+.pz-rates .pz-list-pages button:hover:not(:disabled) {
+  background: #eef0f5;
+}
+.pz-rates .pz-list-pages button.is-on {
+  background: #5b3df5;
+  color: #fff;
+  box-shadow: 0 3px 8px rgba(91, 61, 245, 0.3);
+}
+.pz-rates .pz-list-pages button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.pz-rates .pz-list-gap {
+  padding: 0 2px;
+  color: #697386;
+}
+
+/* Foot: the Add box (or the note), always at the bottom of the card. */
+.pz-rates .pz-list-foot {
+  flex: none;
+}
+.pz-rates .pz-list-foot > .bg-light {
+  gap: 8px !important;
+  padding: 12px 14px !important;
+  border-top: 1px solid #ece8fe;
+  background: #faf9ff !important;
+}
+.pz-rates .pz-list-note {
+  padding: 12px 16px;
+  border-top: 1px solid #f0f1f4;
+  background: #fafbfc;
+  font: 500 12.5px/1.45 Inter, Arial, sans-serif;
+  color: #697386;
+}
+.pz-rates .pz-lists .form-control,
+.pz-rates .pz-lists .form-select {
+  height: 38px;
+  border-radius: 9px;
+  font-size: 14px;
+}
+.pz-rates .pz-lists .btn-primary {
+  height: 38px;
+  padding: 0 16px;
+  border: none;
+  border-radius: 9px;
+  background: linear-gradient(180deg, #6a50f7 0%, #5b3df5 100%);
+  font: 600 13px/1 Inter, Arial, sans-serif;
+  color: #fff;
+  box-shadow: 0 1px 2px rgba(23, 32, 51, 0.14), 0 4px 10px rgba(91, 61, 245, 0.26);
+  transition: transform 0.15s ease, box-shadow 0.2s ease;
+}
+.pz-rates .pz-lists .btn-primary:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(23, 32, 51, 0.14), 0 8px 18px rgba(91, 61, 245, 0.34);
+}
+.pz-rates .pz-lists .btn-primary:disabled {
+  opacity: 0.45;
+  box-shadow: none;
+}
+/* Save / Cancel while renaming, and the 3D look's Set / Change. */
+.pz-rates .pz-lists .btn-link {
+  font: 600 13px Inter, Arial, sans-serif;
+  color: #5b3df5;
+  text-decoration: none;
+}
+.pz-rates .pz-lists .btn-link:hover {
+  text-decoration: underline;
+}
+.pz-rates .pz-lists .btn-link.text-danger {
+  color: #c4262b !important;
+}
+.pz-rates .pz-lists .btn-link.text-muted {
+  color: #697386 !important;
+}
+
+/* Alerts (installation saved / failed) */
+.pz-rates .alert {
+  border-radius: 12px;
+  font: 500 14px/1.45 Inter, Arial, sans-serif;
+}
+
+/* Tablet and phone: a little less padding around the tab content. */
+@media (max-width: 900px), (orientation: portrait) and (max-width: 1100px) {
+  .pz-rates .nav-tabs {
+    gap: 18px;
+    padding: 0 14px;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+  }
+  .pz-rates .tab-content {
+    padding: 16px 14px 4px;
+  }
+  .pz-rates .pz-rates-tools .pzp-search {
+    flex: 1 1 100%;
+  }
+  .pz-rates .pz-rates-body {
+    flex-direction: column;
+  }
+  /* iPad / phone: the lists stack, one card under another, each a fixed
+     height. */
+  .pz-rates .pz-lists-grid {
+    --pz-list-h: 500px;
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* --- Smaller tables ------------------------------------------------------- */
+.pz-rates .table {
+  font-size: 13px;
+}
+.pz-rates .table > thead th {
+  padding: 11px 14px;
+  font-size: 11px;
+}
+.pz-rates .table > tbody td {
+  padding: 8px 14px;
+}
+
+/* --- Compact: a third step down (type everywhere; controls on a computer) - */
+@media (min-width: 1101px) {
+  .pz-projects .pzp-btn-lg {
+    height: 36px;
+    padding: 0 14px !important;
+    border-radius: 10px !important;
+    font-size: 13px !important;
+  }
+  .pz-rates .form-select,
+  .pz-rates .form-control {
+    height: 36px;
+    font-size: 13px;
+  }
+  .pz-rates :is(.pzp-head, .tab-content) .btn {
+    height: 36px;
+    padding: 0 14px;
+    font-size: 13px;
+  }
+}
+
+/* --- Table headers, sidebar and editor icons: one more step down ---------- */
+.pz-rates .table > thead th {
+  font-size: 10px;
+}
+
+/* --- Tables: one more step down ------------------------------------------ */
+.pz-rates .table {
+  font-size: 12.5px;
+}
+.pz-rates .table > thead th {
+  padding: 10px 14px;
+  font-size: 9.5px;
+}
+.pz-rates .table > tbody td {
+  padding: 7px 14px;
+}
+
+/* --- Tables: smaller still ----------------------------------------------- */
+.pz-rates .table {
+  font-size: 12px;
+}
+.pz-rates .table > thead th {
+  font-size: 9px;
+}
+
+/* --- Rate card tables: compact type, enforced ------------------------------ */
+.pz-rates .table > thead th {
+  font-size: 10.5px !important;
+}
+.pz-rates .table > tbody td,
+.pz-rates .table > tbody td * {
+  font-size: 12px;
+}
+.pz-rates .table > tbody td .btn,
+.pz-rates .table > tbody td .form-control,
+.pz-rates .table > tbody td .form-select {
+  font-size: 12px !important;
+}

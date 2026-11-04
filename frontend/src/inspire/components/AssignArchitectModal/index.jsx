@@ -3,6 +3,7 @@ import Modal from "react-bootstrap/Modal";
 import { Button, Form, Dropdown } from "react-bootstrap";
 import ServiceContext from "../../context/ServiceContext";
 import "./index.css";
+import "../PzTable/Modal.css";
 import { getAllArchitects } from "../../services/authService";
 import { Divider, Typography, Checkbox } from "@mui/material";
 
@@ -39,7 +40,13 @@ function AssignArchitectModal({ show, onHide, onConfirm, project }) {
   };
 
   return (
-    <Modal show={show} onHide={onHide} centered>
+    <Modal
+      show={show}
+      onHide={onHide}
+      centered
+      className="pz-modal"
+      backdropClassName="pz-modal-backdrop"
+    >
       <Modal.Header
         closeButton
         onClick={resetFields}
@@ -48,10 +55,11 @@ function AssignArchitectModal({ show, onHide, onConfirm, project }) {
         }}
       >
         <Modal.Title className="fw-bold" style={{ fontSize: "18px" }}>
-          Architect
+          Assign architect
         </Modal.Title>
       </Modal.Header>
       <Modal.Body
+        className="pz-assign-list"
         style={{
           display: "flex",
           flexDirection: "column",

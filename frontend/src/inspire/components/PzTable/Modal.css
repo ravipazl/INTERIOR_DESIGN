@@ -1,0 +1,271 @@
+/* The refreshed pop-up look, for the modals that opt in with
+   className="pz-modal" (Invite / Edit member, Edit project, Assign architect,
+   Confirmation, Share) and backdropClassName="pz-modal-backdrop".
+   Only looks: every field, check and button keeps its own markup and code.
+   Bootstrap's and the app's global button classes are as specific as these,
+   hence the !important here and there. */
+
+.pz-modal-backdrop.show {
+  opacity: 1;
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+}
+
+/* Rises a little and settles, instead of Bootstrap's long slide down. */
+.pz-modal.fade .modal-dialog {
+  transform: translateY(14px) scale(0.98);
+  transition: transform 0.22s ease-out;
+}
+.pz-modal.show .modal-dialog {
+  transform: none;
+}
+
+.pz-modal .modal-content {
+  border: none;
+  border-radius: 18px;
+  overflow: hidden;
+  background: #fff;
+  box-shadow: 0 24px 64px rgba(23, 32, 51, 0.24);
+  font-family: Inter, Arial, sans-serif;
+  color: #172033;
+}
+
+/* --- header ---------------------------------------------------------------- */
+.pz-modal .modal-header {
+  padding: 20px 24px !important;
+  border-bottom: 1px solid #eef0f4;
+  background: #fff;
+}
+.pz-modal .modal-title {
+  font: 700 18px/1.3 Inter, Arial, sans-serif !important;
+  letter-spacing: -0.01em;
+  color: #172033;
+}
+.pz-modal .btn-close {
+  width: 34px;
+  height: 34px;
+  margin: -6px -8px -6px auto;
+  padding: 0;
+  border-radius: 10px;
+  background-size: 12px;
+  opacity: 0.55;
+  transition: opacity 0.15s, background-color 0.15s;
+}
+.pz-modal .btn-close:hover {
+  opacity: 1;
+  background-color: #f1f2f6;
+}
+.pz-modal .btn-close:focus {
+  box-shadow: 0 0 0 3px rgba(91, 61, 245, 0.3);
+}
+/* Headers that carry a meaning in their colour keep it, softened. */
+.pz-modal .modal-header.bg-danger {
+  background: linear-gradient(135deg, #e5484d 0%, #c4262b 100%) !important;
+  border-bottom: none;
+}
+.pz-modal .modal-header.bg-primary {
+  background: linear-gradient(135deg, #4b30dc 0%, #6a50f7 100%) !important;
+  border-bottom: none;
+}
+.pz-modal .modal-header.bg-danger .modal-title,
+.pz-modal .modal-header.bg-primary .modal-title {
+  color: #fff !important;
+}
+
+/* --- body ------------------------------------------------------------------ */
+.pz-modal .modal-body {
+  padding: 22px 24px;
+}
+.pz-modal .form-label,
+.pz-modal .form_input_text,
+.pz-modal .add-team-modal-text {
+  font: 600 13px Inter, Arial, sans-serif !important;
+  color: #2b3247;
+}
+.pz-modal .form-control,
+.pz-modal .form-select {
+  height: 44px;
+  border: 1px solid #e2e5eb;
+  border-radius: 10px;
+  background-color: #fff;
+  font: 400 14px Inter, Arial, sans-serif;
+  color: #172033;
+  box-shadow: 0 1px 2px rgba(23, 32, 51, 0.04);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.pz-modal .form-control:hover,
+.pz-modal .form-select:hover {
+  border-color: #cdd2dc;
+}
+.pz-modal .form-control:focus,
+.pz-modal .form-select:focus {
+  border-color: #5b3df5;
+  box-shadow: 0 0 0 4px rgba(91, 61, 245, 0.14);
+}
+.pz-modal .error_text {
+  margin-top: 6px;
+  font: 500 12px/1.4 Inter, Arial, sans-serif;
+  color: #c4262b;
+}
+
+/* Checkboxes (roles, project status): rows you can hit easily. */
+.pz-modal .form-check {
+  min-height: 0;
+  margin: 0 0 4px;
+  padding: 8px 10px 8px 36px;
+  border-radius: 10px;
+  transition: background-color 0.15s;
+}
+.pz-modal .form-check:hover {
+  background: #f6f5fb;
+}
+.pz-modal .form-check-input {
+  width: 18px;
+  height: 18px;
+  margin: 1px 0 0 -26px;
+  border: 1.5px solid #c9ced8;
+  border-radius: 5px;
+  cursor: pointer;
+}
+.pz-modal .form-check-input:checked {
+  background-color: #5b3df5;
+  border-color: #5b3df5;
+}
+.pz-modal .form-check-input:focus {
+  box-shadow: 0 0 0 3px rgba(91, 61, 245, 0.2);
+  border-color: #5b3df5;
+}
+.pz-modal .form-check-label {
+  font: 500 14px Inter, Arial, sans-serif;
+  color: #172033;
+  cursor: pointer;
+}
+
+/* Edit project: its fields were a fixed 350 px; let them use the dialog. */
+.pz-modal.pz-edit-project form > div {
+  width: 100% !important;
+}
+.pz-modal.pz-edit-project form > div > .d-flex {
+  align-items: center;
+  gap: 12px;
+}
+.pz-modal.pz-edit-project .add-team-modal-text {
+  flex: 0 0 120px;
+  width: 120px !important;
+  margin: 0;
+}
+.pz-modal.pz-edit-project form > div:last-child > .d-flex {
+  align-items: flex-start;
+}
+.pz-modal.pz-edit-project form > div:last-child .add-team-modal-text {
+  padding-top: 8px;
+}
+
+/* Assign architect: each person a row you can see is selectable. */
+.pz-modal .pz-assign-list > div {
+  padding: 8px 10px;
+  border-radius: 12px;
+  transition: background-color 0.15s;
+}
+.pz-modal .pz-assign-list > div:hover {
+  background: #f6f5fb;
+}
+.pz-modal .pz-assign-list p {
+  margin: 0;
+  font-family: Inter, Arial, sans-serif !important;
+  font-size: 13px !important;
+  color: #697386;
+}
+.pz-modal .pz-assign-list p.fw-bold {
+  font-size: 15px !important;
+  color: #172033;
+}
+
+/* --- footer and its buttons ------------------------------------------------ */
+.pz-modal .modal-footer {
+  gap: 10px;
+  padding: 16px 24px !important;
+  border-top: 1px solid #eef0f4;
+  background: #fafbfc !important;
+}
+.pz-modal .modal-footer > * {
+  margin: 0 !important;
+}
+.pz-modal .modal-footer .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 42px;
+  padding: 0 18px;
+  border-radius: 11px !important;
+  font: 600 14px/1 Inter, Arial, sans-serif !important;
+  transition: transform 0.15s ease, box-shadow 0.2s ease, background-color 0.2s ease,
+    border-color 0.2s ease;
+}
+.pz-modal .modal-footer .btn:active:not(:disabled) {
+  transform: scale(0.98);
+}
+.pz-modal .btn-primary,
+.pz-modal .primary-button-filled {
+  background: linear-gradient(180deg, #6a50f7 0%, #5b3df5 100%) !important;
+  border: none !important;
+  color: #fff !important;
+  box-shadow: 0 1px 2px rgba(23, 32, 51, 0.14), 0 4px 12px rgba(91, 61, 245, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
+}
+.pz-modal .btn-primary:hover:not(:disabled),
+.pz-modal .primary-button-filled:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(23, 32, 51, 0.14), 0 10px 22px rgba(91, 61, 245, 0.36),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
+}
+.pz-modal .btn-primary:disabled,
+.pz-modal .primary-button-filled:disabled {
+  opacity: 0.45 !important;
+  box-shadow: none !important;
+}
+.pz-modal .outline-button {
+  background: #fff !important;
+  border: 1px solid #e2e5eb !important;
+  color: #172033 !important;
+  box-shadow: 0 1px 2px rgba(23, 32, 51, 0.06), 0 2px 6px rgba(23, 32, 51, 0.05) !important;
+}
+.pz-modal .outline-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  border-color: #cdd2dc !important;
+  box-shadow: 0 2px 4px rgba(23, 32, 51, 0.07), 0 8px 18px rgba(23, 32, 51, 0.08) !important;
+}
+.pz-modal .outline-button:disabled {
+  opacity: 0.45;
+}
+/* The delete confirmation's "Delete" is a red action, so it looks like one. */
+.pz-modal.pz-confirm .primary-button-filled {
+  background: linear-gradient(180deg, #e5484d 0%, #c4262b 100%) !important;
+  box-shadow: 0 1px 2px rgba(23, 32, 51, 0.14), 0 4px 12px rgba(196, 38, 43, 0.28) !important;
+}
+.pz-modal.pz-confirm .primary-button-filled:hover {
+  box-shadow: 0 2px 4px rgba(23, 32, 51, 0.14), 0 10px 22px rgba(196, 38, 43, 0.36) !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pz-modal .modal-dialog,
+  .pz-modal * {
+    transition: none !important;
+  }
+}
+
+/* --- Smaller type and icons (one size down across the app) --------------- */
+.pz-modal .modal-title {
+  font-size: 16px !important;
+}
+
+/* --- ...and one more small step down ------------------------------------- */
+.pz-modal .modal-title {
+  font-size: 15px !important;
+}
+
+/* --- Compact: a third step down (type everywhere; controls on a computer) - */
+.pz-modal .modal-title {
+  font-size: 14.5px !important;
+}

@@ -4,7 +4,6 @@ import "material-symbols";
 import { convertToTitleCase } from "@pazl/utils/genericFunctions";
 import { MenuTabProps, UnitOption, MenuItem } from "@pazl/helpers/Types";
 import BlueprintInterface from "@pazl/blueprint-interface";
-import { TERipple } from "tw-elements-react";
 import { ACTION_MODES } from "./furnishMenu";
 
 // The name shown UNDER every toolbar icon (Coohom-style), on the 2D and the
@@ -58,6 +57,44 @@ const DRAW_TOOL_ITEMS = [
   "align",
   "guides",
 ];
+
+// Each tool wears its group's colour (MenuBar/index.css, `.pz-tb`): edit
+// blue, Clear red, drawing indigo, shape tools teal, files green, Snap orange;
+// on the 3D bar the views violet, zoom cyan, snapshot pink, focus amber.
+const TONES: Record<string, string> = {
+  undo: "blue",
+  redo: "blue",
+  select: "blue",
+  Select: "blue",
+  multiSelect: "blue",
+  clear: "red",
+  draw: "indigo",
+  arc: "indigo",
+  rectangle: "indigo",
+  circle: "indigo",
+  fillet: "teal",
+  merge: "teal",
+  split: "teal",
+  trim: "teal",
+  align: "teal",
+  guides: "teal",
+  import: "green",
+  export: "green",
+  gltf: "green",
+  snap: "orange",
+  top_view: "violet",
+  "3d_view": "violet",
+  zoom_in: "cyan",
+  zoom_out: "cyan",
+  snapshot: "pink",
+  object: "amber",
+  room: "amber",
+  shortcuts: "slate",
+};
+const toneOf = (itemData: MenuItem) =>
+  itemData.iconName === "toggle_on" || itemData.iconName === "toggle_off"
+    ? "orange"
+    : TONES[itemData.itemName] || "slate";
 
 const MenuButton: React.FC<MenuTabProps> = ({
   itemData,
@@ -119,6 +156,16 @@ const MenuButton: React.FC<MenuTabProps> = ({
     }
   };
 
+  // Lit: the tool in use, Snap while on, or the camera view on screen (Top /
+  // 3D — exactly the old background-colour rule, now one state).
+  const isOn =
+    !isDisabled &&
+    (handleTabItemActive(mode, itemData) ||
+      (mode === ACTION_MODES.CAM_TOP_VIEW &&
+        itemData.itemName === ACTION_MODES.CAM_TOP_VIEW) ||
+      (itemData.itemName === ACTION_MODES.CAM_3D_VIEW &&
+        mode !== ACTION_MODES.CAM_TOP_VIEW));
+
   return (
     <div className="pr-px">
       {itemData.itemName === "units" ? (
@@ -139,71 +186,44 @@ const MenuButton: React.FC<MenuTabProps> = ({
         </div>
       ) : itemData.itemName === "free_view" ||
         itemData.itemName === "history" ? null : (
-        <TERipple rippleColor="Secondary">
-          <button
-            id={itemData.id}
-            ref={buttonRef}
-            title={
-              handleTabItemName(itemData)
-                ? handleTabItemName(itemData)
-                : convertToTitleCase(itemData.itemName)
-            }
-            style={
-              (mode === ACTION_MODES.CAM_TOP_VIEW &&
-                itemData.itemName === ACTION_MODES.CAM_TOP_VIEW) ||
-              (itemData.itemName === ACTION_MODES.CAM_3D_VIEW &&
-                mode !== ACTION_MODES.CAM_TOP_VIEW)
-                ? { backgroundColor: "var(--pz-accent-soft)" }
-                : { backgroundColor: "transparent" }
-            }
-            className={`min-w-[44px] h-[46px] px-1 rounded flex flex-col items-center justify-center gap-0.5 transition-colors ${
-              isDisabled ? "" : "hover:bg-[color:var(--pz-panel-hover)]"
-            } ${
-              handleTabItemActive(mode, itemData)
-                ? isDisabled
-                  ? ""
-                  : "bg-[color:var(--pz-accent-soft)]"
-                : ""
-            } ${itemData.iconName === "toggle_on" ? "snap-icon" : ""}`}
-            onClick={() => handleMenuItemClick(itemData)}
-            disabled={isDisabled}
-          >
+        <button
+          id={itemData.id}
+          ref={buttonRef}
+          type="button"
+          // The name is written under the icon, so no hover box repeating it
+          // (it also covered the next button). Screen readers get it here.
+          aria-label={
+            handleTabItemName(itemData)
+              ? handleTabItemName(itemData)!
+              : convertToTitleCase(itemData.itemName)
+          }
+          aria-pressed={isOn}
+          data-tone={toneOf(itemData)}
+          className={`pz-tb${isOn ? " is-on" : ""}${
+            isDisabled ? " is-disabled" : ""
+          }${itemData.iconName === "toggle_on" ? " snap-icon" : ""}`}
+          onClick={() => handleMenuItemClick(itemData)}
+          disabled={isDisabled}
+        >
+          <span className="pz-tb-tile">
             <span
-              style={{ fontSize: 22, lineHeight: "22px" }}
-              className={`material-symbols-outlined ${
+              className={`material-symbols-outlined pz-tb-ic${
                 itemData.iconName || FALLBACK_ICONS[itemData.itemName]
-                  ? "font-extralight dark:text-[#ffffff]"
-                  : "h-6 font-semibold text-xs font-['Inter'] dark:text-[#ffffff]"
-              }
-                  ${
-                    isDisabled
-                      ? "text-[#cccccc]"
-                      : handleTabItemActive(mode, itemData)
-                      ? "text-[color:var(--pz-accent)] dark:text-[color:var(--pz-accent)]"
-                      : ""
-                  } 
-                  `}
+                  ? ""
+                  : " pz-tb-ic--text"
+              }`}
             >
               {itemData.iconName ||
                 FALLBACK_ICONS[itemData.itemName] ||
                 convertToTitleCase(itemData.itemName)}
             </span>
-            <p
-              style={{ fontSize: 10.5, lineHeight: "12px", margin: 0, whiteSpace: "nowrap" }}
-              className={`menu-button-text dark:text-[#ffffff] ${
-                isDisabled
-                  ? "text-[#cccccc]"
-                  : handleTabItemActive(mode, itemData)
-                  ? "font-semibold text-xs text-[color:var(--pz-accent)] dark:text-[color:var(--pz-accent)]"
-                  : ""
-              } `}
-            >
-              {TOOLBAR_LABELS[itemData.itemName] ||
-                handleTabItemName(itemData) ||
-                convertToTitleCase(itemData.itemName)}
-            </p>
-          </button>
-        </TERipple>
+          </span>
+          <span className="pz-tb-label menu-button-text">
+            {TOOLBAR_LABELS[itemData.itemName] ||
+              handleTabItemName(itemData) ||
+              convertToTitleCase(itemData.itemName)}
+          </span>
+        </button>
       )}
     </div>
   );

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from "react";
+import React, { useState, useEffect, useContext, useRef } from "react";
 import "./index.css";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import Button from "react-bootstrap/Button";
@@ -19,6 +19,7 @@ import ServiceContext from "../../context/ServiceContext";
 import { Alert } from "react-bootstrap";
 import VisibilityOn from "../../assets/images/visibility-on.svg";
 import VisibilityOff from "../../assets/images/visibility-off.svg";
+import AuthLayout from "../../components/AuthLayout";
 
 const SignIn = () => {
   const { userRole, setUserRole } = useContext(UserRoleContext);
@@ -171,16 +172,71 @@ const SignIn = () => {
   const handlePasswordKeyDown = (e) => {
     if (e.key !== "Enter") return;
     e.preventDefault();
-    if (!signInStatus) return;
+    if (!signInStatus && !autofilled) return;
     handleLogin();
   };
 
+  // Chrome's saved-login fill puts the email and password in the fields
+  // WITHOUT an input event, so `email` / `password` stay empty and the button
+  // looked disabled over a filled form. The fill starts a 1 ms CSS animation
+  // (AuthLayout/index.css, `pza-autofill`). Seeing it:
+  //  - a value the page can read goes straight into state, exactly as typing
+  //    would — otherwise React's next render would put the empty state back
+  //    into the field and wipe the fill;
+  //  - a value Chrome still hides (it shows saved passwords to the page only
+  //    after the person clicks) is read by handleLogin at the click.
+  // Either way the button is enabled over a filled form.
+  const emailRef = useRef(null);
+  const passwordRef = useRef(null);
+  const [autofilled, setAutofilled] = useState(false);
+  const onAutofill = (e) => {
+    if (e.animationName !== "pza-autofill") return;
+    const value = e.target.value;
+    if (value && e.target === emailRef.current) {
+      handleEmailChange({ target: { value } });
+    } else if (value && e.target === passwordRef.current) {
+      setPassword(value);
+    }
+    setAutofilled(true);
+  };
+
+  // Only for the button's "Signing in…" while the request runs; what signing
+  // in does is unchanged.
+  const [submitting, setSubmitting] = useState(false);
+  const [capsOn, setCapsOn] = useState(false);
+  const watchCaps = (e) => {
+    if (e.getModifierState) setCapsOn(e.getModifierState("CapsLock"));
+  };
+
   const handleLogin = async () => {
+    // Typed values as before; a browser-filled field's value when the typed
+    // one is empty (see onAutofill).
+    const loginEmail = email || emailRef.current?.value || "";
+    const loginPassword = password || passwordRef.current?.value || "";
+    if (!loginEmail || !loginPassword) {
+      setAutofilled(false);
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(loginEmail)) {
+      setIsEmailValid(false);
+      setAutofilled(false);
+      return;
+    }
+    if (loginEmail !== email) setEmail(loginEmail);
+    if (loginPassword !== password) setPassword(loginPassword);
+
     setLoading(true);
-    const loginResponse = await authService.signIn({
-      email,
-      password,
-    });
+    setSubmitting(true);
+    let loginResponse;
+    try {
+      loginResponse = await authService.signIn({
+        email: loginEmail,
+        password: loginPassword,
+      });
+    } finally {
+      // Whatever happens, the button is not left saying "Signing in…".
+      setSubmitting(false);
+    }
     setLoading(false);
     if (loginResponse?._id) {
       if (requestedFromOrigin === "pazl-3d-design" && redirectToUrl) {
@@ -199,35 +255,54 @@ const SignIn = () => {
     }
   };
 
+  const backToSignIn = () => {
+    setShowForgotPasswordField(false);
+    setShowEmailIdField(true);
+    setResetSent(false);
+  };
+
   return (
-    <>
-      <div className="container-fluid bg-light">
-        <div className="h-100vh d-flex flex-column justify-content-center align-items-center">
-          <div className="max-width-330">
-            <div className="d-flex">
-              <p
-                style={{
-                  fontSize: "20px",
-                  marginBottom: "30px",
-                  borderBottom: "5px solid #414063",
-                }}
-              >
-                Login
-              </p>
-            </div>
+    <AuthLayout
+      mode="signin"
+      title={showForgotPasswordField ? "Reset your password" : "Welcome back"}
+      subtitle={
+        showForgotPasswordField
+          ? "Enter your account's email and we'll send you a link to set a new password."
+          : "Sign in to your Pazl workspace."
+      }
+      footer={
+        <>
+          New to Pazl?
+          <Link
+            to={
+              redirectToUrl && requestedFromOrigin && location.search
+                ? `/signup${location.search}`
+                : "/signup"
+            }
+          >
+            Create an account
+          </Link>
+        </>
+      }
+    >
             {!showPhoneNumField && showEmailIdField && (
               <div>
                 <div>
-                  <Form>
+                  <Form onSubmit={(e) => e.preventDefault()}>
                     <Form.Group
-                      className="email_password_text_field mb-3"
+                      className="email_password_text_field"
                       controlId="emailId"
                     >
+                      <Form.Label>Email</Form.Label>
                       <Form.Control
                         size="sm"
                         className="email_password_text"
                         type="email"
-                        placeholder="Email"
+                        autoComplete="email"
+                        autoFocus
+                        ref={emailRef}
+                        onAnimationStart={onAutofill}
+                        placeholder="you@example.com"
                         value={email}
                         onChange={handleEmailChange}
                         isInvalid={!isEmailValid} // Apply isInvalid styling if email is not valid
@@ -239,6 +314,8 @@ const SignIn = () => {
                         Please enter a valid email address.
                       </Form.Control.Feedback>
                     </Form.Group>
+                    <Form.Group controlId="passwordId">
+                    <Form.Label>Password</Form.Label>
                     <InputGroup
                       className={`password-input-style ${
                         isInvalidLogin ? "invalid-password" : ""
@@ -247,11 +324,19 @@ const SignIn = () => {
                       <Form.Control
                         size="sm"
                         type={hidePassword ? "password" : "text"}
+                        autoComplete="current-password"
+                        ref={passwordRef}
+                        onAnimationStart={onAutofill}
                         value={password}
-                        placeholder="Password"
+                        placeholder="Your password"
                         className="email_password_text border-0 shadow-none"
                         onChange={(e) => setPassword(e.target.value)}
-                        onKeyDown={handlePasswordKeyDown}
+                        onKeyDown={(e) => {
+                          watchCaps(e);
+                          handlePasswordKeyDown(e);
+                        }}
+                        onKeyUp={watchCaps}
+                        onBlur={() => setCapsOn(false)}
                         isInvalid={isInvalidLogin}
                       />
                       <InputGroup.Text
@@ -261,11 +346,12 @@ const SignIn = () => {
                         {hidePassword ? (
                           <Button
                             className="button-icons"
+                            aria-label="Show password"
                             disabled={password.length === 0}
                           >
                             <img
                               src={VisibilityOn}
-                              alt="VisiblityOn"
+                              alt=""
                               className={`bg-transparent visibility-eye ${
                                 password ? "icon" : ""
                               }`}
@@ -274,11 +360,12 @@ const SignIn = () => {
                         ) : (
                           <Button
                             className="button-icons"
+                            aria-label="Hide password"
                             disabled={password.length === 0}
                           >
                             <img
                               src={VisibilityOff}
-                              alt="VisibilityOff"
+                              alt=""
                               className={`bg-transparent visibility-eye ${
                                 password ? "icon" : ""
                               }`}
@@ -288,32 +375,53 @@ const SignIn = () => {
                         )}
                       </InputGroup.Text>
                     </InputGroup>
+                    {capsOn && (
+                      <div className="pz-auth-caps" role="status">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                          <path d="m12 4 8 8h-4v4H8v-4H4z" />
+                          <path d="M8 20h8" />
+                        </svg>
+                        Caps Lock is on
+                      </div>
+                    )}
                     {isInvalidLogin && (
                       <Form.Text
                         id="passwordHelpBlock"
-                        className="text-danger authentication_error"
+                        className="pz-auth-error"
+                        role="alert"
                       >
-                        Invalid login credentials
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                          <circle cx="12" cy="12" r="9" />
+                          <path d="M12 8v5M12 16.5v.01" />
+                        </svg>
+                        <span>
+                          That email and password don't match an account. Check
+                          them and try again.
+                        </span>
                       </Form.Text>
                     )}
-                    <Form.Group>
-                      <p
-                        onClick={toggleForgotPasswordField}
-                        className="forgot_password_text"
-                      >
-                        Forgot password
-                      </p>
                     </Form.Group>
+                    <button
+                      type="button"
+                      onClick={toggleForgotPasswordField}
+                      className="pz-auth-link"
+                    >
+                      Forgot password?
+                    </button>
                     <Button
                       variant="primary"
-                      className={`primary-button-filled login my-3 ${
-                        !signInStatus ? "disabled-button" : ""
-                      }`}
-                      style={{ width: "330px" }}
+                      className="pz-auth-submit"
                       onClick={handleLogin}
-                      disabled={!signInStatus}
+                      disabled={(!signInStatus && !autofilled) || submitting}
                     >
-                      Login
+                      {submitting ? (
+                        <>
+                          <span className="pz-auth-spin" aria-hidden="true" />
+                          Signing in…
+                        </>
+                      ) : (
+                        "Sign in"
+                      )}
                     </Button>
                   </Form>
                 </div>
@@ -414,16 +522,18 @@ const SignIn = () => {
                     reset your password. Please check your inbox.
                   </Alert>
                 ) : (
-                  <Form>
+                  <Form onSubmit={(e) => e.preventDefault()}>
                     <Form.Group
                       className="email_password_text_field"
-                      controlId="emailId"
+                      controlId="resetEmailId"
                     >
+                      <Form.Label>Email</Form.Label>
                       <Form.Control
                         size="sm"
                         className="email_password_text"
                         type="email"
-                        placeholder="Email"
+                        autoComplete="email"
+                        placeholder="you@example.com"
                         value={email}
                         onChange={handleEmailChange}
                         isInvalid={!isEmailValid} // Apply isInvalid styling if email is not valid
@@ -434,9 +544,7 @@ const SignIn = () => {
                     </Form.Group>
                     <Button
                       variant="primary"
-                      className={`primary-button-filled login ${
-                        !email || !isEmailValid ? "disabled-button" : ""
-                      }`}
+                      className="pz-auth-submit"
                       disabled={!email || !isEmailValid}
                       onClick={async () => {
                         await requestPasswordReset(email);
@@ -448,25 +556,17 @@ const SignIn = () => {
                     </Button>
                   </Form>
                 )}
+                <button
+                  type="button"
+                  className="pz-auth-link is-start"
+                  style={{ marginTop: 16 }}
+                  onClick={backToSignIn}
+                >
+                  ‹ Back to sign in
+                </button>
               </div>
             )}
-            <div className="my-3 d-flex align-items-center justify-content-center w-100">
-              <p className="text-muted">New User? </p>
-              <Link
-                to={
-                  redirectToUrl && requestedFromOrigin && location.search
-                    ? `/signup${location.search}`
-                    : "/signup"
-                }
-                className="new_user_login"
-              >
-                <p className="ms-2">Sign up</p>
-              </Link>
-            </div>
-          </div>
-        </div>
-      </div>
-    </>
+    </AuthLayout>
   );
 };
 

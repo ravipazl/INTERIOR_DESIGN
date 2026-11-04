@@ -191,7 +191,7 @@ const ProjectTracker: React.FC<ProjectTrackerProps> = ({
   });
 
   return (
-    <div className="m-2 rounded bg-white dark:bg-[#2b2b2b] border border-[#e5e7eb] dark:border-[#444444] p-4">
+    <div className="pz-pd-card pz-pd-tracker">
       <style>{`
         .pz-step-dot {
           transition: box-shadow .18s ease, transform .18s ease;
@@ -204,25 +204,14 @@ const ProjectTracker: React.FC<ProjectTrackerProps> = ({
         .pz-step-label { transition: color .18s ease; }
         .pz-step:hover .pz-step-label { color: #0F6E56 !important; }
       `}</style>
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-base font-semibold text-[#414063] dark:text-white">
-          Track your project
-        </h3>
-        <span
-          className="text-xs font-semibold"
-          style={{ color: NOW }}
-        >
+      <div className="pz-pd-tracker-head">
+        <h3 className="pz-pd-h2">Track your project</h3>
+        <span className="pz-pd-stepcount">
           {isClosed ? "Completed" : `Step ${current + 1} of ${total}`}
         </span>
       </div>
-      <div
-        className="rounded-full overflow-hidden mb-4"
-        style={{ height: 7, background: "#e3f1ea" }}
-      >
-        <div
-          className="h-full rounded-full"
-          style={{ width: `${pct}%`, background: DONE }}
-        />
+      <div className="pz-pd-progress">
+        <div style={{ width: `${pct}%` }} />
       </div>
 
       {/* Horizontal stepper (Style A) — scrolls sideways when steps overflow.
@@ -234,7 +223,7 @@ const ProjectTracker: React.FC<ProjectTrackerProps> = ({
           alignItems: "flex-start",
           overflowX: "auto",
           paddingBottom: 6,
-          marginTop: 30,
+          marginTop: 14,
         }}
       >
         {columns.map((col, idx) => {

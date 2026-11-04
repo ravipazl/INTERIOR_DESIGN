@@ -103,10 +103,8 @@ function RoomPanelModal({
       // panel and the thumbnail was too small to tell one shutter from the
       // next. The panel is now 250px (ITEMS_W) and takes one card per row, so
       // the card fills the row instead of floating in 100px of empty space.
-      className={`group relative w-[210px] h-[230px] m-1.5 rounded-lg overflow-hidden bg-neutral-50 dark:bg-[#3a3a3a] shadow-sm ${
-        selected
-          ? "border-2 border-[color:var(--pz-accent)]"
-          : "border border-neutral-100 dark:border-[#444444]"
+      className={`pz-item-card group relative w-[210px] h-[230px] m-1.5 overflow-hidden ${
+        selected ? "is-on" : ""
       } ${selectMode && !canDelete ? "opacity-50" : ""} ${
         selectable ? "cursor-pointer" : ""
       }`}
@@ -271,7 +269,7 @@ function RoomPanelModal({
             <button
               onClick={onAddItemToSceneClick}
               disabled={isDeleting}
-              className="mt-0.5 rounded-lg px-3 py-0.5 text-[11px] bg-[color:var(--pz-accent)] text-white disabled:opacity-40"
+              className="pz-item-add mt-0.5"
             >
               {swapping ? "Swap" : "+ Add"}
             </button>

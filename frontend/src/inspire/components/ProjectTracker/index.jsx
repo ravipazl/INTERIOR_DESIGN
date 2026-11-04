@@ -111,15 +111,7 @@ const ProjectTracker = ({ projectId, status, refreshKey, onStepClick, activeStag
   });
 
   return (
-    <div
-      style={{
-        margin: "8px 0",
-        borderRadius: 10,
-        background: "#fff",
-        border: "1px solid #e5e7eb",
-        padding: 18,
-      }}
-    >
+    <div className="pz-pd-card pz-pd-tracker">
       <style>{`
         .pz-ai-step-dot { transition: box-shadow .18s ease, transform .18s ease; box-shadow: 0 4px 10px rgba(0,0,0,0.20); }
         .pz-ai-step:hover .pz-ai-step-dot { transform: translateY(-4px); box-shadow: 0 14px 30px rgba(15,110,86,0.45); }
@@ -127,20 +119,18 @@ const ProjectTracker = ({ projectId, status, refreshKey, onStepClick, activeStag
         .pz-ai-step:hover .pz-ai-step-label { color: #0F6E56 !important; }
       `}</style>
 
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-        <h3 style={{ fontSize: 16, fontWeight: 600, color: "#414063", margin: 0 }}>
-          Track your project
-        </h3>
-        <span style={{ fontSize: 12, fontWeight: 600, color: NOW }}>
+      <div className="pz-pd-tracker-head">
+        <h3 className="pz-pd-h2">Track your project</h3>
+        <span className="pz-pd-stepcount">
           {isClosed ? "Completed" : `Step ${current + 1} of ${total}`}
         </span>
       </div>
 
-      <div style={{ height: 7, borderRadius: 999, overflow: "hidden", background: "#e3f1ea", marginBottom: 4 }}>
-        <div style={{ height: "100%", width: `${pct}%`, background: DONE, borderRadius: 999 }} />
+      <div className="pz-pd-progress">
+        <div style={{ width: `${pct}%` }} />
       </div>
 
-      <div style={{ display: "flex", alignItems: "flex-start", overflowX: "auto", paddingBottom: 6, marginTop: 30 }}>
+      <div style={{ display: "flex", alignItems: "flex-start", overflowX: "auto", paddingBottom: 6, marginTop: 14 }}>
         {columns.map((col, idx) => {
           const st = col.state;
           const accent = st === "done" ? DONE : st === "current" ? NOW : UPCOMING;

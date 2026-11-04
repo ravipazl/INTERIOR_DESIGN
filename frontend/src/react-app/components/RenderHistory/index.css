@@ -44,3 +44,442 @@
 .dark .rv-section, .dark .rv-card { background: #333; border-color: #4a4a4a; }
 .dark .rv-title h2, .dark .rv-name, .dark .rv-group, .dark .rv-foot-note b { color: #fff; }
 @media (max-width: 760px) { .rv-section { margin: 16px 0; } .rv-hint { margin-left: 0; } }
+
+/* ===========================================================================
+   Render images — the app's look: a rounded card, a coloured badge, cards that
+   lift, a round indigo tick, coloured status pills and the indigo Send button.
+   =========================================================================== */
+.rv-section {
+  border-color: #e9ebf0;
+  border-radius: 16px;
+  padding: 18px 20px;
+  font-family: Inter, Arial, sans-serif;
+  box-shadow: 0 1px 2px rgba(23, 32, 51, 0.04), 0 8px 22px rgba(23, 32, 51, 0.05);
+}
+.rv-title-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 11px;
+  background: #e2f4f8;
+  color: #0891b2;
+}
+.rv-title h2 {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font: 800 17px/1.2 Inter, Arial, sans-serif;
+  color: #172033;
+}
+.rv-count {
+  min-width: 24px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: #f1edff;
+  color: #4b30dc;
+  font: 700 12px/1 Inter, Arial, sans-serif;
+  text-align: center;
+}
+.rv-hint {
+  margin-left: 48px;
+  font-size: 13px;
+  color: #697386;
+}
+.rv-btn {
+  height: 38px;
+  padding: 0 14px;
+  border-color: #e6e8ee;
+  border-radius: 10px;
+  color: #172033;
+  font: 600 13.5px/1 Inter, Arial, sans-serif;
+  box-shadow: 0 1px 2px rgba(23, 32, 51, 0.05);
+  transition: transform 0.15s ease, box-shadow 0.2s ease, background-color 0.15s;
+}
+.rv-btn:hover:not(:disabled) {
+  background: #fff;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 14px rgba(23, 32, 51, 0.1);
+}
+.rv-btn.primary,
+.rv-btn.primary:hover {
+  border: none;
+  color: #fff;
+  background: linear-gradient(180deg, #6a50f7 0%, #5b3df5 100%);
+}
+.rv-btn.primary {
+  height: 42px;
+  padding: 0 18px;
+  box-shadow: 0 6px 16px rgba(91, 61, 245, 0.3);
+}
+.rv-btn.primary:hover:not(:disabled) {
+  filter: brightness(1.06);
+  box-shadow: 0 10px 22px rgba(91, 61, 245, 0.36);
+}
+.rv-btn.primary:disabled {
+  background: #c7c9d3;
+  box-shadow: none;
+}
+.rv-btn:focus-visible,
+.rv-card:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px #fff, 0 0 0 5px rgba(91, 61, 245, 0.55);
+}
+.rv-grid {
+  margin-top: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 14px;
+  padding: 4px;
+}
+.rv-card {
+  border-color: #e6e8ee;
+  border-radius: 14px;
+  box-shadow: 0 1px 2px rgba(23, 32, 51, 0.05);
+  transition: transform 0.15s ease, box-shadow 0.2s ease, border-color 0.15s;
+}
+.rv-card:hover {
+  transform: translateY(-2px);
+  border-color: #cfc5fd;
+  box-shadow: 0 10px 22px rgba(91, 61, 245, 0.14);
+}
+.rv-card.selected {
+  border-color: #5b3df5;
+  background: #faf9ff;
+  box-shadow: 0 0 0 2px #5b3df5, 0 10px 22px rgba(91, 61, 245, 0.16);
+}
+.rv-thumb,
+.rv-thumb img,
+.rv-thumb video,
+.rv-unavailable {
+  height: 140px;
+}
+.rv-thumb img {
+  transition: transform 0.25s ease;
+}
+.rv-card:hover .rv-thumb img {
+  transform: scale(1.04);
+}
+.rv-thumb {
+  overflow: hidden;
+}
+/* The tick: a round white button, indigo with a check when chosen. */
+.rv-check {
+  appearance: none;
+  -webkit-appearance: none;
+  top: 10px;
+  left: 10px;
+  width: 24px;
+  height: 24px;
+  margin: 0;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  background: rgba(15, 18, 34, 0.35);
+  box-shadow: 0 2px 6px rgba(15, 18, 34, 0.3);
+  display: grid;
+  place-items: center;
+  transition: background-color 0.15s, transform 0.15s;
+}
+.rv-check:hover:not(:disabled) {
+  transform: scale(1.08);
+}
+.rv-check:checked {
+  background: #5b3df5;
+  border-color: #fff;
+}
+.rv-check:checked::after {
+  content: "";
+  width: 6px;
+  height: 11px;
+  margin-top: -2px;
+  border: solid #fff;
+  border-width: 0 2.5px 2.5px 0;
+  transform: rotate(45deg);
+}
+.rv-new {
+  top: 10px;
+  right: 10px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #6a50f7 0%, #5b3df5 100%);
+}
+.rv-body {
+  padding: 11px 12px 12px;
+}
+.rv-name {
+  font: 700 13.5px/1.3 Inter, Arial, sans-serif;
+  color: #172033;
+}
+.rv-meta {
+  margin-top: 6px;
+}
+.rv-when {
+  font-size: 12px;
+  color: #8a91a1;
+}
+.rv-tag {
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+}
+.rv-tag.draft { background: #f1f2f6; color: #4d5566; }
+.rv-tag.review { background: #fff7ed; color: #b45309; }
+.rv-tag.published { background: #e6f6ec; color: #15803d; }
+.rv-foot {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top-color: #e9ebf0;
+}
+.rv-foot-note {
+  font-size: 13px;
+  color: #697386;
+}
+.rv-foot-note b {
+  color: #4b30dc;
+  font-weight: 700;
+}
+.rv-empty {
+  margin-top: 14px;
+  padding: 22px 16px;
+  border: 1px dashed #d8dbe3;
+  border-radius: 14px;
+  text-align: center;
+  font-size: 13.5px;
+  color: #697386;
+}
+
+/* --- Email the client / admin --------------------------------------------- */
+.rv-mail .pz-dlg-body {
+  gap: 14px;
+}
+.rv-mail-to {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.rv-mail-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px 6px 8px;
+  border-radius: 999px;
+  background: #e8f0fe;
+  color: #1e40af;
+  font: 600 13.5px/1.2 Inter, Arial, sans-serif;
+  overflow-wrap: anywhere;
+}
+.rv-mail-chip .material-symbols-outlined {
+  font-size: 18px;
+}
+.pz-dlg .pz-dlg-body textarea.rv-mail-text {
+  width: 100%;
+  min-height: 110px;
+  padding: 10px 12px;
+  border: 1px solid #e6e8ee;
+  border-radius: 10px;
+  color: #172033;
+  font: 400 14px/1.5 Inter, Arial, sans-serif;
+  resize: vertical;
+  outline: none;
+}
+.pz-dlg .pz-dlg-body textarea.rv-mail-text:focus {
+  border-color: #a99bfa;
+  box-shadow: 0 0 0 3px rgba(91, 61, 245, 0.14);
+}
+.rv-att-count {
+  display: inline-block;
+  min-width: 20px;
+  margin-left: 4px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: #f1edff;
+  color: #4b30dc;
+  font-size: 11.5px;
+  font-weight: 700;
+  text-align: center;
+}
+.rv-att-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.rv-att {
+  position: relative;
+  width: 96px;
+  height: 72px;
+  flex: none;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid #e6e8ee;
+  border-radius: 12px;
+  background: #f6f7fb;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(23, 32, 51, 0.05);
+  transition: transform 0.15s ease, box-shadow 0.2s ease, border-color 0.15s;
+}
+button.rv-att:hover,
+.rv-att--file:hover {
+  transform: translateY(-1px);
+  border-color: #cfc5fd;
+  box-shadow: 0 8px 16px rgba(91, 61, 245, 0.14);
+}
+.rv-att-img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.rv-att-img--video {
+  background: #11131a;
+}
+.rv-att--pdf {
+  display: grid;
+  place-items: center;
+  border-color: #fecaca;
+  background: #fef2f2;
+  color: #dc2626;
+}
+.rv-att--pdf .material-symbols-outlined {
+  font-size: 30px;
+}
+.rv-att--na {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  color: #9aa1b0;
+  font-size: 11px;
+  cursor: default;
+}
+.rv-att-badge {
+  position: absolute;
+  left: 6px;
+  bottom: 5px;
+  padding: 1px 6px;
+  border-radius: 5px;
+  background: rgba(15, 18, 34, 0.65);
+  color: #fff;
+  font: 700 10px/1.5 Inter, Arial, sans-serif;
+  pointer-events: none;
+}
+.rv-att-file {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  width: 100%;
+  height: 100%;
+  padding: 6px 6px 8px;
+  color: #3730a3;
+}
+.rv-att-file .material-symbols-outlined {
+  font-size: 22px;
+}
+.rv-att-name {
+  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font: 600 10.5px/1.2 Inter, Arial, sans-serif;
+  text-align: center;
+}
+button.rv-att-del {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: rgba(15, 18, 34, 0.6);
+  color: #fff;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+}
+button.rv-att-del:hover {
+  background: #dc2626;
+}
+.rv-att--add {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  border: 1.5px dashed #c9c2f8;
+  background: #f8f6ff;
+  color: #4b30dc;
+  font: 700 11.5px/1.2 Inter, Arial, sans-serif;
+  box-shadow: none;
+}
+.rv-att--add:hover {
+  background: #f1edff;
+  border-color: #a99bfa;
+}
+.rv-att--add .material-symbols-outlined {
+  font-size: 20px;
+}
+.rv-att--add.is-busy {
+  opacity: 0.5;
+  cursor: default;
+}
+.pz-dlg button.rv-send {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+.pz-dlg button.rv-send .material-symbols-outlined {
+  font-size: 18px;
+}
+
+/* --- Smaller type and icons (one size down across the app) --------------- */
+.rv-title h2 {
+  font-size: 15px;
+}
+.rv-title-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+}
+.rv-hint {
+  margin-left: 44px;
+  font-size: 12.5px;
+}
+
+/* --- ...and one more small step down ------------------------------------- */
+.rv-title h2 {
+  font-size: 14px;
+}
+.rv-title-icon {
+  width: 32px;
+  height: 32px;
+}
+.rv-hint {
+  margin-left: 42px;
+  font-size: 12px;
+}
+
+/* --- Compact: a third step down (type everywhere; controls on a computer) - */
+.rv-title h2 {
+  font-size: 13.5px;
+}
+.rv-title-icon {
+  width: 30px;
+  height: 30px;
+}
+.rv-hint {
+  margin-left: 40px;
+  font-size: 11.5px;
+}
+@media (min-width: 1101px) {
+  .rv-btn {
+    height: 34px;
+    font-size: 13px;
+  }
+  .rv-btn.primary {
+    height: 36px;
+  }
+}

@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import "./framing.css";
 import BlueprintInterface from "@pazl/blueprint-interface";
 import { ASPECTS, Aspect, EYE_HEIGHTS } from "./options";
 
@@ -270,12 +271,15 @@ const CameraFraming: React.FC<{
 
   const savedViews = (
     <>
-      <div className="shrink-0 px-0.5 text-[11px] font-semibold text-white drop-shadow">Saved views</div>
+      <div className="pz-fr-views-title shrink-0">
+        <span className="material-symbols-outlined" aria-hidden="true">bookmarks</span>
+        Saved views
+      </div>
       {views.map((v) => (
-        <div key={v.name} className={`group relative shrink-0 rounded-lg bg-white p-1.5 text-[11.5px] shadow ${activeView === v.name ? "ring-2 ring-emerald-500" : ""}`}>
+        <div key={v.name} className={`group pz-fr-view shrink-0${activeView === v.name ? " is-on" : ""}`}>
           <button
             type="button"
-            className="block w-full truncate text-left font-medium"
+            className="pz-fr-view-go truncate"
             title={`Go to "${v.name}"`}
             onClick={() => {
               viewer()?.applyRenderView?.(v);
@@ -288,7 +292,7 @@ const CameraFraming: React.FC<{
           <button
             type="button"
             aria-label={`Delete saved view ${v.name}`}
-            className="absolute right-1 top-1 hidden text-gray-400 hover:text-red-600 group-hover:block"
+            className="pz-fr-view-del hidden group-hover:grid"
             onClick={() => {
               const next = views.filter((x) => x.name !== v.name);
               setViews(next);
@@ -300,12 +304,13 @@ const CameraFraming: React.FC<{
         </div>
       ))}
       {naming === null ? (
-        <button type="button" onClick={() => setNaming("")} className="shrink-0 rounded-lg bg-white p-1.5 text-[11.5px] font-medium text-indigo-700 shadow">
-          + Save this view
+        <button type="button" onClick={() => setNaming("")} className="pz-fr-save shrink-0">
+          <span className="material-symbols-outlined" aria-hidden="true">add</span>
+          Save this view
         </button>
       ) : (
         <form
-          className="shrink-0 rounded-lg bg-white p-1.5 shadow"
+          className="pz-fr-view pz-fr-view--form shrink-0"
           onSubmit={(e) => {
             e.preventDefault();
             saveView();
@@ -317,14 +322,14 @@ const CameraFraming: React.FC<{
             onChange={(e) => setNaming(e.target.value)}
             placeholder="Kitchen front"
             aria-label="Name for this view"
-            className="w-full rounded border border-gray-300 px-1.5 py-0.5 text-[11.5px]"
+            className="pz-fr-input"
             onKeyDown={(e) => e.key === "Escape" && setNaming(null)}
           />
-          <div className="mt-1 flex justify-between text-[11px]">
-            <button type="button" onClick={() => setNaming(null)} className="text-gray-500">
+          <div className="pz-fr-form-actions">
+            <button type="button" onClick={() => setNaming(null)} className="pz-fr-link">
               Cancel
             </button>
-            <button type="submit" className="font-semibold text-indigo-700">
+            <button type="submit" className="pz-fr-link pz-fr-link--primary">
               Save
             </button>
           </div>
@@ -362,9 +367,14 @@ const CameraFraming: React.FC<{
 
       <div ref={topBarsRef} className="absolute left-3 right-3 top-3 flex flex-col items-center gap-2 pointer-events-none">
       {/* top bar */}
-      <div className="pz-framing-bar pointer-events-auto flex max-w-full flex-wrap items-center gap-2 rounded-xl bg-white px-3 py-2 text-[13px] text-gray-800 shadow-lg">
-        <b className="px-1">Frame your shot</b>
-        <div className="flex gap-1" role="radiogroup" aria-label="Image shape">
+      <div className="pz-framing-bar pz-fr-bar pointer-events-auto flex max-w-full flex-wrap items-center">
+        <b className="pz-fr-title">
+          <span className="pz-fr-title-ic" aria-hidden="true">
+            <span className="material-symbols-outlined">photo_camera</span>
+          </span>
+          Frame your shot
+        </b>
+        <div className="pz-fr-seg" role="radiogroup" aria-label="Image shape">
           {ASPECTS.map((a) => (
             <button
               key={a.id}
@@ -372,15 +382,16 @@ const CameraFraming: React.FC<{
               role="radio"
               aria-checked={aspect === a.id}
               onClick={() => setAspect(a.id)}
-              className={`rounded-full border px-2.5 py-0.5 text-xs ${aspect === a.id ? "border-gray-900 bg-gray-900 text-white" : "border-gray-300 bg-white"}`}
+              className={`pz-fr-pill${aspect === a.id ? " is-on" : ""}`}
             >
               {a.id}
             </button>
           ))}
         </div>
-        <span className="h-5 w-px bg-gray-200" />
-        <div className="flex items-center gap-1" role="radiogroup" aria-label="Side of the room to shoot from">
-          <span className="px-0.5 text-xs">Side</span>
+        <span className="pz-fr-sep" />
+        <div className="flex items-center gap-2" role="radiogroup" aria-label="Side of the room to shoot from">
+          <span className="pz-fr-label">Side</span>
+          <span className="pz-fr-seg">
           {SIDES.map((s) => (
             <button
               key={s.id}
@@ -389,17 +400,18 @@ const CameraFraming: React.FC<{
               aria-checked={side === s.id}
               title={`Look at the room from the ${s.label.toLowerCase()}`}
               onClick={() => lookFrom(s.id)}
-              className={`rounded-full border px-2.5 py-0.5 text-xs ${side === s.id ? "border-gray-900 bg-gray-900 text-white" : "border-gray-300 bg-white"}`}
+              className={`pz-fr-pill${side === s.id ? " is-on" : ""}`}
             >
               {s.label}
             </button>
           ))}
+          </span>
         </div>
-        <span className="h-5 w-px bg-gray-200" />
-        <label className="flex items-center gap-1.5 text-xs">
+        <span className="pz-fr-sep" />
+        <label className="flex items-center gap-2 pz-fr-label">
           Height
           <select
-            className="rounded-md border border-gray-300 px-1.5 py-0.5 text-xs"
+            className="pz-fr-select"
             value={EYE_HEIGHTS.some((h) => Math.abs(h.cm - eyeCm) < 3) ? EYE_HEIGHTS.find((h) => Math.abs(h.cm - eyeCm) < 3)!.cm : ""}
             onChange={(e) => {
               viewer()?.setRenderEyeHeight?.(Number(e.target.value));
@@ -414,7 +426,7 @@ const CameraFraming: React.FC<{
             ))}
           </select>
         </label>
-        <label className="flex items-center gap-1.5 text-xs">
+        <label className="flex items-center gap-2 pz-fr-label">
           Lens
           <input
             type="range"
@@ -428,12 +440,13 @@ const CameraFraming: React.FC<{
               viewer()?.setRenderLens?.(mm);
             }}
             aria-label="Lens width in millimetres"
-            className="w-24 accent-gray-900"
+            className="pz-fr-range"
           />
-          <span className="w-11 tabular-nums">{lens} mm</span>
+          <span className="pz-fr-val tabular-nums">{lens} mm</span>
         </label>
         {needsFix && (
-          <button type="button" onClick={fixCamera} className="rounded-lg bg-amber-500 px-2.5 py-1 text-xs font-semibold text-white">
+          <button type="button" onClick={fixCamera} className="pz-fr-fix">
+            <span className="material-symbols-outlined" aria-hidden="true">auto_fix_high</span>
             Fix camera
           </button>
         )}
@@ -445,23 +458,24 @@ const CameraFraming: React.FC<{
       </div>
 
       {!narrow && (
-        <div className="absolute right-3 top-[70px] pointer-events-auto grid w-[124px] gap-2">{savedViews}</div>
+        <div className="pz-fr-views absolute right-3 top-[70px] pointer-events-auto grid w-[156px] gap-2">{savedViews}</div>
       )}
       {/* error + actions */}
       <div className="absolute bottom-3 left-3 right-3 flex flex-wrap items-end justify-between gap-2">
         <div className="flex flex-wrap gap-2 pointer-events-none">
           {error && (
-            <span className="rounded-full bg-red-50 px-3 py-1.5 text-xs font-medium text-red-700 shadow-sm" role="alert">
+            <span className="pz-fr-error" role="alert">
               {error}
             </span>
           )}
         </div>
         <div className="flex gap-2 pointer-events-auto">
-          <button type="button" onClick={onCancel} className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-800 shadow">
+          <button type="button" onClick={onCancel} className="pz-fr-btn pz-fr-btn--ghost">
             Cancel
           </button>
-          <button type="button" onClick={captureView} className="rounded-lg bg-gray-900 px-4 py-2 text-sm font-semibold text-white shadow">
-            Use this view →
+          <button type="button" onClick={captureView} className="pz-fr-btn pz-fr-btn--primary">
+            Use this view
+            <span className="material-symbols-outlined" aria-hidden="true">arrow_forward</span>
           </button>
         </div>
       </div>

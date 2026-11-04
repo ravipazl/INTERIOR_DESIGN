@@ -1,0 +1,978 @@
+/* Projects list — the refreshed look, scoped to `.pz-projects` so nothing else
+   in the app changes. Colours are the client's indigo set (css/styles.css
+   --pz-*); Bootstrap and the data table are restyled here, not replaced.
+   Bootstrap's own button/dropdown rules are as specific as these, hence the
+   element-qualified selectors and the odd !important. */
+
+.pz-projects {
+  --pzp-ink: #172033;
+  --pzp-ink-2: #697386;
+  --pzp-line: #e9ebf0;
+  --pzp-line-2: #e2e5eb;
+  --pzp-accent: #5b3df5;
+  --pzp-accent-2: #4b30dc;
+  --pzp-tint: #f8f6ff;
+  --pzp-shadow-card: 0 1px 2px rgba(23, 32, 51, 0.04), 0 6px 18px rgba(23, 32, 51, 0.04);
+  background: #f6f7fb !important;
+  color: var(--pzp-ink);
+  font-family: Inter, Arial, sans-serif;
+  /* Fills what the header leaves; scrolls only on short windows. */
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 28px 40px 28px !important;
+}
+
+/* The page is exactly one window tall, the header on top and this below it,
+   so the table can size itself to what is left and keep its pager in view. */
+.pz-app-main.pz-projects-main {
+  height: 100vh;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.pz-projects-inner {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  width: 100%;
+  max-width: 1480px;
+  margin: 0 auto;
+  animation: pzp-rise 0.24s ease-out both;
+}
+.pz-projects-inner > * {
+  flex: none;
+}
+
+@keyframes pzp-rise {
+  from {
+    transform: translateY(6px);
+  }
+  to {
+    transform: none;
+  }
+}
+
+/* --- page title ----------------------------------------------------------- */
+.pz-projects h1.pzp-title {
+  margin: 0;
+  font: 800 30px/1.2 Inter, Arial, sans-serif;
+  letter-spacing: -0.02em;
+  color: var(--pzp-ink);
+}
+.pz-projects p.pzp-subtitle {
+  margin: 6px 0 0;
+  font: 400 14px Inter, Arial, sans-serif;
+  color: var(--pzp-ink-2);
+}
+
+/* --- status cards (they are the filter) ----------------------------------- */
+.pzp-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 14px;
+}
+.pz-projects button.pzp-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 16px 18px;
+  text-align: left;
+  background: #fff;
+  border: 1px solid var(--pzp-line);
+  border-radius: 14px;
+  box-shadow: var(--pzp-shadow-card);
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+.pz-projects button.pzp-stat:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 2px 4px rgba(23, 32, 51, 0.05), 0 16px 32px rgba(23, 32, 51, 0.09);
+}
+.pz-projects button.pzp-stat:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px #fff, 0 0 0 5px rgba(91, 61, 245, 0.55);
+}
+.pz-projects button.pzp-stat.is-on {
+  background: linear-gradient(180deg, #faf9ff 0%, #f3f0ff 100%);
+  border-color: #c9c1fb;
+  box-shadow: 0 0 0 4px rgba(91, 61, 245, 0.12), var(--pzp-shadow-card);
+}
+.pz-projects button.pzp-stat.is-on .pzp-stat-value {
+  color: var(--pzp-accent-2);
+}
+.pzp-stat-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font: 600 13px Inter, Arial, sans-serif;
+  color: #4d5566;
+}
+.pzp-stat-label i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: block;
+}
+.pzp-stat-value {
+  font: 700 28px/1 Inter, Arial, sans-serif;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  color: var(--pzp-ink);
+}
+
+/* --- the table card and its toolbar -------------------------------------- */
+.pzp-card {
+  background: #fff;
+  border: 1px solid var(--pzp-line);
+  border-radius: 14px;
+  box-shadow: var(--pzp-shadow-card);
+  overflow: hidden;
+  /* As tall as its rows, but never taller than the window allows: then the
+     rows scroll inside and the toolbar and pager stay put. */
+  flex: 0 1 auto !important;
+  min-height: 320px;
+  display: flex;
+  flex-direction: column;
+}
+/* The card holds our toolbar, then the data table's scroll box, then the
+   plain box the table wraps its pager in. Only the scroll box gives way. */
+.pzp-card > div {
+  flex: none;
+}
+.pzp-card > .pzp-toolbar + div {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+}
+.pzp-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--pzp-line);
+}
+.pzp-toolbar-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font: 700 17px Inter, Arial, sans-serif;
+  letter-spacing: -0.01em;
+  color: var(--pzp-ink);
+}
+.pzp-count {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: #f1edff;
+  color: var(--pzp-accent-2);
+  font: 600 12px Inter, Arial, sans-serif;
+  font-variant-numeric: tabular-nums;
+}
+.pzp-toolbar-tools {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.pzp-search {
+  position: relative;
+  display: block;
+}
+.pzp-search svg.pzp-search-icon {
+  position: absolute;
+  left: 12px;
+  top: 12px;
+  pointer-events: none;
+}
+.pz-projects input.pzp-search-input {
+  width: 300px;
+  max-width: 100%;
+  height: 40px;
+  box-sizing: border-box;
+  padding: 0 36px;
+  border: 1px solid var(--pzp-line-2);
+  border-radius: 10px;
+  background: #fff;
+  font: 400 14px Inter, Arial, sans-serif;
+  color: var(--pzp-ink);
+  outline: none;
+  box-shadow: 0 1px 2px rgba(23, 32, 51, 0.04);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+/* The search box has its own clear ✕; Chrome's would be a second one. */
+.pz-projects input.pzp-search-input::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+  appearance: none;
+  display: none;
+}
+.pz-projects input.pzp-search-input:hover {
+  border-color: #cdd2dc;
+}
+.pz-projects input.pzp-search-input:focus {
+  border-color: var(--pzp-accent);
+  box-shadow: 0 0 0 4px rgba(91, 61, 245, 0.14);
+}
+.pz-projects button.pzp-search-clear {
+  position: absolute;
+  right: 6px;
+  top: 6px;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 8px;
+  background: #f1f2f6;
+  color: var(--pzp-ink-2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.15s, color 0.15s;
+}
+.pz-projects button.pzp-search-clear:hover {
+  background: #e7e3fd;
+  color: var(--pzp-accent-2);
+}
+
+/* --- buttons --------------------------------------------------------------- */
+.pz-projects .pzp-btn {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 14px !important;
+  border-radius: 9px !important;
+  font: 600 13px/1 Inter, Arial, sans-serif !important;
+  border: 1px solid transparent;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: transform 0.15s ease, box-shadow 0.2s ease, background-color 0.2s ease,
+    border-color 0.2s ease;
+}
+.pz-projects .pzp-btn:active {
+  transform: scale(0.98);
+}
+.pz-projects .pzp-btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px #fff, 0 0 0 5px rgba(91, 61, 245, 0.55) !important;
+}
+.pz-projects .pzp-btn-primary {
+  background: linear-gradient(180deg, #6a50f7 0%, #5b3df5 100%) !important;
+  color: #fff !important;
+  border-color: transparent !important;
+  box-shadow: 0 1px 2px rgba(23, 32, 51, 0.14), 0 4px 12px rgba(91, 61, 245, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+.pz-projects .pzp-btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(23, 32, 51, 0.14), 0 10px 22px rgba(91, 61, 245, 0.36),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+.pz-projects .pzp-btn-secondary {
+  background: #fff !important;
+  color: var(--pzp-ink) !important;
+  border-color: var(--pzp-line-2) !important;
+  box-shadow: 0 1px 2px rgba(23, 32, 51, 0.06), 0 2px 6px rgba(23, 32, 51, 0.05);
+}
+.pz-projects .pzp-btn-secondary:hover {
+  transform: translateY(-1px);
+  border-color: #cdd2dc !important;
+  box-shadow: 0 2px 4px rgba(23, 32, 51, 0.07), 0 8px 18px rgba(23, 32, 51, 0.08);
+}
+/* The row's main step: a soft indigo, solid on hover. Six solid buttons down
+   the table outshouted everything else on the page. */
+.pz-projects .pzp-btn-tonal {
+  background: #f1edff !important;
+  color: var(--pzp-accent-2) !important;
+  border-color: #e2dcff !important;
+  box-shadow: 0 1px 2px rgba(91, 61, 245, 0.1);
+}
+.pz-projects .pzp-btn-tonal:hover {
+  transform: translateY(-1px);
+  background: linear-gradient(180deg, #6a50f7 0%, #5b3df5 100%) !important;
+  color: #fff !important;
+  border-color: transparent !important;
+  box-shadow: 0 2px 4px rgba(23, 32, 51, 0.12), 0 8px 18px rgba(91, 61, 245, 0.32);
+}
+/* "Assign architect": an empty slot waiting to be filled. */
+.pz-projects .pzp-btn-dashed {
+  background: transparent !important;
+  color: var(--pzp-accent-2) !important;
+  border: 1px dashed #b9adf9 !important;
+}
+.pz-projects .pzp-btn-dashed:hover {
+  transform: translateY(-1px);
+  background: #faf9ff !important;
+  border-style: solid !important;
+  box-shadow: 0 6px 14px rgba(91, 61, 245, 0.14);
+}
+.pz-projects .pzp-icon-btn {
+  width: 40px;
+  height: 40px;
+  padding: 0 !important;
+}
+.pz-projects .pzp-icon-btn[aria-expanded="true"] {
+  border-color: #c9c1fb !important;
+  color: var(--pzp-accent-2) !important;
+  box-shadow: 0 0 0 4px rgba(91, 61, 245, 0.12);
+}
+.pz-projects .pzp-more {
+  width: 34px;
+  height: 34px;
+  padding: 0 !important;
+  border: none !important;
+  border-radius: 9px !important;
+  background: transparent !important;
+  color: var(--pzp-ink-2) !important;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.15s, color 0.15s;
+}
+.pz-projects .pzp-more:hover,
+.pz-projects .pzp-more[aria-expanded="true"] {
+  background: #f1effe !important;
+  color: var(--pzp-accent) !important;
+}
+/* Bootstrap draws a caret on every toggle; these carry their own icon. */
+.pz-projects .pzp-more::after,
+.pz-projects .pzp-icon-btn::after {
+  display: none !important;
+}
+
+/* --- dropdown menus (actions, status, columns) --------------------------- */
+.pz-projects .dropdown-menu.pzp-menu,
+.dropdown-menu.pzp-menu {
+  padding: 6px;
+  border: 1px solid var(--pzp-line, #e9ebf0);
+  border-radius: 12px;
+  box-shadow: 0 4px 8px rgba(23, 32, 51, 0.06), 0 20px 44px rgba(23, 32, 51, 0.16);
+  font: 500 14px Inter, Arial, sans-serif;
+  animation: pzp-pop 0.16s ease-out;
+}
+/* Fade only. Popper places the menu with an inline `transform`, so a
+   transform keyframe here would pin every menu to the page's corner. */
+@keyframes pzp-pop {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.dropdown-menu.pzp-menu .dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  color: #172033;
+}
+.dropdown-menu.pzp-menu .dropdown-item:hover,
+.dropdown-menu.pzp-menu .dropdown-item:focus {
+  background: #f4f2ff;
+  color: #4b30dc;
+}
+
+/* The status menu's dot: the pill's strong colour, filling the whole dot. */
+.dropdown-menu.pzp-menu .pzp-menu-dot {
+  width: 10px;
+  height: 10px;
+  flex: none;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 5px currentColor;
+}
+
+.pzp-cols {
+  width: 280px;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.pzp-cols-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 6px 8px;
+  font: 600 14px Inter, Arial, sans-serif;
+}
+.pz-projects button.pzp-link,
+button.pzp-link {
+  border: none;
+  background: transparent;
+  padding: 0;
+  font: 600 12px Inter, Arial, sans-serif;
+  color: #5b3df5;
+  cursor: pointer;
+}
+.pzp-col {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 6px;
+  border-radius: 8px;
+  font: 500 14px Inter, Arial, sans-serif;
+  color: #172033;
+  cursor: pointer;
+  margin: 0;
+}
+.pzp-col:hover {
+  background: #f6f5fb;
+}
+.pzp-col.is-locked {
+  color: #697386;
+  cursor: default;
+}
+.pzp-col.is-locked:hover {
+  background: transparent;
+}
+.pzp-col input {
+  width: 16px;
+  height: 16px;
+  accent-color: #5b3df5;
+  margin: 0;
+}
+.pzp-col small {
+  margin-left: auto;
+  font-size: 12px;
+}
+.pzp-cols-sep {
+  height: 1px;
+  background: #eef0f4;
+  margin: 6px 0;
+}
+.pzp-cols-label {
+  padding: 2px 6px 8px;
+  font: 600 12px Inter, Arial, sans-serif;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #697386;
+}
+.pzp-seg {
+  display: flex;
+  gap: 4px;
+  padding: 3px;
+  margin: 0 6px;
+  background: #eef0f5;
+  border-radius: 10px;
+}
+.pzp-seg button {
+  flex: 1;
+  height: 30px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  font: 600 13px Inter, Arial, sans-serif;
+  color: #697386;
+  cursor: pointer;
+  transition: background-color 0.15s, color 0.15s, box-shadow 0.2s;
+}
+.pzp-seg button.is-on {
+  background: #fff;
+  color: #172033;
+  box-shadow: 0 1px 2px rgba(23, 32, 51, 0.08);
+}
+.pzp-cols-note {
+  padding: 8px 6px 2px;
+  font: 400 12px Inter, Arial, sans-serif;
+  color: #697386;
+}
+
+/* --- status pill ---------------------------------------------------------- */
+.pz-projects .pzp-status {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  padding: 0 10px !important;
+  border: none !important;
+  border-radius: 999px !important;
+  font: 600 12px/1 Inter, Arial, sans-serif !important;
+  white-space: nowrap;
+  box-shadow: none !important;
+}
+.pz-projects .pzp-status i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  display: block;
+}
+.pz-projects button.pzp-status {
+  cursor: pointer;
+  transition: filter 0.15s, box-shadow 0.2s;
+}
+.pz-projects button.pzp-status:hover {
+  filter: brightness(0.97);
+  box-shadow: 0 0 0 3px rgba(91, 61, 245, 0.1) !important;
+}
+.pz-projects button.pzp-status::after {
+  margin-left: 2px;
+  border-top-width: 0.32em;
+}
+.pzp-status--open { background: #eef2ff !important; color: #3f4bb8 !important; }
+.pzp-status--quotation_requested { background: #fff6e5 !important; color: #9a5b00 !important; }
+.pzp-status--quotation_pending_approval { background: #fff0e6 !important; color: #b4440f !important; }
+.pzp-status--quotation_sent { background: #f1edff !important; color: #4b30dc !important; }
+.pzp-status--quotation_accepted { background: #e9f8ef !important; color: #167a3e !important; }
+.pzp-status--quotation_rejected { background: #fdecec !important; color: #b42318 !important; }
+.pzp-status--closed { background: #f1f2f5 !important; color: #4d5566 !important; }
+.pzp-status--change { background: #fff4d6 !important; color: #8a5300 !important; }
+
+/* --- cells ---------------------------------------------------------------- */
+.pzp-two {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.pzp-two strong {
+  font-weight: 600;
+  color: #172033;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pzp-two span {
+  font-size: 12px;
+  color: #697386;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pzp-person {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.pzp-av {
+  width: 28px;
+  height: 28px;
+  flex: none;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #5b3df5;
+  color: #fff;
+  font: 600 11px Inter, Arial, sans-serif;
+}
+.pzp-person-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pz-projects button.pzp-pencil {
+  width: 28px;
+  height: 28px;
+  flex: none;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: #697386;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  opacity: 0.6;
+  transition: opacity 0.15s, background-color 0.15s, color 0.15s;
+}
+.pz-projects .rdt_TableRow:hover button.pzp-pencil {
+  opacity: 1;
+}
+.pz-projects button.pzp-pencil:hover {
+  background: #f1effe;
+  color: #5b3df5;
+}
+.pzp-muted {
+  color: #697386;
+}
+/* Centred under the "Actions" heading, the same three slots on every row. */
+.pzp-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+}
+
+/* One action per icon. The main one (into the 3D app) is indigo. */
+.pz-projects button.pzp-act {
+  width: 36px;
+  height: 36px;
+  flex: none;
+  padding: 0;
+  border: 1px solid #e6e8ee;
+  border-radius: 10px;
+  background: #fff;
+  color: #4d5566;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(23, 32, 51, 0.05);
+  transition: transform 0.15s ease, box-shadow 0.2s ease, background-color 0.15s,
+    color 0.15s, border-color 0.15s;
+}
+.pz-projects button.pzp-act:hover {
+  transform: translateY(-1px);
+  background: #f4f2ff;
+  border-color: #d9d2fd;
+  color: var(--pzp-accent-2);
+  box-shadow: 0 6px 14px rgba(91, 61, 245, 0.16);
+}
+.pz-projects button.pzp-act:active {
+  transform: scale(0.95);
+}
+.pz-projects button.pzp-act:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px #fff, 0 0 0 5px rgba(91, 61, 245, 0.55);
+}
+.pz-projects button.pzp-act--primary {
+  background: #f1edff;
+  border-color: #e2dcff;
+  color: var(--pzp-accent-2);
+}
+.pz-projects button.pzp-act--primary:hover {
+  background: linear-gradient(180deg, #6a50f7 0%, #5b3df5 100%);
+  border-color: transparent;
+  color: #fff;
+  box-shadow: 0 8px 18px rgba(91, 61, 245, 0.34);
+}
+
+/* The name that shows when you point at an action. */
+.tooltip.pzp-tip .tooltip-inner {
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: #172033;
+  font: 600 12px/1.2 Inter, Arial, sans-serif;
+  box-shadow: 0 6px 16px rgba(23, 32, 51, 0.22);
+}
+.tooltip.pzp-tip.bs-tooltip-top .tooltip-arrow::before,
+.tooltip.pzp-tip.bs-tooltip-auto[data-popper-placement^="top"] .tooltip-arrow::before {
+  border-top-color: #172033;
+}
+.tooltip.pzp-tip.bs-tooltip-bottom .tooltip-arrow::before,
+.tooltip.pzp-tip.bs-tooltip-auto[data-popper-placement^="bottom"] .tooltip-arrow::before {
+  border-bottom-color: #172033;
+}
+
+/* The top bar on this page lines up with the page's own padding, so the bell
+   is not pressed against the window's edge. */
+.pz-projects-main .navbar > .container-fluid {
+  padding-left: 28px;
+  padding-right: 40px;
+}
+
+/* --- the data table itself ----------------------------------------------- */
+.pz-projects .rdt_Table {
+  font-family: Inter, Arial, sans-serif;
+}
+.pz-projects .rdt_TableRow {
+  transition: background-color 0.15s;
+}
+.pz-projects .rdt_Pagination {
+  margin-bottom: 0;
+}
+
+/* loading rows */
+.pzp-skeleton {
+  width: 100%;
+  padding: 8px 20px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.pzp-sk-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.pzp-sk {
+  height: 12px;
+  border-radius: 6px;
+  background: linear-gradient(90deg, #eef0f4 0%, #f7f8fb 50%, #eef0f4 100%);
+  background-size: 200% 100%;
+  animation: pzp-sk 1.2s ease-in-out infinite;
+}
+@keyframes pzp-sk {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: -100% 0;
+  }
+}
+
+/* nothing to show */
+.pzp-empty {
+  width: 100%;
+  padding: 48px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  text-align: center;
+}
+.pzp-empty-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
+  background: #f1edff;
+  color: #5b3df5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.pzp-empty strong {
+  font: 600 16px Inter, Arial, sans-serif;
+  color: #172033;
+}
+.pzp-empty span {
+  font: 400 14px Inter, Arial, sans-serif;
+  color: #697386;
+}
+
+/* pagination */
+.pzp-pager {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 20px;
+  border-top: 1px solid #e9ebf0;
+  background: #fafbfc;
+  font: 400 13px Inter, Arial, sans-serif;
+  color: #697386;
+}
+.pzp-pager-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.pz-projects select.pzp-pager-size {
+  height: 32px;
+  padding: 0 28px 0 10px;
+  border: 1px solid #e2e5eb;
+  border-radius: 8px;
+  background-color: #fff;
+  font: 500 13px Inter, Arial, sans-serif;
+  color: #172033;
+  cursor: pointer;
+}
+.pz-projects select.pzp-pager-size:focus {
+  outline: none;
+  border-color: #5b3df5;
+  box-shadow: 0 0 0 3px rgba(91, 61, 245, 0.14);
+}
+.pzp-pager-range {
+  font-variant-numeric: tabular-nums;
+}
+.pzp-pages {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.pz-projects button.pzp-page {
+  min-width: 32px;
+  height: 32px;
+  padding: 0 6px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  font: 500 13px Inter, Arial, sans-serif;
+  color: #172033;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  transition: background-color 0.15s, box-shadow 0.2s;
+}
+.pz-projects button.pzp-page:hover:not(:disabled) {
+  background: #eef0f5;
+}
+.pz-projects button.pzp-page.is-on {
+  background: #5b3df5;
+  color: #fff;
+  box-shadow: 0 4px 10px rgba(91, 61, 245, 0.3);
+}
+.pz-projects button.pzp-page:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.pzp-gap {
+  padding: 0 4px;
+}
+
+/* --- tablet and phone ----------------------------------------------------- */
+@media (max-width: 900px), (orientation: portrait) and (max-width: 1100px) {
+  .pz-projects {
+    padding: 20px 20px 20px !important;
+  }
+  .pzp-toolbar-tools {
+    width: 100%;
+  }
+  .pzp-search {
+    flex: 1;
+  }
+  .pz-projects input.pzp-search-input {
+    width: 100%;
+    height: 44px;
+  }
+  .pz-projects .pzp-icon-btn {
+    width: 44px;
+    height: 44px;
+  }
+  .pz-projects button.pzp-page {
+    min-width: 40px;
+    height: 40px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pz-projects *,
+  .pzp-menu {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+/* --- Smaller type and icons (one size down across the app) --------------- */
+.pz-projects h1.pzp-title {
+  font-size: 24px;
+}
+.pz-projects p.pzp-subtitle {
+  font-size: 13px;
+}
+.pzp-stat-value {
+  font-size: 22px;
+}
+
+/* --- ...and one more small step down ------------------------------------- */
+.pz-projects h1.pzp-title {
+  font-size: 22px;
+}
+.pz-projects p.pzp-subtitle {
+  font-size: 12.5px;
+}
+.pzp-stat-value {
+  font-size: 20px;
+}
+
+/* --- Smaller tables ------------------------------------------------------- */
+.pzp-two span {
+  font-size: 11.5px;
+}
+.pzp-av {
+  width: 26px;
+  height: 26px;
+  font-size: 10.5px;
+}
+.pz-projects .pzp-status {
+  font-size: 11.5px !important;
+}
+.pz-projects button.pzp-act {
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+}
+.pz-projects button.pzp-act svg {
+  width: 15px;
+  height: 15px;
+}
+
+/* --- Compact: a third step down (type everywhere; controls on a computer) - */
+.pz-projects h1.pzp-title {
+  font-size: 20px;
+}
+.pz-projects p.pzp-subtitle {
+  font-size: 12px;
+}
+.pzp-stat-value {
+  font-size: 18px;
+}
+.pzp-stat-label {
+  font-size: 12px;
+}
+@media (min-width: 1101px) {
+  .pz-projects .pzp-btn {
+    height: 32px;
+    font-size: 12.5px !important;
+  }
+  .pz-projects .pzp-icon-btn {
+    width: 34px;
+    height: 34px;
+  }
+  .pz-projects input.pzp-search-input {
+    height: 36px;
+    font-size: 13px;
+  }
+}
+
+/* --- Tables: one more step down ------------------------------------------ */
+.pzp-two span {
+  font-size: 11px;
+}
+.pz-projects .pzp-status {
+  font-size: 11px !important;
+}
+.pzp-av {
+  width: 24px;
+  height: 24px;
+  font-size: 10px;
+}
+
+/* --- Tables: smaller still ----------------------------------------------- */
+.pzp-two span {
+  font-size: 10.5px;
+}
+.pz-projects .pzp-status {
+  font-size: 10.5px !important;
+}
+
+/* --- Every data table: compact type, enforced --------------------------------
+   The table's own style object sets these too; these win over anything else
+   (theme defaults, Bootstrap) so all tables read the same. */
+.rdt_Table .rdt_TableHeadRow,
+.rdt_Table .rdt_TableHeadRow .rdt_TableCol,
+.rdt_Table .rdt_TableHeadRow .rdt_TableCol * {
+  font-size: 10.5px !important;
+  letter-spacing: 0.05em !important;
+}
+.rdt_Table .rdt_TableHeadRow .rdt_TableCol {
+  font-weight: 700 !important;
+}
+.rdt_Table .rdt_TableRow,
+.rdt_Table .rdt_TableCell {
+  font-size: 12px !important;
+}
+.rdt_Table .rdt_TableCell .pzp-two strong,
+.rdt_Table .rdt_TableCell .pzp-person-name {
+  font-size: 12px;
+}
+.rdt_Table .rdt_TableCell .pzp-two span {
+  font-size: 10.5px;
+}
+/* Buttons and pills inside rows, one size with the text. */
+.pz-projects .rdt_TableCell button.pzp-link,
+.pz-projects .rdt_TableCell .btn {
+  font-size: 11.5px !important;
+}
+.pz-projects .rdt_TableCell button.pzp-link {
+  height: 30px;
+  padding: 0 10px !important;
+}
+.pz-projects .rdt_Pagination,
+.pz-projects .pzp-pager {
+  font-size: 12px;
+}

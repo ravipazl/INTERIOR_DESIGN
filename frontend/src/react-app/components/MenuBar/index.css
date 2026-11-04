@@ -472,3 +472,231 @@ html.pz-no-page-zoom body {
     text-overflow: ellipsis;
   }
 }
+
+/* ===========================================================================
+   Toolbar buttons (floor plan and 3D): each icon on a soft tile in its
+   group's colour (`data-tone`, set in menuButton.tsx), its name in clear
+   semi-bold type below. The tool in use is a solid tile, its icon white.
+   Plain classes, no Tailwind on these buttons, so nothing here needs to fight
+   Tailwind's `important: true`.
+   =========================================================================== */
+.pz-tb {
+  --tb-c: #475569;
+  --tb-soft: #eef0f4;
+  min-width: 60px;
+  height: 58px;
+  padding: 4px 6px;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+.pz-tb[data-tone="blue"] { --tb-c: #2563eb; --tb-soft: #e8f0fe; }
+.pz-tb[data-tone="red"] { --tb-c: #dc2626; --tb-soft: #fdecec; }
+.pz-tb[data-tone="indigo"] { --tb-c: #5b3df5; --tb-soft: #efebff; }
+.pz-tb[data-tone="teal"] { --tb-c: #0d9488; --tb-soft: #e0f5f2; }
+.pz-tb[data-tone="green"] { --tb-c: #16a34a; --tb-soft: #e6f6ec; }
+.pz-tb[data-tone="orange"] { --tb-c: #ea580c; --tb-soft: #fdeee4; }
+.pz-tb[data-tone="violet"] { --tb-c: #7c3aed; --tb-soft: #f1eafe; }
+.pz-tb[data-tone="cyan"] { --tb-c: #0891b2; --tb-soft: #e2f4f8; }
+.pz-tb[data-tone="pink"] { --tb-c: #db2777; --tb-soft: #fce8f2; }
+.pz-tb[data-tone="amber"] { --tb-c: #d97706; --tb-soft: #fdf1de; }
+
+.pz-tb-tile {
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  /* Always coloured: the look the hover used to give, shown at rest. */
+  background: var(--tb-soft);
+  background: color-mix(in srgb, var(--tb-c) 22%, #fff);
+  color: var(--tb-c);
+  display: grid;
+  place-items: center;
+  transition: transform 0.15s ease, box-shadow 0.2s ease, background-color 0.15s,
+    color 0.15s;
+}
+.pz-tb .pz-tb-ic {
+  font-size: 20px;
+  line-height: 20px;
+  font-variation-settings: "wght" 500;
+}
+.pz-tb.snap-icon .pz-tb-ic {
+  font-variation-settings: "FILL" 1, "wght" 500;
+}
+/* An item with no icon shows its name in the tile instead. */
+.pz-tb .pz-tb-ic--text {
+  font: 700 11px/1 Inter, Arial, sans-serif;
+}
+.pz-tb .pz-tb-label {
+  margin: 0;
+  font: 600 12px/14px Inter, Arial, sans-serif;
+  /* The name wears the tool's colour all the time, not only on hover. */
+  color: var(--tb-c);
+  white-space: nowrap;
+}
+.dark .pz-tb .pz-tb-label {
+  color: color-mix(in srgb, var(--tb-c) 60%, #fff);
+}
+
+/* Pointing at a tool: the tile deepens and lifts. */
+.pz-tb:hover:not(:disabled) {
+  background: #f4f5f8;
+}
+.pz-tb:hover:not(:disabled) .pz-tb-tile {
+  transform: translateY(-1px);
+  background: color-mix(in srgb, var(--tb-c) 32%, #fff);
+  box-shadow: 0 6px 12px color-mix(in srgb, var(--tb-c) 26%, transparent);
+}
+/* The tool in use keeps its solid tile under the pointer. */
+.pz-tb.is-on:hover:not(:disabled) .pz-tb-tile {
+  background: var(--tb-c);
+}
+.pz-tb:active:not(:disabled) .pz-tb-tile {
+  transform: scale(0.94);
+}
+.pz-tb:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px #fff, 0 0 0 4px color-mix(in srgb, var(--tb-c) 60%, transparent);
+}
+
+/* In use (or switched on): a solid tile. */
+.pz-tb.is-on .pz-tb-tile {
+  background: var(--tb-c);
+  color: #fff;
+  box-shadow: 0 6px 14px color-mix(in srgb, var(--tb-c) 35%, transparent);
+}
+.pz-tb.is-on .pz-tb-label {
+  color: var(--tb-c);
+  font-weight: 700;
+}
+.pz-tb.is-disabled,
+.pz-tb:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* A little room between buttons, and between the groups either side of each
+   divider, so the toolbar spreads along its row. div. + !important: the
+   group's Tailwind p-1 is !important as well. */
+div.pz-tb-group {
+  gap: 2px;
+  padding: 3px 8px !important;
+}
+
+.dark .pz-tb:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.06);
+}
+.dark .pz-tb.is-on .pz-tb-label {
+  color: #fff;
+}
+
+@media (max-width: 1100px) {
+  /* The tablet rules above shrink every toolbar button and its text; keep the
+     tiles and a readable label. */
+  #pz-toolbar-slot .pz-tb {
+    height: 56px;
+  }
+  #pz-toolbar-slot .pz-tb .pz-tb-label {
+    font-size: 11px !important;
+    line-height: 12px !important;
+  }
+  div.pz-tb-group {
+    padding: 2px 4px !important;
+  }
+}
+
+/* --- Names on hover (computer with a mouse) ---------------------------------
+   Only the coloured icons show; a tool's name pops up in a small dark label
+   under it while you point at it. The label floats over the canvas, so the
+   toolbar never shifts. Touch screens and narrow windows (the rules above)
+   keep the names written under the icons: there is no hover to reveal them. */
+@media (hover: hover) and (pointer: fine) and (min-width: 1101px) {
+  /* The label hangs below the bar: the slot must not clip it, and the bar
+     must sit above the canvas and the side panels. The icons alone fit the
+     row, so the slot no longer needs to scroll. */
+  #pz-toolbar-slot {
+    overflow: visible !important;
+  }
+  /* 120: above the menu strip just below the bar (MenuBar, z-index 99),
+     which otherwise covers the label; still under the rail (1100) and
+     every pop-up window (1200+). */
+  div.pz-app-header {
+    position: relative;
+    z-index: 120;
+  }
+  .pz-tb {
+    position: relative;
+    min-width: 44px;
+    height: 46px;
+    padding: 4px;
+  }
+  .pz-tb .pz-tb-label {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 50%;
+    z-index: 5;
+    padding: 6px 10px;
+    border-radius: 8px;
+    background: #172033;
+    color: #fff;
+    font: 600 12px/1.2 Inter, Arial, sans-serif;
+    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.28);
+    opacity: 0;
+    transform: translate(-50%, -4px);
+    pointer-events: none;
+    transition: opacity 0.12s ease, transform 0.12s ease;
+  }
+  /* Its little pointer, up towards the icon. */
+  .pz-tb .pz-tb-label::before {
+    content: "";
+    position: absolute;
+    top: -4px;
+    left: 50%;
+    width: 8px;
+    height: 8px;
+    background: #172033;
+    border-radius: 2px;
+    transform: translateX(-50%) rotate(45deg);
+  }
+  .pz-tb:hover .pz-tb-label,
+  .pz-tb:focus-visible .pz-tb-label {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+  /* The tool in use: same dark label, the state is shown by its solid tile. */
+  .pz-tb.is-on .pz-tb-label,
+  .dark .pz-tb .pz-tb-label,
+  .dark .pz-tb.is-on .pz-tb-label {
+    color: #fff;
+    font-weight: 600;
+  }
+}
+@media (hover: hover) and (pointer: fine) and (min-width: 1101px) and (prefers-reduced-motion: reduce) {
+  .pz-tb .pz-tb-label {
+    transition: none;
+  }
+}
+
+/* --- Table headers, sidebar and editor icons: one more step down ---------- */
+.pz-tb-tile {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+}
+.pz-tb .pz-tb-ic {
+  font-size: 17px;
+  line-height: 17px;
+}
+@media (hover: hover) and (pointer: fine) and (min-width: 1101px) {
+  .pz-tb {
+    min-width: 38px;
+    height: 40px;
+    padding: 3px;
+  }
+}

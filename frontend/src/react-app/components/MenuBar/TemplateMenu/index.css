@@ -4,3 +4,314 @@
     justify-content: space-between;
     padding-bottom: 5px;
 }
+
+/* ===========================================================================
+   "Choose a floor plan" — the same pop-up look as Edit project: centred card,
+   soft backdrop, indigo buttons.
+   =========================================================================== */
+.pz-tm-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 1300;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px 16px;
+    overflow-y: auto;
+    background: rgba(15, 18, 34, 0.48);
+    animation: pz-tm-fade 0.18s ease-out both;
+}
+.pz-tm-backdrop--top {
+    z-index: 1310;
+}
+.pz-tm {
+    width: 100%;
+    max-width: 960px;
+    margin: auto;
+    border-radius: 18px;
+    background: #fff;
+    color: #172033;
+    font-family: Inter, Arial, sans-serif;
+    box-shadow: 0 24px 60px rgba(15, 18, 34, 0.28), 0 2px 6px rgba(15, 18, 34, 0.08);
+    animation: pz-tm-pop 0.22s cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
+}
+@keyframes pz-tm-fade {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+@keyframes pz-tm-pop {
+    from { opacity: 0; transform: translateY(10px) scale(0.97); }
+    to { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .pz-tm-backdrop, .pz-tm { animation: none; }
+}
+
+.pz-tm-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 22px 24px 16px;
+    border-bottom: 1px solid #e9ebf0;
+}
+.pz-tm-title {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    color: #172033;
+}
+.pz-tm-sub {
+    margin: 4px 0 0;
+    font-size: 14px;
+    color: #697386;
+}
+.pz-tm button.pz-tm-close {
+    width: 36px;
+    height: 36px;
+    flex: none;
+    padding: 0;
+    border: 1px solid #e6e8ee;
+    border-radius: 50%;
+    background: #fff;
+    color: #4d5566;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background-color 0.15s, color 0.15s, transform 0.15s;
+}
+.pz-tm button.pz-tm-close:hover {
+    background: #f4f2ff;
+    color: #4b30dc;
+    transform: rotate(90deg);
+}
+
+/* The cards, in one row that scrolls sideways when there are many. */
+.pz-tm-list {
+    display: flex;
+    gap: 16px;
+    overflow-x: auto;
+    padding: 20px 24px 22px;
+    scroll-snap-type: x proximity;
+}
+.pz-tm-card {
+    position: relative;
+    flex: 0 0 210px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 14px;
+    border: 1px solid #e6e8ee;
+    border-radius: 16px;
+    background: #fff;
+    box-shadow: 0 1px 2px rgba(23, 32, 51, 0.04), 0 6px 16px rgba(23, 32, 51, 0.05);
+    scroll-snap-align: start;
+    transition: transform 0.18s ease, box-shadow 0.2s ease, border-color 0.15s;
+}
+.pz-tm-card:hover {
+    transform: translateY(-3px);
+    border-color: #cfc5fd;
+    box-shadow: 0 14px 28px rgba(91, 61, 245, 0.14);
+}
+.pz-tm-thumb {
+    height: 130px;
+    border-radius: 12px;
+    background: #f6f7fb;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+.pz-tm-thumb img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    transition: transform 0.25s ease;
+}
+.pz-tm-card:hover .pz-tm-thumb img {
+    transform: scale(1.05);
+}
+.pz-tm-info {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    text-align: center;
+}
+.pz-tm-name {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 700;
+    line-height: 1.3;
+    color: #172033;
+}
+.pz-tm-size {
+    padding: 3px 10px;
+    border-radius: 999px;
+    background: #f1f2f6;
+    color: #4d5566;
+    font-size: 13px;
+    font-weight: 600;
+}
+.pz-tm-size--custom {
+    background: #f4f2ff;
+    color: #4b30dc;
+}
+
+/* Custom templates: delete, a round button that turns red. */
+.pz-tm-card button.pz-tm-del {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    z-index: 2;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: 1px solid #e6e8ee;
+    border-radius: 50%;
+    background: #fff;
+    color: #8a91a1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(23, 32, 51, 0.1);
+    transition: background-color 0.15s, color 0.15s, border-color 0.15s;
+}
+.pz-tm-card button.pz-tm-del:hover {
+    background: #ef4444;
+    border-color: #ef4444;
+    color: #fff;
+}
+
+.pz-tm button.pz-tm-btn {
+    height: 42px;
+    padding: 0 18px;
+    border-radius: 10px;
+    font: 600 14px/1 Inter, Arial, sans-serif;
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.2s ease, filter 0.15s;
+}
+.pz-tm button.pz-tm-btn--primary {
+    border: none;
+    color: #fff;
+    background: linear-gradient(180deg, #6a50f7 0%, #5b3df5 100%);
+    box-shadow: 0 6px 16px rgba(91, 61, 245, 0.3);
+}
+.pz-tm button.pz-tm-btn--primary:hover {
+    transform: translateY(-1px);
+    filter: brightness(1.06);
+    box-shadow: 0 10px 22px rgba(91, 61, 245, 0.36);
+}
+.pz-tm button.pz-tm-btn--ghost {
+    border: 1px solid #e6e8ee;
+    background: #fff;
+    color: #172033;
+}
+.pz-tm button.pz-tm-btn--ghost:hover {
+    background: #f6f7fb;
+}
+.pz-tm button.pz-tm-btn--danger {
+    border: none;
+    color: #fff;
+    background: linear-gradient(180deg, #f05252 0%, #dc2626 100%);
+    box-shadow: 0 6px 16px rgba(220, 38, 38, 0.28);
+}
+.pz-tm button.pz-tm-btn--danger:hover {
+    transform: translateY(-1px);
+    filter: brightness(1.06);
+}
+.pz-tm button.pz-tm-btn:active {
+    transform: scale(0.97);
+}
+.pz-tm button:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px #fff, 0 0 0 5px rgba(91, 61, 245, 0.55);
+}
+.pz-tm button.pz-tm-use {
+    width: 100%;
+}
+
+.pz-tm-warn {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin: 0 24px 22px;
+    padding: 12px 14px;
+    border-radius: 12px;
+    background: #fff7ed;
+    border: 1px solid #fed7aa;
+    color: #9a3412;
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 1.45;
+}
+.pz-tm-warn svg {
+    flex: none;
+    margin-top: 1px;
+}
+
+/* The delete confirm: a small card. */
+.pz-tm.pz-tm-confirm {
+    max-width: 380px;
+    padding: 22px 24px;
+}
+.pz-tm-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 18px;
+}
+
+/* Dark theme, when a `.dark` ancestor is present. */
+.dark .pz-tm,
+.dark .pz-tm-card,
+.dark .pz-tm button.pz-tm-close,
+.dark .pz-tm button.pz-tm-btn--ghost {
+    background: #262830;
+    color: #f1f2f6;
+    border-color: #3a3d48;
+}
+.dark .pz-tm-title,
+.dark .pz-tm-name {
+    color: #f1f2f6;
+}
+.dark .pz-tm-thumb {
+    background: #1f2027;
+}
+
+/* --- Smaller type and icons (one size down across the app) --------------- */
+.pz-tm-title {
+    font-size: 16px;
+}
+.pz-tm-sub {
+    font-size: 12.5px;
+}
+
+/* --- ...and one more small step down ------------------------------------- */
+.pz-tm-title {
+    font-size: 15px;
+}
+.pz-tm-sub {
+    font-size: 12px;
+}
+
+/* --- Compact: a third step down (type everywhere; controls on a computer) - */
+.pz-tm-title {
+    font-size: 14.5px;
+}
+.pz-tm-sub {
+    font-size: 11.5px;
+}
+.pz-tm-name {
+    font-size: 14px;
+}
+@media (min-width: 1101px) {
+    .pz-tm button.pz-tm-btn {
+        height: 36px;
+        font-size: 13px;
+    }
+}

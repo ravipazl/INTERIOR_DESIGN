@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import BlueprintInterface from "@pazl/blueprint-interface";
+import "./panels.css";
 import {
   planKitchenLayout,
   applyPlan,
@@ -204,17 +205,23 @@ const KitchenPlanner2D: React.FC = () => {
     return (
       <div
         key={index}
-        className="flex items-center gap-2 text-[12px] px-2 py-1 rounded border border-[color:var(--pz-panel-border)] mb-1"
+        className="pz-wallrow"
       >
-        <span className="w-[17px] h-[17px] rounded-full bg-[color:var(--pz-accent)] text-white text-[11px] flex items-center justify-center">
-          {order + 1}
-        </span>
+        <span className="pz-wallrow-n">{order + 1}</span>
         Wall {index + 1}
-        <span className="ml-auto text-[color:var(--pz-text-2)]">
+        <span className="pz-wallrow-len">
           {Math.round(clear * 10)} mm
         </span>
       </div>
     );
+  };
+
+  // A small drawing of each layout's cabinet run, for its card.
+  const SHAPES: Record<string, string> = {
+    straight: "M7 9h26",
+    l: "M7 23V9h26",
+    u: "M7 23V9h26v14",
+    parallel: "M7 9h26M7 23h26",
   };
 
   const place = useCallback(async () => {
@@ -241,8 +248,8 @@ const KitchenPlanner2D: React.FC = () => {
   }, [room, planned, busy]);
 
   return (
-    <div className="text-[color:var(--pz-text)]">
-      <div className="grid grid-cols-2 gap-1.5 mb-2">
+    <div className="pz-planner" data-tone="orange">
+      <div className="pz-layouts">
         {Object.values(LAYOUTS).map((l: any) => (
           <button
             key={l.id}
@@ -258,13 +265,24 @@ const KitchenPlanner2D: React.FC = () => {
               setPicked([]);
               setNote("");
             }}
-            className={`rounded-md border px-2 py-1.5 text-[12px] ${
-              layout === l.id
-                ? "border-[color:var(--pz-accent)] bg-[color:var(--pz-accent-soft)] text-[color:var(--pz-accent)]"
-                : "border-[color:var(--pz-panel-border)]"
-            }`}
+            aria-pressed={layout === l.id}
+            className={`pz-layout${layout === l.id ? " is-on" : ""}`}
           >
-            {l.name}
+            <svg
+              className="pz-layout-shape"
+              width="40"
+              height="32"
+              viewBox="0 0 40 32"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="4.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <path d={SHAPES[l.id] || SHAPES.straight} />
+            </svg>
+            <span className="pz-layout-name">{l.name}</span>
           </button>
         ))}
       </div>
@@ -273,7 +291,7 @@ const KitchenPlanner2D: React.FC = () => {
           than showing an empty one, so the section ends at the buttons instead
           of leaving a gap where a line of text used to be. */}
       {spec && (
-        <p className="text-[11px] text-[color:var(--pz-text-2)] leading-snug mb-2">
+        <p className="pz-phint">
           {picked.length < spec.walls
             ? `Click ${spec.walls - picked.length} more wall${
                 spec.walls - picked.length === 1 ? "" : "s"
@@ -284,11 +302,11 @@ const KitchenPlanner2D: React.FC = () => {
 
       {picked.map((index, order) => wallLine(index, order))}
 
-      {note ? <p className="text-[11px] text-amber-600 mb-2">{note}</p> : null}
+      {note ? <p className="pz-pnote pz-pnote--warn">{note}</p> : null}
 
       {slots.length ? (
         <>
-          <p className="text-[11px] text-[color:var(--pz-text-2)] mb-2">
+          <p className="pz-phint">
             {slots.filter((s: any) => s.level === "floor" && s.kind !== "tall").length} base ·{" "}
             {slots.filter((s: any) => s.level === "wall").length} wall
             {slots.some((s: any) => s.kind === "tall")
@@ -299,19 +317,17 @@ const KitchenPlanner2D: React.FC = () => {
             type="button"
             onClick={place}
             disabled={busy}
-            className={`w-full rounded-md px-3 py-1.5 text-[13px] text-white ${
-              busy ? "bg-neutral-400" : "bg-[color:var(--pz-accent)] hover:opacity-90"
-            }`}
+            className="pz-pbtn pz-pbtn--primary"
           >
             {busy ? result || "Placing…" : `Place ${slots.length} modules`}
           </button>
         </>
       ) : planned?.plan?.reason ? (
-        <p className="text-[11px] text-[color:var(--pz-text-2)]">{planned.plan.reason}</p>
+        <p className="pz-phint">{planned.plan.reason}</p>
       ) : null}
 
       {!busy && result ? (
-        <p className="mt-2 text-[12px] text-green-600 dark:text-green-400">{result}</p>
+        <p className="pz-pnote pz-pnote--ok">{result}</p>
       ) : null}
 
       {picked.length ? (
@@ -327,7 +343,7 @@ const KitchenPlanner2D: React.FC = () => {
             setNote("");
             (BlueprintInterface as any).setPlanOverlay2D?.(null);
           }}
-          className="mt-2 w-full rounded-md border border-[color:var(--pz-panel-border)] px-3 py-1 text-[12px]"
+          className="pz-pbtn pz-pbtn--ghost"
         >
           Clear picked walls
         </button>

@@ -17,6 +17,9 @@ import AddCategoryModal from "@pazl/components/AddCategoryModal";
 import EditCategoryModal from "@pazl/components/EditCategoryModal";
 import useDockTop from "@pazl/react-app/hooks/useDockTop";
 import { swapSelectedItem } from "@pazl/helpers/swapItem";
+import "../panels.css";
+import "@pazl/components/Dialog/dialog.css";
+import { createPortal } from "react-dom";
 
 interface RoomPanelTypeProps {
   onHideRoomPanel: () => void;
@@ -202,33 +205,25 @@ function PanelSection({
 }) {
   return (
     <div
-      className={`border-b border-[color:var(--pz-panel-border)] ${
+      className={`pz-ps${open ? " is-open" : ""} ${
         grow && open ? "flex-1 min-h-0 flex flex-col" : "shrink-0"
       }`}
     >
-      <div className="w-full flex items-center gap-2 px-3 py-2.5">
+      <div className="pz-ps-row">
         <button
           type="button"
           onClick={() => onToggle(id)}
           aria-expanded={open}
-          className="flex items-center gap-2 flex-1 min-w-0 text-left"
+          className="pz-ps-head"
         >
-          <span
-            className={`material-symbols-outlined text-[18px] text-[color:var(--pz-panel-muted)] transition-transform ${
-              open ? "rotate-90" : ""
-            }`}
-          >
-            chevron_right
-          </span>
-          <span className="text-[13px] font-semibold text-[color:var(--pz-text)] truncate">
-            {title}
-          </span>
+          <span className="material-symbols-outlined pz-ps-chev">chevron_right</span>
+          <span className="pz-ps-title truncate">{title}</span>
         </button>
         {action}
       </div>
       {open ? (
         <div
-          className={`px-3 pb-3 ${
+          className={`pz-ps-body ${
             grow ? "flex-1 min-h-0 overflow-y-auto" : ""
           }`}
         >
@@ -244,51 +239,82 @@ function ToolCard({
   icon,
   label,
   onClick,
+  tone = "indigo",
 }: {
   icon: string;
   label: string;
   onClick?: () => void;
+  tone?: string;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
       title={label}
-      className="flex flex-col items-center justify-center gap-1 rounded-lg border border-[color:var(--pz-panel-border)] bg-white dark:bg-[#3a3a3a] p-2 h-[62px] transition hover:border-[color:var(--pz-accent)]"
+      data-tone={tone}
+      className="pz-pcard pz-pcard--sm"
     >
-      <span className="material-symbols-outlined text-[20px] text-[color:var(--pz-accent)]">
-        {icon}
+      <span className="pz-pcard-tile">
+        <span className="material-symbols-outlined pz-pcard-ic">{icon}</span>
       </span>
-      <span className="text-[10.5px] leading-tight text-neutral-600 dark:text-neutral-200 text-center truncate w-full">
-        {label}
-      </span>
+      <span className="pz-pcard-label truncate w-full">{label}</span>
     </button>
   );
 }
 
-function CategoryIcon({ name }: { name: string }) {
+/** Each top category's colour (MenuBar/panels.css); the rows under it share
+ *  it, lighter. Matched by name, like the icons. */
+const CATEGORY_TONES: { keys: string[]; tone: string }[] = [
+  { keys: ["kitchen"], tone: "orange" },
+  { keys: ["living"], tone: "blue" },
+  { keys: ["bedroom", "bed"], tone: "violet" },
+  { keys: ["dining"], tone: "amber" },
+  { keys: ["bath", "toilet"], tone: "cyan" },
+  { keys: ["construction", "structure", "building"], tone: "teal" },
+  { keys: ["finish", "material", "paint"], tone: "pink" },
+  { keys: ["interior", "decor", "décor"], tone: "green" },
+];
+const toneOfCategory = (name: string) => {
+  const n = String(name || "").toLowerCase();
+  return CATEGORY_TONES.find((t) => t.keys.some((k) => n.includes(k)))?.tone || "indigo";
+};
+
+function CategoryIcon({
+  name,
+  tone = "indigo",
+  sub,
+}: {
+  name: string;
+  tone?: string;
+  /** A row under a top category: a lighter tile. */
+  sub?: boolean;
+}) {
   const n = String(name || "").toLowerCase();
   const def = CATEGORY_ICON_DEFS.find((entry) =>
     entry.keys.some((k) => n.includes(k))
   );
   const paths = def ? def.d : DEFAULT_ICON_D;
   return (
-    <svg
-      width="16"
-      height="16"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className="shrink-0 opacity-70"
+    <span
+      className={`pz-cat-ic${sub ? " pz-cat-ic--sub" : ""}`}
+      data-tone={tone}
       aria-hidden="true"
     >
-      {paths.map((p, i) => (
-        <path key={i} d={p} />
-      ))}
-    </svg>
+      <svg
+        width="15"
+        height="15"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.9"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        {paths.map((p, i) => (
+          <path key={i} d={p} />
+        ))}
+      </svg>
+    </span>
   );
 }
 
@@ -497,12 +523,12 @@ function RoomPanel({
     const totalPages = Math.max(1, Math.ceil((total || 0) / PAGE_SIZE));
     if (totalPages <= 1) return null;
     return (
-      <div className="flex items-center justify-center gap-3 mt-4 mb-1 text-xs text-[#414063] dark:text-neutral-200">
+      <div className="pz-items-pager flex items-center justify-center gap-3 mt-4 mb-1">
         <button
           type="button"
           disabled={page <= 1}
           onClick={() => setPage((p) => Math.max(1, p - 1))}
-          className="px-2.5 py-1 rounded border border-[#C2C1DB] disabled:opacity-40 hover:bg-[#E9E5EC] dark:hover:bg-neutral-600"
+          className="pz-items-page"
         >
           ‹
         </button>
@@ -513,7 +539,7 @@ function RoomPanel({
           type="button"
           disabled={page >= totalPages}
           onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-          className="px-2.5 py-1 rounded border border-[#C2C1DB] disabled:opacity-40 hover:bg-[#E9E5EC] dark:hover:bg-neutral-600"
+          className="pz-items-page"
         >
           ›
         </button>
@@ -1184,44 +1210,47 @@ function RoomPanel({
         ? roomPanelData.find((c: any) => c._id === node.data.parentCategoryId)
         : null;
       const isLeafSubTitle = !!parentCat?.parentCategoryId;
+      // The top category this row sits under gives it its colour.
+      let rootCat: any = roomPanelData.find((c: any) => c._id === node.data.id);
+      for (let i = 0; rootCat?.parentCategoryId && i < 10; i++) {
+        const up = roomPanelData.find((c: any) => c._id === rootCat.parentCategoryId);
+        if (!up) break;
+        rootCat = up;
+      }
+      const isTop = !node.data.parentCategoryId;
+      const tone = toneOfCategory(rootCat?.name || node.data.name);
 
       return (
         // `relative` anchors the hover actions, which are positioned OUT OF THE
         // FLOW on purpose — see the overlay at the end of this row.
         <div
-          className={`group relative flex items-start min-h-[24px] py-1`}
+          className={`group pz-cat-row${node.isSelected() ? " is-sel" : ""}${
+            isTop ? " is-top" : ""
+          }`}
+          data-tone={tone}
           key={node.data.id}
         >
+          {node.hasChildren() ? (
+            <span
+              onClick={() => onRoomPanelTreeViewClick(node)}
+              className={`material-symbols-outlined pz-cat-chev${
+                node.options.opened ? " is-open" : ""
+              }`}
+              aria-hidden="true"
+            >
+              chevron_right
+            </span>
+          ) : (
+            <span className="pz-cat-chev-gap" aria-hidden="true" />
+          )}
           <div
-            onClick={() => onRoomPanelTreeViewClick(node)}
-            className={`self-center cursor-pointer mt-1
-                  ${
-                    !node.hasChildren()
-                      ? ""
-                      : node.hasChildren() && node.options.opened
-                      ? "bg-[url('/public/assets/icons/down.png')] bg-no-repeat bg-contain w-[20px] h-[20px]"
-                      : "bg-[url('/public/assets/icons/next.png')] bg-no-repeat bg-contain w-[20px] h-[20px]"
-                  }
-            `}
-          />
-          <div
-            className={`cursor-pointer flex-1 min-w-0 mr-1 cursor-pointer bg-no-repeat ${
-              node.isSelected() ? "bg-[#E9E5EC]" : ""
-            }`}
+            className="pz-cat-main"
             onClick={() => onRoomPanelTreeViewClick(node)}
           >
-            <div
-              className={`font-normal text-sm py-1 flex items-center gap-1.5 min-w-0 ${
-                node.isSelected()
-                  ? "text-primary dark:text-[#333333]"
-                  : "text-primary dark:text-neutral-50"
-              }`}
-            >
-              <CategoryIcon name={node.data.name} />
-              <span className="truncate" title={node.data.name}>
-                {node.data.name}
-              </span>
-            </div>
+            <CategoryIcon name={node.data.name} tone={tone} sub={!isTop} />
+            <span className="pz-cat-name truncate" title={node.data.name}>
+              {node.data.name}
+            </span>
           </div>
           {/* HOVER ACTIONS — OUT OF THE FLOW, DELIBERATELY.
               These used to be flex children hidden with opacity-0, which hides
@@ -1234,11 +1263,7 @@ function RoomPanel({
               whole row at rest, and these appear over its tail only while the
               pointer is on that one row — so the background below has to match
               whatever the row is painted with, or the panel shows through. */}
-          <div
-            className={`absolute right-0 top-0 bottom-0 hidden group-hover:flex items-center pl-3 pr-1 ${
-              node.isSelected() ? "bg-[#E9E5EC]" : "bg-white dark:bg-neutral-700"
-            }`}
-          >
+          <div className="pz-cat-actions hidden group-hover:flex">
             {/* Edit (rename) category / sub-title name */}
             <button
               onClick={(e) => {
@@ -1309,7 +1334,7 @@ function RoomPanel({
   return (
     <>
       {showRoomPanelModal && (
-        <div data-pz-canvas-overlay="left" className="fixed block z-10 scrollbar shadow-[0_4px_4px_0px_rgba(0,0,0,0.25)] bg-white dark:bg-neutral-700"
+        <div data-pz-canvas-overlay="left" className="pz-items fixed block z-10"
           style={{
             width: ITEMS_W,
             left: `calc(var(--pz-nav-w, 0px) + ${ITEMS_LEFT}px)`,
@@ -1330,7 +1355,7 @@ function RoomPanel({
                 FULL — it wraps rather than being cut, because "Fluted Glass
                 shutter with wooden frame along basic ha…" hides the very part
                 that tells one of these apart from the next. */}
-            <div className="bg-[#E9E5EC] dark:bg-[#333333] flex flex-col px-4 py-2 gap-1.5">
+            <div className="pz-items-head flex flex-col">
               {/* BACK, beside the title. Rendered only when there IS a level
                   above — an arrow that does nothing at the top of a branch
                   reads as broken.
@@ -1356,7 +1381,7 @@ function RoomPanel({
                     onClick={goToParent}
                     title={`Back to "${parentOfShown()?.data?.name}"`}
                     aria-label="Back"
-                    className="shrink-0 w-5 h-5 flex items-center justify-center rounded text-neutral-600 dark:text-neutral-100 hover:bg-white/70 dark:hover:bg-white/10"
+                    className="pz-items-back"
                   >
                     <svg
                       width="16"
@@ -1373,15 +1398,16 @@ function RoomPanel({
                     </svg>
                   </button>
                 )}
-                <h5 className="text-sm font-semibold leading-snug text-neutral-600 dark:text-neutral-50">
+                <h5 className="pz-items-title">
                   {selectedTreeNode.data.name}
                 </h5>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="pz-items-actions flex items-center">
                 {/* Select several models and delete them in one go. Only your
                     own uploads can be deleted, so only those can be ticked. */}
                 <button
-                  className="text-xs px-3 py-1 rounded border border-neutral-400 text-neutral-700 dark:text-neutral-100 hover:bg-white/60 dark:hover:bg-white/10"
+                  type="button"
+                  className={`pz-items-btn pz-items-btn--ghost${selectMode ? " is-on" : ""}`}
                   title="Select several models to delete"
                   onClick={() => {
                     setSelectMode((on) => !on);
@@ -1392,7 +1418,8 @@ function RoomPanel({
                   {selectMode ? "Done" : "Select"}
                 </button>
                 <button
-                  className="text-xs px-3 py-1 rounded bg-[color:var(--pz-accent)] text-white hover:opacity-90"
+                  type="button"
+                  className="pz-items-btn pz-items-btn--primary"
                   title="Upload your own .glb files into this category"
                   onClick={() => setShowUploadModal(true)}
                 >
@@ -1401,14 +1428,20 @@ function RoomPanel({
                 {/* Held at the far end by an auto margin rather than by the
                     row's old justify-between, which no longer applies now that
                     the title has moved to its own line. */}
-                <img
-                  className="finishing-modal-close-icon ml-auto"
-                  src={require("../../../images/close.svg")}
+                <button
+                  type="button"
+                  className="pz-items-close ml-auto"
+                  aria-label="Close"
+                  title="Close"
                   onClick={() => {
                     setShowRoomPanelModal(false);
                     if (swapTarget) onSwapEnd?.();
                   }}
-                />
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" aria-hidden="true">
+                    <path d="M6 6l12 12M18 6 6 18" />
+                  </svg>
+                </button>
               </div>
               {/* PREVIEW PICTURES for this branch.
                   On its own line under the buttons: the row above already needs
@@ -1459,7 +1492,7 @@ function RoomPanel({
             </div>
             {/* SWAP: what the cards' button does right now, and the way out. */}
             {swapTarget && (
-              <div className="flex items-start gap-2 px-3 py-2 bg-[color:var(--pz-accent-soft)] border-b border-neutral-200 dark:border-neutral-600">
+              <div className="pz-items-bar flex items-start gap-2">
                 <p
                   className={`text-xs leading-snug ${
                     swapError && !swapBusy
@@ -1487,7 +1520,7 @@ function RoomPanel({
                  without it the buttons squeeze and "Delete (0)" breaks across
                  two lines inside its own border. Wrapped, the counts stay on
                  the first line and the two buttons drop to the second. */
-              <div className="flex flex-wrap items-center gap-2 px-3 py-2 bg-[color:var(--pz-accent-soft)] border-b border-neutral-200 dark:border-neutral-600">
+              <div className="pz-items-bar flex flex-wrap items-center gap-2">
                 <button
                   className="text-xs text-[color:var(--pz-accent)] font-medium"
                   disabled={bulkBusy}
@@ -1512,14 +1545,16 @@ function RoomPanel({
                 </span>
                 <div className="ml-auto flex items-center gap-2">
                   <button
-                    className="text-xs px-3 py-1 rounded bg-red-500 text-white hover:bg-red-600 disabled:opacity-40"
+                    type="button"
+                    className="pz-items-btn pz-items-btn--danger"
                     disabled={!selectedIds.size || bulkBusy}
                     onClick={handleDeleteSelectedModels}
                   >
                     Delete ({selectedIds.size})
                   </button>
                   <button
-                    className="text-xs px-3 py-1 rounded border border-neutral-400 text-neutral-700 dark:text-neutral-100 disabled:opacity-40"
+                    type="button"
+                    className="pz-items-btn pz-items-btn--ghost"
                     disabled={bulkBusy}
                     onClick={() => {
                       setSelectMode(false);
@@ -1537,7 +1572,7 @@ function RoomPanel({
                 {bulkProgress}
               </div>
             )}
-            <div className="p-2 pb-[225px] max-h-full overflow-y-auto">
+            <div className="pz-items-list p-2 pb-[225px] max-h-full overflow-y-auto">
               {/* Search box, placement pills and Sort removed — the category
                   tree already narrows the list, and the panel is narrow
                   (ITEMS_W), where three stacked filter rows cost more space
@@ -1578,7 +1613,7 @@ function RoomPanel({
                   {renderPagination(shownSubtreeModels.length)}
                   </>
                 ) : (
-                  <h1 className="my-24 flex text-[#414063] dark:text-[#ffffff] text-sm text-center align-center justify-center font-semibold leading-tight">
+                  <h1 className="pz-items-empty">
                     No {activePlacementFilter?.label} items in{" "}
                     {selectedTreeNode.data?.name
                       ? '"' + selectedTreeNode.data.name + '"'
@@ -1604,7 +1639,7 @@ function RoomPanel({
                   {renderPagination(shownChildren.length)}
                   </>
                 ) : (
-                  <h1 className="my-24 flex text-[#414063] dark:text-[#ffffff] text-sm text-center align-center justify-center font-semibold leading-tight">
+                  <h1 className="pz-items-empty">
                     No matches for “{searchQuery}”.
                   </h1>
                 )
@@ -1641,12 +1676,12 @@ function RoomPanel({
                 {renderPagination(shownLeafModels.length)}
                 </>
                 ) : (
-                  <h1 className="my-24 flex text-[#414063] dark:text-[#ffffff] text-sm text-center align-center justify-center font-semibold leading-tight">
+                  <h1 className="pz-items-empty">
                     No matches for “{searchQuery}”.
                   </h1>
                 )
               ) : (
-                <h1 className="my-24 flex text-[#414063] dark:text-[#ffffff] text-sm text-center align-center justify-center font-semibold leading-tight">
+                <h1 className="pz-items-empty">
                   Sorry, no objects available for{" "}
                   {selectedTreeNode.data?.name
                     ? '"' + selectedTreeNode.data.name + '"'
@@ -1667,15 +1702,19 @@ function RoomPanel({
         }}>
         <div className="h-full flex flex-col overflow-hidden">
           {/* Panel title, matching the Floor plan panel. */}
-          <div className="shrink-0 bg-[color:var(--pz-panel-header)] flex items-center justify-between px-3 pt-2.5 pb-2 border-b border-[color:var(--pz-panel-border)]">
-            <span className="text-[15px] font-semibold text-[color:var(--pz-text)]">
+          <div className="pz-panel-head shrink-0">
+            <span className="pz-panel-title">
+              <span className="pz-panel-badge" data-tone="green" aria-hidden="true">
+                <span className="material-symbols-outlined">deployed_code</span>
+              </span>
               3D model
             </span>
             <button
               type="button"
               onClick={() => onHideRoomPanel()}
-              className="text-neutral-500 hover:text-neutral-800 dark:text-neutral-300 dark:hover:text-white leading-none text-lg px-1"
+              className="pz-panel-close"
               title="Close"
+              aria-label="Close"
             >
               ×
             </button>
@@ -1689,10 +1728,10 @@ function RoomPanel({
             open={openSections.includes("addmodel")}
             onToggle={toggleSection}
           >
-            <div className="grid grid-cols-3 gap-2">
-              <ToolCard icon="upload" label="Upload" onClick={onUpload} />
-              <ToolCard icon="auto_awesome" label="Generate" onClick={onGenerate} />
-              <ToolCard icon="travel_explore" label="Search" onClick={onSearchModels} />
+            <div className="pz-pgrid pz-pgrid--3">
+              <ToolCard icon="upload" label="Upload" tone="green" onClick={onUpload} />
+              <ToolCard icon="auto_awesome" label="Generate" tone="violet" onClick={onGenerate} />
+              <ToolCard icon="travel_explore" label="Search" tone="blue" onClick={onSearchModels} />
             </div>
           </PanelSection>
 
@@ -1712,10 +1751,11 @@ function RoomPanel({
                   setAddMainCategory(true);
                   setShowAddCategoryModal(true);
                 }}
-                className="w-6 h-6 grid place-items-center rounded bg-[color:var(--pz-accent)] text-white hover:opacity-90 shrink-0"
+                className="pz-cat-add"
                 title="Add a new main category, like KITCHEN or BEDROOM"
+                aria-label="Add a main category"
               >
-                <span className="material-symbols-outlined text-[16px] leading-none">
+                <span className="material-symbols-outlined">
                   add
                 </span>
               </button>
@@ -1723,7 +1763,14 @@ function RoomPanel({
           >
             <div>
               {treeData?.length ? (
-                <Tree {...required} {...handlers} renderNode={renderNode} />
+                <Tree
+                  {...required}
+                  {...handlers}
+                  renderNode={renderNode}
+                  // A thin solid guide instead of the library's dotted one.
+                  horizontalLineStyles={{ stroke: "#e2e5ec", strokeWidth: 1, strokeDasharray: "0" }}
+                  verticalLineStyles={{ stroke: "#e2e5ec", strokeWidth: 1, strokeDasharray: "0" }}
+                />
               ) : (
                 <RoomPanelSkeleton />
               )}
@@ -1748,19 +1795,33 @@ function RoomPanel({
         const total = holds.subCategories + holds.models;
         const mustType = total > 5;
         const ready = !mustType || deleteTyped.trim() === deletingCategory.name;
-        return (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
-            <div className="w-[360px] rounded-xl bg-white dark:bg-neutral-800 p-5 shadow-xl">
-              <h4 className="text-sm font-bold text-neutral-800 dark:text-neutral-50">
-                Delete “{deletingCategory.name}”?
-              </h4>
+        // Into <body>, like the other pop-ups, so no panel can clip it.
+        return createPortal(
+          <div className="pz-dlg-backdrop">
+            <div
+              className="pz-dlg pz-dlg--sm"
+              role="alertdialog"
+              aria-modal="true"
+              aria-labelledby="pz-delcat-title"
+            >
+              <div className="pz-dlg-head">
+                <div className="pz-dlg-head-row">
+                  <span className="pz-dlg-badge pz-dlg-badge--danger" aria-hidden="true">
+                    <span className="material-symbols-outlined">delete</span>
+                  </span>
+                  <h4 id="pz-delcat-title" className="pz-dlg-title">
+                    Delete “{deletingCategory.name}”?
+                  </h4>
+                </div>
+              </div>
+              <div className="pz-dlg-body">
               {holds.empty ? (
-                <p className="mt-2 text-xs leading-relaxed text-neutral-600 dark:text-neutral-300">
+                <p>
                   It is empty — no sub-categories and no models. This cannot be
                   undone.
                 </p>
               ) : (
-                <p className="mt-2 text-xs leading-relaxed text-neutral-600 dark:text-neutral-300">
+                <p>
                   It holds{" "}
                   <b>
                     {holds.subCategories
@@ -1775,12 +1836,12 @@ function RoomPanel({
                 </p>
               )}
               {mustType && (
-                <div className="mt-3">
-                  <label className="block text-[11px] text-neutral-500 dark:text-neutral-400">
+                <div className="pz-dlg-field">
+                  <label className="pz-dlg-label">
                     Type <b>{deletingCategory.name}</b> to confirm
                   </label>
                   <input
-                    className="mt-1 w-full rounded-lg border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-700 px-2 py-1.5 text-xs text-neutral-800 dark:text-neutral-100"
+                    className="w-full"
                     value={deleteTyped}
                     onChange={(e) => setDeleteTyped(e.target.value)}
                     autoFocus
@@ -1788,13 +1849,15 @@ function RoomPanel({
                 </div>
               )}
               {deleteError && (
-                <p className="mt-2 whitespace-pre-line text-xs text-[#B4372F]">
+                <p className="pz-dlg-alert">
                   {deleteError}
                 </p>
               )}
-              <div className="mt-4 flex justify-end gap-2">
+              </div>
+              <div className="pz-dlg-foot">
                 <button
-                  className="rounded-lg border border-neutral-300 dark:border-neutral-600 px-3 py-1.5 text-xs text-neutral-700 dark:text-neutral-200"
+                  type="button"
+                  className="pz-dlg-btn pz-dlg-btn--ghost"
                   disabled={deleteBusy}
                   onClick={() => {
                     setDeletingCategory(null);
@@ -1805,7 +1868,8 @@ function RoomPanel({
                   Cancel
                 </button>
                 <button
-                  className="rounded-lg bg-[#B4372F] px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
+                  type="button"
+                  className="pz-dlg-btn pz-dlg-btn--danger"
                   disabled={deleteBusy || !ready}
                   onClick={async () => {
                     setDeleteBusy(true);
@@ -1848,7 +1912,7 @@ function RoomPanel({
               </div>
             </div>
           </div>
-        );
+        , document.body);
       })()}
 
       <AddCategoryModal

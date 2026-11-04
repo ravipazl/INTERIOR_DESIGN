@@ -1,0 +1,632 @@
+/* ===========================================================================
+   The editor's pop-ups (Add / Edit / Delete category, Upload model, Clear
+   floor plan): the same look as Edit project — a centred card on a soft
+   backdrop, a bold title with a round ✕, rounded fields, an indigo main
+   button and a red one where something is deleted.
+
+   The fields inside are restyled through `.pz-dlg-body`. Their own Tailwind
+   classes are !important (important: true), hence the !important here; the
+   extra class in each selector is what makes these win.
+   =========================================================================== */
+.pz-dlg-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1300;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+  overflow-y: auto;
+  background: rgba(15, 18, 34, 0.48);
+  animation: pz-dlg-fade 0.18s ease-out both;
+}
+.pz-dlg {
+  --dlg-w: 440px;
+  width: 100%;
+  max-width: var(--dlg-w);
+  margin: auto;
+  display: flex;
+  flex-direction: column;
+  border-radius: 18px;
+  background: #fff;
+  color: #172033;
+  font-family: Inter, Arial, sans-serif;
+  box-shadow: 0 24px 60px rgba(15, 18, 34, 0.28), 0 2px 6px rgba(15, 18, 34, 0.08);
+  animation: pz-dlg-pop 0.22s cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
+}
+.pz-dlg--wide {
+  --dlg-w: 660px;
+}
+.pz-dlg--wide {
+  max-height: calc(100vh - 48px);
+}
+.pz-dlg--wide .pz-dlg-body {
+  overflow-y: auto;
+}
+.pz-dlg--sm {
+  --dlg-w: 400px;
+}
+@keyframes pz-dlg-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes pz-dlg-pop {
+  from { opacity: 0; transform: translateY(10px) scale(0.97); }
+  to { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pz-dlg-backdrop,
+  .pz-dlg {
+    animation: none;
+  }
+}
+
+.pz-dlg-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px 24px 14px;
+  border-bottom: 1px solid #e9ebf0;
+}
+.pz-dlg-head-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+.pz-dlg-badge {
+  width: 38px;
+  height: 38px;
+  flex: none;
+  border-radius: 11px;
+  display: grid;
+  place-items: center;
+  background: #f1edff;
+  color: #5b3df5;
+}
+.pz-dlg-badge--danger {
+  background: #fdecec;
+  color: #dc2626;
+}
+.pz-dlg-badge .material-symbols-outlined {
+  font-size: 21px;
+  font-variation-settings: "wght" 500;
+}
+.pz-dlg-title {
+  margin: 0;
+  font: 800 18px/1.25 Inter, Arial, sans-serif;
+  letter-spacing: -0.01em;
+  color: #172033;
+  overflow-wrap: anywhere;
+}
+.pz-dlg-sub {
+  margin: 3px 0 0;
+  font: 400 13px/1.4 Inter, Arial, sans-serif;
+  color: #697386;
+}
+.pz-dlg button.pz-dlg-close {
+  width: 34px;
+  height: 34px;
+  flex: none;
+  padding: 0;
+  border: 1px solid #e6e8ee;
+  border-radius: 50%;
+  background: #fff;
+  color: #4d5566;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: background-color 0.15s, color 0.15s, transform 0.15s;
+}
+.pz-dlg button.pz-dlg-close:hover:not(:disabled) {
+  background: #f4f2ff;
+  color: #4b30dc;
+  transform: rotate(90deg);
+}
+.pz-dlg button.pz-dlg-close:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Overflow stays visible, so a dropdown (the Parent picker in Add category)
+   can open past the card's edge. Only the tall Upload pop-up scrolls. */
+.pz-dlg-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 18px 24px 20px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #3b4357;
+}
+.pz-dlg-body p {
+  margin: 0;
+}
+.pz-dlg-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.pz-dlg-label {
+  font: 600 13px/1.3 Inter, Arial, sans-serif;
+  color: #172033;
+}
+.pz-dlg-label .pz-dlg-req {
+  color: #dc2626;
+}
+
+/* Every text box and dropdown inside a pop-up. */
+.pz-dlg .pz-dlg-body input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="range"]),
+.pz-dlg .pz-dlg-body select {
+  height: 40px !important;
+  padding: 0 12px !important;
+  border: 1px solid #e6e8ee !important;
+  border-radius: 10px !important;
+  background-color: #fff !important;
+  color: #172033 !important;
+  font: 400 14px/1.2 Inter, Arial, sans-serif !important;
+  outline: none !important;
+  box-shadow: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.pz-dlg .pz-dlg-body input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="range"]):focus,
+.pz-dlg .pz-dlg-body select:focus {
+  border-color: #a99bfa !important;
+  box-shadow: 0 0 0 3px rgba(91, 61, 245, 0.14) !important;
+}
+.pz-dlg .pz-dlg-body input::placeholder {
+  color: #9aa1b0;
+}
+
+.pz-dlg-alert {
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid #fecaca;
+  background: #fef2f2;
+  color: #991b1b;
+  font: 600 13px/1.45 Inter, Arial, sans-serif;
+  white-space: pre-line;
+}
+.pz-dlg-warn {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid #fed7aa;
+  background: #fff7ed;
+  color: #9a3412;
+  font: 500 13.5px/1.45 Inter, Arial, sans-serif;
+}
+
+/* The file drop area of Upload model. */
+.pz-dlg .pz-dlg-drop {
+  border: 2px dashed #c9c2f8 !important;
+  border-radius: 14px !important;
+  background: #f8f6ff;
+  padding: 26px 16px !important;
+  transition: background-color 0.15s, border-color 0.15s;
+}
+.pz-dlg .pz-dlg-drop:hover {
+  background: #f1edff !important;
+  border-color: #a99bfa !important;
+}
+.pz-dlg-drop-ic {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  margin: 0 auto 10px;
+  border-radius: 12px;
+  background: #fff;
+  color: #5b3df5;
+  box-shadow: 0 4px 12px rgba(91, 61, 245, 0.15);
+}
+
+.pz-dlg-foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 14px 24px 20px;
+  border-top: 1px solid #e9ebf0;
+}
+.pz-dlg button.pz-dlg-btn {
+  min-width: 100px;
+  height: 40px;
+  padding: 0 18px;
+  border-radius: 10px;
+  font: 600 14px/1 Inter, Arial, sans-serif;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: transform 0.15s ease, box-shadow 0.2s ease, filter 0.15s,
+    background-color 0.15s;
+}
+.pz-dlg button.pz-dlg-btn--primary {
+  border: none;
+  color: #fff;
+  background: linear-gradient(180deg, #6a50f7 0%, #5b3df5 100%);
+  box-shadow: 0 6px 16px rgba(91, 61, 245, 0.3);
+}
+.pz-dlg button.pz-dlg-btn--danger {
+  border: none;
+  color: #fff;
+  background: linear-gradient(180deg, #f05252 0%, #dc2626 100%);
+  box-shadow: 0 6px 16px rgba(220, 38, 38, 0.28);
+}
+.pz-dlg button.pz-dlg-btn--primary:hover:not(:disabled),
+.pz-dlg button.pz-dlg-btn--danger:hover:not(:disabled) {
+  transform: translateY(-1px);
+  filter: brightness(1.06);
+}
+.pz-dlg button.pz-dlg-btn--ghost {
+  border: 1px solid #e6e8ee;
+  background: #fff;
+  color: #172033;
+  box-shadow: 0 1px 2px rgba(23, 32, 51, 0.05);
+}
+.pz-dlg button.pz-dlg-btn--ghost:hover:not(:disabled) {
+  background: #f6f7fb;
+}
+.pz-dlg button.pz-dlg-btn:active:not(:disabled) {
+  transform: scale(0.97);
+}
+.pz-dlg button.pz-dlg-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+.pz-dlg button:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px #fff, 0 0 0 5px rgba(91, 61, 245, 0.55);
+}
+
+@media (max-width: 600px) {
+  .pz-dlg-head,
+  .pz-dlg-body,
+  .pz-dlg-foot {
+    padding-left: 18px;
+    padding-right: 18px;
+  }
+}
+
+/* --- Generate and Search ---------------------------------------------------- */
+.pz-dlg--xl {
+  --dlg-w: 860px;
+}
+.pz-dlg-badge--violet { background: #f1eafe; color: #7c3aed; }
+.pz-dlg-badge--blue { background: #e8f0fe; color: #2563eb; }
+
+/* Cancel / Close sits on the left, the actions on the right. */
+.pz-dlg-foot .pz-dlg-foot-left {
+  margin-right: auto;
+}
+.pz-dlg button.pz-dlg-btn--outline {
+  border: 1px solid #c9c2f8;
+  background: #f8f6ff;
+  color: #4b30dc;
+}
+.pz-dlg button.pz-dlg-btn--outline:hover:not(:disabled) {
+  background: #f1edff;
+  border-color: #a99bfa;
+}
+
+/* Two choices side by side (Generate's engines). */
+.pz-dlg-choices {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.pz-dlg button.pz-dlg-choice {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 12px 14px;
+  border: 1px solid #e6e8ee;
+  border-radius: 14px;
+  background: #fff;
+  text-align: left;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(23, 32, 51, 0.05);
+  transition: transform 0.15s ease, box-shadow 0.2s ease, border-color 0.15s,
+    background-color 0.15s;
+}
+.pz-dlg button.pz-dlg-choice:hover:not(:disabled) {
+  transform: translateY(-1px);
+  border-color: #cfc5fd;
+  box-shadow: 0 8px 18px rgba(91, 61, 245, 0.12);
+}
+.pz-dlg button.pz-dlg-choice.is-on {
+  border-color: #5b3df5;
+  background: #f8f6ff;
+  box-shadow: 0 0 0 1px #5b3df5;
+}
+.pz-dlg button.pz-dlg-choice.is-on::after {
+  content: "✓";
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: #5b3df5;
+  color: #fff;
+  font: 700 11px/1 Inter, Arial, sans-serif;
+}
+.pz-dlg button.pz-dlg-choice:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.pz-dlg-choice-ic {
+  width: 32px;
+  height: 32px;
+  margin-bottom: 4px;
+  border-radius: 9px;
+  display: grid;
+  place-items: center;
+  background: #f1edff;
+  color: #5b3df5;
+}
+.pz-dlg-choice-ic .material-symbols-outlined {
+  font-size: 19px;
+}
+.pz-dlg-choice-title {
+  font: 700 14px/1.25 Inter, Arial, sans-serif;
+  color: #172033;
+}
+.pz-dlg-choice-sub {
+  font: 400 12.5px/1.4 Inter, Arial, sans-serif;
+  color: #697386;
+}
+.pz-dlg-warn-ic {
+  flex: none;
+  font-size: 19px !important;
+}
+
+/* The chosen photo, in its picker; the generated preview. */
+.pz-dlg-drop-picked {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.pz-dlg-drop-thumb {
+  width: 96px;
+  height: 96px;
+  margin-bottom: 6px;
+  object-fit: cover;
+  border-radius: 12px;
+  box-shadow: 0 6px 16px rgba(23, 32, 51, 0.15);
+}
+.pz-dlg-preview {
+  width: 100%;
+  border-radius: 14px;
+  border: 1px solid #e6e8ee;
+  background: #f6f7fb;
+}
+/* Quick-pick values (face limit). */
+.pz-dlg button.pz-dlg-chip {
+  padding: 3px 9px;
+  border: 1px solid #e6e8ee;
+  border-radius: 999px;
+  background: #fff;
+  color: #4d5566;
+  font: 600 12px/1.3 Inter, Arial, sans-serif;
+  cursor: pointer;
+}
+.pz-dlg button.pz-dlg-chip:hover {
+  border-color: #cfc5fd;
+  color: #4b30dc;
+}
+.pz-dlg button.pz-dlg-chip.is-on {
+  border-color: #5b3df5;
+  background: #5b3df5;
+  color: #fff;
+}
+
+/* Search: the source switch, the search box, the results. */
+.pz-dlg-seg {
+  display: inline-flex;
+  gap: 3px;
+  padding: 3px;
+  border-radius: 11px;
+  background: #f1f2f6;
+  border: 1px solid #e6e8ee;
+}
+.pz-dlg button.pz-dlg-seg-btn {
+  height: 32px;
+  padding: 0 14px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: #4d5566;
+  font: 600 13px/1 Inter, Arial, sans-serif;
+  cursor: pointer;
+  transition: background-color 0.15s, color 0.15s;
+}
+.pz-dlg button.pz-dlg-seg-btn:hover:not(:disabled) {
+  color: #4b30dc;
+}
+.pz-dlg button.pz-dlg-seg-btn.is-on {
+  background: linear-gradient(180deg, #6a50f7 0%, #5b3df5 100%);
+  color: #fff;
+  box-shadow: 0 4px 10px rgba(91, 61, 245, 0.3);
+}
+.pz-dlg button.pz-dlg-seg-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.pz-dlg-search {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  display: block;
+}
+.pz-dlg-search-ic {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 20px !important;
+  color: #8a91a1;
+  pointer-events: none;
+}
+.pz-dlg .pz-dlg-body .pz-dlg-search input {
+  padding-left: 40px !important;
+}
+.pz-dlg-results {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 12px;
+  max-height: 340px;
+  overflow-y: auto;
+  padding: 4px;
+}
+.pz-dlg button.pz-dlg-result {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid #e6e8ee;
+  border-radius: 14px;
+  background: #fff;
+  text-align: left;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(23, 32, 51, 0.05);
+  transition: transform 0.15s ease, box-shadow 0.2s ease, border-color 0.15s;
+}
+.pz-dlg button.pz-dlg-result:hover:not(:disabled) {
+  transform: translateY(-2px);
+  border-color: #cfc5fd;
+  box-shadow: 0 10px 22px rgba(91, 61, 245, 0.14);
+}
+.pz-dlg button.pz-dlg-result.is-on {
+  border-color: #5b3df5;
+  box-shadow: 0 0 0 2px #5b3df5;
+}
+.pz-dlg button.pz-dlg-result:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.pz-dlg-result-tick {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 1;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: #5b3df5;
+  color: #fff;
+  font: 700 12px/1 Inter, Arial, sans-serif;
+  box-shadow: 0 2px 6px rgba(15, 18, 34, 0.25);
+}
+.pz-dlg-result-img {
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
+  background: #f1f2f6;
+}
+.pz-dlg-result-img img {
+  transition: transform 0.25s ease;
+}
+.pz-dlg button.pz-dlg-result:hover .pz-dlg-result-img img {
+  transform: scale(1.05);
+}
+.pz-dlg-result-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 9px 11px 11px;
+}
+.pz-dlg-result-name {
+  font: 700 13px/1.3 Inter, Arial, sans-serif;
+  color: #172033;
+}
+.pz-dlg-result-meta {
+  font: 400 11.5px/1.35 Inter, Arial, sans-serif;
+  color: #697386;
+}
+/* The import form under the results, once a model is picked. */
+.pz-dlg-section {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding-top: 16px;
+  border-top: 1px solid #e9ebf0;
+}
+.pz-dlg-picked {
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #f8f6ff;
+  font: 400 13px/1.45 Inter, Arial, sans-serif;
+  color: #4d5566;
+}
+
+/* --- Smaller type and icons (one size down across the app) --------------- */
+.pz-dlg-title {
+  font-size: 16px;
+}
+.pz-dlg-sub {
+  font-size: 12.5px;
+}
+.pz-dlg-badge {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+}
+.pz-dlg-badge .material-symbols-outlined {
+  font-size: 19px;
+}
+
+/* --- ...and one more small step down ------------------------------------- */
+.pz-dlg-title {
+  font-size: 15px;
+}
+.pz-dlg-sub {
+  font-size: 12px;
+}
+.pz-dlg-badge {
+  width: 32px;
+  height: 32px;
+}
+
+/* --- Compact: a third step down (type everywhere; controls on a computer) - */
+.pz-dlg-title {
+  font-size: 14.5px;
+}
+.pz-dlg-sub {
+  font-size: 11.5px;
+}
+.pz-dlg-badge {
+  width: 30px;
+  height: 30px;
+}
+.pz-dlg-label {
+  font-size: 12.5px;
+}
+@media (min-width: 1101px) {
+  .pz-dlg button.pz-dlg-btn {
+    height: 36px;
+    min-width: 90px;
+    padding: 0 16px;
+    font-size: 13px;
+  }
+  .pz-dlg .pz-dlg-body input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="range"]),
+  .pz-dlg .pz-dlg-body select {
+    height: 36px !important;
+    font-size: 13px !important;
+  }
+  .pz-dlg button.pz-dlg-close {
+    width: 30px;
+    height: 30px;
+  }
+}

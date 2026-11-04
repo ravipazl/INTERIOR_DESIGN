@@ -14,6 +14,7 @@ import { TRACKER_STAGES, stageLabel } from "../../utils/trackerStages";
 import TrackerAdmin from "../TrackerAdmin";
 import RendersVideos from "../../pages/ProjectDetail/RendersVideos";
 import BoqView from "../BoqView";
+import "@pazl/components/ProjectWorkspace/index.css";
 
 /**
  * ProjectWorkspace (Inspire admin) — same per-project workspace the 3D app
@@ -29,10 +30,6 @@ const TABS = [
 ];
 const DOC_TYPES = ["Requirement", "Reference", "Contract", "Recording", "Other"];
 
-const input = { border: "1px solid #e5e7eb", borderRadius: 6, padding: "6px 8px", fontSize: 13 };
-const btn = { background: "#0d6efd", color: "#fff", border: "none", borderRadius: 6, padding: "6px 14px", fontSize: 13, cursor: "pointer" };
-const card = { border: "1px solid #e5e7eb", borderRadius: 8, padding: 12, marginBottom: 10, background: "#fff" };
-const muted = { color: "#6b7280", fontSize: 12 };
 
 const fmtDate = (s) => (s ? new Date(s).toLocaleString() : "");
 const isToday = (s) => {
@@ -209,7 +206,7 @@ const ProjectWorkspace = ({ projectId, project, openSection, openSectionNonce, s
   };
 
   const stageSelect = () => (
-    <select style={{ ...input, minWidth: 150 }} value={relStage} onChange={(e) => setRelStage(e.target.value)} title="Link this to a tracker step (optional)">
+    <select className="pz-ws-input pz-ws-stage" value={relStage} onChange={(e) => setRelStage(e.target.value)} title="Link this to a tracker step (optional)">
       <option value="">Related to: (no step)</option>
       {TRACKER_STAGES.map((s) => (
         <option key={s.key} value={s.key}>Related to: {s.label}</option>
@@ -220,13 +217,16 @@ const ProjectWorkspace = ({ projectId, project, openSection, openSectionNonce, s
   const shown = stageFilter ? items.filter((it) => it.stage === stageFilter) : items;
 
   return (
-    <div style={{ padding: 16 }}>
-      <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
+    <div className="pz-ws pz-ws--inspire">
+      <div className="pz-ws-tabs" role="tablist">
         {visibleTabs.map((t) => (
           <button
             key={t.key}
+            type="button"
+            role="tab"
+            aria-selected={tab === t.key}
+            className={`pz-ws-tab${tab === t.key ? " is-on" : ""}`}
             onClick={() => setTab(t.key)}
-            style={{ padding: "6px 14px", borderRadius: 6, border: "none", cursor: "pointer", fontSize: 13, fontWeight: 500, background: tab === t.key ? "#0d6efd" : "#f3f4f6", color: tab === t.key ? "#fff" : "#374151" }}
           >
             {t.label}
           </button>
@@ -245,85 +245,105 @@ const ProjectWorkspace = ({ projectId, project, openSection, openSectionNonce, s
         <TrackerAdmin projectId={projectId} status={status} clientEmail={clientEmail} onAdvance={load} />
       ) : (
       <>
-      <div style={{ ...card, background: "#f9fafb" }}>
+      <div className="pz-ws-form">
         {tab === "document" && (
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-            <select style={input} value={docType} onChange={(e) => setDocType(e.target.value)}>
+          <div className="pz-ws-row">
+            <select className="pz-ws-input" value={docType} onChange={(e) => setDocType(e.target.value)}>
               {DOC_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
             </select>
-            <input style={{ ...input, flex: "1 1 160px" }} placeholder="Title (optional)" value={title} onChange={(e) => setTitle(e.target.value)} />
-            <input style={{ ...input, flex: "1 1 160px" }} placeholder="Note (optional)" value={note} onChange={(e) => setNote(e.target.value)} />
+            <input className="pz-ws-input pz-ws-grow" placeholder="Title (optional)" value={title} onChange={(e) => setTitle(e.target.value)} />
+            <input className="pz-ws-input pz-ws-grow" placeholder="Note (optional)" value={note} onChange={(e) => setNote(e.target.value)} />
             {stageSelect()}
-            <input ref={fileRef} type="file" accept=".pdf,image/*,audio/*" style={{ fontSize: 12 }} />
-            <button style={btn} disabled={busy} onClick={addDocument}>{busy ? "Uploading…" : "Upload"}</button>
+            <input ref={fileRef} className="pz-ws-file" type="file" accept=".pdf,image/*,audio/*" />
+            <button type="button" className="pz-ws-btn" disabled={busy} onClick={addDocument}>{busy ? "Uploading…" : "Upload"}</button>
           </div>
         )}
         {tab === "change" && (
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-            <input style={{ ...input, flex: "1 1 300px" }} placeholder="What change did the client ask for?" value={text} onChange={(e) => setText(e.target.value)} />
+          <div className="pz-ws-row">
+            <input className="pz-ws-input pz-ws-grow pz-ws-wide" placeholder="What change did the client ask for?" value={text} onChange={(e) => setText(e.target.value)} />
             {stageSelect()}
-            <input ref={fileRef} type="file" accept=".pdf,image/*,audio/*" style={{ fontSize: 12 }} />
-            <button style={btn} disabled={busy} onClick={() => addWithAttachment("change")}>{busy ? "Saving…" : "Add change"}</button>
+            <input ref={fileRef} className="pz-ws-file" type="file" accept=".pdf,image/*,audio/*" />
+            <button type="button" className="pz-ws-btn" disabled={busy} onClick={() => addWithAttachment("change")}>{busy ? "Saving…" : "Add change"}</button>
           </div>
         )}
         {tab === "task" && (
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-            <input style={{ ...input, flex: "1 1 220px" }} placeholder="Task" value={title} onChange={(e) => setTitle(e.target.value)} />
-            <input style={{ ...input, width: 140 }} placeholder="Assignee" value={assignee} onChange={(e) => setAssignee(e.target.value)} />
-            <input style={input} type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
+          <div className="pz-ws-row">
+            <input className="pz-ws-input pz-ws-grow pz-ws-wide" placeholder="Task" value={title} onChange={(e) => setTitle(e.target.value)} />
+            <input className="pz-ws-input pz-ws-assignee" placeholder="Assignee" value={assignee} onChange={(e) => setAssignee(e.target.value)} />
+            <input className="pz-ws-input" type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
             {stageSelect()}
-            <button style={btn} disabled={busy} onClick={addTask}>Add task</button>
+            <button type="button" className="pz-ws-btn" disabled={busy} onClick={addTask}>Add task</button>
           </div>
         )}
         {tab === "discussion" && (
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-            <input style={{ ...input, flex: "1 1 300px" }} placeholder="Note a discussion / decision…" value={text} onChange={(e) => setText(e.target.value)} />
+          <div className="pz-ws-row">
+            <input className="pz-ws-input pz-ws-grow pz-ws-wide" placeholder="Note a discussion / decision…" value={text} onChange={(e) => setText(e.target.value)} />
             {stageSelect()}
-            <input ref={fileRef} type="file" accept=".pdf,image/*,audio/*" style={{ fontSize: 12 }} />
-            <button style={btn} disabled={busy} onClick={() => addWithAttachment("discussion")}>{busy ? "Saving…" : "Add note"}</button>
+            <input ref={fileRef} className="pz-ws-file" type="file" accept=".pdf,image/*,audio/*" />
+            <button type="button" className="pz-ws-btn" disabled={busy} onClick={() => addWithAttachment("discussion")}>{busy ? "Saving…" : "Add note"}</button>
           </div>
         )}
       </div>
 
-      <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "4px 0 12px" }}>
-        <span style={muted}>Filter by step:</span>
-        <select style={{ ...input, minWidth: 160 }} value={stageFilter} onChange={(e) => setStageFilter(e.target.value)}>
+      <div className="pz-ws-filter">
+        <span>Filter by step:</span>
+        <select className="pz-ws-input pz-ws-stage" value={stageFilter} onChange={(e) => setStageFilter(e.target.value)}>
           <option value="">All steps</option>
           {TRACKER_STAGES.map((s) => (
             <option key={s.key} value={s.key}>{s.label}</option>
           ))}
         </select>
         {stageFilter && (
-          <button onClick={() => setStageFilter("")} style={{ border: "1px solid #e5e7eb", background: "#fff", borderRadius: 6, padding: "4px 10px", fontSize: 12, cursor: "pointer", color: "#374151" }}>
+          <button type="button" onClick={() => setStageFilter("")} className="pz-ws-btn pz-ws-btn--ghost pz-ws-btn--sm">
             Clear ✕
           </button>
         )}
       </div>
 
+      <div className="pz-ws-list pz-ws-list--free">
       {loading ? (
-        <p style={muted}>Loading…</p>
+        <div className="pz-ws-skeleton" aria-label="Loading">
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="pz-ws-sk" />
+          ))}
+        </div>
       ) : shown.length === 0 ? (
-        <p style={muted}>{stageFilter ? `Nothing linked to “${stageLabel(stageFilter)}” here.` : "Nothing here yet."}</p>
+        <div className="pz-ws-empty">
+          <span className="pz-ws-empty-icon" aria-hidden="true">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+            </svg>
+          </span>
+          <span>{stageFilter ? `Nothing linked to “${stageLabel(stageFilter)}” here.` : "Nothing here yet."}</span>
+        </div>
       ) : (
         shown.map((it) => (
-          <div key={it._id} style={card}>
-            <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
-              <div style={{ flex: 1 }}>
+          <div key={it._id} className="pz-ws-item">
+            <div className="pz-ws-item-row">
+              <div className="pz-ws-item-body">
                 {tab === "document" && (
                   <>
-                    <div style={{ fontWeight: 600, fontSize: 13 }}>
-                      <span style={{ color: "#0d6efd" }}>{it.type}</span> · {it.title}
+                    <div className="pz-ws-item-title">
+                      <span className="pz-ws-type">{it.type}</span>
+                      <span>{it.title}</span>
                     </div>
-                    {it.note ? <div style={muted}>{it.note}</div> : null}
+                    {it.note ? <div className="pz-ws-note">{it.note}</div> : null}
                     <FilePreview url={it.fileUrl} mime={it.mimeType} />
                   </>
                 )}
                 {tab === "change" && (
                   <>
-                    <div style={{ fontSize: 13 }}>{it.description}</div>
-                    <div style={{ marginTop: 4 }}>
+                    <div className="pz-ws-text">{it.description}</div>
+                    <div className="pz-ws-seg" role="group" aria-label="Status">
                       {["pending", "in_progress", "done"].map((s) => (
-                        <button key={s} onClick={() => setStatus(it._id, s)} style={{ marginRight: 6, padding: "2px 8px", fontSize: 11, borderRadius: 4, border: "1px solid #e5e7eb", cursor: "pointer", background: it.status === s ? "#0d6efd" : "#fff", color: it.status === s ? "#fff" : "#374151" }}>
+                        <button
+                          key={s}
+                          type="button"
+                          onClick={() => setStatus(it._id, s)}
+                          className={`pz-ws-seg-btn${it.status === s ? " is-on" : ""}`}
+                          data-status={s}
+                          aria-pressed={it.status === s}
+                        >
                           {s.replace("_", " ")}
                         </button>
                       ))}
@@ -332,34 +352,42 @@ const ProjectWorkspace = ({ projectId, project, openSection, openSectionNonce, s
                   </>
                 )}
                 {tab === "task" && (
-                  <label style={{ display: "flex", gap: 8, alignItems: "center", fontSize: 13 }}>
+                  <label className="pz-ws-task">
                     <input type="checkbox" checked={it.status === "done"} onChange={() => setStatus(it._id, it.status === "done" ? "todo" : "done", { completedAt: it.status === "done" ? "" : new Date().toISOString() })} />
-                    <span style={{ textDecoration: it.status === "done" ? "line-through" : "none" }}>{it.title}</span>
-                    {it.assignedTo ? <span style={muted}>· {it.assignedTo}</span> : null}
-                    {it.dueDate ? <span style={{ ...muted, color: isToday(it.dueDate) ? "#b45309" : "#6b7280" }}>· due {it.dueDate}{isToday(it.dueDate) ? " (today)" : ""}</span> : null}
+                    <span className={`pz-ws-task-title${it.status === "done" ? " is-done" : ""}`}>{it.title}</span>
+                    {it.assignedTo ? <span className="pz-ws-muted">· {it.assignedTo}</span> : null}
+                    {it.dueDate ? <span className={`pz-ws-muted${isToday(it.dueDate) ? " pz-ws-due-today" : ""}`}>· due {it.dueDate}{isToday(it.dueDate) ? " (today)" : ""}</span> : null}
                   </label>
                 )}
                 {tab === "discussion" && (
                   <>
-                    <div style={{ fontSize: 13 }}>{it.text}</div>
-                    <div style={muted}>{it.author} · {fmtDate(it.createdAt)}</div>
+                    <div className="pz-ws-text">{it.text}</div>
+                    <div className="pz-ws-muted">{it.author} · {fmtDate(it.createdAt)}</div>
                     <FilePreview url={it.attachmentUrl} mime={it.mimeType} />
                   </>
                 )}
                 {tab !== "discussion" && (
-                  <div style={{ ...muted, marginTop: 4 }}>{it.createdBy ? `${it.createdBy} · ` : ""}{fmtDate(it.createdAt)}</div>
+                  <div className="pz-ws-muted pz-ws-meta">{it.createdBy ? `${it.createdBy} · ` : ""}{fmtDate(it.createdAt)}</div>
                 )}
                 {it.stage && stageLabel(it.stage) && (
-                  <span style={{ display: "inline-block", marginTop: 6, fontSize: 11, fontWeight: 600, color: "#0C447C", background: "#E6F1FB", padding: "2px 9px", borderRadius: 999 }}>
-                    {stageLabel(it.stage)}
-                  </span>
+                  <span className="pz-ws-chip">{stageLabel(it.stage)}</span>
                 )}
               </div>
-              <button onClick={() => del(it._id)} title="Delete" style={{ border: "none", background: "none", color: "#993c1d", cursor: "pointer", fontSize: 14 }}>✕</button>
+              <div className="pz-ws-item-actions">
+                <button type="button" onClick={() => del(it._id)} className="pz-ws-icon pz-ws-icon--danger" data-tip="Delete" aria-label="Delete">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <polyline points="3 6 5 6 21 6" />
+                    <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                    <line x1="10" y1="11" x2="10" y2="17" />
+                    <line x1="14" y1="11" x2="14" y2="17" />
+                  </svg>
+                </button>
+              </div>
             </div>
           </div>
         ))
       )}
+      </div>
       </>
       )}
     </div>

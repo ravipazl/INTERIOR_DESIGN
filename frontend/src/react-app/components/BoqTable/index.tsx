@@ -1261,6 +1261,9 @@ const RoomMaterialModal: React.FC<{
     <div className="bq-modal-back" onClick={busy ? undefined : onCancel}>
       <div className="bq-modal" onClick={(e) => e.stopPropagation()}>
         <div className="bq-modal-head">
+          <span className="pz-boq-badge pz-boq-badge--sm" aria-hidden="true">
+            <span className="material-symbols-outlined">palette</span>
+          </span>
           <b>Material configuration</b>
           <div className="bq-modal-sub">
             {forItem ? (
@@ -1497,7 +1500,7 @@ const RoomMaterialModal: React.FC<{
               .filter(Boolean)
               .join("  +  ") || "Tick a section to apply it"}
           </span>
-          <button type="button" className="bq-link" onClick={onCancel} disabled={busy}>
+          <button type="button" className="bq-link bq-modal-cancel" onClick={onCancel} disabled={busy}>
             Cancel
           </button>
           <button
@@ -2540,13 +2543,23 @@ const BoqTable: React.FC<BoqTableProps> = ({
     <>
       {!isLoading ? (
         <div className="pb-16 text-[#414063] h-screen overflow-y-auto">
-          <div className="boq-title-container">
-            <div className="boq-title">Bill of Quantity</div>
-            <div className="boq-container">
+          {/* The page's own bar — outside targetRef, so none of it is in the
+              PDF. Everything inside targetRef below is the document itself and
+              keeps its look: that is what the client receives. */}
+          <div className="pz-boq-bar">
+            <div className="pz-boq-heading">
+              <span className="pz-boq-badge" aria-hidden="true">
+                <span className="material-symbols-outlined">receipt_long</span>
+              </span>
+              <div>
+                <h1 className="pz-boq-title">Bill of Quantity</h1>
+                <p className="pz-boq-sub">Rooms, items and totals for this project.</p>
+              </div>
+            </div>
+            <div className="pz-boq-actions">
               <button
-                className={`boq-download-button ${
-                  isLoading ? "text-[#aaaaaa]" : "text-[#414063]"
-                }`}
+                type="button"
+                className="pz-boq-btn pz-boq-btn--ghost"
                 onClick={handleExportAsPDF}
                 // Also off when every room is switched out of the PDF.
                 disabled={isLoading || pdfAllOff}
@@ -2558,39 +2571,25 @@ const BoqTable: React.FC<BoqTableProps> = ({
                     : undefined
                 }
               >
-                <img
-                  height={20}
-                  width={20}
-                  src={
-                    isLoading
-                      ? require("../../images/download-disabled.svg")
-                      : require("../../images/download.svg")
-                  }
-                  alt="Download Icon"
-                />
-                PDF
+                <span className="material-symbols-outlined" aria-hidden="true">
+                  download
+                </span>
+                Download PDF
               </button>
               {pdfAllOff ? (
                 <span className="bq-pdf-hint">Select at least one room</span>
               ) : null}
 
               <button
-                className={
-                  isLoading
-                    ? "ml-1.5 px-6 py-2 rounded border border-[#aaaaaa]"
-                    : "ml-1.5 px-6 py-2 rounded border border-[#414063]"
-                }
+                type="button"
+                className="pz-boq-btn pz-boq-btn--primary"
                 disabled={isLoading}
                 onClick={handleGenerateBoq}
               >
-                <p
-                  className={
-                    "generate-boq-button-text " +
-                    (isLoading ? "text-[#aaaaaa]" : "text-[#414063]")
-                  }
-                >
-                  Generate BOQ
-                </p>
+                <span className="material-symbols-outlined" aria-hidden="true">
+                  refresh
+                </span>
+                Generate BOQ
               </button>
 
               {/* Approval workflow — there are NO quote buttons here anymore.

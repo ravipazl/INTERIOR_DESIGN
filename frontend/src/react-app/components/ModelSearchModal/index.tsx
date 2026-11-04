@@ -1,4 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import "@pazl/components/Dialog/dialog.css";
 import { ModelsService } from "@pazl/services/ModelsService";
 import { generateAndUploadThumbnail } from "@pazl/helpers/generateThumbnail";
 import { CategoriesService } from "@pazl/services/categoriesService";
@@ -396,18 +398,27 @@ function ModelSearchModal({
     setPlacementType(guessPlacementType(r.name || query));
   };
 
-  return (
+  // Into <body>, so the panel it is opened from cannot clip it.
+  return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+      className="pz-dlg-backdrop"
       onClick={isImporting ? undefined : onClose}
     >
       <div
-        className="bg-white dark:bg-[#333333] rounded-lg shadow-xl w-[820px] max-w-[96vw] max-h-[92vh] overflow-y-auto"
+        className="pz-dlg pz-dlg--wide pz-dlg--xl"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="pz-search-title"
         onClick={(e) => e.stopPropagation()}
       >
         {/* header */}
-        <div className="flex items-center justify-between px-5 py-3 border-b border-neutral-200 dark:border-neutral-700">
-          <h3 className="font-semibold text-base text-[#414063] dark:text-white">
+        <div className="pz-dlg-head">
+          <div className="pz-dlg-head-row">
+            <span className="pz-dlg-badge pz-dlg-badge--blue" aria-hidden="true">
+              <span className="material-symbols-outlined">travel_explore</span>
+            </span>
+            <div>
+          <h3 id="pz-search-title" className="pz-dlg-title">
             {/* The providers are shown as neutral catalog names — see
                 CATALOG_LABEL below. Only the visible text is renamed; the
                 `source` values and every ModelsService call still use the real
@@ -418,22 +429,27 @@ function ModelSearchModal({
               ? `Browse ${CATALOG_LABEL.objaverse}`
               : `Search ${CATALOG_LABEL.sketchfab}`}
           </h3>
+              <p className="pz-dlg-sub">Find a model and add it to your catalogue.</p>
+            </div>
+          </div>
           <button
+            type="button"
             onClick={onClose}
             disabled={isImporting}
-            className="text-2xl leading-none text-neutral-500 hover:text-neutral-800 disabled:opacity-30"
+            className="pz-dlg-close"
+            aria-label="Close"
           >
-            ×
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true">
+              <path d="M6 6l12 12M18 6 6 18" />
+            </svg>
           </button>
         </div>
 
-        <div className="p-5 space-y-4">
+        <div className="pz-dlg-body">
           {/* source toggle — pick which library to search */}
           <div className="flex items-center gap-2">
-            <span className="text-xs text-neutral-500 dark:text-neutral-300">
-              Source
-            </span>
-            <div className="inline-flex rounded border border-neutral-300 dark:border-neutral-600 overflow-hidden">
+            <span className="pz-dlg-label">Source</span>
+            <div className="pz-dlg-seg" role="group" aria-label="Source">
               <button
                 type="button"
                 disabled={isImporting}
@@ -444,11 +460,7 @@ function ModelSearchModal({
                   setSearchError(null);
                   setStripTextures(true);
                 }}
-                className={`px-3 py-1 text-xs disabled:opacity-40 ${
-                  source === "sketchfab"
-                    ? "bg-[#414063] text-white"
-                    : "bg-transparent text-neutral-600 dark:text-neutral-300"
-                }`}
+                className={`pz-dlg-seg-btn${source === "sketchfab" ? " is-on" : ""}`}
               >
                 {CATALOG_LABEL.sketchfab}
               </button>
@@ -463,11 +475,7 @@ function ModelSearchModal({
                   // Poly Haven's value is its CC0 textures — keep them.
                   setStripTextures(false);
                 }}
-                className={`px-3 py-1 text-xs border-l border-neutral-300 dark:border-neutral-600 disabled:opacity-40 ${
-                  source === "polyhaven"
-                    ? "bg-[#414063] text-white"
-                    : "bg-transparent text-neutral-600 dark:text-neutral-300"
-                }`}
+                className={`pz-dlg-seg-btn${source === "polyhaven" ? " is-on" : ""}`}
               >
                 {CATALOG_LABEL.polyhaven}
               </button>
@@ -483,11 +491,7 @@ function ModelSearchModal({
                   setStripTextures(false);
                   await ensureObjaverseCategories();
                 }}
-                className={`px-3 py-1 text-xs border-l border-neutral-300 dark:border-neutral-600 disabled:opacity-40 ${
-                  source === "objaverse"
-                    ? "bg-[#414063] text-white"
-                    : "bg-transparent text-neutral-600 dark:text-neutral-300"
-                }`}
+                className={`pz-dlg-seg-btn${source === "objaverse" ? " is-on" : ""}`}
               >
                 {CATALOG_LABEL.objaverse}
               </button>
@@ -526,16 +530,20 @@ function ModelSearchModal({
               <button
                 onClick={() => runBrowse(objaverseCat)}
                 disabled={isSearching || isImporting || !objaverseCat}
-                className="px-4 py-2 text-sm rounded bg-[#414063] text-white disabled:opacity-40"
+                className="pz-dlg-btn pz-dlg-btn--primary"
               >
                 {isSearching ? "Loading…" : "Browse"}
               </button>
             </div>
           ) : (
             <div className="flex gap-2">
+              <span className="pz-dlg-search">
+              <span className="material-symbols-outlined pz-dlg-search-ic" aria-hidden="true">
+                search
+              </span>
               <input
                 type="text"
-                className="flex-1 border rounded px-3 py-2 text-sm dark:bg-neutral-800 dark:text-white"
+                className="w-full"
                 placeholder='Search e.g. "wooden chair", "ceiling lamp", "rug"'
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
@@ -546,10 +554,12 @@ function ModelSearchModal({
                 }}
                 disabled={isImporting}
               />
+              </span>
               <button
+                type="button"
                 onClick={runSearch}
                 disabled={isSearching || isImporting || !query.trim()}
-                className="px-4 py-2 text-sm rounded bg-[#414063] text-white disabled:opacity-40"
+                className="pz-dlg-btn pz-dlg-btn--primary"
               >
                 {isSearching ? "Searching…" : "Search"}
               </button>
@@ -558,14 +568,14 @@ function ModelSearchModal({
 
           {/* search error / empty */}
           {searchError && (
-            <div className="px-3 py-2 text-sm rounded bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-200">
+            <div className="pz-dlg-alert" role="alert">
               {searchError}
             </div>
           )}
 
           {/* results grid */}
           {results.length > 0 && (
-            <div className="grid grid-cols-3 gap-3 max-h-[320px] overflow-y-auto p-1">
+            <div className="pz-dlg-results">
               {results.map((r) => {
                 const isSel = selected?.uid === r.uid;
                 return (
@@ -574,13 +584,15 @@ function ModelSearchModal({
                     key={r.uid}
                     onClick={() => onResultClick(r)}
                     disabled={isImporting}
-                    className={`text-left border rounded overflow-hidden transition ${
-                      isSel
-                        ? "border-[#414063] ring-2 ring-[#414063]"
-                        : "border-neutral-200 dark:border-neutral-700 hover:border-[#414063]"
-                    } disabled:opacity-50`}
+                    aria-pressed={isSel}
+                    className={`pz-dlg-result${isSel ? " is-on" : ""}`}
                   >
-                    <div className="aspect-square bg-neutral-100 dark:bg-neutral-800 overflow-hidden">
+                    {isSel ? (
+                      <span className="pz-dlg-result-tick" aria-hidden="true">
+                        ✓
+                      </span>
+                    ) : null}
+                    <div className="pz-dlg-result-img">
                       {r.thumbnail ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
@@ -595,17 +607,17 @@ function ModelSearchModal({
                         </div>
                       )}
                     </div>
-                    <div className="p-2 space-y-0.5">
+                    <div className="pz-dlg-result-info">
                       <div
-                        className="text-xs font-medium text-neutral-800 dark:text-neutral-100 truncate"
+                        className="pz-dlg-result-name truncate"
                         title={r.name}
                       >
                         {r.name || "(unnamed)"}
                       </div>
-                      <div className="text-[10px] text-neutral-500 truncate">
+                      <div className="pz-dlg-result-meta truncate">
                         by {r.author || "?"} · {r.license || "?"}
                       </div>
-                      <div className="text-[10px] text-neutral-400">
+                      <div className="pz-dlg-result-meta">
                         {formatFaceCount(r.faceCount)} faces
                         {r.animationCount > 0 ? " · anim" : ""}
                         {r.sizeBytes ? ` · ${formatBytes(r.sizeBytes)}` : ""}
@@ -625,7 +637,7 @@ function ModelSearchModal({
                 type="button"
                 onClick={loadMore}
                 disabled={loadingMore || isImporting}
-                className="px-4 py-2 text-sm rounded border border-neutral-300 dark:border-neutral-600 hover:bg-neutral-100 dark:hover:bg-neutral-700 disabled:opacity-40"
+                className="pz-dlg-btn pz-dlg-btn--outline"
               >
                 {loadingMore ? "Loading…" : "Load more"}
               </button>
@@ -634,8 +646,8 @@ function ModelSearchModal({
 
           {/* selected / import form — only when a result is picked */}
           {selected && (
-            <div className="border-t border-neutral-200 dark:border-neutral-700 pt-4 space-y-3">
-              <div className="text-xs text-neutral-500">
+            <div className="pz-dlg-section">
+              <div className="pz-dlg-picked">
                 Selected:{" "}
                 <span className="font-semibold text-neutral-800 dark:text-neutral-100">
                   {selected.name}
@@ -811,26 +823,29 @@ function ModelSearchModal({
         </div>
 
         {/* footer */}
-        <div className="flex items-center justify-end gap-2 px-5 py-3 border-t border-neutral-200 dark:border-neutral-700">
+        <div className="pz-dlg-foot">
           <button
+            type="button"
             onClick={onClose}
             disabled={isImporting}
-            className="px-4 py-1.5 text-sm border rounded text-neutral-600 hover:bg-neutral-100 disabled:opacity-40"
+            className="pz-dlg-btn pz-dlg-btn--ghost pz-dlg-foot-left"
           >
             {stage === "done" ? "Close" : "Cancel"}
           </button>
           {stage !== "done" && (
             <button
+              type="button"
               onClick={runImport}
               disabled={isImporting || !selected || !categoryId}
-              className="px-4 py-1.5 text-sm rounded bg-[#414063] text-white disabled:opacity-40"
+              className="pz-dlg-btn pz-dlg-btn--primary"
             >
               {isImporting ? "Importing…" : "Add to catalog"}
             </button>
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 

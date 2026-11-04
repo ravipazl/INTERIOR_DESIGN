@@ -67,33 +67,73 @@ const AppHeader: React.FC<AppHeaderProps> = ({
   // to the right and pushed the Save button off screen.
   return (
     <div className="pz-app-header shadow-lg px-2 py-6 bg-[color:var(--pz-panel-header)] h-[40px] flex flex-row items-center w-full justify-between">
-      <div className="flex flex-row items-center">
-        <span className="flex items-center justify-center w-9 h-9 rounded-lg bg-[color:var(--pz-accent-tint)] mr-1">
-          <img
-            alt="logo"
-            src="/assets/icons/pazl_logo.svg"
-            width={"30px"}
-            height={"30px"}
-          />
-        </span>
-        {currentProject ? (
-          <div className="app-header-flex-container">
+      {/* Only a back button here: the logo and the project's name went to
+          give the toolbar the room. The name lives on in the button's hover
+          text. Shown from the start - it no longer waits for the project to
+          load; handleGoToDashboard copes with either. */}
+      {/* handleSync is passed only by the editor (DrawingComponent); the
+          designer's project list keeps its logo and title as before. */}
+      {!handleSync ? (
+        <div className="flex flex-row items-center">
+          <span className="flex items-center justify-center w-9 h-9 rounded-lg bg-[color:var(--pz-accent-tint)] mr-1">
             <img
-              className="back-button"
-              alt="back"
-              src={require("../../images/back2.svg")}
-              onClick={handleGoToDashboard}
+              alt="logo"
+              src="/assets/icons/pazl_logo.svg"
+              width={"30px"}
+              height={"30px"}
             />
+          </span>
+          {currentProject ? (
+            <div className="app-header-flex-container">
+              <img
+                className="back-button"
+                alt="back"
+                src={require("../../images/back2.svg")}
+                onClick={handleGoToDashboard}
+              />
+              <h5 className="text-primary text-[#333333] dark:text-[#ffffff] font-bold">
+                {currentProject.name}
+              </h5>
+            </div>
+          ) : (
             <h5 className="text-primary text-[#333333] dark:text-[#ffffff] font-bold">
-              {currentProject.name}
+              PAZL
             </h5>
-          </div>
-        ) : (
-          <h5 className="text-primary text-[#333333] dark:text-[#ffffff] font-bold">
-            PAZL
-          </h5>
-        )}
+          )}
+        </div>
+      ) : (
+      <div className="flex flex-row items-center">
+        <button
+          type="button"
+          className="pz-hdr-back"
+          aria-label={
+            currentProject?.name
+              ? `Back to ${currentProject.name}`
+              : "Back to project"
+          }
+          data-tip={
+            currentProject?.name
+              ? `Back to ${currentProject.name}`
+              : "Back to project"
+          }
+          onClick={handleGoToDashboard}
+        >
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.4"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <path d="m15 18-6-6 6-6" />
+          </svg>
+        </button>
       </div>
+      )}
       {/* The per-tab toolbar portals in here (see ToolbarPortal), so the tools
           share this bar instead of occupying a second row below it. */}
       <div

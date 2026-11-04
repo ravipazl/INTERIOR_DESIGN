@@ -1,0 +1,161 @@
+/* ===========================================================================
+   Project workspace tab (PAZL web) — the same look as the designer's Project
+   Detail. The cards, info grid, tracker and notices come from that page's
+   stylesheet (react-app/pages/ProjectDetail/index.css, .pz-pd-*); this file
+   gives them their colours here (they read --pd-* from an ancestor) and adds
+   the notice buttons and spacing.
+   =========================================================================== */
+.pz-iw {
+  --pd-ink: #172033;
+  --pd-ink-2: #697386;
+  --pd-line: #e9ebf0;
+  --pd-accent: #5b3df5;
+  --pd-accent-2: #4b30dc;
+  --pd-tint: #f4f2ff;
+  --pd-card: #fff;
+  --pd-shadow: 0 1px 2px rgba(23, 32, 51, 0.04), 0 6px 18px rgba(23, 32, 51, 0.05);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px 20px 24px;
+  background: #f6f7fb;
+  color: var(--pd-ink);
+  font-family: Inter, Arial, sans-serif;
+}
+
+/* Project + client card. */
+.pz-iw-info-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--pd-line);
+}
+.pz-iw-badge {
+  width: 38px;
+  height: 38px;
+  flex: none;
+  border-radius: 11px;
+  display: grid;
+  place-items: center;
+  background: #f1edff;
+  color: #5b3df5;
+}
+.pz-iw-badge .material-symbols-outlined {
+  font-size: 21px;
+}
+.pz-iw-sub {
+  margin: 2px 0 0;
+  font-size: 13px;
+  color: var(--pd-ink-2);
+}
+.pz-iw .pz-pd-info dl,
+.pz-iw dl.pz-pd-info {
+  margin: 0;
+}
+.pz-iw .pz-pd-field dd {
+  margin: 0;
+}
+
+/* Workspace card: its own heading, then the tabs. */
+.pz-iw-ws {
+  padding-bottom: 12px;
+}
+.pz-iw .pz-ws--inspire {
+  padding-top: 14px;
+}
+.pz-iw .pz-ws-list--free {
+  max-height: none;
+}
+
+/* Buttons on the quote notices (Reject / Request a change / Accept / View BOQ). */
+.pz-iw .pz-pd-banner > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.pz-iw button.pz-iw-btn {
+  height: 38px;
+  padding: 0 16px;
+  border-radius: 10px;
+  font: 600 13.5px/1 Inter, Arial, sans-serif;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: transform 0.15s ease, box-shadow 0.2s ease, filter 0.15s,
+    background-color 0.15s;
+}
+.pz-iw button.pz-iw-btn--success {
+  border: none;
+  color: #fff;
+  background: linear-gradient(180deg, #22c55e 0%, #16a34a 100%);
+  box-shadow: 0 6px 14px rgba(22, 163, 74, 0.28);
+}
+.pz-iw button.pz-iw-btn--success:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.05);
+}
+.pz-iw button.pz-iw-btn--ghost {
+  border: 1px solid #e6e8ee;
+  background: #fff;
+  color: #172033;
+}
+.pz-iw button.pz-iw-btn--ghost:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 14px rgba(23, 32, 51, 0.1);
+}
+.pz-iw button.pz-iw-btn--danger {
+  border: 1px solid #fecaca;
+  background: #fff;
+  color: #dc2626;
+}
+.pz-iw button.pz-iw-btn--danger:hover {
+  background: #fef2f2;
+}
+.pz-iw button.pz-iw-btn:active {
+  transform: scale(0.97);
+}
+.pz-iw button.pz-iw-btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px #fff, 0 0 0 5px rgba(91, 61, 245, 0.55);
+}
+
+@media (max-width: 700px) {
+  .pz-iw {
+    padding: 12px;
+  }
+}
+
+/* --- Smaller type and icons (one size down across the app) --------------- */
+.pz-iw-badge {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+}
+.pz-iw-sub {
+  font-size: 12.5px;
+}
+
+/* --- ...and one more small step down ------------------------------------- */
+.pz-iw-badge {
+  width: 32px;
+  height: 32px;
+}
+.pz-iw-sub {
+  font-size: 12px;
+}
+
+/* --- Compact: a third step down (type everywhere; controls on a computer) - */
+.pz-iw-badge {
+  width: 30px;
+  height: 30px;
+}
+.pz-iw-sub {
+  font-size: 11.5px;
+}
+@media (min-width: 1101px) {
+  .pz-iw button.pz-iw-btn {
+    height: 34px;
+    padding: 0 14px;
+    font-size: 13px;
+  }
+}

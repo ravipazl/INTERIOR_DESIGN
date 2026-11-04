@@ -1,0 +1,318 @@
+/* ===========================================================================
+   "Frame your shot" (Render step): the top bar, the saved views and the
+   Cancel / Use this view buttons, in the app's look — white rounded cards,
+   indigo for what is chosen, soft shadows. Layout (where things sit over the
+   3D view) is still set in CameraFraming.tsx; this only dresses them. The
+   tablet sizes in MenuBar/index.css (.pz-framing-bar) still apply on top.
+   =========================================================================== */
+.pz-fr-bar {
+  gap: 10px;
+  padding: 8px 10px 8px 8px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.97);
+  border: 1px solid rgba(233, 235, 240, 0.9);
+  color: #172033;
+  font: 500 13px/1.2 Inter, Arial, sans-serif;
+  box-shadow: 0 12px 32px rgba(15, 18, 34, 0.22), 0 2px 6px rgba(15, 18, 34, 0.08);
+}
+.pz-fr-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-right: 4px;
+  font: 800 14px/1 Inter, Arial, sans-serif;
+  color: #172033;
+  white-space: nowrap;
+}
+.pz-fr-title-ic {
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  display: grid;
+  place-items: center;
+  background: #e2f4f8;
+  color: #0891b2;
+}
+.pz-framing-bar .pz-fr-title-ic .material-symbols-outlined {
+  font-size: 18px !important;
+}
+.pz-fr-label {
+  font: 600 12.5px/1 Inter, Arial, sans-serif;
+  color: #697386;
+}
+.pz-fr-sep {
+  width: 1px;
+  height: 24px;
+  background: #e6e8ee;
+}
+
+/* A group of choices: one rounded track, the chosen one indigo. */
+.pz-fr-seg {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 10px;
+  background: #f1f2f6;
+}
+button.pz-fr-pill {
+  height: 28px;
+  padding: 0 11px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: #4d5566;
+  font: 600 12.5px/1 Inter, Arial, sans-serif;
+  cursor: pointer;
+  transition: background-color 0.15s, color 0.15s, box-shadow 0.2s;
+}
+button.pz-fr-pill:hover {
+  color: #4b30dc;
+}
+button.pz-fr-pill.is-on {
+  background: linear-gradient(180deg, #6a50f7 0%, #5b3df5 100%);
+  color: #fff;
+  box-shadow: 0 4px 10px rgba(91, 61, 245, 0.3);
+}
+
+select.pz-fr-select {
+  height: 32px;
+  padding: 0 8px;
+  border: 1px solid #e6e8ee;
+  border-radius: 9px;
+  background: #fff;
+  color: #172033;
+  font: 500 12.5px/1 Inter, Arial, sans-serif;
+  cursor: pointer;
+  outline: none;
+}
+select.pz-fr-select:focus {
+  border-color: #a99bfa;
+  box-shadow: 0 0 0 3px rgba(91, 61, 245, 0.14);
+}
+input.pz-fr-range {
+  width: 110px;
+  accent-color: #5b3df5;
+  cursor: pointer;
+}
+.pz-fr-val {
+  min-width: 44px;
+  padding: 4px 7px;
+  border-radius: 7px;
+  background: #f1edff;
+  color: #4b30dc;
+  font: 700 12px/1 Inter, Arial, sans-serif;
+  text-align: center;
+}
+button.pz-fr-fix {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 12px;
+  border: none;
+  border-radius: 9px;
+  background: linear-gradient(180deg, #f59e0b 0%, #d97706 100%);
+  color: #fff;
+  font: 700 12.5px/1 Inter, Arial, sans-serif;
+  cursor: pointer;
+  box-shadow: 0 6px 14px rgba(217, 119, 6, 0.32);
+  animation: pz-fr-nudge 1.6s ease-in-out 2;
+}
+.pz-framing-bar button.pz-fr-fix .material-symbols-outlined {
+  font-size: 17px !important;
+}
+button.pz-fr-fix:hover {
+  filter: brightness(1.06);
+}
+@keyframes pz-fr-nudge {
+  50% {
+    box-shadow: 0 6px 14px rgba(217, 119, 6, 0.32), 0 0 0 5px rgba(245, 158, 11, 0.22);
+  }
+}
+
+/* --- Saved views ------------------------------------------------------------ */
+.pz-fr-views-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 2px;
+  font: 700 12px/1 Inter, Arial, sans-serif;
+  color: #fff;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
+}
+.pz-fr-views-title .material-symbols-outlined {
+  font-size: 16px;
+}
+.pz-fr-view {
+  position: relative;
+  border-radius: 11px;
+  background: #fff;
+  box-shadow: 0 6px 16px rgba(15, 18, 34, 0.2);
+  transition: box-shadow 0.15s, transform 0.15s;
+}
+.pz-fr-view:hover {
+  transform: translateY(-1px);
+}
+.pz-fr-view.is-on {
+  box-shadow: 0 0 0 2px #5b3df5, 0 6px 16px rgba(15, 18, 34, 0.2);
+}
+button.pz-fr-view-go {
+  display: block;
+  width: 100%;
+  padding: 9px 26px 9px 11px;
+  border: none;
+  border-radius: 11px;
+  background: transparent;
+  color: #172033;
+  font: 600 12.5px/1.2 Inter, Arial, sans-serif;
+  text-align: left;
+  cursor: pointer;
+}
+.pz-fr-view.is-on button.pz-fr-view-go {
+  color: #4b30dc;
+}
+button.pz-fr-view-del {
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  width: 20px;
+  height: 20px;
+  transform: translateY(-50%);
+  place-items: center;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: #9aa1b0;
+  font-size: 11px;
+  cursor: pointer;
+}
+button.pz-fr-view-del:hover {
+  background: #fef2f2;
+  color: #dc2626;
+}
+button.pz-fr-save {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 9px 10px;
+  border: 1px dashed #c9c2f8;
+  border-radius: 11px;
+  background: rgba(255, 255, 255, 0.96);
+  color: #4b30dc;
+  font: 700 12.5px/1 Inter, Arial, sans-serif;
+  cursor: pointer;
+  box-shadow: 0 6px 16px rgba(15, 18, 34, 0.18);
+  white-space: nowrap;
+}
+button.pz-fr-save .material-symbols-outlined {
+  font-size: 17px;
+}
+button.pz-fr-save:hover {
+  background: #f8f6ff;
+}
+.pz-fr-view--form {
+  padding: 8px;
+}
+input.pz-fr-input {
+  width: 100%;
+  height: 32px;
+  padding: 0 9px;
+  border: 1px solid #e6e8ee;
+  border-radius: 8px;
+  color: #172033;
+  font: 500 12.5px/1 Inter, Arial, sans-serif;
+  outline: none;
+}
+input.pz-fr-input:focus {
+  border-color: #a99bfa;
+  box-shadow: 0 0 0 3px rgba(91, 61, 245, 0.14);
+}
+.pz-fr-form-actions {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 7px;
+}
+button.pz-fr-link {
+  padding: 3px 4px;
+  border: none;
+  background: none;
+  color: #697386;
+  font: 600 12px/1 Inter, Arial, sans-serif;
+  cursor: pointer;
+}
+button.pz-fr-link--primary {
+  color: #4b30dc;
+  font-weight: 700;
+}
+
+/* --- Bottom: the error and Cancel / Use this view ------------------------ */
+.pz-fr-error {
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: #fef2f2;
+  color: #991b1b;
+  font: 600 12.5px/1.3 Inter, Arial, sans-serif;
+  box-shadow: 0 6px 16px rgba(15, 18, 34, 0.18);
+}
+button.pz-fr-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 44px;
+  padding: 0 20px;
+  border-radius: 12px;
+  font: 700 14px/1 Inter, Arial, sans-serif;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.2s ease, filter 0.15s;
+}
+button.pz-fr-btn--ghost {
+  border: 1px solid #e6e8ee;
+  background: #fff;
+  color: #172033;
+  box-shadow: 0 8px 20px rgba(15, 18, 34, 0.2);
+}
+button.pz-fr-btn--ghost:hover {
+  background: #f6f7fb;
+}
+button.pz-fr-btn--primary {
+  border: none;
+  color: #fff;
+  background: linear-gradient(180deg, #6a50f7 0%, #5b3df5 100%);
+  box-shadow: 0 10px 24px rgba(91, 61, 245, 0.42);
+}
+button.pz-fr-btn--primary .material-symbols-outlined {
+  font-size: 19px;
+  transition: transform 0.15s ease;
+}
+button.pz-fr-btn--primary:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.06);
+}
+button.pz-fr-btn--primary:hover .material-symbols-outlined {
+  transform: translateX(3px);
+}
+button.pz-fr-btn:active {
+  transform: scale(0.97);
+}
+.pz-fr-bar button:focus-visible,
+button.pz-fr-btn:focus-visible,
+button.pz-fr-save:focus-visible,
+button.pz-fr-view-go:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px #fff, 0 0 0 5px rgba(91, 61, 245, 0.55);
+}
+@media (prefers-reduced-motion: reduce) {
+  button.pz-fr-fix {
+    animation: none;
+  }
+}
+
+/* --- Compact: a third step down (type everywhere; controls on a computer) - */
+@media (min-width: 1101px) {
+  button.pz-fr-btn {
+    height: 38px;
+    font-size: 13px;
+  }
+}

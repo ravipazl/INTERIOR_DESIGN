@@ -21,7 +21,7 @@ const RoomPanelModalCard: React.FC<roomPanelModalCardProps> = ({
 }) => {
   return (
     <div
-      className="w-[210px] m-1.5 px-3 py-2.5 flex items-center gap-2 rounded-lg bg-white dark:bg-neutral-700 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07),0_10px_20px_-2px_rgba(0,0,0,0.04)] hover:bg-[#F5F4FD] dark:hover:bg-neutral-600 transition-colors"
+      className="pz-items-row w-[210px] m-1.5 flex items-center gap-2"
       key={childItem.data.id}
       style={{ cursor: "pointer" }}
       onClick={onSelectedChildrenNode}
@@ -30,7 +30,7 @@ const RoomPanelModalCard: React.FC<roomPanelModalCardProps> = ({
       {/* Wraps rather than truncates: these names differ at the END
           ("… along basic handles" / "… along profile handles"), so cutting the
           tail would leave two cards looking identical. */}
-      <h5 className="flex-1 min-w-0 text-xs font-semibold leading-snug text-neutral-800 dark:text-neutral-50">
+      <h5 className="pz-items-row-name flex-1 min-w-0">
         {childItem?.data.name}
       </h5>
       <svg
@@ -42,7 +42,7 @@ const RoomPanelModalCard: React.FC<roomPanelModalCardProps> = ({
         strokeWidth="2"
         strokeLinecap="round"
         strokeLinejoin="round"
-        className="shrink-0 text-neutral-400 dark:text-neutral-300"
+        className="pz-items-row-chev shrink-0"
         aria-hidden="true"
       >
         <path d="m9 18 6-6-6-6" />

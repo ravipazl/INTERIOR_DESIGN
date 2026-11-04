@@ -1,4 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import "@pazl/components/Dialog/dialog.css";
 import { ModelsService } from "@pazl/services/ModelsService";
 import { CategoriesService } from "@pazl/services/categoriesService";
 import { Category } from "@pazl/entities/Category";
@@ -67,6 +69,14 @@ function GenerateFromPhotoModal({
   onSuccess,
 }: GenerateFromPhotoModalProps) {
   const [image, setImage] = useState<File | null>(null);
+  // A thumbnail of the chosen photo, in its picker. Released when replaced.
+  const imageUrl = useMemo(() => (image ? URL.createObjectURL(image) : ""), [image]);
+  useEffect(
+    () => () => {
+      if (imageUrl) URL.revokeObjectURL(imageUrl);
+    },
+    [imageUrl]
+  );
   const [name, setName] = useState("");
   const [categoryId, setCategoryId] = useState("");
   const [faceLimit, setFaceLimit] = useState<number>(5000);
@@ -329,36 +339,50 @@ function GenerateFromPhotoModal({
     return m > 0 ? `${m}m ${r}s` : `${r}s`;
   };
 
-  return (
+  // Into <body>, so the panel it is opened from cannot clip it.
+  return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+      className="pz-dlg-backdrop"
       onClick={isRunning ? undefined : onClose}
     >
       <div
-        className="bg-white dark:bg-[#333333] rounded-lg shadow-xl w-[560px] max-w-[95vw] max-h-[90vh] overflow-y-auto"
+        className="pz-dlg pz-dlg--wide pz-dlg--gen"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="pz-gen-title"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between px-5 py-3 border-b border-neutral-200 dark:border-neutral-700">
-          <h3 className="font-semibold text-base text-[#414063] dark:text-white">
-            Generate 3D model from photo
-          </h3>
+        <div className="pz-dlg-head">
+          <div className="pz-dlg-head-row">
+            <span className="pz-dlg-badge pz-dlg-badge--violet" aria-hidden="true">
+              <span className="material-symbols-outlined">auto_awesome</span>
+            </span>
+            <div>
+              <h3 id="pz-gen-title" className="pz-dlg-title">
+                Generate a 3D model
+              </h3>
+              <p className="pz-dlg-sub">From a photo, added to your catalogue.</p>
+            </div>
+          </div>
           <button
+            type="button"
             onClick={onClose}
             disabled={isRunning}
-            className="text-2xl leading-none text-neutral-500 hover:text-neutral-800 disabled:opacity-30"
+            className="pz-dlg-close"
+            aria-label="Close"
           >
-            ×
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true">
+              <path d="M6 6l12 12M18 6 6 18" />
+            </svg>
           </button>
         </div>
 
-        <div className="p-5 space-y-4">
+        <div className="pz-dlg-body">
           {/* Engine — Tripo (as before) or Claude + Blender */}
           {!inPreview && (
             <div>
-              <div className="text-sm font-semibold text-neutral-700 dark:text-neutral-200 mb-1">
-                How should it be generated?
-              </div>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="pz-dlg-label mb-2">How should it be generated?</div>
+              <div className="pz-dlg-choices">
                 {(
                   [
                     {
@@ -381,16 +405,18 @@ function GenerateFromPhotoModal({
                       type="button"
                       disabled={disabled}
                       onClick={() => setEngine(o.id)}
-                      className={`text-left rounded border px-3 py-2 disabled:opacity-50 ${
-                        engine === o.id
-                          ? "border-[#414063] bg-[#414063]/5 ring-1 ring-[#414063]"
-                          : "border-neutral-300 dark:border-neutral-600 hover:bg-neutral-50 dark:hover:bg-neutral-800"
-                      }`}
+                      aria-pressed={engine === o.id}
+                      className={`pz-dlg-choice${engine === o.id ? " is-on" : ""}`}
                     >
-                      <div className="text-sm font-semibold text-[#414063] dark:text-white">
+                      <span className="pz-dlg-choice-ic" aria-hidden="true">
+                        <span className="material-symbols-outlined">
+                          {o.id === "tripo" ? "bolt" : "view_in_ar"}
+                        </span>
+                      </span>
+                      <div className="pz-dlg-choice-title">
                         {o.title}
                       </div>
-                      <div className="text-xs text-neutral-500 dark:text-neutral-400">
+                      <div className="pz-dlg-choice-sub">
                         {o.id === "claude-blender" && !claudeAvailable
                           ? "Not available on this server right now."
                           : o.sub}
@@ -403,10 +429,14 @@ function GenerateFromPhotoModal({
           )}
 
           {!inPreview && (
-            <div className="text-xs px-3 py-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded text-amber-800 dark:text-amber-200">
+            <div className="pz-dlg-warn">
+              <span className="material-symbols-outlined pz-dlg-warn-ic" aria-hidden="true">
+                schedule
+              </span>
+              <div>
               {isClaude ? (
                 <>
-                  ⓘ Takes about 1–3 minutes. You see a preview first — nothing
+                  Takes about 1–3 minutes. You see a preview first — nothing
                   is added to the catalogue until you press{" "}
                   <b>Add to catalogue</b>.
                   {claudeOptions && (
@@ -417,8 +447,9 @@ function GenerateFromPhotoModal({
                   )}
                 </>
               ) : (
-                "ⓘ Generation takes 45-180 seconds and consumes Tripo credits."
+                "Generation takes 45-180 seconds and consumes Tripo credits."
               )}
+              </div>
             </div>
           )}
 
@@ -433,7 +464,7 @@ function GenerateFromPhotoModal({
               <img
                 src={`${API_BASE}${preview.previewUrl}`}
                 alt="Preview of the generated model"
-                className="w-full rounded border border-neutral-200 dark:border-neutral-700 bg-neutral-100"
+                className="pz-dlg-preview"
               />
               <div className="text-sm text-neutral-700 dark:text-neutral-200">
                 <span className="font-semibold">
@@ -557,10 +588,13 @@ function GenerateFromPhotoModal({
 
           {/* Image picker */}
           <label className="block">
-            <div className="border-2 border-dashed border-neutral-300 dark:border-neutral-600 rounded-lg p-6 text-center cursor-pointer hover:bg-neutral-50 dark:hover:bg-neutral-800">
+            <div className="pz-dlg-drop text-center cursor-pointer">
               {image ? (
-                <div>
-                  <p className="text-sm font-medium text-neutral-700 dark:text-neutral-200 truncate">
+                <div className="pz-dlg-drop-picked">
+                  {imageUrl ? (
+                    <img src={imageUrl} alt="" className="pz-dlg-drop-thumb" />
+                  ) : null}
+                  <p className="text-sm font-semibold text-[#172033] truncate">
                     {image.name}
                   </p>
                   <p className="text-xs text-neutral-500 mt-1">
@@ -569,7 +603,10 @@ function GenerateFromPhotoModal({
                 </div>
               ) : (
                 <>
-                  <p className="text-sm text-neutral-600 dark:text-neutral-300">
+                  <span className="pz-dlg-drop-ic" aria-hidden="true">
+                    <span className="material-symbols-outlined">add_photo_alternate</span>
+                  </span>
+                  <p className="text-sm font-semibold text-[#172033]">
                     Click to choose a photo (JPG, PNG, WebP)
                   </p>
                   <p className="text-xs text-neutral-400 mt-1">Max 10 MB.</p>
@@ -756,11 +793,7 @@ function GenerateFromPhotoModal({
                       key={preset}
                       type="button"
                       onClick={() => setFaceLimit(preset)}
-                      className={`px-1.5 py-0.5 rounded border ${
-                        faceLimit === preset
-                          ? "bg-[#414063] text-white border-[#414063]"
-                          : "bg-white dark:bg-neutral-700 text-neutral-600 dark:text-neutral-300 border-neutral-300 dark:border-neutral-600 hover:bg-neutral-100"
-                      }`}
+                      className={`pz-dlg-chip${faceLimit === preset ? " is-on" : ""}`}
                     >
                       {preset >= 1000 ? `${preset / 1000}k` : preset}
                     </button>
@@ -872,11 +905,12 @@ function GenerateFromPhotoModal({
           )}
         </div>
 
-        <div className="flex items-center justify-end gap-2 px-5 py-3 border-t border-neutral-200 dark:border-neutral-700">
+        <div className="pz-dlg-foot">
           <button
+            type="button"
             onClick={onClose}
             disabled={isRunning}
-            className="px-4 py-1.5 text-sm border rounded text-neutral-600 hover:bg-neutral-100 disabled:opacity-40"
+            className="pz-dlg-btn pz-dlg-btn--ghost pz-dlg-foot-left"
           >
             {stage === "done" ? "Close" : stage === "preview_ready" ? "Discard" : "Cancel"}
           </button>
@@ -890,14 +924,14 @@ function GenerateFromPhotoModal({
                     ? "Daily limit reached"
                     : "Run again — counts toward today's limit"
                 }
-                className="px-4 py-1.5 text-sm border rounded text-[#414063] hover:bg-neutral-100 disabled:opacity-40"
+                className="pz-dlg-btn pz-dlg-btn--outline"
               >
                 Try again
               </button>
               <button
                 onClick={handleAccept}
                 disabled={isRunning || !preview}
-                className="px-4 py-1.5 text-sm rounded bg-[#414063] text-white disabled:opacity-40"
+                className="pz-dlg-btn pz-dlg-btn--primary"
               >
                 {stage === "accepting" ? "Adding…" : "Add to catalogue"}
               </button>
@@ -912,7 +946,7 @@ function GenerateFromPhotoModal({
                   !categoryId ||
                   (isClaude && (!sizeOk || claudeLeft <= 0))
                 }
-                className="px-4 py-1.5 text-sm rounded bg-[#414063] text-white disabled:opacity-40"
+                className="pz-dlg-btn pz-dlg-btn--primary"
               >
                 {isRunning ? "Generating…" : "Generate"}
               </button>
@@ -920,7 +954,8 @@ function GenerateFromPhotoModal({
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 

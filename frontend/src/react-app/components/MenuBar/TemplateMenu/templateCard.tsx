@@ -1,9 +1,5 @@
 import React from "react";
-import { TERipple } from "tw-elements-react";
-import {
-  ChildTemplateCardProps,
-  TemplateCardProps,
-} from "../../../models/template.card";
+import { ChildTemplateCardProps } from "../../../models/template.card";
 
 const TemplateCard = ({
   template,
@@ -11,52 +7,37 @@ const TemplateCard = ({
   onRequestDelete,
 }: ChildTemplateCardProps) => {
   return (
-    <div
-      className="relative w-[200px] h-[300px] flex flex-col flex-shrink-0 items-center border-slate-400 rounded-lg bg-white shadow-[0px_0px_8px_0_rgba(0,0,0,0.15)] p-4 m-1 dark:bg-neutral-700"
-      key={template.id}
-    >
+    <div className="pz-tm-card" key={template.id}>
       {template.isCustom && onRequestDelete && (
         <button
           type="button"
           title="Delete this template"
+          aria-label={`Delete ${template.title}`}
           onClick={(e) => {
             e.stopPropagation();
             onRequestDelete(template);
           }}
-          className="absolute top-1.5 right-1.5 z-10 flex h-6 w-6 items-center justify-center rounded-full text-base leading-none text-gray-400 hover:bg-red-500 hover:text-white"
+          className="pz-tm-del"
         >
-          ×
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" aria-hidden="true">
+            <path d="M6 6l12 12M18 6 6 18" />
+          </svg>
         </button>
       )}
-      <img
-        src={template.coverImageUrl}
-        alt={template.title}
-        className="h-28 w-full object-contain mb-2"
-      />
-      <div className="flex flex-col flex-1 w-full">
-        <h5 className="font-semibold text-sm text-center pb-1 dark:text-[#FFFFFF]">
-          {template.title}
-        </h5>
-        <p className="font-normal text-sm text-center pb-2 dark:text-[#FFFFFF]">{template.size}</p>
-        <TERipple className="flex justify-center mt-auto">
-          <button
-            type="button"
-            onClick={onTemplateSelect}
-            className="inline-block rounded bg-primary px-6 pb-2 pt-2.5 text-xs font-medium 
-                        uppercase leading-normal text-white shadow-[0_4px_9px_-4px_#3b71ca] transition 
-                        duration-150 ease-in-out hover:bg-primary-600 
-                        hover:shadow-[0_8px_9px_-4px_rgba(59,113,202,0.3),0_4px_18px_0_rgba(59,113,202,0.2)] 
-                        focus:bg-primary-600 focus:shadow-[0_8px_9px_-4px_rgba(59,113,202,0.3),0_4px_18px_0_rgba(59,113,202,0.2)] 
-                        focus:outline-none focus:ring-0 active:bg-primary-700 active:shadow-[0_8px_9px_-4px_rgba(59,113,202,0.3),0_4px_18px_0_rgba(59,113,202,0.2)] 
-                        dark:shadow-[0_4px_9px_-4px_rgba(59,113,202,0.5)] 
-                        dark:hover:shadow-[0_8px_9px_-4px_rgba(59,113,202,0.2),0_4px_18px_0_rgba(59,113,202,0.1)] 
-                        dark:focus:shadow-[0_8px_9px_-4px_rgba(59,113,202,0.2),0_4px_18px_0_rgba(59,113,202,0.1)] 
-                        dark:active:shadow-[0_8px_9px_-4px_rgba(59,113,202,0.2),0_4px_18px_0_rgba(59,113,202,0.1)]"
-          >
-            Select
-          </button>
-        </TERipple>
+      <div className="pz-tm-thumb">
+        <img src={template.coverImageUrl} alt={template.title} />
       </div>
+      <div className="pz-tm-info">
+        <h5 className="pz-tm-name">{template.title}</h5>
+        <span
+          className={`pz-tm-size${template.isCustom ? " pz-tm-size--custom" : ""}`}
+        >
+          {template.size}
+        </span>
+      </div>
+      <button type="button" onClick={onTemplateSelect} className="pz-tm-btn pz-tm-btn--primary pz-tm-use">
+        Use this plan
+      </button>
     </div>
   );
 };

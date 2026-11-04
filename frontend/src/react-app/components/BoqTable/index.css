@@ -748,3 +748,422 @@ button.bq-primary:disabled { opacity: .45; cursor: default; }
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* ===========================================================================
+   The page around the BOQ document, in the app's look: a header bar with the
+   actions, rounded indigo controls, and the material dialog styled like the
+   other pop-ups. The document itself (.gsw-*, the room tables) is left as it
+   is — it is what goes into the client's PDF.
+   =========================================================================== */
+.pz-boq-bar {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin: 14px 16px 6px;
+  padding: 14px 18px;
+  border: 1px solid #e9ebf0;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.97);
+  box-shadow: 0 1px 2px rgba(23, 32, 51, 0.04), 0 8px 22px rgba(23, 32, 51, 0.06);
+  font-family: Inter, Arial, sans-serif;
+}
+.pz-boq-heading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+.pz-boq-badge {
+  width: 40px;
+  height: 40px;
+  flex: none;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  background: #ede9fe;
+  color: #7c3aed;
+}
+.pz-boq-badge .material-symbols-outlined {
+  font-size: 22px;
+  font-variation-settings: "wght" 500;
+}
+.pz-boq-badge--sm {
+  width: 36px;
+  height: 36px;
+  border-radius: 11px;
+}
+.pz-boq-badge--sm .material-symbols-outlined {
+  font-size: 20px;
+}
+h1.pz-boq-title {
+  margin: 0;
+  font: 800 19px/1.2 Inter, Arial, sans-serif;
+  letter-spacing: -0.01em;
+  color: #172033;
+}
+.pz-boq-sub {
+  margin: 2px 0 0;
+  font: 400 13px/1.35 Inter, Arial, sans-serif;
+  color: #697386;
+}
+.pz-boq-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.pz-boq-actions .bq-pdf-hint {
+  font-weight: 600;
+}
+button.pz-boq-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 40px;
+  padding: 0 16px;
+  border-radius: 11px;
+  font: 600 14px/1 Inter, Arial, sans-serif;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: transform 0.15s ease, box-shadow 0.2s ease, filter 0.15s,
+    background-color 0.15s;
+}
+button.pz-boq-btn .material-symbols-outlined {
+  font-size: 19px;
+}
+button.pz-boq-btn--ghost {
+  border: 1px solid #e6e8ee;
+  background: #fff;
+  color: #172033;
+  box-shadow: 0 1px 2px rgba(23, 32, 51, 0.05);
+}
+button.pz-boq-btn--ghost .material-symbols-outlined {
+  color: #16a34a;
+}
+button.pz-boq-btn--ghost:hover:not(:disabled) {
+  transform: translateY(-1px);
+  border-color: #cfd3dd;
+  box-shadow: 0 6px 14px rgba(23, 32, 51, 0.1);
+}
+button.pz-boq-btn--primary {
+  border: none;
+  color: #fff;
+  background: linear-gradient(180deg, #6a50f7 0%, #5b3df5 100%);
+  box-shadow: 0 6px 16px rgba(91, 61, 245, 0.3);
+}
+button.pz-boq-btn--primary:hover:not(:disabled) {
+  transform: translateY(-1px);
+  filter: brightness(1.06);
+  box-shadow: 0 10px 22px rgba(91, 61, 245, 0.36);
+}
+button.pz-boq-btn:active:not(:disabled) {
+  transform: scale(0.97);
+}
+button.pz-boq-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+button.pz-boq-btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px #fff, 0 0 0 5px rgba(91, 61, 245, 0.55);
+}
+
+/* --- Controls inside the rooms (on screen; not in the client PDF) -------- */
+button.bq-primary {
+  border: none;
+  border-radius: 9px;
+  padding: 8px 14px;
+  background: linear-gradient(180deg, #6a50f7 0%, #5b3df5 100%);
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(91, 61, 245, 0.28);
+  transition: transform 0.15s ease, filter 0.15s;
+}
+button.bq-primary:hover:not(:disabled) {
+  transform: translateY(-1px);
+  filter: brightness(1.06);
+}
+.bq-btn {
+  border-radius: 8px;
+  padding: 5px 12px;
+  font-weight: 600;
+}
+.bq-btn.primary {
+  border-color: #5b3df5;
+  background: #5b3df5;
+}
+.bq-btn.primary:hover {
+  background: #4b30dc;
+}
+.bq-room-mat {
+  border-radius: 9px;
+  padding: 7px 12px;
+  color: #4b30dc;
+  border-color: #ddd6fe;
+  background: #f8f6ff;
+  transition: background-color 0.15s, border-color 0.15s;
+}
+.bq-room-mat:hover:not(:disabled) {
+  background: #f1edff;
+  border-color: #c4b8fb;
+}
+.bq-pdf-toggle.on .bq-pdf-switch {
+  background: #5b3df5;
+}
+.bq-xadd {
+  border-radius: 8px;
+  padding: 5px 12px;
+  font-weight: 600;
+}
+.bq-input,
+.bq-xinput,
+.bq-textarea {
+  border-color: #e2e5eb;
+  border-radius: 8px;
+}
+.bq-input:focus,
+.bq-xinput:focus,
+.bq-textarea:focus {
+  outline: none;
+  border-color: #a99bfa;
+  box-shadow: 0 0 0 3px rgba(91, 61, 245, 0.14);
+}
+.bq-actions button {
+  border-radius: 7px;
+}
+.bq-actions button:hover {
+  background: #f1edff;
+  color: #4b30dc;
+}
+
+/* --- Material configuration dialog ----------------------------------------- */
+.bq-modal-back {
+  background: rgba(15, 18, 34, 0.48);
+  animation: pz-boq-fade 0.18s ease-out both;
+}
+.bq-modal {
+  max-width: 600px;
+  border-radius: 18px;
+  font-family: Inter, Arial, sans-serif;
+  box-shadow: 0 24px 60px rgba(15, 18, 34, 0.28), 0 2px 6px rgba(15, 18, 34, 0.08);
+  animation: pz-boq-pop 0.22s cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
+}
+@keyframes pz-boq-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes pz-boq-pop {
+  from { opacity: 0; transform: translateY(10px) scale(0.97); }
+  to { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bq-modal-back,
+  .bq-modal {
+    animation: none;
+  }
+}
+.bq-modal-head {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  column-gap: 12px;
+  align-items: center;
+  padding: 18px 24px 14px;
+  border-bottom-color: #e9ebf0;
+}
+.bq-modal-head .pz-boq-badge {
+  grid-row: span 2;
+}
+.bq-modal-head > b {
+  font: 800 18px/1.25 Inter, Arial, sans-serif;
+  color: #172033;
+}
+.bq-modal-head .bq-modal-sub {
+  font-size: 13px;
+  color: #697386;
+}
+.bq-modal-body {
+  padding: 6px 24px 18px;
+}
+.bq-modal-sec {
+  margin: 18px 0 10px;
+  padding-bottom: 6px;
+  font-size: 11px;
+  color: #4b30dc;
+  border-bottom-color: #ece9fb;
+}
+.bq-rm-sec input {
+  width: 17px;
+  height: 17px;
+  accent-color: #5b3df5;
+}
+.bq-rm-lab {
+  font-size: 12px;
+  font-weight: 600;
+  color: #4d5566;
+}
+.bq-rm-field select.bq-input {
+  height: 38px;
+  padding: 0 10px;
+  font-size: 13px;
+  color: #172033;
+  background: #fff;
+}
+.bq-input.bq-rm-fin-search {
+  height: 38px;
+  padding: 0 12px;
+  font-size: 13px;
+}
+.bq-rm-fin-grid {
+  border-color: #e6e8ee;
+  border-radius: 12px;
+  background: #f8f9fc;
+}
+.bq-rm-tile {
+  border-radius: 10px;
+  transition: background-color 0.15s, border-color 0.15s;
+}
+.bq-rm-tile:hover {
+  background: #f1edff;
+}
+.bq-rm-tile.on {
+  border-color: #5b3df5;
+  background: #f1edff;
+}
+.bq-rm-tile-img {
+  border-radius: 7px;
+}
+.bq-rm-warn {
+  border-radius: 10px;
+  padding: 9px 12px;
+  font-size: 12.5px;
+}
+.bq-modal-foot {
+  padding: 14px 24px 18px;
+  border-top-color: #e9ebf0;
+  background: #fff;
+  border-radius: 0 0 18px 18px;
+}
+.bq-modal-foot .bq-modal-sub {
+  font-size: 12.5px;
+  color: #697386;
+}
+.bq-modal-foot button.bq-modal-cancel {
+  height: 40px;
+  padding: 0 16px;
+  border: 1px solid #e6e8ee;
+  border-radius: 10px;
+  background: #fff;
+  color: #172033;
+  font: 600 14px/1 Inter, Arial, sans-serif;
+  text-decoration: none;
+}
+.bq-modal-foot button.bq-modal-cancel:hover:not(:disabled) {
+  background: #f6f7fb;
+}
+.bq-modal-foot button.bq-primary {
+  height: 40px;
+  padding: 0 18px;
+  border-radius: 10px;
+  font: 600 14px/1 Inter, Arial, sans-serif;
+}
+
+/* --- Smaller type and icons (one size down across the app) --------------- */
+h1.pz-boq-title {
+  font-size: 17px;
+}
+.pz-boq-sub {
+  font-size: 12.5px;
+}
+.pz-boq-badge {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+}
+.pz-boq-badge .material-symbols-outlined {
+  font-size: 19px;
+}
+.bq-modal-head > b {
+  font-size: 16px;
+}
+.bq-modal-head .bq-modal-sub {
+  font-size: 12.5px;
+}
+
+/* --- ...and one more small step down ------------------------------------- */
+h1.pz-boq-title {
+  font-size: 16px;
+}
+.pz-boq-sub {
+  font-size: 12px;
+}
+.pz-boq-badge {
+  width: 32px;
+  height: 32px;
+}
+.bq-modal-head > b {
+  font-size: 15px;
+}
+.bq-modal-head .bq-modal-sub {
+  font-size: 12px;
+}
+
+/* --- Compact: a third step down (type everywhere; controls on a computer) - */
+h1.pz-boq-title {
+  font-size: 15px;
+}
+.pz-boq-sub {
+  font-size: 11.5px;
+}
+.pz-boq-badge {
+  width: 30px;
+  height: 30px;
+}
+.bq-modal-head > b {
+  font-size: 14.5px;
+}
+@media (min-width: 1101px) {
+  button.pz-boq-btn {
+    height: 34px;
+    padding: 0 14px;
+    font-size: 13px;
+  }
+  .bq-modal-foot button.bq-modal-cancel,
+  .bq-modal-foot button.bq-primary {
+    height: 36px;
+    font-size: 13px;
+  }
+}
+
+/* --- Table headers, sidebar and editor icons: one more step down ---------- */
+.bq-table th {
+  font-size: 11px;
+}
+.bq-mesh-tbl th {
+  font-size: 9.5px;
+}
+
+/* --- Tables: one more step down ------------------------------------------ */
+.bq-table {
+  font-size: 11.5px;
+}
+.bq-table th {
+  font-size: 10.5px;
+}
+
+/* --- Tables: smaller still ----------------------------------------------- */
+.bq-table {
+  font-size: 11px;
+}
+.bq-table th {
+  font-size: 10px;
+}
+
+/* --- Table headers: a little larger again ----------------------------------- */
+.bq-table th {
+  font-size: 11px;
+}

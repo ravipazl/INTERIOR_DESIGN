@@ -1,10 +1,17 @@
 import React from "react";
 import Modal from "react-bootstrap/Modal";
 import { Button } from "react-bootstrap";
+import "../PzTable/Modal.css";
 
 function ConfirmationModal({ show, onHide, body, onConfirm }) {
   return (
-    <Modal show={show} onHide={onHide} centered>
+    <Modal
+      show={show}
+      onHide={onHide}
+      centered
+      className="pz-modal pz-confirm"
+      backdropClassName="pz-modal-backdrop"
+    >
       <Modal.Header className="d-flex justify-content-center bg-danger">
         <Modal.Title className="fs-16 text-white">Confirmation</Modal.Title>
       </Modal.Header>

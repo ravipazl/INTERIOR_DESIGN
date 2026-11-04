@@ -1298,23 +1298,19 @@ const FurnishMenu = ({
           <button
             type="button"
             id="fullRoomViewButton"
-            className="min-w-[44px] h-[46px] px-1 rounded flex flex-col items-center justify-center gap-0.5 transition-colors hover:bg-[color:var(--pz-panel-hover)]"
-            style={{ backgroundColor: showRoomView ? "var(--pz-accent-soft)" : "transparent" }}
+            className={`pz-tb${showRoomView ? " is-on" : ""}`}
+            data-tone="amber"
             title="Generate 2D drawings and rendered views of the whole room"
             onClick={() => setShowRoomView(true)}
           >
-            <span
-              style={{ fontSize: 22, lineHeight: "22px" }}
-              className="material-symbols-outlined font-extralight dark:text-[#ffffff]"
-            >
-              architecture
+            <span className="pz-tb-tile">
+              <span className="material-symbols-outlined pz-tb-ic">
+                architecture
+              </span>
             </span>
-            <p
-              style={{ fontSize: 10.5, lineHeight: "12px", margin: 0, whiteSpace: "nowrap" }}
-              className="menu-button-text dark:text-[#ffffff]"
-            >
+            <span className="pz-tb-label menu-button-text">
               Full Room View
-            </p>
+            </span>
           </button>
         </div>
       </div>

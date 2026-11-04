@@ -311,18 +311,13 @@ const DrawingComponent = ({
                 chevron_left
               </span>
             </button>
-            <div
-              style={{
-                padding: "10px 12px 8px",
-                borderBottom: "1px solid var(--pz-panel-border)",
-                background: "var(--pz-panel-header)",
-              }}
-            >
-              <div
-                style={{ fontSize: 15, fontWeight: 600, color: "var(--pz-text)" }}
-              >
+            <div className="pz-panel-head">
+              <span className="pz-panel-title">
+                <span className="pz-panel-badge" data-tone="pink" aria-hidden="true">
+                  <span className="material-symbols-outlined">floor</span>
+                </span>
                 Floor plan
-              </div>
+              </span>
             </div>
             <div style={{ flex: 1, minHeight: 0, overflow: "auto" }}>
               <FloorPlanTools />

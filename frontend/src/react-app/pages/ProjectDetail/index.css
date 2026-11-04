@@ -19,3 +19,400 @@
     height: 175px;
     background-color: #fff;
 }
+
+/* ===========================================================================
+   Project Detail — the refreshed look, matched to the Projects list (same
+   indigo set, cards, icon buttons). Scoped to `.pz-pd`; the tracker card and
+   the workspace card inside it take their frame from here too.
+   =========================================================================== */
+.pz-pd {
+    --pd-ink: #172033;
+    --pd-ink-2: #697386;
+    --pd-line: #e9ebf0;
+    --pd-accent: #5b3df5;
+    --pd-accent-2: #4b30dc;
+    --pd-tint: #f4f2ff;
+    --pd-card: #fff;
+    --pd-ground: #f6f7fb;
+    --pd-shadow: 0 1px 2px rgba(23, 32, 51, 0.04), 0 6px 18px rgba(23, 32, 51, 0.05);
+    height: 100vh;
+    overflow-y: auto;
+    background: var(--pd-ground);
+    color: var(--pd-ink);
+    font-family: Inter, Arial, sans-serif;
+    padding: 24px 32px 32px;
+}
+.dark .pz-pd {
+    --pd-ink: #f1f2f6;
+    --pd-ink-2: #a3a9b8;
+    --pd-line: #3a3d48;
+    --pd-tint: #2f2a4d;
+    --pd-card: #262830;
+    --pd-ground: #1c1d22;
+}
+
+.pz-pd-inner {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    max-width: 1480px;
+    margin: 0 auto;
+    animation: pz-pd-rise 0.24s ease-out both;
+}
+@keyframes pz-pd-rise {
+    from { opacity: 0.6; transform: translateY(6px); }
+    to { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .pz-pd-inner { animation: none; }
+}
+
+.pz-pd-card {
+    background: var(--pd-card);
+    border: 1px solid var(--pd-line);
+    border-radius: 16px;
+    box-shadow: var(--pd-shadow);
+    padding: 20px 24px;
+}
+
+.pz-pd-h2 {
+    margin: 0;
+    font-size: 17px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    color: var(--pd-ink);
+}
+
+/* --- header -------------------------------------------------------------- */
+.pz-pd-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px;
+    padding-bottom: 18px;
+    border-bottom: 1px solid var(--pd-line);
+}
+.pz-pd-heading {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+}
+.pz-pd-title {
+    margin: 0;
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    color: var(--pd-ink);
+}
+.pz-pd-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.pz-pd button.pz-pd-back,
+.pz-pd button.pz-pd-icon {
+    position: relative;
+    width: 40px;
+    height: 40px;
+    flex: none;
+    padding: 0;
+    border: 1px solid #e6e8ee;
+    border-radius: 12px;
+    background: var(--pd-card);
+    color: #4d5566;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 1px 2px rgba(23, 32, 51, 0.05);
+    transition: transform 0.15s ease, box-shadow 0.2s ease, background-color 0.15s,
+        color 0.15s, border-color 0.15s;
+}
+.pz-pd button.pz-pd-back {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+}
+.pz-pd button.pz-pd-back:hover,
+.pz-pd button.pz-pd-icon:hover {
+    transform: translateY(-1px);
+    background: var(--pd-tint);
+    border-color: #d9d2fd;
+    color: var(--pd-accent-2);
+    box-shadow: 0 6px 14px rgba(91, 61, 245, 0.16);
+}
+.pz-pd button.pz-pd-icon--danger:hover {
+    background: #fef2f2;
+    border-color: #fecaca;
+    color: #dc2626;
+    box-shadow: 0 6px 14px rgba(220, 38, 38, 0.16);
+}
+.pz-pd button.pz-pd-back:active,
+.pz-pd button.pz-pd-icon:active {
+    transform: scale(0.95);
+}
+.pz-pd button:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px #fff, 0 0 0 5px rgba(91, 61, 245, 0.55);
+}
+
+/* The icon's name, shown on hover (no native tooltip: one label is enough). */
+.pz-pd .pz-pd-icon[data-tip]::after {
+    content: attr(data-tip);
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 50%;
+    translate: -50% 4px;
+    padding: 6px 10px;
+    border-radius: 8px;
+    background: #172033;
+    color: #fff;
+    font: 600 12px/1.2 Inter, Arial, sans-serif;
+    white-space: nowrap;
+    box-shadow: 0 6px 16px rgba(23, 32, 51, 0.22);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.15s, translate 0.15s;
+    z-index: 5;
+}
+.pz-pd .pz-pd-icon[data-tip]:hover::after,
+.pz-pd .pz-pd-icon[data-tip]:focus-visible::after {
+    opacity: 1;
+    translate: -50% 0;
+}
+
+.pz-pd button.pz-pd-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    height: 40px;
+    padding: 0 18px;
+    border: none;
+    border-radius: 12px;
+    font: 600 14px/1 Inter, Arial, sans-serif;
+    color: #fff;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: transform 0.15s ease, box-shadow 0.2s ease, filter 0.15s;
+}
+.pz-pd button.pz-pd-btn--primary {
+    background: linear-gradient(180deg, #6a50f7 0%, #5b3df5 100%);
+    box-shadow: 0 6px 16px rgba(91, 61, 245, 0.3);
+}
+.pz-pd button.pz-pd-btn--dark {
+    background: linear-gradient(180deg, #4b4a70 0%, #414063 100%);
+    box-shadow: 0 6px 16px rgba(65, 64, 99, 0.28);
+}
+.pz-pd button.pz-pd-btn:hover:not(:disabled) {
+    transform: translateY(-1px);
+    filter: brightness(1.06);
+    box-shadow: 0 10px 22px rgba(91, 61, 245, 0.36);
+}
+.pz-pd button.pz-pd-btn:active:not(:disabled) {
+    transform: scale(0.97);
+}
+.pz-pd button.pz-pd-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* --- project info ---------------------------------------------------------- */
+.pz-pd-info {
+    margin: 0;
+    padding-top: 18px;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.pz-pd-col {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 0 24px;
+    border-left: 1px solid var(--pd-line);
+    min-width: 0;
+}
+.pz-pd-col:first-child {
+    padding-left: 0;
+    border-left: none;
+}
+.pz-pd-field {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+}
+.pz-pd-field dt {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--pd-ink-2);
+}
+.pz-pd-field dd {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--pd-ink);
+    overflow-wrap: anywhere;
+}
+.pz-pd-status {
+    --pz-status: #888;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--pz-status);
+    background: color-mix(in srgb, var(--pz-status) 12%, transparent);
+    border: 1px solid color-mix(in srgb, var(--pz-status) 30%, transparent);
+}
+.pz-pd-status::before {
+    content: "";
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--pz-status);
+}
+
+@media (max-width: 1100px) {
+    .pz-pd-info {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        row-gap: 14px;
+    }
+    .pz-pd-col:nth-child(3) {
+        padding-left: 0;
+        border-left: none;
+    }
+}
+@media (max-width: 700px) {
+    .pz-pd { padding: 16px; }
+    .pz-pd-info { grid-template-columns: 1fr; }
+    .pz-pd-col { padding-left: 0; border-left: none; }
+}
+
+/* --- tracker card ------------------------------------------------------------ */
+.pz-pd-tracker-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+}
+.pz-pd-stepcount {
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: var(--pd-tint);
+    color: var(--pd-accent-2);
+    font-size: 12px;
+    font-weight: 700;
+}
+.pz-pd-progress {
+    height: 8px;
+    border-radius: 999px;
+    overflow: hidden;
+    background: #e3f1ea;
+}
+.pz-pd-progress > div {
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, #12896b 0%, #0f6e56 100%);
+    transition: width 0.4s ease;
+}
+
+/* --- notices (quote accepted, rejected, closed …) -------------------------- */
+.pz-pd-banner {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 14px 18px;
+    border-radius: 14px;
+    border: 1px solid;
+    font-size: 14px;
+    font-weight: 500;
+}
+.pz-pd-banner--info { background: #eef4ff; border-color: #d6e4f5; color: #1f2033; }
+.pz-pd-banner--warn { background: #fff7ed; border-color: #fed7aa; color: #9a3412; }
+.pz-pd-banner--ok { background: #f0fdf4; border-color: #bbf7d0; color: #166534; }
+.pz-pd-banner--bad { background: #fef2f2; border-color: #fecaca; color: #991b1b; }
+.pz-pd-banner--muted { background: #f3f4f6; border-color: #e5e7eb; color: #374151; }
+
+/* --- workspace card ---------------------------------------------------------- */
+.pz-pd-workspace {
+    padding-bottom: 8px;
+    scroll-margin-top: 16px;
+}
+
+/* --- Smaller type and icons (one size down across the app) --------------- */
+.pz-pd-title {
+  font-size: 19px;
+}
+.pz-pd-h2 {
+  font-size: 15px;
+}
+.pz-pd-field dt {
+  font-size: 10.5px;
+}
+.pz-pd-field dd {
+  font-size: 13.5px;
+}
+
+/* --- ...and one more small step down ------------------------------------- */
+.pz-pd-title {
+  font-size: 18px;
+}
+.pz-pd-h2 {
+  font-size: 14px;
+}
+.pz-pd-field dt {
+  font-size: 10px;
+}
+.pz-pd-field dd {
+  font-size: 13px;
+}
+
+/* --- Compact: a third step down (type everywhere; controls on a computer) - */
+.pz-pd-title {
+  font-size: 16px;
+}
+.pz-pd-h2 {
+  font-size: 13.5px;
+}
+.pz-pd-field dd {
+  font-size: 12.5px;
+}
+.pz-pd-stepcount {
+  font-size: 11px;
+}
+.pz-pd-banner {
+  font-size: 13px;
+}
+@media (min-width: 1101px) {
+  .pz-pd button.pz-pd-btn {
+    height: 34px;
+    padding: 0 14px;
+    border-radius: 10px;
+    font-size: 13px;
+  }
+  .pz-pd button.pz-pd-icon {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+  }
+  .pz-pd button.pz-pd-back {
+    width: 32px;
+    height: 32px;
+  }
+  .pz-pd button.pz-pd-icon svg,
+  .pz-pd button.pz-pd-btn svg {
+    width: 16px;
+    height: 16px;
+  }
+}

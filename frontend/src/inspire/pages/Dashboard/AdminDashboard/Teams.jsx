@@ -11,7 +11,6 @@ import "./index.css";
 import Button from "react-bootstrap/Button";
 import AppHeader from "../../../components/AppHeader";
 import ConfirmationModal from "../../../components/ConfirmationModal";
-import TitleHeader from "../../../components/TitleHeader";
 import UserContext from "../../../context/UserContext";
 import { Table, Thead, Tbody, Tr, Th, Td } from "react-super-responsive-table";
 import UserRoleContext from "../../../context/UserRoleContext";
@@ -27,53 +26,29 @@ import InviteTeamsModal from "../../../components/InviteTeamsModal";
 import NavRail from "@pazl/components/NavRail";
 // ToastContainer is already mounted by <AppHeader /> on this page.
 import { toast } from "react-toastify";
-import DataTable, { createTheme } from "react-data-table-component";
-import { styled } from "styled-components";
-import memoize from "memoize-one";
-import CloseIcon from "@mui/icons-material/Close";
+import DataTable from "react-data-table-component";
+import {
+  ActionIcon,
+  ClearIcon,
+  EditIcon,
+  EmptyState,
+  PlusIcon,
+  ROWS_PER_PAGE,
+  SearchIcon,
+  TablePager,
+  TableSkeleton,
+  initialsOf,
+  tableStyles,
+} from "../../../components/PzTable";
 
-const getColorForRole = (role) => {
-  switch (role) {
-    case "admin":
-      return "primary";
-    case "architect":
-      return "secondary";
-    case "user":
-      return "info";
-    default:
-      return "light";
-  }
+// The role as people say it, and its badge colour (Projects.css).
+const ROLE_LABEL = {
+  super_admin: "Super admin",
+  admin: "Admin",
+  architect: "Architect",
+  user: "Client",
 };
-
-const TextField = styled.input`
-  height: 40px;
-  width: 200px;
-  border-radius: 3px;
-  border-top-left-radius: 5px;
-  border-bottom-left-radius: 5px;
-  border-top-right-radius: 0;
-  border-bottom-right-radius: 0;
-  border: 1px solid #e5e5e5;
-  padding: 0 32px 0 16px;
-
-  &:hover {
-    cursor: pointer;
-  }
-`;
-
-const FilterComponent = ({ filterText, onFilter, onClear }) => (
-  <div className="d-flex align-items-lg-center mb-lg-0 mb-2">
-    <TextField
-      id="search"
-      type="text"
-      placeholder="Search by user name"
-      aria-label="Search Input"
-      value={filterText}
-      onChange={onFilter}
-    />
-    <CloseIcon className="close-btn" type="button" onClick={onClear} />
-  </div>
-);
+const roleLabel = (role) => ROLE_LABEL[role] || role || "—";
 
 const Teams = () => {
   const { loading, setLoading } = useContext(UserRoleContext);
@@ -208,36 +183,56 @@ const Teams = () => {
     {
       name: "Name",
       selector: (row) => row.name,
+      // Initials beside the name; an invited member with no name yet still
+      // gets a row you can tell apart, by their email.
+      cell: (row) => (
+        <div className="pzp-person">
+          <span className={`pzp-av pzp-av--${row.permissions || "user"}`}>
+            {initialsOf(row.name || row.email)}
+          </span>
+          <span className="pzp-person-name" title={row.name || row.email}>
+            {row.name || <span className="pzp-muted">No name yet</span>}
+          </span>
+        </div>
+      ),
       sortable: true,
       reorder: true,
+      minWidth: "220px",
     },
     {
       name: "Email",
       selector: (row) => row.email,
+      cell: (row) => <span className="pzp-muted">{row.email}</span>,
       reorder: true,
+      minWidth: "240px",
     },
     {
       name: "Role",
+      selector: (row) => row.permissions,
       cell: (row) => (
-        <Badge variant={getColorForRole(row.permissions)}>
-          {row.permissions}
-        </Badge>
+        <span className={`pzp-role pzp-role--${row.permissions || "none"}`}>
+          {roleLabel(row.permissions)}
+        </span>
       ),
       sortable: true,
       reorder: true,
     },
     {
       name: "Actions",
+      center: true,
+      width: "110px",
       cell: (row) => (
-        <Button
-          variant="outline-primary"
-          onClick={() => {
-            setSelectedUserForEdit(row);
-            setShowInviteMemberModal(true);
-          }}
-        >
-          Edit
-        </Button>
+        <div className="pzp-actions">
+          <ActionIcon
+            label="Edit member"
+            onClick={() => {
+              setSelectedUserForEdit(row);
+              setShowInviteMemberModal(true);
+            }}
+          >
+            <EditIcon />
+          </ActionIcon>
+        </div>
       ),
       ignoreRowClick: true,
       button: true,
@@ -265,42 +260,22 @@ const Teams = () => {
     );
   });
 
-  const subHeaderComponentMemo = React.useMemo(() => {
-    const handleClear = () => {
-      if (filterText) {
-        setResetPaginationToggle(!resetPaginationToggle);
-        setFilterText("");
-      }
-    };
+  // A new search starts again from page 1.
+  const handleSearch = (value) => {
+    setFilterText(value);
+    setResetPaginationToggle((t) => !t);
+  };
 
-    return (
-      <div className="d-flex flex-md-row flex-column align-items-lg-center justify-content-between w-100 bg-transparent">
-        <TitleHeader title="Teams" />
-        <div className="d-flex flex-md-row flex-column align-items-lg-center p-lg-2 pt-3">
-          <FilterComponent
-            onFilter={(e) => setFilterText(e.target.value)}
-            onClear={handleClear}
-            filterText={filterText}
-          />
-          <Button
-            className="primary-button-filled ms-lg-3"
-            variant="primary"
-            onClick={() => {
-              setSelectedUserForEdit(null);
-              setShowInviteMemberModal(true);
-            }}
-          >
-            Invite Member
-          </Button>
-        </div>
-      </div>
-    );
-  }, [filterText, resetPaginationToggle]);
+  // The table's foot, told the search so its count can say "matching …".
+  const Pager = React.useCallback(
+    (props) => <TablePager {...props} query={filterText.trim()} />,
+    [filterText]
+  );
 
   return (
     <div className="pz-app-shell">
       <NavRail variant="app" />
-      <div className="pz-app-main">
+      <div className="pz-app-main pz-projects-main">
       <AppHeader />
       <ConfirmationModal
         show={showDeleteConfirmationModal}
@@ -324,22 +299,103 @@ const Teams = () => {
         isCreate={selectedUserForEdit ? false : true}
       />
 
-      <Container fluid className="p-4 bg-light h-100vh overflow-auto">
-        <DataTable
-          columns={columns}
-          data={filteredTeamItems}
-          pagination
-          fixedHeader
-          fixedHeaderScrollHeight="500px"
-          progressPending={loading}
-          pointerOnHover
-          highlightOnHover
-          persistTableHead
-          responsive
-          striped
-          subHeader
-          subHeaderComponent={subHeaderComponentMemo}
-        />
+      {/* The Projects page's layout (Projects.css): one window tall, the
+          table's pager always on screen. */}
+      <Container fluid className="pz-projects overflow-x-hidden overflow-y-auto">
+        <div className="pz-projects-inner">
+          <div className="pzp-head">
+            <div>
+              <h1 className="pzp-title">Teams</h1>
+              <p className="pzp-subtitle">
+                Who can sign in to Pazl, and what each person can do.
+              </p>
+            </div>
+            <Button
+              variant="light"
+              className="pzp-btn pzp-btn-primary pzp-btn-lg"
+              onClick={() => {
+                setSelectedUserForEdit(null);
+                setShowInviteMemberModal(true);
+              }}
+            >
+              <PlusIcon />
+              Invite Member
+            </Button>
+          </div>
+
+          <div className="pzp-card">
+            <div className="pzp-toolbar">
+              <div className="pzp-toolbar-title">
+                Members
+                <span className="pzp-count">{filteredTeamItems.length}</span>
+              </div>
+              <div className="pzp-toolbar-tools">
+                <span className="pzp-search">
+                  <SearchIcon />
+                  <input
+                    className="pzp-search-input"
+                    type="search"
+                    aria-label="Search members"
+                    placeholder="Search by name or email"
+                    value={filterText}
+                    onChange={(e) => handleSearch(e.target.value)}
+                  />
+                  {filterText ? (
+                    <button
+                      type="button"
+                      className="pzp-search-clear"
+                      aria-label="Clear search"
+                      onClick={() => handleSearch("")}
+                    >
+                      <ClearIcon />
+                    </button>
+                  ) : null}
+                </span>
+              </div>
+            </div>
+
+            <DataTable
+              columns={columns}
+              data={filteredTeamItems}
+              pagination
+              paginationRowsPerPageOptions={ROWS_PER_PAGE}
+              paginationResetDefaultPage={resetPaginationToggle}
+              paginationComponent={Pager}
+              fixedHeader
+              // The card sets the height (Projects.css): rows scroll under a
+              // sticky header, and the pager sits right below them.
+              fixedHeaderScrollHeight="none"
+              progressPending={loading}
+              progressComponent={<TableSkeleton label="Loading members" />}
+              noDataComponent={
+                filterText.trim() ? (
+                  <EmptyState
+                    title={`No members match “${filterText.trim()}”`}
+                    hint="Check the spelling, or search by email."
+                  >
+                    <Button
+                      variant="light"
+                      className="pzp-btn pzp-btn-secondary"
+                      onClick={() => handleSearch("")}
+                    >
+                      Clear search
+                    </Button>
+                  </EmptyState>
+                ) : (
+                  <EmptyState
+                    title="No team members yet"
+                    hint="Invite an architect or a client to get started."
+                  />
+                )
+              }
+              customStyles={tableStyles}
+              pointerOnHover
+              highlightOnHover
+              persistTableHead
+              responsive
+            />
+          </div>
+        </div>
       </Container>
       </div>
     </div>
