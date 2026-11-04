@@ -7,6 +7,8 @@ import {
 import { AuthService } from "@pazl/services/authService";
 import { ProjectsService } from "@pazl/services/projectsService";
 import Toast, { ToastState } from "../Toast";
+import { createPortal } from "react-dom";
+import "@pazl/components/Dialog/dialog.css";
 import "./index.css";
 
 /**
@@ -647,7 +649,12 @@ const RenderHistory: React.FC<Props> = ({
               photo_library
             </span>
           </span>
-          <h2>Renders &amp; videos</h2>
+          <h2>
+            Render images
+            {!loading && imageItems.length ? (
+              <span className="rv-count">{imageItems.length}</span>
+            ) : null}
+          </h2>
           {!isAdmin && projectStatus === "quotation_pending_approval" && (
             <span className="rv-tag pending">Pending approval</span>
           )}
@@ -670,37 +677,23 @@ const RenderHistory: React.FC<Props> = ({
       </div>
       <p className="rv-hint">
         {isAdmin
-          ? "Every render and video of this project. Select the ones to share with the client."
-          : "Every render and video made in the 3D editor appears here automatically."}
+          ? "Every render of this project. Select the ones to share with the client."
+          : "Every render made in the 3D editor appears here automatically."}
       </p>
 
       {loading ? (
         <p className="rv-empty" style={{ marginTop: 14 }}>Loading renders…</p>
-      ) : visibleItems.length === 0 ? (
+      ) : imageItems.length === 0 ? (
         <p className="rv-empty" style={{ marginTop: 14 }}>
           No renders yet. Create a render in the editor and it will appear here
           automatically.
         </p>
       ) : (
         <>
-          {/* Both groups always show once ANY item exists, so an empty one reads
-              as "none yet" instead of silently disappearing. */}
-          <div className="rv-group">
-            Images <span>({imageItems.length})</span>
-          </div>
-          {imageItems.length > 0 ? (
-            <div className="rv-grid">{imageItems.map(renderCard)}</div>
-          ) : (
-            <p className="rv-empty">No renders yet.</p>
-          )}
-          <div className="rv-group">
-            Videos <span>({videoItems.length})</span>
-          </div>
-          {videoItems.length > 0 ? (
-            <div className="rv-grid">{videoItems.map(renderCard)}</div>
-          ) : (
-            <p className="rv-empty">No videos yet.</p>
-          )}
+          {/* Images only. The Videos group was taken out on request: render
+              videos are still made and stored, they are just not listed (or
+              sent) from here. videoItems is kept for the day it comes back. */}
+          <div className="rv-grid">{imageItems.map(renderCard)}</div>
         </>
       )}
 
@@ -714,12 +707,12 @@ const RenderHistory: React.FC<Props> = ({
               automatically
             </>
           ) : (
-            "Select renders or videos to include · the BOQ PDF is attached automatically"
+            "Select renders to include · the BOQ PDF is attached automatically"
           )}
         </span>
         <button
           type="button"
-          className="rv-btn primary"
+          className="rv-btn primary rv-send"
           onClick={openSendPreview}
           disabled={disabled || preparing}
           title={
@@ -739,13 +732,15 @@ const RenderHistory: React.FC<Props> = ({
 
       {/* Full-size preview overlay: images show large; videos play with
           controls. Click the backdrop or × to close. */}
-      {preview && (
+      {preview &&
+        createPortal(
         <div
           onClick={() => setPreview(null)}
           style={{
             position: "fixed",
             inset: 0,
-            zIndex: 1100,
+            // Above the email pop-up (1300), which opens it from its tiles.
+            zIndex: 1400,
             background: "rgba(0,0,0,0.75)",
             display: "flex",
             alignItems: "center",
@@ -837,359 +832,251 @@ const RenderHistory: React.FC<Props> = ({
             </div>
           </div>
         </div>
-      )}
+      , document.body)}
 
       {/* Email composer shown on Send: BOQ + selected renders/videos are pre-
           attached; the sender sets Cc / subject / message and can attach extra
           files (a 2D diagram, docs…) before it goes out. */}
-      {previewOpen && (
-        <div
-          onClick={busy ? undefined : closeSendPreview}
-          style={{
-            position: "fixed",
-            inset: 0,
-            zIndex: 1000,
-            background: "rgba(0,0,0,0.75)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: 24,
-          }}
-        >
+      {previewOpen &&
+        createPortal(
           <div
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              background: "#fff",
-              borderRadius: 10,
-              overflow: "hidden",
-              width: "min(680px, 94vw)",
-              maxHeight: "92vh",
-              display: "flex",
-              flexDirection: "column",
-            }}
+            className="pz-dlg-backdrop"
+            onClick={busy ? undefined : closeSendPreview}
           >
             <div
-              style={{
-                padding: "12px 16px",
-                borderBottom: "1px solid #e5e7eb",
-                fontWeight: 600,
-                color: "#414063",
-              }}
+              className="pz-dlg pz-dlg--wide rv-mail"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="rv-mail-title"
+              onClick={(e) => e.stopPropagation()}
             >
-              {isAdmin ? "Email the client" : "Email the admin"}
-              {projectName ? ` — ${projectName}` : ""}
-            </div>
-
-            <div
-              style={{
-                padding: "14px 16px",
-                overflowY: "auto",
-                display: "flex",
-                flexDirection: "column",
-                gap: 12,
-              }}
-            >
-              {/* To — fixed / read-only */}
-              <div style={{ fontSize: 13, color: "#374151" }}>
-                <span style={{ color: "#6b7280" }}>To:&nbsp;</span>
-                <span style={{ fontWeight: 600 }}>
-                  {isAdmin
-                    ? clientEmail || "The client"
-                    : adminEmails.length
-                    ? adminEmails.join(", ")
-                    : "PAZL admin team"}
-                </span>
+              <div className="pz-dlg-head">
+                <div className="pz-dlg-head-row">
+                  <span className="pz-dlg-badge pz-dlg-badge--blue" aria-hidden="true">
+                    <span className="material-symbols-outlined">mail</span>
+                  </span>
+                  <div>
+                    <h3 id="rv-mail-title" className="pz-dlg-title">
+                      {isAdmin ? "Email the client" : "Email the admin"}
+                    </h3>
+                    {projectName ? <p className="pz-dlg-sub">{projectName}</p> : null}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={closeSendPreview}
+                  disabled={busy}
+                  className="pz-dlg-close"
+                  aria-label="Close"
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true">
+                    <path d="M6 6l12 12M18 6 6 18" />
+                  </svg>
+                </button>
               </div>
 
-              <label style={{ fontSize: 12, color: "#6b7280" }}>
-                Cc (optional)
-                <input
-                  type="text"
-                  value={cc}
-                  onChange={(e) => setCc(e.target.value)}
-                  placeholder="architect@pazl.info, colleague@pazl.info"
-                  disabled={busy}
-                  style={{
-                    display: "block",
-                    width: "100%",
-                    marginTop: 4,
-                    padding: "8px 10px",
-                    fontSize: 13,
-                    color: "#111827",
-                    border: "1px solid #d1d5db",
-                    borderRadius: 6,
-                    boxSizing: "border-box",
-                  }}
-                />
-              </label>
-
-              <label style={{ fontSize: 12, color: "#6b7280" }}>
-                Subject
-                <input
-                  type="text"
-                  value={subject}
-                  onChange={(e) => setSubject(e.target.value)}
-                  disabled={busy}
-                  style={{
-                    display: "block",
-                    width: "100%",
-                    marginTop: 4,
-                    padding: "8px 10px",
-                    fontSize: 13,
-                    color: "#111827",
-                    border: "1px solid #d1d5db",
-                    borderRadius: 6,
-                    boxSizing: "border-box",
-                  }}
-                />
-              </label>
-
-              <label style={{ fontSize: 12, color: "#6b7280" }}>
-                Message (optional)
-                <textarea
-                  rows={4}
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                  placeholder="Write a note to accompany the quote…"
-                  disabled={busy}
-                  style={{
-                    display: "block",
-                    width: "100%",
-                    marginTop: 4,
-                    padding: "8px 10px",
-                    fontSize: 13,
-                    color: "#111827",
-                    border: "1px solid #d1d5db",
-                    borderRadius: 6,
-                    boxSizing: "border-box",
-                    resize: "vertical",
-                  }}
-                />
-              </label>
-
-              {/* Attachments — BOQ + selected renders/videos (auto) + extras */}
-              <div>
-                <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 6 }}>
-                  Attachments
+              <div className="pz-dlg-body">
+                {/* To — fixed / read-only */}
+                <div className="rv-mail-to">
+                  <span className="pz-dlg-label">To</span>
+                  <span className="rv-mail-chip">
+                    <span className="material-symbols-outlined" aria-hidden="true">
+                      person
+                    </span>
+                    {isAdmin
+                      ? clientEmail || "The client"
+                      : adminEmails.length
+                      ? adminEmails.join(", ")
+                      : "PAZL admin team"}
+                  </span>
                 </div>
-                <div
-                  style={{ display: "flex", flexWrap: "wrap", gap: 8 }}
-                >
-                  {/* BOQ — click to open the PDF in a new tab. */}
-                  {boqBlob ? (
-                    <button
-                      type="button"
-                      onClick={() =>
-                        boqPreviewUrl &&
-                        window.open(boqPreviewUrl, "_blank", "noopener")
-                      }
-                      style={thumbTile}
-                      title="Open the BOQ PDF"
-                    >
-                      <div
-                        style={{
-                          width: "100%",
-                          height: "100%",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          background: "#fee2e2",
-                          color: "#991b1b",
-                          fontSize: 12,
-                          fontWeight: 700,
-                        }}
-                      >
-                        PDF
-                      </div>
-                      <span style={thumbBadge}>BOQ</span>
-                    </button>
-                  ) : (
-                    <div style={{ ...thumbTile, cursor: "default" }}>
-                      <div
-                        style={{
-                          width: "100%",
-                          height: "100%",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          color: "#9ca3af",
-                          fontSize: 10,
-                          textAlign: "center",
-                          padding: 4,
-                        }}
-                      >
-                        BOQ n/a
-                      </div>
-                    </div>
-                  )}
 
-                  {/* Each selected render/video — thumbnail, click to preview. */}
-                  {selectedItems.map((it) => (
-                    <button
-                      key={`att-${it._id}`}
-                      type="button"
-                      onClick={() => !failed[it._id as string] && setPreview(it)}
-                      style={thumbTile}
-                      title={
-                        it.title ||
-                        (it.kind === "video" ? "Render video" : "Render")
-                      }
-                    >
-                      {failed[it._id as string] ? (
-                        <div
-                          style={{
-                            width: "100%",
-                            height: "100%",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            color: "#9ca3af",
-                            fontSize: 10,
-                          }}
-                        >
-                          N/A
-                        </div>
-                      ) : it.kind === "video" ? (
-                        <>
-                          <video
-                            src={resolveFileUrl(it.fileUrl)}
-                            muted
-                            playsInline
-                            preload="metadata"
-                            style={{ ...thumbImg, background: "#11131a" }}
-                            onError={() => markFailed(it._id)}
-                          />
-                          <span style={thumbBadge}>▶ Video</span>
-                        </>
-                      ) : (
-                        <img
-                          src={resolveFileUrl(it.fileUrl)}
-                          alt={it.title || "render"}
-                          style={thumbImg}
-                          onError={() => markFailed(it._id)}
-                        />
-                      )}
-                    </button>
-                  ))}
+                <label className="pz-dlg-field">
+                  <span className="pz-dlg-label">Cc (optional)</span>
+                  <input
+                    type="text"
+                    value={cc}
+                    onChange={(e) => setCc(e.target.value)}
+                    placeholder="architect@pazl.info, colleague@pazl.info"
+                    disabled={busy}
+                  />
+                </label>
 
-                  {/* The sender's extra files — tile, click to open, × to remove. */}
-                  {extraFiles.map((f, i) => (
-                    <div key={`${f.name}-${i}`} style={thumbTile}>
-                      <div
-                        onClick={() =>
-                          window.open(
-                            URL.createObjectURL(f),
-                            "_blank",
-                            "noopener"
-                          )
-                        }
-                        style={{
-                          width: "100%",
-                          height: "100%",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          color: "#3730a3",
-                          fontSize: 10,
-                          textAlign: "center",
-                          padding: "4px 4px 14px",
-                          overflow: "hidden",
-                          wordBreak: "break-word",
-                        }}
-                        title={`Open ${f.name}`}
-                      >
-                        {f.name}
-                      </div>
+                <label className="pz-dlg-field">
+                  <span className="pz-dlg-label">Subject</span>
+                  <input
+                    type="text"
+                    value={subject}
+                    onChange={(e) => setSubject(e.target.value)}
+                    disabled={busy}
+                  />
+                </label>
+
+                <label className="pz-dlg-field">
+                  <span className="pz-dlg-label">Message (optional)</span>
+                  <textarea
+                    rows={4}
+                    value={message}
+                    onChange={(e) => setMessage(e.target.value)}
+                    placeholder="Write a note to accompany the quote…"
+                    disabled={busy}
+                    className="rv-mail-text"
+                  />
+                </label>
+
+                {/* Attachments — BOQ + selected renders (auto) + extras */}
+                <div className="pz-dlg-field">
+                  <span className="pz-dlg-label">
+                    Attachments{" "}
+                    <span className="rv-att-count">
+                      {(boqBlob ? 1 : 0) + selectedItems.length + extraFiles.length}
+                    </span>
+                  </span>
+                  <div className="rv-att-row">
+                    {/* BOQ — click to open the PDF in a new tab. */}
+                    {boqBlob ? (
                       <button
                         type="button"
                         onClick={() =>
-                          setExtraFiles((prev) =>
-                            prev.filter((_, idx) => idx !== i)
-                          )
+                          boqPreviewUrl &&
+                          window.open(boqPreviewUrl, "_blank", "noopener")
                         }
-                        disabled={busy}
-                        title="Remove"
-                        style={{
-                          position: "absolute",
-                          top: 2,
-                          right: 2,
-                          width: 18,
-                          height: 18,
-                          borderRadius: "50%",
-                          border: "none",
-                          background: "rgba(0,0,0,0.55)",
-                          color: "#fff",
-                          cursor: "pointer",
-                          fontSize: 13,
-                          lineHeight: 1,
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                        }}
+                        className="rv-att rv-att--pdf"
+                        title="Open the BOQ PDF"
                       >
-                        ×
+                        <span className="material-symbols-outlined" aria-hidden="true">
+                          picture_as_pdf
+                        </span>
+                        <span className="rv-att-badge">BOQ</span>
                       </button>
-                    </div>
-                  ))}
-                </div>
-                <div style={{ marginTop: 8, display: "flex", gap: 12 }}>
-                  <label
-                    style={{
-                      fontSize: 13,
-                      color: "#1e88e5",
-                      cursor: busy ? "default" : "pointer",
-                    }}
-                  >
-                    + Attach file
-                    <input
-                      type="file"
-                      multiple
-                      disabled={busy}
-                      onChange={(e) => {
-                        const picked = Array.from(e.target.files || []);
-                        if (picked.length)
-                          setExtraFiles((prev) => [...prev, ...picked]);
-                        e.target.value = "";
-                      }}
-                      style={{ display: "none" }}
-                    />
-                  </label>
+                    ) : (
+                      <div className="rv-att rv-att--na">BOQ n/a</div>
+                    )}
+
+                    {/* Each selected render — thumbnail, click to preview. */}
+                    {selectedItems.map((it) => (
+                      <button
+                        key={`att-${it._id}`}
+                        type="button"
+                        onClick={() => !failed[it._id as string] && setPreview(it)}
+                        className="rv-att"
+                        title={
+                          it.title ||
+                          (it.kind === "video" ? "Render video" : "Render")
+                        }
+                      >
+                        {failed[it._id as string] ? (
+                          <span className="rv-att--na">N/A</span>
+                        ) : it.kind === "video" ? (
+                          <>
+                            <video
+                              src={resolveFileUrl(it.fileUrl)}
+                              muted
+                              playsInline
+                              preload="metadata"
+                              className="rv-att-img rv-att-img--video"
+                              onError={() => markFailed(it._id)}
+                            />
+                            <span className="rv-att-badge">▶ Video</span>
+                          </>
+                        ) : (
+                          <img
+                            src={resolveFileUrl(it.fileUrl)}
+                            alt={it.title || "render"}
+                            className="rv-att-img"
+                            onError={() => markFailed(it._id)}
+                          />
+                        )}
+                      </button>
+                    ))}
+
+                    {/* The sender's extra files — tile, click to open, × to remove. */}
+                    {extraFiles.map((f, i) => (
+                      <div key={`${f.name}-${i}`} className="rv-att rv-att--file">
+                        <div
+                          onClick={() =>
+                            window.open(
+                              URL.createObjectURL(f),
+                              "_blank",
+                              "noopener"
+                            )
+                          }
+                          className="rv-att-file"
+                          title={`Open ${f.name}`}
+                        >
+                          <span className="material-symbols-outlined" aria-hidden="true">
+                            description
+                          </span>
+                          <span className="rv-att-name">{f.name}</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setExtraFiles((prev) =>
+                              prev.filter((_, idx) => idx !== i)
+                            )
+                          }
+                          disabled={busy}
+                          title="Remove"
+                          aria-label={`Remove ${f.name}`}
+                          className="rv-att-del"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+
+                    <label className={`rv-att rv-att--add${busy ? " is-busy" : ""}`}>
+                      <span className="material-symbols-outlined" aria-hidden="true">
+                        attach_file
+                      </span>
+                      Attach file
+                      <input
+                        type="file"
+                        multiple
+                        disabled={busy}
+                        onChange={(e) => {
+                          const picked = Array.from(e.target.files || []);
+                          if (picked.length)
+                            setExtraFiles((prev) => [...prev, ...picked]);
+                          e.target.value = "";
+                        }}
+                        style={{ display: "none" }}
+                      />
+                    </label>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <div
-              style={{
-                padding: "12px 16px",
-                borderTop: "1px solid #e5e7eb",
-                display: "flex",
-                justifyContent: "flex-end",
-                gap: 8,
-              }}
-            >
-              <button
-                onClick={closeSendPreview}
-                disabled={busy}
-                className="px-4 py-2 rounded border border-[#d1d5db] text-sm text-[#414063]"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={confirmSend}
-                disabled={busy}
-                className="px-4 py-2 rounded text-sm text-white"
-                style={{ background: busy ? "#9ca3af" : "#5b3df5" }}
-              >
-                {busy
-                  ? sendingLabel
-                  : isAdmin
-                  ? "Send to client"
-                  : "Send to admin"}
-              </button>
+              <div className="pz-dlg-foot">
+                <button
+                  type="button"
+                  onClick={closeSendPreview}
+                  disabled={busy}
+                  className="pz-dlg-btn pz-dlg-btn--ghost pz-dlg-foot-left"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={confirmSend}
+                  disabled={busy}
+                  className="pz-dlg-btn pz-dlg-btn--primary rv-send"
+                >
+                  <span className="material-symbols-outlined" aria-hidden="true">
+                    send
+                  </span>
+                  {busy
+                    ? sendingLabel
+                    : isAdmin
+                    ? "Send to client"
+                    : "Send to admin"}
+                </button>
+              </div>
             </div>
-          </div>
-        </div>
-      )}
+          </div>,
+          document.body
+        )}
 
       {/* Confirmation toast after a send — the app's shared toast. */}
       <Toast toast={toast} />

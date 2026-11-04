@@ -18,6 +18,23 @@ import { UserPermission } from "@pazl/entities/User";
 import NotFound from "@pazl/components/NotFound";
 import Toast, { ToastState } from "@pazl/components/Toast";
 
+// A small line icon for the header buttons; drawn in the text colour.
+const PdIcon = ({ children }: { children: React.ReactNode }) => (
+  <svg
+    width="18"
+    height="18"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    {children}
+  </svg>
+);
+
 const ProjectDetail = () => {
   const navigate = useNavigate();
   const [isDarkMode, setIsDarkMode] = useState(
@@ -328,59 +345,59 @@ const ProjectDetail = () => {
       {isLoading || !project ? (
         <Loader />
       ) : (
-        <div className="projects-detail-container dark:bg-[#333333]">
-          <div>
-            <div className="block bg-white m-2 text-surface shadow-secondary-1 dark:bg-surface-dark dark:text-white rounded">
-              <div className="title-flex-container dark:bg-[#333333]">
-                <h1 className="title dark:bg-[#333333] dark:text-[#FFFFFF] flex flex-row">
-                  <img
-                    className="back-button"
-                    alt="back"
-                    style={{ marginTop: "4px" }}
-                    src={require("../../images/back2.svg")}
+        <div className="projects-detail-container pz-pd">
+          <div className="pz-pd-inner">
+            <div className="pz-pd-card pz-pd-head">
+              <div className="pz-pd-top">
+                <div className="pz-pd-heading">
+                  <button
+                    type="button"
+                    className="pz-pd-back"
+                    aria-label="Back"
                     onClick={handleGoBack}
-                  />
-                  Project Detail
-                </h1>
-                <div className="create-project-flex-container gap-2">
-                  <span
-                    className="material-symbols-outlined mx-2 cursor-pointer"
-                    style={{ color: "#333333" }}
-                    onClick={handleShareProject}
                   >
-                    share
-                  </span>
+                    <PdIcon>
+                      <path d="m15 18-6-6 6-6" />
+                    </PdIcon>
+                  </button>
+                  <h1 className="pz-pd-title">Project Detail</h1>
+                </div>
+                <div className="pz-pd-actions">
+                  {/* Share and Duplicate were removed from this header on
+                      request (Share also went from the Projects list). Their
+                      handlers and modals below are kept, so either button
+                      comes back with a paste. */}
                   {isAccessibleToEditDeleteProject ? (
-                    <span
-                      className="material-symbols-outlined mx-2 cursor-pointer"
-                      style={{ color: "#444444" }}
+                    <button
+                      type="button"
+                      className="pz-pd-icon"
+                      data-tip="Edit details"
+                      aria-label="Edit details"
                       onClick={() => {
                         setShowEditProjectModal(true);
                       }}
                     >
-                      border_color
-                    </span>
+                      <PdIcon>
+                        <path d="M11 4H5a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h13a2 2 0 0 0 2-2v-6" />
+                        <path d="M18.5 2.5a2.1 2.1 0 0 1 3 3L12 15l-4 1 1-4z" />
+                      </PdIcon>
+                    </button>
                   ) : null}
                   {isAccessibleToEditDeleteProject ? (
-                    <span
-                      className="material-symbols-outlined mx-2 cursor-pointer"
-                      style={{ color: "#333333" }}
+                    <button
+                      type="button"
+                      className="pz-pd-icon pz-pd-icon--danger"
+                      data-tip="Delete"
+                      aria-label="Delete"
                       onClick={() => {
                         setShowDeleteConfirmModal(true);
                       }}
                     >
-                      delete
-                    </span>
+                      <PdIcon>
+                        <path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14M10 11v6M14 11v6" />
+                      </PdIcon>
+                    </button>
                   ) : null}
-                  <span
-                    className="material-symbols-outlined mx-2 cursor-pointer"
-                    style={{ color: "#333333" }}
-                    onClick={() => {
-                      setShowCloneConfirmModal(true);
-                    }}
-                  >
-                    content_copy
-                  </span>
                   {/* "View AI Inspiration" stood here. Hidden with the rest of
                       the AI styling path - the theme and generate steps came
                       out of the client wizard, and the toolbar AI Inspiration
@@ -391,97 +408,98 @@ const ProjectDetail = () => {
                       Inspire app it routes to is still running. */}
                   {isAccessibleToEdit3dDesign ? (
                     <button
-                      className="ml-1.5 px-6 py-2 rounded bg-[#414063]"
+                      type="button"
+                      className="pz-pd-btn pz-pd-btn--primary"
                       onClick={navigateTo3dDesignScreen}
                     >
-                      <p className="project-detail-button-text text-[#FFFFFF]">
-                        Edit 3D Design
-                      </p>
+                      <PdIcon>
+                        <path d="M21 8 12 3 3 8v8l9 5 9-5z" />
+                        <path d="m3 8 9 5 9-5M12 13v8" />
+                      </PdIcon>
+                      Edit 3D Design
                     </button>
                   ) : null}
                 </div>
               </div>
-              <div className="flex flex-row items-start justify-start px-5 pt-4 pb-8 gap-8 dark:bg-[#333333] shadow-md shadow-[#00000026]">
-                <div className="flex flex-col gap-1 border-e border-[#4C4C4C4C] pe-6 min-w-[300px]">
-                  <p className="font-semibold text-sm text-[#414063] py-1">
-                    Project Name :
-                    <span className="font-normal pl-3">
-                      {project?.name ? capitalizeText(project.name) : "N/A"}
-                    </span>
-                  </p>
-                  <p className="font-semibold text-sm text-[#414063] py-1">
-                    Created Date :
-                    <span className="font-normal pl-3">
-                      {getProjectCreatedDate(project?.createdAt)}
-                    </span>
-                  </p>
-                  <p className="font-semibold text-sm text-[#414063] py-1">
-                    Created By :
-                    <span className="font-normal pl-3">
+              <dl className="pz-pd-info">
+                <div className="pz-pd-col">
+                  <div className="pz-pd-field">
+                    <dt>Project Name</dt>
+                    <dd>{project?.name ? capitalizeText(project.name) : "N/A"}</dd>
+                  </div>
+                  <div className="pz-pd-field">
+                    <dt>Created Date</dt>
+                    <dd>{getProjectCreatedDate(project?.createdAt)}</dd>
+                  </div>
+                  <div className="pz-pd-field">
+                    <dt>Created By</dt>
+                    <dd>
                       {project?.ownerUser?.name
                         ? capitalizeText(project.ownerUser.name)
                         : "N/A"}
-                    </span>
-                  </p>
+                    </dd>
+                  </div>
                 </div>
-                <div className="flex flex-col gap-1 border-e border-[#4C4C4C4C] pe-6 min-w-[300px]">
-                  <p className="font-semibold text-sm text-[#414063] py-1">
-                    Client Name :
-                    <span className="font-normal pl-3">
+                <div className="pz-pd-col">
+                  <div className="pz-pd-field">
+                    <dt>Client Name</dt>
+                    <dd>
                       {project?.clientName
                         ? capitalizeText(project.clientName)
                         : project?.ownerUser?.name
                         ? capitalizeText(project.ownerUser.name)
                         : "N/A"}
-                    </span>
-                  </p>
-                  <p className="font-semibold text-sm text-[#414063] py-1">
-                    Client Phone Number :
-                    <span className="font-normal pl-3">
+                    </dd>
+                  </div>
+                  <div className="pz-pd-field">
+                    <dt>Client Phone Number</dt>
+                    <dd>
                       {project?.clientPhoneNumber
                         ? project.clientPhoneNumber
                         : (project?.ownerUser as any)?.phoneNumber ||
                           (project?.ownerUser as any)?.phone ||
                           "N/A"}
-                    </span>
-                  </p>
-                  <p className="font-semibold text-sm text-[#414063] py-1">
-                    Client Email Id :
-                    <span className="font-normal pl-3">
+                    </dd>
+                  </div>
+                  <div className="pz-pd-field">
+                    <dt>Client Email Id</dt>
+                    <dd>
                       {project?.clientEmail
                         ? project.clientEmail
                         : project?.ownerUser?.email || "N/A"}
-                    </span>
-                  </p>
+                    </dd>
+                  </div>
                 </div>
-                <div className="flex flex-col gap-1 min-w-[300px]">
-                  <p className="font-semibold text-sm text-[#414063] py-1">
-                    Address :
-                    <span className="font-normal pl-3">
-                      {project?.address ? project.address : "N/A"}
-                    </span>
-                  </p>
-                  <p className="font-semibold text-sm text-[#414063] py-1">
-                    Status :
-                    <span
-                      className="font-normal pl-3"
-                      style={{
-                        color: getColorForStatus(project?.status),
-                      }}
-                    >
-                      {getProjectStatus(project?.status)}
-                    </span>
-                  </p>
-                  <p className="font-semibold text-sm text-[#414063] py-1">
-                    Architect :
-                    <span className="font-normal pl-3">
+                <div className="pz-pd-col">
+                  <div className="pz-pd-field">
+                    <dt>Address</dt>
+                    <dd>{project?.address ? project.address : "N/A"}</dd>
+                  </div>
+                  <div className="pz-pd-field">
+                    <dt>Status</dt>
+                    <dd>
+                      <span
+                        className="pz-pd-status"
+                        style={
+                          {
+                            "--pz-status": getColorForStatus(project?.status),
+                          } as React.CSSProperties
+                        }
+                      >
+                        {getProjectStatus(project?.status)}
+                      </span>
+                    </dd>
+                  </div>
+                  <div className="pz-pd-field">
+                    <dt>Architect</dt>
+                    <dd>
                       {project?.architectUser?.name
                         ? capitalizeText(project.architectUser.name)
                         : "N/A"}
-                    </span>
-                  </p>
+                    </dd>
+                  </div>
                 </div>
-              </div>
+              </dl>
             </div>
             {/* Client Project Tracker — a live "pizza-tracker" of the project's
                 journey, shown right under the project info. */}
@@ -504,16 +522,13 @@ const ProjectDetail = () => {
             {project?.status === "quotation_sent" &&
               !project?.changeRequestPending &&
               currentUser?.permissions === UserPermission.USER && (
-                <div
-                  className="flex flex-wrap items-center justify-between gap-2 m-2 px-4 py-3 rounded"
-                  style={{ background: "#eef6ff", border: "1px solid #d6e4f5" }}
-                >
-                  <span className="text-sm text-[#1f2033]">
+                <div className="pz-pd-banner pz-pd-banner--info">
+                  <span>
                     Your quotation is ready — please review and accept it.
                   </span>
                   <button
-                    className="px-6 py-2 rounded text-white disabled:opacity-60 disabled:cursor-not-allowed"
-                    style={{ background: "#5b3df5" }}
+                    type="button"
+                    className="pz-pd-btn pz-pd-btn--primary"
                     onClick={handleAcceptQuote}
                     disabled={accepting}
                   >
@@ -526,28 +541,14 @@ const ProjectDetail = () => {
             {project?.status === "quotation_sent" &&
               project?.changeRequestPending &&
               currentUser?.permissions === UserPermission.USER && (
-                <div
-                  className="m-2 px-4 py-3 rounded text-sm"
-                  style={{
-                    background: "#fff7ed",
-                    border: "1px solid #fed7aa",
-                    color: "#9a3412",
-                  }}
-                >
+                <div className="pz-pd-banner pz-pd-banner--warn">
                   Your change request has been received. A revised quotation will
                   be sent shortly — you can accept it once it arrives.
                 </div>
               )}
             {project?.status === "quotation_accepted" &&
               currentUser?.permissions === UserPermission.USER && (
-                <div
-                  className="m-2 px-4 py-3 rounded text-sm"
-                  style={{
-                    background: "#f0fdf4",
-                    border: "1px solid #bbf7d0",
-                    color: "#166534",
-                  }}
-                >
+                <div className="pz-pd-banner pz-pd-banner--ok">
                   ✓ You have accepted the quotation. The team will finalise and
                   close the project.
                 </div>
@@ -560,14 +561,7 @@ const ProjectDetail = () => {
                 moved elsewhere reads as broken. */}
             {project?.status === "quotation_rejected" &&
               currentUser?.permissions === UserPermission.USER && (
-                <div
-                  className="m-2 px-4 py-3 rounded text-sm"
-                  style={{
-                    background: "#fef2f2",
-                    border: "1px solid #fecaca",
-                    color: "#991b1b",
-                  }}
-                >
+                <div className="pz-pd-banner pz-pd-banner--bad">
                   You've declined this quotation. The team has been notified and
                   will send a revised quote or close the project.
                 </div>
@@ -575,17 +569,14 @@ const ProjectDetail = () => {
             {project?.status === "quotation_rejected" &&
               (currentUser?.permissions === UserPermission.ADMIN ||
                 currentUser?.permissions === UserPermission.SUPER_ADMIN) && (
-                <div
-                  className="flex flex-wrap items-center justify-between gap-2 m-2 px-4 py-3 rounded"
-                  style={{ background: "#fef2f2", border: "1px solid #fecaca" }}
-                >
-                  <span className="text-sm text-[#1f2033]">
+                <div className="pz-pd-banner pz-pd-banner--bad">
+                  <span>
                     The client rejected the quote. Send a revised quotation from
                     the workspace below, or close the project.
                   </span>
                   <button
-                    className="px-6 py-2 rounded text-white disabled:opacity-60 disabled:cursor-not-allowed"
-                    style={{ background: "#414063" }}
+                    type="button"
+                    className="pz-pd-btn pz-pd-btn--dark"
                     onClick={handleCloseProject}
                     disabled={closing}
                   >
@@ -594,21 +585,12 @@ const ProjectDetail = () => {
                 </div>
               )}
             {project?.status === "closed" && (
-              <div
-                className="m-2 px-4 py-3 rounded text-sm"
-                style={{
-                  background: "#f3f4f6",
-                  border: "1px solid #e5e7eb",
-                  color: "#374151",
-                }}
-              >
+              <div className="pz-pd-banner pz-pd-banner--muted">
                 ✓ This project is completed and closed.
               </div>
             )}
-            <div id="project-workspace" className="mt-4 border-t border-[#e5e7eb] pt-2">
-              <h2 className="text-lg font-semibold text-[#414063] px-4">
-                Project Workspace
-              </h2>
+            <div id="project-workspace" className="pz-pd-card pz-pd-workspace">
+              <h2 className="pz-pd-h2">Project Workspace</h2>
               <ProjectWorkspace
                 projectId={projectId}
                 status={project?.status}

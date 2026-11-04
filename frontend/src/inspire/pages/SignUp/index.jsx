@@ -15,6 +15,7 @@ import UserRoleContext from "../../context/UserRoleContext";
 import ServiceContext from "../../context/ServiceContext";
 import VisibilityOn from "../../assets/images/visibility-on.svg";
 import VisibilityOff from "../../assets/images/visibility-off.svg";
+import AuthLayout from "../../components/AuthLayout";
 
 const SignUp = () => {
   const navigate = useNavigate();
@@ -183,37 +184,49 @@ const SignUp = () => {
     }
   };
 
+  // The live checklist under the password: the same three rules as
+  // validatePassword, ticked as they are met.
+  const passwordRules = [
+    { label: "8 or more characters", ok: password.length >= 8 },
+    { label: "Upper and lower case", ok: /[a-z]/.test(password) && /[A-Z]/.test(password) },
+    { label: "A number", ok: /\d/.test(password) },
+  ];
+  const rulesMet = passwordRules.filter((r) => r.ok).length;
+
   return (
-    <>
-      <div className="container-fluid bg-light">
-        <div className="h-100vh d-flex flex-column justify-content-center align-items-center">
-          <div className="max-width-330">
-            <div className="d-flex">
-              <p
-                style={{
-                  fontSize: "20px",
-                  marginBottom: "30px",
-                  borderBottom: "5px solid #414063",
-                }}
-              >
-                Sign up
-              </p>
-            </div>
+    <AuthLayout
+      mode="signup"
+      title="Create your account"
+      subtitle="Your first project is ready when you sign in."
+      footer={
+        <>
+          Already have an account?
+          <Link
+            to={
+              redirectToUrl && requestedFromOrigin && location.search
+                ? `/signin${location.search}`
+                : "/signin"
+            }
+          >
+            Sign in
+          </Link>
+        </>
+      }
+    >
             {!showPhoneNumField && showEmailIdField && (
               <div>
-                <Form.Control.Feedback className="mb-3">
-                  User already exists.
-                </Form.Control.Feedback>
-                <Form>
+                <Form onSubmit={(e) => e.preventDefault()}>
                   <Form.Group
-                    className="email_password_text_field mb-3"
+                    className="email_password_text_field"
                     controlId="clientName"
                   >
+                    <Form.Label>Name</Form.Label>
                     <Form.Control
                       size="sm"
                       className="email_password_text"
                       type="text"
-                      placeholder="Name"
+                      autoComplete="name"
+                      placeholder="Your full name"
                       value={clientName}
                       onChange={(e) => {
                         setClientName(e.target.value);
@@ -229,27 +242,33 @@ const SignUp = () => {
                     </Form.Control.Feedback>
                   </Form.Group>
                   <Form.Group
-                    className="email_password_text_field mb-3"
+                    className="email_password_text_field"
                     controlId="address"
                   >
+                    <Form.Label>
+                      Address <span className="pz-auth-opt">(optional)</span>
+                    </Form.Label>
                     <Form.Control
                       size="sm"
                       className="email_password_text"
                       type="text"
-                      placeholder="Address (optional)"
+                      autoComplete="street-address"
+                      placeholder="Where the project is"
                       value={address}
                       onChange={(e) => setAddress(e.target.value)}
                     />
                   </Form.Group>
                   <Form.Group
-                    className="email_password_text_field mb-3"
+                    className="email_password_text_field"
                     controlId="emailId"
                   >
+                    <Form.Label>Email</Form.Label>
                     <Form.Control
                       size="sm"
                       className="email_password_text"
                       type="email"
-                      placeholder="Email"
+                      autoComplete="email"
+                      placeholder="you@example.com"
                       value={email}
                       onChange={handleEmailChange}
                       isInvalid={!isEmailValid} // Apply isInvalid styling if email is not valid
@@ -269,7 +288,8 @@ const SignUp = () => {
                   </Form.Group>
                   <div>
                     <Form.Group controlId="passwordId">
-                      <InputGroup className="mb-3">
+                      <Form.Label>Password</Form.Label>
+                      <InputGroup>
                         <div
                           className={`d-flex password-input-style ${
                             !isPasswordValid ? "invalid-password" : ""
@@ -280,7 +300,8 @@ const SignUp = () => {
                             size="sm"
                             className="password border-0 shadow-none"
                             type={hidePassword ? "password" : "text"}
-                            placeholder="Password"
+                            autoComplete="new-password"
+                            placeholder="Make a password"
                             value={password}
                             onChange={handlePasswordValidation}
                             isInvalid={!isPasswordValid}
@@ -318,20 +339,30 @@ const SignUp = () => {
                             )}
                           </InputGroup.Text>
                         </div>
-                        {!isPasswordValid && (
-                          <Form.Text
-                            type="invalid"
-                            className="text-danger authentication_error"
-                          >
-                            Your password should have a minimum of 8 characters,
-                            a special character, a number, lowercase and
-                            uppercase.
-                          </Form.Text>
-                        )}
                       </InputGroup>
+                      {/* What the password still needs, ticked off as you
+                          type — instead of one red sentence after the fact. */}
+                      <div className="pz-auth-strength" style={{ marginTop: 10 }} aria-live="polite">
+                        <div className={`pz-auth-bar${rulesMet === passwordRules.length ? " is-done" : ""}`}>
+                          {passwordRules.map((r, i) => (
+                            <i key={r.label} className={i < rulesMet ? "is-on" : ""} />
+                          ))}
+                        </div>
+                        <ul className="pz-auth-rules">
+                          {passwordRules.map((r) => (
+                            <li key={r.label} className={r.ok ? "is-ok" : ""}>
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={r.ok ? 3 : 2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                {r.ok ? <path d="m5 12 5 5 9-10" /> : <circle cx="12" cy="12" r="8" />}
+                              </svg>
+                              {r.label}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
                     </Form.Group>
-                    <Form.Group className="" controlId="confirmpwdId">
-                      <InputGroup className="mb-3">
+                    <Form.Group className="" controlId="confirmpwdId" style={{ marginTop: 16 }}>
+                      <Form.Label>Confirm password</Form.Label>
+                      <InputGroup>
                         <div
                           className="d-flex password-input-style"
                           style={{ width: "330px" }}
@@ -340,7 +371,8 @@ const SignUp = () => {
                             size="sm"
                             className="password border-0 shadow-none"
                             type={hideConfirmPassword ? "password" : "text"}
-                            placeholder="Confirm Password"
+                            autoComplete="new-password"
+                            placeholder="Type it again"
                             value={confirmPassword}
                             onChange={(e) => {
                               handleConfirmPasswordValidation(e);
@@ -388,7 +420,7 @@ const SignUp = () => {
                             type="invalid"
                             className="text-danger authentication_error"
                           >
-                            Passwords do not match.
+                            The two passwords don't match yet.
                           </Form.Text>
                         )}
                       </InputGroup>
@@ -397,13 +429,11 @@ const SignUp = () => {
                   </div>
                   <Button
                     variant="primary"
-                    className={`login primary-button-filled my-3 ${
-                      signUpStatus ? "disabled-button" : ""
-                    }`}
+                    className="pz-auth-submit"
                     onClick={handleSignup}
                     disabled={signUpStatus}
                   >
-                    Sign up
+                    Create account
                   </Button>
                 </Form>
 
@@ -487,23 +517,7 @@ const SignUp = () => {
                 )}
               </div>
             )}
-            <div className="my-3 d-flex align-items-center justify-content-center w-100">
-              <p className="text-muted"> Already have an account? </p>
-              <Link
-                to={
-                  redirectToUrl && requestedFromOrigin && location.search
-                    ? `/signin${location.search}`
-                    : "/signin"
-                }
-                className="new_user_login"
-              >
-                <p className="ms-2">Login</p>
-              </Link>
-            </div>
-          </div>
-        </div>
-      </div>
-    </>
+    </AuthLayout>
   );
 };
 

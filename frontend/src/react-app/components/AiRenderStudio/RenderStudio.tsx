@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import "./studio.css";
 import { RenderService, AiRunBody } from "@pazl/services/RenderService";
 import { ProjectWorkspaceService, ProjectItem, resolveFileUrl } from "@pazl/services/ProjectWorkspaceService";
 import { AuthService } from "@pazl/services/authService";
@@ -118,7 +119,7 @@ const Seg: React.FC<{ value: string; options: { value: string; label: string }[]
   onChange,
   label,
 }) => (
-  <div className="flex rounded-[10px] bg-gray-100 p-[3px]" role="radiogroup" aria-label={label}>
+  <div className="pz-st-seg" role="radiogroup" aria-label={label}>
     {options.map((o) => (
       <button
         key={o.value}
@@ -126,7 +127,7 @@ const Seg: React.FC<{ value: string; options: { value: string; label: string }[]
         role="radio"
         aria-checked={value === o.value}
         onClick={() => onChange(o.value)}
-        className={`flex-1 rounded-lg py-2 text-[13.5px] font-medium ${value === o.value ? "bg-white text-gray-900 shadow" : "text-gray-500"}`}
+        className={`pz-st-seg-btn${value === o.value ? " is-on" : ""}`}
       >
         {o.label}
       </button>
@@ -151,19 +152,19 @@ const PickList: React.FC<{
         onClick={onToggle}
         aria-haspopup="listbox"
         aria-expanded={open}
-        className="flex w-full items-center gap-3 rounded-xl border border-gray-200 bg-white p-2 text-left"
+        className={`pz-st-pick${open ? " is-open" : ""}`}
       >
-        <span className="grid h-10 w-10 place-items-center rounded-lg border border-gray-200">
+        <span className="pz-st-pick-ic">
           <Icon name={chosen.icon} />
         </span>
         <span className="flex-1">
-          <span className="block text-[11px] font-medium uppercase tracking-wider text-gray-500">{label}</span>
-          <span className="block text-[14px] font-semibold">{chosen.id === "none" ? "Select…" : chosen.label}</span>
+          <span className="pz-st-pick-lab">{label}</span>
+          <span className="pz-st-pick-val">{chosen.id === "none" ? "Select…" : chosen.label}</span>
         </span>
         <Icon name={open ? "expand_less" : "expand_more"} className="text-gray-500" />
       </button>
       {open && (
-        <ul role="listbox" aria-label={label} className="absolute left-0 right-0 top-full z-10 mt-1 max-h-[340px] overflow-y-auto rounded-xl border border-gray-200 bg-white p-1 shadow-xl">
+        <ul role="listbox" aria-label={label} className="pz-st-pick-list absolute left-0 right-0 top-full z-10 mt-1 max-h-[340px] overflow-y-auto">
           {options.map((o) => (
             <li key={o.id}>
               <button
@@ -174,9 +175,9 @@ const PickList: React.FC<{
                   onChange(o.id);
                   onToggle();
                 }}
-                className="flex w-full items-center gap-3 rounded-lg px-2 py-1.5 text-left text-[14px] hover:bg-gray-50"
+                className={`pz-st-pick-opt${o.id === value ? " is-on" : ""}`}
               >
-                <span className="grid h-9 w-9 place-items-center rounded-lg border border-gray-200">
+                <span className="pz-st-pick-ic pz-st-pick-ic--sm">
                   <Icon name={o.icon} />
                 </span>
                 <span className="flex-1">{o.label}</span>
@@ -551,16 +552,19 @@ const RenderStudio: React.FC<{
       type="button"
       onClick={onClick}
       disabled={disabled || busy || !creditOk}
-      className="w-full rounded-xl bg-gray-900 py-3 text-[14.5px] font-semibold text-white disabled:cursor-not-allowed disabled:bg-gray-400"
+      className="pz-st-primary"
     >
+      <span className="material-symbols-outlined" aria-hidden="true">
+        {busy ? "hourglass_top" : "auto_awesome"}
+      </span>
       {busy ? "Working…" : label}
     </button>
   );
 
   const renderPanel = (
     <>
-      <div className="rounded-2xl border border-gray-200 bg-white p-3">
-        <div className="mb-2 text-[14px] font-semibold">Scene type</div>
+      <div className="pz-st-card p-3">
+        <div className="pz-st-h mb-2">Scene type</div>
         <Seg
           label="Scene type"
           value={sceneType}
@@ -571,15 +575,18 @@ const RenderStudio: React.FC<{
           ]}
         />
       </div>
-      <div className="flex flex-col gap-2.5 rounded-2xl border border-gray-200 bg-white p-3">
-        <div className="text-[14px] font-semibold">Rendering mode</div>
+      <div className="flex flex-col gap-2.5 pz-st-card p-3">
+        <div className="pz-st-h">Rendering mode</div>
 
         {/* Apply style is hidden: one mode, so this reads as a heading rather
             than a choice. The style-transfer code below and in the backend is
             untouched, so it can be shown again by restoring its card. */}
-        <div className="rounded-xl border border-gray-200 p-3">
+        <div className="pz-st-mode">
           <div>
-            <b className="text-[14px]">Preserve existing textures</b>
+            <b className="pz-st-mode-title">
+              <span className="material-symbols-outlined" aria-hidden="true">texture</span>
+              Preserve existing textures
+            </b>
             <span className="mt-0.5 block text-[12.5px] leading-snug text-gray-500">Adds photorealism while keeping your colours and materials unchanged.</span>
           </div>
           {mode === "preserve" && (
@@ -589,7 +596,7 @@ const RenderStudio: React.FC<{
                   <button type="button" className="flex items-center gap-1" onClick={() => setPromptOpen((o) => !o)} aria-expanded={promptOpen}>
                     Prompt (optional) <Icon name={promptOpen ? "remove" : "add"} className="!text-[18px]" />
                   </button>
-                  <button type="button" disabled={autoBusy || busy || !creditOk} onClick={autoPrompt} className="font-semibold text-indigo-700 disabled:text-gray-400" title="Describe this view as a detailed prompt">
+                  <button type="button" disabled={autoBusy || busy || !creditOk} onClick={autoPrompt} className="pz-st-auto" title="Describe this view as a detailed prompt">
                     {autoBusy ? "Writing…" : "✨ Auto prompt"}
                   </button>
                 </div>
@@ -599,7 +606,7 @@ const RenderStudio: React.FC<{
                     onChange={(e) => setPrompt(e.target.value)}
                     rows={4}
                     placeholder="e.g. walnut cabinets, matte concrete floor, indoor plants"
-                    className="mt-1.5 w-full resize-y rounded-lg border border-gray-300 p-2 text-[13px]"
+                    className="pz-st-input mt-1.5"
                   />
                 )}
               </div>
@@ -640,7 +647,7 @@ const RenderStudio: React.FC<{
         </div>
 
       </div>
-      <div className="pz-rs-go sticky bottom-0 bg-[#f6f6f8] pb-1 pt-1">
+      <div className="pz-rs-go pz-st-go sticky bottom-0 pb-1 pt-1">
         {primary("Render", renderNow)}
         <div className="mt-1.5 text-center text-[12px] text-gray-500">
           {relight ? "About 1–1½ min (render + lighting)" : "About 15–30 s"}
@@ -652,7 +659,7 @@ const RenderStudio: React.FC<{
   const toolTarget = current ? (current.kind === "video" ? "Pick an image, not a video" : current.title) : `Render source · ${source.label}`;
 
   const toolPanel = (
-    <div className="flex flex-col gap-3 rounded-2xl border border-gray-200 bg-white p-3">
+    <div className="flex flex-col gap-3 pz-st-card p-3">
       <div className="rounded-lg bg-gray-50 px-2.5 py-1.5 text-[12px] text-gray-600">
         Works on: <b className="text-gray-800">{toolTarget}</b>
       </div>
@@ -756,33 +763,45 @@ const RenderStudio: React.FC<{
   );
 
   return createPortal(
-    <div className="fixed inset-0 z-[1200] grid grid-rows-[58px_minmax(0,1fr)] bg-[#f6f6f8] text-gray-900" role="dialog" aria-label="AI render">
-      <div className="flex items-center gap-3 border-b border-gray-200 bg-white px-4">
-        <div className="flex items-center gap-2 text-[15px] font-bold">
-          <Icon name="photo_camera" className="text-indigo-700" /> Render
+    <div className="pz-studio fixed inset-0 z-[1200] grid grid-rows-[64px_minmax(0,1fr)]" role="dialog" aria-label="AI render">
+      <div className="pz-st-head flex items-center gap-3">
+        <div className="pz-st-title">
+          <span className="pz-st-badge" aria-hidden="true">
+            <Icon name="photo_camera" />
+          </span>
+          <span>
+            Render
+            <span className="pz-st-sub">Turn your 3D view into a photo-real image</span>
+          </span>
         </div>
         {/* The Render / Edit / Enhance / Animate tabs are hidden: this screen
             always shows the Render panel. Their panels stay in the code below
             (toolPanel) so they can be brought back by restoring this row.
             Enhance is still reachable from the 4K button in the toolbar. */}
-        <button type="button" onClick={onClose} className="ml-auto rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-[13px] font-medium">
-          ← Back to design
+        <button type="button" onClick={onClose} className="pz-st-back ml-auto">
+          <Icon name="arrow_back" /> Back to design
         </button>
       </div>
 
       <main className="pz-rs-main grid min-h-0 grid-cols-[280px_minmax(0,1fr)_330px] gap-3.5 p-3.5">
         {/* left */}
         <aside className="pz-rs-left flex min-h-0 flex-col gap-3">
-          <button type="button" onClick={onRecapture} disabled={busy} className="flex items-center justify-between rounded-2xl border border-gray-200 bg-white px-4 py-3 text-[14.5px] font-medium disabled:opacity-50">
-            Recapture view <Icon name="arrow_forward" />
+          <button type="button" onClick={onRecapture} disabled={busy} className="pz-st-recap flex items-center justify-between pz-st-card">
+            <span className="pz-st-recap-l">
+              <span className="pz-st-recap-ic" aria-hidden="true">
+                <Icon name="center_focus_strong" />
+              </span>
+              Recapture view
+            </span>
+            <Icon name="arrow_forward" />
           </button>
-          <div className="rounded-2xl border border-gray-200 bg-white p-3">
+          <div className="pz-st-card p-3">
             <div className="text-[12.5px] text-gray-500">Session started {timeOf(new Date(source.capturedAt).toISOString())}</div>
-            <div className="mt-3 text-[14px] font-semibold">Render source</div>
+            <div className="pz-st-h mt-3">Render source</div>
             <button
               type="button"
               onClick={() => setView("source")}
-              className={`mt-2 flex w-full items-center gap-2.5 rounded-xl border-2 p-2 text-left ${view === "source" ? "border-emerald-500 bg-emerald-50" : "border-emerald-300 bg-white"}`}
+              className={`pz-st-src mt-2${view === "source" ? " is-on" : ""}`}
             >
               <img src={source.dataUrl || resolveFileUrl(source.fileUrl)} alt="" className="h-[46px] w-[70px] rounded-md object-cover" />
               <span className="min-w-0">
@@ -791,10 +810,10 @@ const RenderStudio: React.FC<{
               </span>
             </button>
           </div>
-          <div className="flex min-h-0 flex-1 flex-col rounded-2xl border border-gray-200 bg-white p-3">
+          <div className="flex min-h-0 flex-1 flex-col pz-st-card p-3">
             <div className="flex items-center justify-between">
-              <span className="text-[14px] font-semibold">History</span>
-              <button type="button" onClick={() => setFavOnly((f) => !f)} aria-pressed={favOnly} title={favOnly ? "Show all" : "Show favourites only"} className={favOnly ? "text-red-500" : "text-gray-600"}>
+              <span className="pz-st-h">History</span>
+              <button type="button" onClick={() => setFavOnly((f) => !f)} aria-pressed={favOnly} title={favOnly ? "Show all" : "Show favourites only"} className={`pz-st-fav${favOnly ? " is-on" : ""}`}>
                 <Icon name="favorite" />
               </button>
             </div>
@@ -803,7 +822,7 @@ const RenderStudio: React.FC<{
               {list.map((h) => (
                 <div
                   key={h.id}
-                  className={`flex items-center gap-2 rounded-xl bg-white p-1.5 ${view === h.id ? "border-2 border-gray-900" : "border border-gray-200"}`}
+                  className={`pz-st-hist${view === h.id ? " is-on" : ""}`}
                 >
                   <button type="button" onClick={() => setView(h.id)} className="flex min-w-0 flex-1 items-center gap-2 text-left">
                     {thumb(resolveFileUrl(h.url), h.kind)}
@@ -827,7 +846,7 @@ const RenderStudio: React.FC<{
         <div className="pz-rs-centre grid min-h-0 min-w-0 grid-cols-[minmax(0,1fr)] grid-rows-[minmax(0,1fr)_auto] gap-2.5">
           <div
             ref={stageRef}
-            className="relative grid min-h-0 min-w-0 place-items-center overflow-hidden rounded-2xl border border-gray-200 bg-white"
+            className="relative grid min-h-0 min-w-0 place-items-center overflow-hidden pz-st-card"
             onMouseDown={(e) => {
               if (!panMode) return;
               drag.current = { x: e.clientX, y: e.clientY, px: pan.x, py: pan.y };
@@ -941,7 +960,7 @@ const RenderStudio: React.FC<{
                 </div>
               )}
             </div>
-            <div className="absolute right-3 top-1/2 grid -translate-y-1/2 overflow-hidden rounded-lg bg-gray-500/90 text-white">
+            <div className="pz-st-zoom absolute right-3 top-1/2 grid -translate-y-1/2 overflow-hidden">
               <button type="button" aria-label="Zoom in" onClick={() => setZoom((z) => Math.min(4, z + 0.25))} className="grid h-9 w-9 place-items-center">
                 <Icon name="add" />
               </button>
@@ -952,7 +971,7 @@ const RenderStudio: React.FC<{
             {busy && (
               <div className="absolute inset-0 grid place-items-center bg-white/70 backdrop-blur-[2px]" role="status" aria-live="polite">
                 <div className="flex items-center gap-3 rounded-2xl bg-white px-5 py-4 shadow-xl">
-                  <span className="h-6 w-6 animate-spin rounded-full border-[3px] border-gray-200 border-t-gray-900" />
+                  <span className="h-6 w-6 animate-spin rounded-full border-[3px] border-indigo-100 border-t-indigo-600" />
                   <div>
                     <div className="text-[14.5px] font-semibold">{jobStep || job?.label}…</div>
                     <div className="text-[12.5px] text-gray-500 tabular-nums">{elapsed} s · you can close this — it saves to History</div>
@@ -962,34 +981,34 @@ const RenderStudio: React.FC<{
             )}
           </div>
           <div className="flex justify-center">
-            <div className="pz-rs-tools flex items-center gap-1 rounded-2xl border border-gray-200 bg-white p-1.5 text-[13px]">
-              <button type="button" title="Previous" disabled={idx <= 0} onClick={() => setView(order[idx - 1])} className="grid h-9 w-9 place-items-center rounded-lg hover:bg-gray-100 disabled:opacity-30">
+            <div className="pz-rs-tools flex items-center gap-1 pz-st-card p-1.5 text-[13px]">
+              <button type="button" title="Previous" disabled={idx <= 0} onClick={() => setView(order[idx - 1])} className="pz-st-tool">
                 <Icon name="undo" />
               </button>
-              <button type="button" title="Next" disabled={idx < 0 || idx >= order.length - 1} onClick={() => setView(order[idx + 1])} className="grid h-9 w-9 place-items-center rounded-lg hover:bg-gray-100 disabled:opacity-30">
+              <button type="button" title="Next" disabled={idx < 0 || idx >= order.length - 1} onClick={() => setView(order[idx + 1])} className="pz-st-tool">
                 <Icon name="redo" />
               </button>
-              <button type="button" title="Pan" aria-pressed={panMode} onClick={() => setPanMode((p) => !p)} className={`grid h-9 w-9 place-items-center rounded-lg ${panMode ? "bg-gray-900 text-white" : "hover:bg-gray-100"}`}>
+              <button type="button" title="Pan" aria-pressed={panMode} onClick={() => setPanMode((p) => !p)} className={`pz-st-tool${panMode ? " is-on" : ""}`}>
                 <Icon name="pan_tool" />
               </button>
-              <span className="mx-1 h-6 w-px bg-gray-200" />
+              <span className="pz-st-sep" />
               <button
                 type="button"
                 disabled={!current || current.kind !== "render"}
                 onClick={() => current && onSourceChange({ fileUrl: current.url, label: current.title.replace(/ — .*$/, ""), capturedAt: Date.now() })}
-                className="flex h-9 items-center gap-1 rounded-lg border border-gray-200 px-2.5 hover:bg-gray-50 disabled:opacity-40"
+                className="pz-st-tbtn"
                 title="Render again from this image"
               >
                 <Icon name="input" /> Use as source
               </button>
-              <button type="button" onClick={download} className="flex h-9 items-center gap-1 rounded-lg border border-gray-200 px-2.5 hover:bg-gray-50">
+              <button type="button" onClick={download} className="pz-st-tbtn">
                 <Icon name="download" /> Download
               </button>
               <button
                 type="button"
                 disabled={busy || !creditOk || shown.kind === "video"}
                 onClick={() => runTool("upscale", "4k")}
-                className="h-9 rounded-lg border border-gray-200 px-2.5 font-semibold hover:bg-gray-50 disabled:opacity-40"
+                className="pz-st-tbtn pz-st-tbtn--4k"
                 title="Upscale to 4K"
               >
                 4K
@@ -999,7 +1018,7 @@ const RenderStudio: React.FC<{
                 disabled={!shown.before}
                 aria-pressed={compare}
                 onClick={() => setCompare((c) => !c)}
-                className={`flex h-9 items-center gap-1 rounded-lg px-2.5 disabled:opacity-40 ${compare && shown.before ? "bg-gray-900 text-white" : "border border-gray-200 hover:bg-gray-50"}`}
+                className={`pz-st-tbtn${compare && shown.before ? " is-on" : ""}`}
                 title="Before / after"
               >
                 <Icon name="compare" /> Compare

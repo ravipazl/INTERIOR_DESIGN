@@ -14,6 +14,7 @@ import {
 import { getCurrentUser } from "../../services/authService";
 import { USER_ROLES } from "../../utils/constants";
 import NavRail from "@pazl/components/NavRail";
+import AppHeader from "../../components/AppHeader";
 import {
   getCoreMaterialTypes,
   getCoreMaterialBrands,
@@ -39,6 +40,46 @@ import {
   setInstallationRate as saveInstallationRate,
 } from "../../services/ratesService";
 import ManageLists from "./ManageLists";
+import {
+  ActionIcon,
+  EditIcon,
+  Icon,
+  ListIcon,
+  RefreshIcon,
+  SearchBox,
+  TablePager,
+  TableSkeleton,
+  TrashIcon,
+  useSearchPaging,
+} from "../../components/PzTable";
+
+/**
+ * The bar above a rate table: how many rates, and its search. And the row that
+ * says nothing matched. Both only about what shows; the table's own rows are
+ * drawn by the tab, unchanged.
+ */
+const RateTools = ({ count, noun, paging }) => (
+  <div className="pz-rates-tools">
+    <span className="pz-rates-tools-title">
+      {count} {noun}
+    </span>
+    <SearchBox
+      value={paging.query}
+      onChange={paging.search}
+      placeholder={`Search ${noun}`}
+    />
+  </div>
+);
+const NoMatchRow = ({ colSpan, paging }) => (
+  <tr>
+    <td colSpan={colSpan} className="text-center text-muted py-4">
+      Nothing matches “{paging.query.trim()}”.{" "}
+      <button type="button" className="pzp-crumb" onClick={() => paging.search("")}>
+        Clear search
+      </button>
+    </td>
+  </tr>
+);
 
 /**
  * Rate Card (Masters) — admin screen to maintain BOQ pricing.
@@ -99,6 +140,18 @@ const RateCard = () => {
   // The catalogue drawer — closed by default, because the common job on this
   // page is pricing a combination that already exists, not inventing one.
   const [showLists, setShowLists] = useState(false);
+  // Manage lists is open as its own page — only for the tabs that HAVE lists
+  // behind them. Hardware is free text and Installation is a single number, so
+  // neither has a catalogue to maintain and offering it there would be a dead
+  // end.
+  // …and only once the catalogue has loaded the first time: opened during the
+  // first load it would show empty lists with Add enabled. Until then the
+  // loading rows show, and the lists open as soon as the data is in.
+  const [loadedOnce, setLoadedOnce] = useState(false);
+  const listsOpen =
+    showLists &&
+    loadedOnce &&
+    (tab === "material" || tab === "coating" || tab === "interior");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [editId, setEditId] = useState(null);
@@ -156,6 +209,7 @@ const RateCard = () => {
     setInteriorRates(iRates);
     setHardware(hw);
     setLoading(false);
+    setLoadedOnce(true);
   };
 
   // id -> readable name lookups
@@ -208,6 +262,31 @@ const RateCard = () => {
     const parentId = typeIdOfGrade(gradeId);
     return parentId ? nameOf(finishCategories, parentId) : "—";
   };
+
+  // Search and pages for each rate table — Coating alone runs to well over a
+  // hundred rows. A row matches on any of the words it shows (names and
+  // price). Only which rows SHOW changes; each row's Edit and Delete are
+  // untouched. Kept here, not in the tabs, so a search and a page survive the
+  // reload after a save.
+  const matPaging = useSearchPaging(materialRates, (r) =>
+    [typeName(r.coreMaterialTypeId), r.grade, coreBrandName(r.brandId), r.pricePerSqft].join(" ")
+  );
+  const coatPaging = useSearchPaging(coatingRates, (r) =>
+    [
+      finishTypeNameOfGrade(r.finishingCategoryId),
+      finBrandName(r.finishingBrandId),
+      catName(r.finishingCategoryId),
+      r.pricePerSqft,
+    ].join(" ")
+  );
+  const intPaging = useSearchPaging(interiorRates, (r) =>
+    [
+      catName(r.finishingCategoryId),
+      r.finishingBrandId ? finBrandName(r.finishingBrandId) : "Any brand",
+      r.pricePerSqft,
+    ].join(" ")
+  );
+  const hwPaging = useSearchPaging(hardware, (r) => [r.name, r.price].join(" "));
 
   const cancelEdit = () => {
     setEditId(null);
@@ -407,10 +486,43 @@ const RateCard = () => {
   return (
     <div className="pz-app-shell">
       <NavRail variant="app" />
-      <Container fluid className="py-4 px-4">
-      <div className="d-flex align-items-center justify-content-between mb-3">
-        <h4 className="mb-0 fw-semibold">Masters · Rate Card</h4>
-        <div className="d-flex gap-2">
+      {/* Laid out as Projects and Teams are: the top bar (logo, bell) and,
+          below it, the page in a box of its own that scrolls — so a long list
+          or table never runs off the bottom of a page that cannot scroll. */}
+      <div className="pz-app-main pz-projects-main">
+      <AppHeader />
+      {/* The list pages' look (Projects.css + PzTable/ListPages.css). */}
+      <Container fluid className="pz-projects pz-rates overflow-x-hidden overflow-y-auto">
+      <div className="pz-projects-inner">
+      {listsOpen ? (
+      // Manage lists, as a page of its own: the way back is where the way in was.
+      <div className="pzp-head">
+        <div>
+          <div className="pzp-crumbs">
+            <button type="button" className="pzp-crumb" onClick={() => setShowLists(false)}>
+              Rate card
+            </button>
+            <span aria-hidden="true">›</span>
+            <span>Manage lists</span>
+          </div>
+          <h1 className="pzp-title">Manage lists</h1>
+          <p className="pzp-subtitle">
+            The materials, grades and brands the rate dropdowns offer.
+          </p>
+        </div>
+        <div className="pzp-head-tools">
+          <Button variant="outline-secondary" size="sm" onClick={() => setShowLists(false)}>
+            ‹ Back to Rate card
+          </Button>
+        </div>
+      </div>
+      ) : (
+      <div className="pzp-head">
+        <div>
+          <h1 className="pzp-title">Rate card</h1>
+          <p className="pzp-subtitle">Masters · the prices every quote is built from.</p>
+        </div>
+        <div className="pzp-head-tools">
           {tab === "material" || tab === "coating" || tab === "interior" ? (
             <Button
               variant={showLists ? "secondary" : "outline-secondary"}
@@ -418,26 +530,64 @@ const RateCard = () => {
               onClick={() => setShowLists((v) => !v)}
               title="Add, rename or remove the materials, grades and brands these dropdowns offer"
             >
+              <ListIcon />
               Manage lists
             </Button>
           ) : null}
           <Button variant="outline-secondary" size="sm" onClick={loadAll}>
+            <RefreshIcon />
             Refresh
           </Button>
         </div>
       </div>
-      <p className="text-muted" style={{ fontSize: 13 }}>
+      )}
+      <p className="pzp-note">
+        <Icon size={18}>
+          <circle cx="12" cy="12" r="9" />
+          <path d="M12 11v5M12 8h.01" />
+        </Icon>
         These rates feed the 3D editor’s material / coating pickers and price the
         BOQ. Changes here apply everywhere.
       </p>
 
-      {loading ? (
-        <div className="d-flex align-items-center gap-2 py-5">
-          <Spinner animation="border" size="sm" /> Loading rate card…
+      {/* While Manage lists is open it stays on screen through the reload that
+          follows each change, and updates in place — swapping it for the
+          loading rows would drop each list's search and page every time.
+          `listsOpen` is false until the first load is done (loadedOnce), so
+          the lists always have data to show. */}
+      {loading && !listsOpen ? (
+        <div className="pzp-card">
+          <TableSkeleton label="Loading rate card" />
         </div>
+      ) : listsOpen ? (
+        // The lists in place of the tabs. Switching Material / Coating /
+        // Interior here moves the rate tab with it, so "Back" lands on the tab
+        // whose lists you were just editing.
+        <ManageLists
+          tab={tab}
+          data={{
+            materialTypes,
+            coreBrands,
+            finishCategories,
+            finishBrands,
+            materialRates,
+            coatingRates,
+            interiorRates,
+            // The lists must show the same types the Interior tab can
+            // actually price, or they offer Paint and Glass beside a dropdown
+            // that will never show them.
+            interiorTypes,
+          }}
+          onClose={() => setShowLists(false)}
+          onChanged={loadAll}
+          onTab={(k) => {
+            setTab(k);
+            cancelEdit();
+          }}
+        />
       ) : (
-        <div className="d-flex gap-3 align-items-start">
-        <div className="flex-grow-1" style={{ minWidth: 0 }}>
+        <div className="pz-rates-body">
+        <div className="pzp-card pz-rates-card">
         <Tabs
           activeKey={tab}
           onSelect={(k) => {
@@ -447,7 +597,14 @@ const RateCard = () => {
           className="mb-3"
         >
           {/* ---------------- MATERIAL ---------------- */}
-          <Tab eventKey="material" title="Material rates">
+          <Tab
+            eventKey="material"
+            title={
+              <>
+                Material rates<span className="pzp-count">{materialRates.length}</span>
+              </>
+            }
+          >
             <Row className="g-2 align-items-end mb-3">
               <Col md={3}>
                 <Form.Label className="small fw-semibold">Material</Form.Label>
@@ -528,6 +685,7 @@ const RateCard = () => {
               </Col>
             </Row>
 
+            <RateTools count={materialRates.length} noun="material rates" paging={matPaging} />
             <Table hover responsive size="sm" className="align-middle">
               <thead>
                 <tr>
@@ -539,29 +697,24 @@ const RateCard = () => {
                 </tr>
               </thead>
               <tbody>
-                {materialRates.length ? (
-                  materialRates.map((r) => (
+                {materialRates.length && !matPaging.matches ? (
+                  <NoMatchRow colSpan={5} paging={matPaging} />
+                ) : materialRates.length ? (
+                  matPaging.visible.map((r) => (
                     <tr key={r._id}>
                       <td>{typeName(r.coreMaterialTypeId)}</td>
                       <td>{r.grade || "—"}</td>
                       <td>{coreBrandName(r.brandId)}</td>
                       <td className="text-end">₹{r.pricePerSqft}</td>
                       <td className="text-end">
-                        <Button
-                          size="sm"
-                          variant="link"
-                          onClick={() => editMaterial(r)}
-                        >
-                          Edit
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="link"
-                          className="text-danger"
-                          onClick={() => deleteMaterial(r._id)}
-                        >
-                          Delete
-                        </Button>
+                        <div className="pzp-actions">
+                          <ActionIcon label="Edit rate" onClick={() => editMaterial(r)}>
+                            <EditIcon />
+                          </ActionIcon>
+                          <ActionIcon danger label="Delete rate" onClick={() => deleteMaterial(r._id)}>
+                            <TrashIcon />
+                          </ActionIcon>
+                        </div>
                       </td>
                     </tr>
                   ))
@@ -574,10 +727,18 @@ const RateCard = () => {
                 )}
               </tbody>
             </Table>
+            {matPaging.showPager ? <TablePager {...matPaging.pagerProps} /> : null}
           </Tab>
 
           {/* ---------------- COATING ---------------- */}
-          <Tab eventKey="coating" title="Coating rates">
+          <Tab
+            eventKey="coating"
+            title={
+              <>
+                Coating rates<span className="pzp-count">{coatingRates.length}</span>
+              </>
+            }
+          >
             <Row className="g-2 align-items-end mb-3">
               <Col md={3}>
                 <Form.Label className="small fw-semibold">
@@ -677,6 +838,7 @@ const RateCard = () => {
               </Col>
             </Row>
 
+            <RateTools count={coatingRates.length} noun="coating rates" paging={coatPaging} />
             <Table hover responsive size="sm" className="align-middle">
               <thead>
                 <tr>
@@ -688,29 +850,24 @@ const RateCard = () => {
                 </tr>
               </thead>
               <tbody>
-                {coatingRates.length ? (
-                  coatingRates.map((r) => (
+                {coatingRates.length && !coatPaging.matches ? (
+                  <NoMatchRow colSpan={5} paging={coatPaging} />
+                ) : coatingRates.length ? (
+                  coatPaging.visible.map((r) => (
                     <tr key={r._id}>
                       <td>{finishTypeNameOfGrade(r.finishingCategoryId)}</td>
                       <td>{finBrandName(r.finishingBrandId)}</td>
                       <td>{catName(r.finishingCategoryId)}</td>
                       <td className="text-end">₹{r.pricePerSqft}</td>
                       <td className="text-end">
-                        <Button
-                          size="sm"
-                          variant="link"
-                          onClick={() => editCoating(r)}
-                        >
-                          Edit
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="link"
-                          className="text-danger"
-                          onClick={() => deleteCoating(r._id)}
-                        >
-                          Delete
-                        </Button>
+                        <div className="pzp-actions">
+                          <ActionIcon label="Edit rate" onClick={() => editCoating(r)}>
+                            <EditIcon />
+                          </ActionIcon>
+                          <ActionIcon danger label="Delete rate" onClick={() => deleteCoating(r._id)}>
+                            <TrashIcon />
+                          </ActionIcon>
+                        </div>
                       </td>
                     </tr>
                   ))
@@ -723,6 +880,7 @@ const RateCard = () => {
                 )}
               </tbody>
             </Table>
+            {coatPaging.showPager ? <TablePager {...coatPaging.pagerProps} /> : null}
           </Tab>
 
           {/* ---------------- INTERIOR ----------------
@@ -731,7 +889,14 @@ const RateCard = () => {
               white paper at tens of rupees a square foot against a decorative
               laminate at hundreds. It names the same finish types and grades as
               the coating rates; only the price is separate. */}
-          <Tab eventKey="interior" title="Interior rates">
+          <Tab
+            eventKey="interior"
+            title={
+              <>
+                Interior rates<span className="pzp-count">{interiorRates.length}</span>
+              </>
+            }
+          >
             <Row className="g-2 align-items-end mb-3">
               {/* NO GRADE HERE. One inner lamination rate covers the whole
                   type: the inside of a carcass is white paper, not a chosen
@@ -806,6 +971,7 @@ const RateCard = () => {
               </Col>
             </Row>
 
+            <RateTools count={interiorRates.length} noun="interior rates" paging={intPaging} />
             <Table hover responsive size="sm" className="align-middle">
               <thead>
                 <tr>
@@ -816,8 +982,10 @@ const RateCard = () => {
                 </tr>
               </thead>
               <tbody>
-                {interiorRates.length ? (
-                  interiorRates.map((r) => (
+                {interiorRates.length && !intPaging.matches ? (
+                  <NoMatchRow colSpan={4} paging={intPaging} />
+                ) : interiorRates.length ? (
+                  intPaging.visible.map((r) => (
                     <tr key={r._id}>
                       <td>{catName(r.finishingCategoryId)}</td>
                       <td>
@@ -829,21 +997,14 @@ const RateCard = () => {
                       </td>
                       <td className="text-end">₹{r.pricePerSqft}</td>
                       <td className="text-end">
-                        <Button
-                          size="sm"
-                          variant="link"
-                          onClick={() => editInterior(r)}
-                        >
-                          Edit
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="link"
-                          className="text-danger"
-                          onClick={() => deleteInterior(r._id)}
-                        >
-                          Delete
-                        </Button>
+                        <div className="pzp-actions">
+                          <ActionIcon label="Edit rate" onClick={() => editInterior(r)}>
+                            <EditIcon />
+                          </ActionIcon>
+                          <ActionIcon danger label="Delete rate" onClick={() => deleteInterior(r._id)}>
+                            <TrashIcon />
+                          </ActionIcon>
+                        </div>
                       </td>
                     </tr>
                   ))
@@ -857,10 +1018,18 @@ const RateCard = () => {
                 )}
               </tbody>
             </Table>
+            {intPaging.showPager ? <TablePager {...intPaging.pagerProps} /> : null}
           </Tab>
 
           {/* ---------------- HARDWARE ---------------- */}
-          <Tab eventKey="hardware" title="Hardware">
+          <Tab
+            eventKey="hardware"
+            title={
+              <>
+                Hardware<span className="pzp-count">{hardware.length}</span>
+              </>
+            }
+          >
             <Row className="g-2 align-items-end mb-3">
               <Col md={5}>
                 <Form.Label className="small fw-semibold">Name</Form.Label>
@@ -897,6 +1066,7 @@ const RateCard = () => {
               </Col>
             </Row>
 
+            <RateTools count={hardware.length} noun="hardware items" paging={hwPaging} />
             <Table hover responsive size="sm" className="align-middle">
               <thead>
                 <tr>
@@ -906,27 +1076,22 @@ const RateCard = () => {
                 </tr>
               </thead>
               <tbody>
-                {hardware.length ? (
-                  hardware.map((r) => (
+                {hardware.length && !hwPaging.matches ? (
+                  <NoMatchRow colSpan={3} paging={hwPaging} />
+                ) : hardware.length ? (
+                  hwPaging.visible.map((r) => (
                     <tr key={r._id}>
                       <td>{r.name}</td>
                       <td className="text-end">₹{r.price}</td>
                       <td className="text-end">
-                        <Button
-                          size="sm"
-                          variant="link"
-                          onClick={() => editHardware(r)}
-                        >
-                          Edit
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="link"
-                          className="text-danger"
-                          onClick={() => deleteHardware(r._id)}
-                        >
-                          Delete
-                        </Button>
+                        <div className="pzp-actions">
+                          <ActionIcon label="Edit item" onClick={() => editHardware(r)}>
+                            <EditIcon />
+                          </ActionIcon>
+                          <ActionIcon danger label="Delete item" onClick={() => deleteHardware(r._id)}>
+                            <TrashIcon />
+                          </ActionIcon>
+                        </div>
                       </td>
                     </tr>
                   ))
@@ -939,6 +1104,7 @@ const RateCard = () => {
                 )}
               </tbody>
             </Table>
+            {hwPaging.showPager ? <TablePager {...hwPaging.pagerProps} /> : null}
           </Tab>
 
           {/* ---------------- INSTALLATION ---------------- */}
@@ -995,32 +1161,11 @@ const RateCard = () => {
           </Tab>
         </Tabs>
         </div>
-        {/* Only the two tabs that HAVE lists behind them. Hardware is free text
-            and Installation is a single number, so neither has a catalogue to
-            maintain and offering the drawer there would be a dead end. */}
-        {showLists && (tab === "material" || tab === "coating" || tab === "interior") ? (
-          <ManageLists
-            tab={tab}
-            data={{
-              materialTypes,
-              coreBrands,
-              finishCategories,
-              finishBrands,
-              materialRates,
-              coatingRates,
-              interiorRates,
-              // The drawer must list the same types the Interior tab can
-              // actually price, or it offers Paint and Glass beside a dropdown
-              // that will never show them.
-              interiorTypes,
-            }}
-            onClose={() => setShowLists(false)}
-            onChanged={loadAll}
-          />
-        ) : null}
         </div>
       )}
+      </div>
       </Container>
+      </div>
     </div>
   );
 };

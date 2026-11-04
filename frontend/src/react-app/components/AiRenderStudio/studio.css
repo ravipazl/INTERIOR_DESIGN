@@ -1,0 +1,517 @@
+/* ===========================================================================
+   Render studio (Render step), in the app's look: a header bar with a badge,
+   white rounded cards with soft shadows, indigo for what is chosen and for
+   the main Render button. Layout (the three columns, the tablet stacking in
+   MenuBar/index.css .pz-rs-*) is unchanged; this only dresses the pieces.
+   =========================================================================== */
+.pz-studio {
+  background: #f6f7fb;
+  color: #172033;
+  font-family: Inter, Arial, sans-serif;
+}
+
+/* --- header ------------------------------------------------------------------ */
+.pz-st-head {
+  padding: 0 18px;
+  background: #fff;
+  border-bottom: 1px solid #e9ebf0;
+  box-shadow: 0 1px 2px rgba(23, 32, 51, 0.04);
+}
+.pz-st-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font: 800 17px/1.15 Inter, Arial, sans-serif;
+  color: #172033;
+}
+.pz-st-badge {
+  width: 38px;
+  height: 38px;
+  border-radius: 11px;
+  display: grid;
+  place-items: center;
+  background: #e2f4f8;
+  color: #0891b2;
+}
+.pz-st-sub {
+  display: block;
+  margin-top: 2px;
+  font: 400 12.5px/1.2 Inter, Arial, sans-serif;
+  color: #697386;
+}
+button.pz-st-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 38px;
+  padding: 0 14px;
+  border: 1px solid #e6e8ee;
+  border-radius: 10px;
+  background: #fff;
+  color: #172033;
+  font: 600 13.5px/1 Inter, Arial, sans-serif;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(23, 32, 51, 0.05);
+  transition: transform 0.15s ease, box-shadow 0.2s ease, background-color 0.15s;
+}
+button.pz-st-back:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 14px rgba(23, 32, 51, 0.1);
+}
+
+/* --- cards ------------------------------------------------------------------- */
+.pz-studio .pz-st-card {
+  border: 1px solid #e9ebf0;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(23, 32, 51, 0.04), 0 6px 18px rgba(23, 32, 51, 0.05);
+}
+.pz-st-h {
+  font: 800 15px/1.25 Inter, Arial, sans-serif;
+  color: #172033;
+}
+
+/* Recapture view — an action card. */
+button.pz-st-recap {
+  padding: 12px 14px;
+  font: 600 14.5px/1.2 Inter, Arial, sans-serif;
+  color: #172033;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.2s ease, border-color 0.15s;
+}
+button.pz-st-recap:hover:not(:disabled) {
+  transform: translateY(-1px);
+  border-color: #cfc5fd;
+  box-shadow: 0 10px 22px rgba(91, 61, 245, 0.14);
+}
+button.pz-st-recap:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.pz-st-recap-l {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.pz-st-recap-ic {
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  display: grid;
+  place-items: center;
+  background: #f1edff;
+  color: #5b3df5;
+}
+
+/* Render source + history rows: picked = indigo outline and tint. */
+button.pz-st-src {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 10px;
+  padding: 8px;
+  border: 1px solid #e6e8ee;
+  border-radius: 12px;
+  background: #fff;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.2s, background-color 0.15s;
+}
+button.pz-st-src:hover {
+  border-color: #cfc5fd;
+}
+button.pz-st-src.is-on {
+  border-color: #5b3df5;
+  background: #f8f6ff;
+  box-shadow: 0 0 0 1px #5b3df5;
+}
+.pz-st-hist {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px;
+  border: 1px solid #e6e8ee;
+  border-radius: 12px;
+  background: #fff;
+  transition: border-color 0.15s, box-shadow 0.2s, background-color 0.15s, transform 0.15s;
+}
+.pz-st-hist:hover {
+  transform: translateY(-1px);
+  border-color: #cfc5fd;
+  box-shadow: 0 6px 14px rgba(91, 61, 245, 0.1);
+}
+.pz-st-hist.is-on {
+  border-color: #5b3df5;
+  background: #f8f6ff;
+  box-shadow: 0 0 0 1px #5b3df5;
+}
+.pz-studio .pz-st-src img,
+.pz-studio .pz-st-hist img {
+  border-radius: 8px;
+}
+button.pz-st-fav {
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 9px;
+  display: grid;
+  place-items: center;
+  background: transparent;
+  color: #8a91a1;
+  cursor: pointer;
+}
+button.pz-st-fav:hover {
+  background: #fef2f2;
+  color: #e11d48;
+}
+button.pz-st-fav.is-on {
+  background: #ffe4e6;
+  color: #e11d48;
+}
+
+/* --- right column: scene type, mode, pickers, Render ------------------------ */
+.pz-st-seg {
+  display: flex;
+  gap: 3px;
+  padding: 4px;
+  border-radius: 12px;
+  background: #f1f2f6;
+}
+button.pz-st-seg-btn {
+  flex: 1;
+  height: 38px;
+  border: none;
+  border-radius: 9px;
+  background: transparent;
+  color: #4d5566;
+  font: 600 13.5px/1 Inter, Arial, sans-serif;
+  cursor: pointer;
+  transition: background-color 0.15s, color 0.15s, box-shadow 0.2s;
+}
+button.pz-st-seg-btn:hover {
+  color: #4b30dc;
+}
+button.pz-st-seg-btn.is-on {
+  background: linear-gradient(180deg, #6a50f7 0%, #5b3df5 100%);
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(91, 61, 245, 0.3);
+}
+
+.pz-st-mode {
+  padding: 14px;
+  border: 1px solid #e6e8ee;
+  border-radius: 14px;
+  background: #fcfcfe;
+}
+.pz-st-mode-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font: 700 14px/1.25 Inter, Arial, sans-serif;
+  color: #172033;
+}
+.pz-st-mode-title .material-symbols-outlined {
+  font-size: 18px;
+  color: #5b3df5;
+}
+button.pz-st-auto {
+  padding: 5px 10px;
+  border: none;
+  border-radius: 999px;
+  background: #f1edff;
+  color: #4b30dc;
+  font: 700 12.5px/1 Inter, Arial, sans-serif;
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+button.pz-st-auto:hover:not(:disabled) {
+  background: #e6e0ff;
+}
+button.pz-st-auto:disabled {
+  background: #f1f2f6;
+  color: #9aa1b0;
+  cursor: not-allowed;
+}
+textarea.pz-st-input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #e6e8ee;
+  border-radius: 10px;
+  background: #fff;
+  color: #172033;
+  font: 400 13.5px/1.5 Inter, Arial, sans-serif;
+  resize: vertical;
+  outline: none;
+}
+textarea.pz-st-input:focus {
+  border-color: #a99bfa;
+  box-shadow: 0 0 0 3px rgba(91, 61, 245, 0.14);
+}
+
+/* A picture list (Lighting, Landscape). */
+button.pz-st-pick {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 10px 8px 8px;
+  border: 1px solid #e6e8ee;
+  border-radius: 12px;
+  background: #fff;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+button.pz-st-pick:hover,
+button.pz-st-pick.is-open {
+  border-color: #a99bfa;
+  box-shadow: 0 0 0 3px rgba(91, 61, 245, 0.12);
+}
+.pz-st-pick-ic {
+  width: 40px;
+  height: 40px;
+  flex: none;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  background: #fff7ed;
+  color: #d97706;
+}
+.pz-st-pick-ic--sm {
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+}
+.pz-st-pick-lab {
+  display: block;
+  font: 700 10.5px/1.2 Inter, Arial, sans-serif;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #8a91a1;
+}
+.pz-st-pick-val {
+  display: block;
+  margin-top: 2px;
+  font: 700 14px/1.25 Inter, Arial, sans-serif;
+  color: #172033;
+}
+.pz-st-pick-list {
+  padding: 5px;
+  border: 1px solid #e6e8ee;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 16px 36px rgba(15, 18, 34, 0.18);
+}
+button.pz-st-pick-opt {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  color: #172033;
+  font: 500 13.5px/1.2 Inter, Arial, sans-serif;
+  text-align: left;
+  cursor: pointer;
+}
+button.pz-st-pick-opt:hover {
+  background: #f6f7fb;
+}
+button.pz-st-pick-opt.is-on {
+  background: #f1edff;
+  color: #4b30dc;
+  font-weight: 700;
+}
+
+.pz-studio .pz-st-go {
+  background: #f6f7fb;
+}
+button.pz-st-primary {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 50px;
+  border: none;
+  border-radius: 14px;
+  background: linear-gradient(180deg, #6a50f7 0%, #5b3df5 100%);
+  color: #fff;
+  font: 700 15px/1 Inter, Arial, sans-serif;
+  cursor: pointer;
+  box-shadow: 0 10px 24px rgba(91, 61, 245, 0.36);
+  transition: transform 0.15s ease, box-shadow 0.2s ease, filter 0.15s;
+}
+button.pz-st-primary .material-symbols-outlined {
+  font-size: 20px;
+}
+button.pz-st-primary:hover:not(:disabled) {
+  transform: translateY(-1px);
+  filter: brightness(1.06);
+  box-shadow: 0 14px 28px rgba(91, 61, 245, 0.42);
+}
+button.pz-st-primary:active:not(:disabled) {
+  transform: scale(0.98);
+}
+button.pz-st-primary:disabled {
+  background: #c7c9d3;
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+/* --- the picture and its toolbar --------------------------------------------- */
+.pz-st-zoom {
+  border-radius: 12px;
+  background: #fff;
+  color: #172033;
+  box-shadow: 0 8px 20px rgba(15, 18, 34, 0.18);
+}
+.pz-st-zoom button {
+  transition: background-color 0.15s, color 0.15s;
+}
+.pz-st-zoom button:hover {
+  background: #f1edff;
+  color: #4b30dc;
+}
+.pz-st-zoom button + button {
+  border-top-color: #e6e8ee !important;
+}
+.pz-studio .pz-rs-tools {
+  gap: 6px;
+  padding: 6px;
+}
+button.pz-st-tool {
+  width: 38px;
+  height: 38px;
+  border: none;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  background: transparent;
+  color: #4d5566;
+  cursor: pointer;
+  transition: background-color 0.15s, color 0.15s;
+}
+button.pz-st-tool:hover:not(:disabled) {
+  background: #f1edff;
+  color: #4b30dc;
+}
+button.pz-st-tool.is-on {
+  background: #5b3df5;
+  color: #fff;
+}
+button.pz-st-tool:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+.pz-st-sep {
+  width: 1px;
+  height: 24px;
+  margin: 0 4px;
+  background: #e6e8ee;
+}
+button.pz-st-tbtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 38px;
+  padding: 0 12px;
+  border: 1px solid #e6e8ee;
+  border-radius: 10px;
+  background: #fff;
+  color: #172033;
+  font: 600 13px/1 Inter, Arial, sans-serif;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.2s ease, background-color 0.15s,
+    border-color 0.15s, color 0.15s;
+}
+button.pz-st-tbtn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  border-color: #cfc5fd;
+  color: #4b30dc;
+  box-shadow: 0 6px 14px rgba(91, 61, 245, 0.12);
+}
+button.pz-st-tbtn.is-on {
+  border-color: #5b3df5;
+  background: #5b3df5;
+  color: #fff;
+}
+button.pz-st-tbtn--4k {
+  font-weight: 800;
+  color: #4b30dc;
+}
+button.pz-st-tbtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.pz-studio button:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px #fff, 0 0 0 5px rgba(91, 61, 245, 0.55);
+}
+
+/* --- Smaller type and icons (one size down across the app) --------------- */
+.pz-st-title {
+  font-size: 15px;
+}
+.pz-st-sub {
+  font-size: 12px;
+}
+.pz-st-h {
+  font-size: 13.5px;
+}
+.pz-st-badge {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+}
+
+/* --- ...and one more small step down ------------------------------------- */
+.pz-st-title {
+  font-size: 14px;
+}
+.pz-st-sub {
+  font-size: 11.5px;
+}
+.pz-st-h {
+  font-size: 13px;
+}
+.pz-st-badge {
+  width: 32px;
+  height: 32px;
+}
+
+/* --- Compact: a third step down (type everywhere; controls on a computer) - */
+.pz-st-title {
+  font-size: 13.5px;
+}
+.pz-st-sub {
+  font-size: 11px;
+}
+.pz-st-h {
+  font-size: 12.5px;
+}
+.pz-st-badge {
+  width: 30px;
+  height: 30px;
+}
+@media (min-width: 1101px) {
+  button.pz-st-primary {
+    height: 42px;
+    font-size: 14px;
+  }
+  button.pz-st-back,
+  button.pz-st-tbtn,
+  button.pz-st-tool,
+  button.pz-st-seg-btn {
+    height: 34px;
+  }
+  button.pz-st-tool {
+    width: 34px;
+  }
+  button.pz-st-back,
+  button.pz-st-tbtn {
+    font-size: 12.5px;
+  }
+}

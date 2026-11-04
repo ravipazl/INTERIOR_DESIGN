@@ -32,16 +32,13 @@ const STATUS_COLORS = {
   closed: "#888",
 };
 
-const Field = ({ label, value }) => (
-  <p
-    className="mb-1"
-    style={{ fontSize: 14, color: "#414063", fontWeight: 600 }}
-  >
-    {label} :
-    <span className="ps-2" style={{ fontWeight: 400 }}>
-      {value || "N/A"}
-    </span>
-  </p>
+// One detail: a small grey label over its value — the same grid as the
+// designer's Project Detail card (react-app pages/ProjectDetail, .pz-pd-info).
+const Field = ({ label, value, children }) => (
+  <div className="pz-pd-field">
+    <dt>{label}</dt>
+    <dd>{children || value || "N/A"}</dd>
+  </div>
 );
 
 function ProjectInfoCard({ project }) {
@@ -52,17 +49,29 @@ function ProjectInfoCard({ project }) {
   const statusColor = STATUS_COLORS[status] || "#888";
 
   return (
-    <div
-      className="bg-white rounded p-3 mx-2 mb-3"
-      style={{ boxShadow: "0 0 6px rgba(0,0,0,0.08)" }}
-    >
-      <div className="d-flex flex-column flex-md-row gap-3">
-        <div className="flex-fill pe-md-4">
+    <div className="pz-pd-card pz-iw-info">
+      <div className="pz-iw-info-head">
+        <span className="pz-iw-badge" aria-hidden="true">
+          {/* A drawn icon: the Material Symbols font is not loaded on PAZL
+              web, so a ligature name would show as plain text. */}
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M3 10.5 12 3l9 7.5" />
+            <path d="M5.5 9.5V20h13V9.5" />
+            <path d="M10 20v-5h4v5" />
+          </svg>
+        </span>
+        <div>
+          <h2 className="pz-pd-h2">{cap(project.name) || "Your project"}</h2>
+          <p className="pz-iw-sub">Project and client details</p>
+        </div>
+      </div>
+      <dl className="pz-pd-info">
+        <div className="pz-pd-col">
           <Field label="Project Name" value={cap(project.name)} />
           <Field label="Created Date" value={formatDate(project.createdAt)} />
           <Field label="Created By" value={cap(project.ownerUser?.name)} />
         </div>
-        <div className="flex-fill pe-md-4">
+        <div className="pz-pd-col">
           <Field label="Client Name" value={cap(project.clientName)} />
           <Field label="Client Phone Number" value={project.clientPhoneNumber} />
           <Field
@@ -70,20 +79,16 @@ function ProjectInfoCard({ project }) {
             value={project.clientEmail || project.ownerUser?.email}
           />
         </div>
-        <div className="flex-fill">
+        <div className="pz-pd-col">
           <Field label="Address" value={project.address} />
-          <p
-            className="mb-1"
-            style={{ fontSize: 14, color: "#414063", fontWeight: 600 }}
-          >
-            Status :
-            <span className="ps-2" style={{ fontWeight: 400, color: statusColor }}>
+          <Field label="Status">
+            <span className="pz-pd-status" style={{ "--pz-status": statusColor }}>
               {statusLabel}
             </span>
-          </p>
+          </Field>
           <Field label="Architect" value={cap(project.architectUser?.name)} />
         </div>
-      </div>
+      </dl>
     </div>
   );
 }

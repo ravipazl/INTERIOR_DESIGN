@@ -76,7 +76,7 @@ const GroupedButtons: React.FC<MenuGroupedButtonProps> = ({
       {Object.keys(groupedItems).map((classificationName: string) => (
         <div
           key={classificationName}
-          className="flex p-1 border-r border-solid border-[color:var(--pz-panel-border)]"
+          className="pz-tb-group flex p-1 border-r border-solid border-[color:var(--pz-panel-border)]"
         >
           {groupedItems[classificationName].map((itemData: MenuItem) => (
             <MenuButton

@@ -16,6 +16,8 @@ import "./inspire/custom.scss";
 import "react-super-responsive-table/dist/SuperResponsiveTableStyle.css";
 import "react-perfect-scrollbar/dist/css/styles.css";
 import "react-toastify/dist/ReactToastify.css";
+// Last, so it wins: no visible scrollbars anywhere (scrolling still works).
+import "./css/no-scrollbars.css";
 
 // Restores the prop filtering that styled-components v5 did automatically.
 //

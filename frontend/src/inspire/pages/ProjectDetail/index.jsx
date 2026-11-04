@@ -32,6 +32,11 @@ import ProjectInfoCard from "./ProjectInfoCard";
 import ProjectWorkspace from "../../components/ProjectWorkspace";
 import NavRail from "@pazl/components/NavRail";
 import ProjectTracker from "../../components/ProjectTracker";
+// The designer's Project Detail styles (cards, info grid, tracker, notices) —
+// the workspace tab below wears the same look. Class-scoped, so nothing else
+// on this page changes.
+import "@pazl/pages/ProjectDetail/index.css";
+import "./workspace.css";
 import "./index.css";
 import NoHistory from "../../assets/images/no_history.svg";
 import ServiceContext from "../../context/ServiceContext";
@@ -739,6 +744,7 @@ const ProjectDetail = () => {
                 className="pb-3 overflow-x-hidden"
               >
                 <div
+                  className="pz-iw"
                   style={{
                     maxHeight: "calc(100vh - 150px)",
                     overflowY: "auto",
@@ -753,15 +759,7 @@ const ProjectDetail = () => {
                   {currentProject?.status === "quotation_sent" &&
                     changeReqPending &&
                     currentUser?.permissions === USER_ROLES.USER && (
-                      <div
-                        className="px-3 py-2 m-2 rounded"
-                        style={{
-                          background: "#fff7ed",
-                          border: "1px solid #fed7aa",
-                          fontSize: 14,
-                          color: "#9a3412",
-                        }}
-                      >
+                      <div className="pz-pd-banner pz-pd-banner--warn">
                         Your change request has been received. A revised quotation
                         will be sent shortly
                       </div>
@@ -769,88 +767,64 @@ const ProjectDetail = () => {
                   {currentProject?.status === "quotation_sent" &&
                     !changeReqPending &&
                     currentUser?.permissions === USER_ROLES.USER && (
-                      <div
-                        className="d-flex flex-wrap align-items-center justify-content-between gap-2 px-3 py-2 m-2 rounded"
-                        style={{
-                          background: "#eef6ff",
-                          border: "1px solid #d6e4f5",
-                        }}
-                      >
-                        <span style={{ fontSize: 14, color: "#1f2033" }}>
+                      <div className="pz-pd-banner pz-pd-banner--info">
+                        <span>
                           Your quotation is ready — review the BOQ, then accept it
                           or request a change.
                         </span>
                         <div className="d-flex flex-wrap align-items-center gap-2">
-                          <Button
-                            variant="outline-danger"
+                          <button
+                            type="button"
+                            className="pz-iw-btn pz-iw-btn--danger"
                             onClick={() => {
                               setRejectReason("");
                               setShowRejectModal(true);
                             }}
                           >
                             Reject
-                          </Button>
-                          <Button
-                            variant="outline-secondary"
+                          </button>
+                          <button
+                            type="button"
+                            className="pz-iw-btn pz-iw-btn--ghost"
                             onClick={handleRequestChange}
                           >
                             Request a change
-                          </Button>
-                          <Button variant="success" onClick={handleAcceptQuote}>
-                            Accept Quote
-                          </Button>
+                          </button>
+                          <button
+                            type="button"
+                            className="pz-iw-btn pz-iw-btn--success"
+                            onClick={handleAcceptQuote}
+                          >
+                            Accept quote
+                          </button>
                         </div>
                       </div>
                     )}
                   {currentProject?.status === "quotation_accepted" &&
                     currentUser?.permissions === USER_ROLES.USER && (
-                      <div
-                        className="d-flex flex-wrap align-items-center justify-content-between gap-2 px-3 py-2 m-2 rounded"
-                        style={{
-                          background: "#f0fdf4",
-                          border: "1px solid #bbf7d0",
-                          fontSize: 14,
-                          color: "#166534",
-                        }}
-                      >
+                      <div className="pz-pd-banner pz-pd-banner--ok">
                         <span>
                           You have accepted the quotation. The team will finalise
                           and close the project.
                         </span>
-                        <Button
-                          variant="outline-success"
-                          size="sm"
+                        <button
+                          type="button"
+                          className="pz-iw-btn pz-iw-btn--ghost"
                           onClick={handleViewBoq}
                         >
                           View BOQ
-                        </Button>
+                        </button>
                       </div>
                     )}
                   {currentProject?.status === "quotation_rejected" &&
                     currentUser?.permissions === USER_ROLES.USER && (
-                      <div
-                        className="px-3 py-2 m-2 rounded"
-                        style={{
-                          background: "#fef2f2",
-                          border: "1px solid #fecaca",
-                          fontSize: 14,
-                          color: "#991b1b",
-                        }}
-                      >
+                      <div className="pz-pd-banner pz-pd-banner--bad">
                         You've declined this quotation. The team has been notified
                         and will send a revised quote or close the project.
                       </div>
                     )}
                   {currentProject?.status === "closed" && (
-                    <div
-                      className="px-3 py-2 m-2 rounded"
-                      style={{
-                        background: "#f3f4f6",
-                        border: "1px solid #e5e7eb",
-                        fontSize: 14,
-                        color: "#374151",
-                      }}
-                    >
+                    <div className="pz-pd-banner pz-pd-banner--muted">
                       This project is completed and closed.
                     </div>
                   )}
@@ -864,6 +838,8 @@ const ProjectDetail = () => {
                       setWorkspaceStage((cur) => (cur === k ? "" : k))
                     }
                   />
+                  <div className="pz-pd-card pz-iw-ws">
+                  <h2 className="pz-pd-h2">Project Workspace</h2>
                   <ProjectWorkspace
                     projectId={projectId || currentProject?._id}
                     project={currentProject}
@@ -879,6 +855,7 @@ const ProjectDetail = () => {
                     onFilterChange={setWorkspaceStage}
                     onChangeRequest={refreshQuoteFlag}
                   />
+                  </div>
                 </div>
               </Tab>
             </Tabs>

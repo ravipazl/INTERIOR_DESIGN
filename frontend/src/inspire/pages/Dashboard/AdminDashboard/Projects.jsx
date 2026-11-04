@@ -2,16 +2,24 @@ import React, { useContext, useEffect, useMemo, useState } from "react";
 import Form from "react-bootstrap/Form";
 import Pagination from "react-bootstrap/Pagination";
 import { useLocation, useNavigate } from "react-router-dom";
-import { Alert, Badge, Col, Container, Dropdown, Row } from "react-bootstrap";
+import {
+  Alert,
+  Badge,
+  Col,
+  Container,
+  Dropdown,
+  OverlayTrigger,
+  Row,
+  Tooltip,
+} from "react-bootstrap";
 import VerticalDot from "../../../assets/images/more_vert_dot.svg";
 import "./index.css";
+import "./Projects.css";
 import ProjectContext from "../../../context/ProjectContext";
 import Button from "react-bootstrap/Button";
 import AppHeader from "../../../components/AppHeader";
 import NavRail from "@pazl/components/NavRail";
 import ConfirmationModal from "../../../components/ConfirmationModal";
-import { DashboardCard } from "../../../components/DashboardCard";
-import TitleHeader from "../../../components/TitleHeader";
 import UserContext from "../../../context/UserContext";
 import {
   deleteProject,
@@ -34,63 +42,335 @@ import { getChangeRequestedProjectIds } from "../../../services/projectWorkspace
 import EditProjectModal from "../../../components/EditProjectModal";
 import AssignArchitectModal from "../../../components/AssignArchitectModal";
 import DataTable from "react-data-table-component";
-import CloseIcon from "@mui/icons-material/Close";
-import { styled } from "styled-components";
 import differenceBy from "lodash/differenceBy";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import EditIcon from "../../../assets/images/architect_edit.svg";
 
-const TextField = styled.input`
-  height: 40px;
-  width: 200px;
-  border-radius: 3px;
-  border-top-left-radius: 5px;
-  border-bottom-left-radius: 5px;
-  border-top-right-radius: 0;
-  border-bottom-right-radius: 0;
-  border: 1px solid #e5e5e5;
-  padding: 0 32px 0 16px;
-  &:hover {
-    cursor: pointer;
-  }
-`;
-
-const FilterComponent = ({ filterText, onFilter, onClear }) => (
-  <>
-    <div className="d-flex align-items-center p-2">
-      <TextField
-        id="search"
-        type="text"
-        placeholder="Search by user name"
-        aria-label="Search Input"
-        value={filterText}
-        onChange={onFilter}
-      />
-      <CloseIcon className="close-btn" type="button" onClick={onClear} />
-    </div>
-  </>
+// --- small inline icons (stroke = the text colour) ---------------------------
+const Icon = ({ size = 16, children, ...rest }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+    {...rest}
+  >
+    {children}
+  </svg>
+);
+const SearchIcon = () => (
+  <Icon className="pzp-search-icon" stroke="#697386">
+    <circle cx="11" cy="11" r="7" />
+    <path d="m20 20-3.5-3.5" />
+  </Icon>
+);
+const ClearIcon = () => (
+  <Icon size={12} strokeWidth="3">
+    <path d="M6 6l12 12M18 6 6 18" />
+  </Icon>
+);
+const GearIcon = () => (
+  <Icon size={18}>
+    <circle cx="12" cy="12" r="3" />
+    <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z" />
+  </Icon>
+);
+const PencilIcon = () => (
+  <Icon size={14}>
+    <path d="M12 20h9" />
+    <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z" />
+  </Icon>
 );
 
-const getColorForStatus = (status) => {
-  switch (status) {
-    case "open":
-      return "primary";
-    case "quotation_requested":
-      return "danger";
-    case "quotation_pending_approval":
-      return "warning";
-    case "quotation_sent":
-      return "success";
-    case "quotation_accepted":
-      return "info";
-    case "quotation_rejected":
-      return "danger";
-    case "closed":
-      return "light";
-    default:
-      return "light";
+// The row's actions, each an icon whose name shows on hover.
+const QuoteIcon = () => (
+  <Icon size={17}>
+    <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" />
+    <path d="M14 3v5h5M9 13h6M9 17h4" />
+  </Icon>
+);
+const CubeIcon = () => (
+  <Icon size={17}>
+    <path d="M12 2 3 7v10l9 5 9-5V7z" />
+    <path d="m3 7 9 5 9-5M12 12v10" />
+  </Icon>
+);
+const FolderIcon = () => (
+  <Icon size={17}>
+    <path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+  </Icon>
+);
+const EditIcon = () => (
+  <Icon size={17}>
+    <path d="M11 4H5a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h13a2 2 0 0 0 2-2v-6" />
+    <path d="M18.5 2.5a2.1 2.1 0 0 1 3 3L12 15l-4 1 1-4z" />
+  </Icon>
+);
+const ActionIcon = ({ label, onClick, primary, children }) => (
+  <OverlayTrigger
+    placement="top"
+    delay={{ show: 120, hide: 0 }}
+    overlay={<Tooltip className="pzp-tip">{label}</Tooltip>}
+  >
+    <button
+      type="button"
+      className={`pzp-act${primary ? " pzp-act--primary" : ""}`}
+      aria-label={label}
+      onClick={onClick}
+    >
+      {children}
+    </button>
+  </OverlayTrigger>
+);
+
+// The pill's colour comes from Projects.css, one class per status.
+const statusClass = (status) => `pzp-status pzp-status--${status || "closed"}`;
+
+// The dot on each status card, in the pill's own colour.
+const STAT_DOT = {
+  All: "#5b3df5",
+  open: "#3f4bb8",
+  quotation_requested: "#d48806",
+  closed: "#8a93a6",
+  quotation_sent: "#4b30dc",
+};
+
+const initialsOf = (name) =>
+  String(name || "")
+    .trim()
+    .split(/[\s@._-]+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w[0])
+    .join("")
+    .toUpperCase() || "?";
+
+/** "Today", "Yesterday", else "02 Nov 2026". */
+const formatDay = (value) => {
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return "";
+  const today = new Date();
+  const yesterday = new Date(today);
+  yesterday.setDate(today.getDate() - 1);
+  if (d.toDateString() === today.toDateString()) return "Today";
+  if (d.toDateString() === yesterday.toDateString()) return "Yesterday";
+  return d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+};
+
+// What the ⚙ menu can hide, in table order. "Project" and the row's actions
+// always show: a row needs a name and a way in.
+const HIDEABLE_COLUMNS = [
+  { id: "owner", label: "Owner", staffOnly: true },
+  { id: "date", label: "Date" },
+  { id: "client", label: "Client" },
+  { id: "address", label: "Address" },
+  { id: "architect", label: "Architect", staffOnly: true },
+  { id: "status", label: "Status" },
+];
+const ROWS_PER_PAGE = [10, 25, 50, 100];
+const DEFAULT_ROWS_PER_PAGE = 10;
+
+// The viewer's table choices (hidden columns, row height, rows per page),
+// kept in this browser per signed-in user. Storage can be blocked (private
+// windows), so every read and write is allowed to fail.
+const TABLE_PREFS_KEY = "pz.projectsTable.v1";
+const readTablePrefs = (userId) => {
+  try {
+    const all = JSON.parse(window.localStorage.getItem(TABLE_PREFS_KEY) || "{}");
+    return all[userId || "anon"] || {};
+  } catch (e) {
+    return {};
   }
+};
+const writeTablePrefs = (userId, prefs) => {
+  try {
+    const all = JSON.parse(window.localStorage.getItem(TABLE_PREFS_KEY) || "{}");
+    all[userId || "anon"] = prefs;
+    window.localStorage.setItem(TABLE_PREFS_KEY, JSON.stringify(all));
+  } catch (e) {
+    /* not remembered this time; the table still works */
+  }
+};
+
+/** Page buttons: all of them when few, else first … around the current … last. */
+const pageList = (current, total) => {
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+  const pages = [1];
+  const from = Math.max(2, current - 1);
+  const to = Math.min(total - 1, current + 1);
+  if (from > 2) pages.push("…");
+  for (let p = from; p <= to; p++) pages.push(p);
+  if (to < total - 1) pages.push("…");
+  pages.push(total);
+  return pages;
+};
+
+/** The table's foot: rows per page, "1–10 of 48", and the page buttons. */
+const TablePager = ({ rowsPerPage, rowCount, currentPage, onChangePage, onChangeRowsPerPage, query }) => {
+  const pages = Math.max(1, Math.ceil(rowCount / rowsPerPage));
+  const first = rowCount ? (currentPage - 1) * rowsPerPage + 1 : 0;
+  const last = Math.min(rowCount, currentPage * rowsPerPage);
+  const go = (p) => onChangePage(Math.min(pages, Math.max(1, p)), rowCount);
+  return (
+    <div className="pzp-pager">
+      <div className="pzp-pager-left">
+        <span>Rows per page</span>
+        <select
+          className="pzp-pager-size"
+          aria-label="Rows per page"
+          value={rowsPerPage}
+          onChange={(e) => onChangeRowsPerPage(Number(e.target.value), currentPage)}
+        >
+          {ROWS_PER_PAGE.map((n) => (
+            <option key={n} value={n}>
+              {n}
+            </option>
+          ))}
+        </select>
+        <span className="pzp-pager-range">
+          {first}–{last} of {rowCount}
+          {query ? ` matching “${query}”` : ""}
+        </span>
+      </div>
+      <div className="pzp-pages">
+        <button type="button" className="pzp-page" aria-label="First page" disabled={currentPage <= 1} onClick={() => go(1)}>
+          «
+        </button>
+        <button type="button" className="pzp-page" aria-label="Previous page" disabled={currentPage <= 1} onClick={() => go(currentPage - 1)}>
+          ‹
+        </button>
+        {pageList(currentPage, pages).map((p, i) =>
+          p === "…" ? (
+            <span key={`gap-${i}`} className="pzp-gap">
+              …
+            </span>
+          ) : (
+            <button
+              key={p}
+              type="button"
+              className={`pzp-page${p === currentPage ? " is-on" : ""}`}
+              aria-current={p === currentPage ? "page" : undefined}
+              onClick={() => go(p)}
+            >
+              {p}
+            </button>
+          )
+        )}
+        <button type="button" className="pzp-page" aria-label="Next page" disabled={currentPage >= pages} onClick={() => go(currentPage + 1)}>
+          ›
+        </button>
+        <button type="button" className="pzp-page" aria-label="Last page" disabled={currentPage >= pages} onClick={() => go(pages)}>
+          »
+        </button>
+      </div>
+    </div>
+  );
+};
+
+/** Grey rows that shimmer while the list loads, instead of a blank table. */
+const TableSkeleton = () => (
+  <div className="pzp-skeleton" aria-label="Loading projects">
+    {[0, 1, 2, 3, 4].map((i) => (
+      <div className="pzp-sk-row" key={i}>
+        <div className="pzp-sk" style={{ width: 28, height: 28, borderRadius: "50%" }} />
+        <div className="pzp-sk" style={{ flex: 2 }} />
+        <div className="pzp-sk" style={{ flex: 1 }} />
+        <div className="pzp-sk" style={{ flex: 1 }} />
+        <div className="pzp-sk" style={{ width: 96, height: 24, borderRadius: 999 }} />
+      </div>
+    ))}
+  </div>
+);
+
+/** ⚙ — which columns show, and how tall the rows are. */
+const ColumnSettings = ({ columns, hidden, onToggle, dense, onDense, onReset }) => (
+  <Dropdown align="end" autoClose="outside">
+    <Dropdown.Toggle
+      variant="light"
+      className="pzp-btn pzp-btn-secondary pzp-icon-btn"
+      aria-label="Table settings: choose columns"
+      title="Choose columns"
+    >
+      <GearIcon />
+    </Dropdown.Toggle>
+    <Dropdown.Menu className="pzp-menu" renderOnMount popperConfig={{ strategy: "fixed" }}>
+      <div className="pzp-cols">
+        <div className="pzp-cols-head">
+          <span>Show columns</span>
+          <button type="button" className="pzp-link" onClick={onReset}>
+            Reset
+          </button>
+        </div>
+        <label className="pzp-col is-locked">
+          <input type="checkbox" checked disabled />
+          Project
+          <small>Always</small>
+        </label>
+        {columns.map((c) => (
+          <label className="pzp-col" key={c.id}>
+            <input type="checkbox" checked={!hidden.includes(c.id)} onChange={() => onToggle(c.id)} />
+            {c.label}
+          </label>
+        ))}
+        <div className="pzp-cols-sep" />
+        <div className="pzp-cols-label">Row height</div>
+        <div className="pzp-seg" role="group" aria-label="Row height">
+          <button type="button" className={dense ? "" : "is-on"} aria-pressed={!dense} onClick={() => onDense(false)}>
+            Comfortable
+          </button>
+          <button type="button" className={dense ? "is-on" : ""} aria-pressed={dense} onClick={() => onDense(true)}>
+            Compact
+          </button>
+        </div>
+        <div className="pzp-cols-note">Saved for you on this device.</div>
+      </div>
+    </Dropdown.Menu>
+  </Dropdown>
+);
+
+// The data table's own look, matched to Projects.css.
+const tableStyles = {
+  headRow: {
+    style: { minHeight: "38px", backgroundColor: "#f6f5fe", borderBottomColor: "#e8e5fb" },
+  },
+  headCells: {
+    style: {
+      fontFamily: "Inter, Arial, sans-serif",
+      fontSize: "10.5px",
+      fontWeight: 700,
+      letterSpacing: "0.05em",
+      textTransform: "uppercase",
+      color: "#2b3247",
+      paddingLeft: "14px",
+      paddingRight: "14px",
+    },
+  },
+  rows: {
+    style: {
+      minHeight: "44px",
+      fontFamily: "Inter, Arial, sans-serif",
+      fontSize: "12px",
+      color: "#172033",
+      "&:not(:last-of-type)": { borderBottomColor: "#f0f1f4" },
+    },
+    denseStyle: { minHeight: "38px" },
+    highlightOnHoverStyle: {
+      backgroundColor: "#f8f6ff",
+      color: "#172033",
+      borderBottomColor: "#f0f1f4",
+      outline: "none",
+      transitionDuration: "0.15s",
+      transitionProperty: "background-color",
+    },
+  },
+  cells: { style: { paddingLeft: "14px", paddingRight: "14px" } },
+  progress: { style: { display: "block", width: "100%" } },
+  noData: { style: { display: "block", width: "100%" } },
 };
 
 const PROJECTS_PAGE_LIMIT = 50;
@@ -251,34 +531,39 @@ const Projects = () => {
   // and took the whole table down with it, Actions column included.
   const isClientViewer = currentUser?.permissions === USER_ROLES.USER;
 
-  const subHeaderComponentMemo = React.useMemo(() => {
-    const handleClear = () => {
-      if (filterText) {
-        setResetPaginationToggle(!resetPaginationToggle);
-        setFilterText("");
-      }
-    };
+  // The ⚙ menu's choices and the rows per page, remembered per user.
+  const prefsUserId = currentUser?._id;
+  const [tablePrefs, setTablePrefs] = useState(() => readTablePrefs(prefsUserId));
+  useEffect(() => {
+    setTablePrefs(readTablePrefs(prefsUserId));
+  }, [prefsUserId]);
+  const savePrefs = (patch) =>
+    setTablePrefs((prev) => {
+      const next = { ...prev, ...patch };
+      writeTablePrefs(prefsUserId, next);
+      return next;
+    });
+  const hiddenCols = Array.isArray(tablePrefs.hidden) ? tablePrefs.hidden : [];
+  const denseRows = !!tablePrefs.dense;
+  const perPage = ROWS_PER_PAGE.includes(tablePrefs.perPage)
+    ? tablePrefs.perPage
+    : DEFAULT_ROWS_PER_PAGE;
+  const settableColumns = HIDEABLE_COLUMNS.filter((c) => !(c.staffOnly && isClientViewer));
+  const toggleColumn = (id) =>
+    savePrefs({
+      hidden: hiddenCols.includes(id) ? hiddenCols.filter((c) => c !== id) : [...hiddenCols, id],
+    });
 
-    return (
-      <>
-        <div className="d-flex align-items-center justify-content-between w-100 bg-transparent">
-          <TitleHeader title="All Projects" />
-          {/* Searching "by user name" over your own single project is not a
-              search. Hidden for a client; unchanged for staff. */}
-          {!isClientViewer && (
-            <FilterComponent
-              onFilter={(e) => setFilterText(e.target.value)}
-              onClear={handleClear}
-              filterText={filterText}
-            />
-          )}
-        </div>
-      </>
-    );
-  }, [filterText, resetPaginationToggle, isClientViewer]);
+  // A new search or filter starts again from page 1.
+  const backToFirstPage = () => setResetPaginationToggle((t) => !t);
+  const handleSearch = (value) => {
+    setFilterText(value);
+    backToFirstPage();
+  };
 
   const handleFilterData = (status) => {
     setSelectedProjectStatus(status);
+    backToFirstPage();
   };
 
   const navigateToTeams = () => {
@@ -594,47 +879,100 @@ const Projects = () => {
           matchesQuery(item.name) ||
           matchesQuery(item.clientName) ||
           matchesQuery(item.ownerUser?.name) ||
-          matchesQuery(item.ownerUser?.email)
+          matchesQuery(item.ownerUser?.email) ||
+          matchesQuery(item.address) ||
+          matchesQuery(item.architectUser?.name) ||
+          matchesQuery(item.architectUser?.email)
       )
     : scopedData;
 
+  const isStaffAdmin =
+    currentUser?.permissions === USER_ROLES.ADMIN ||
+    currentUser?.permissions === USER_ROLES.SUPER_ADMIN;
+
+  // The table's foot, told the search so its count can say "matching …".
+  const Pager = React.useCallback(
+    (props) => <TablePager {...props} query={(filterText || "").trim()} />,
+    [filterText]
+  );
+
+  // Opens the 3D app on this project, signed in, in the same tab.
+  const openDesign = (row) => {
+    // Navigate in the SAME tab (not a new one). Hand the current Inspire
+    // session token to the 3D app via ?login=&email= so it authenticates
+    // seamlessly (its ProtectedRoute consumes these) — no bounce to the login
+    // screen. Both apps validate against the same auth backend, so the token
+    // is cross-valid.
+    const base = process.env.REACT_APP_PAZL_DESIGN_URL || "http://localhost:3040";
+    const token = getAccessToken();
+    const email = currentUser?.email || "";
+    const qs = new URLSearchParams();
+    if (token && email) {
+      qs.set("login", token);
+      qs.set("email", email);
+    }
+    // Tell the 3D app where this hop started, so ITS back arrow returns here
+    // instead of dropping the user on the 3D app's own dashboard — a page they
+    // were never on. It validates this against its configured Inspire origin
+    // before using it.
+    qs.set("from", window.location.href);
+    // Merged app: the 3D Designer lives under /design/* (Inspire owns the root
+    // routes). A full-page nav is required so main.tsx loads the Designer
+    // bundle instead of the Inspire one.
+    window.location.href = `${base}/design/project-detail/${row._id}?${qs.toString()}`;
+  };
+
+  const hide = (id) => hiddenCols.includes(id);
+
   const columns = useMemo(() => [
-    ...(isClientViewer ? [] : [{
-      name: "Owner User Name",
-      selector: (row) => {
-        const namePart = row?.ownerUser?.name
-          ? row?.ownerUser?.name + " / "
-          : "";
-        const emailPart = row?.ownerUser?.email;
-        return namePart + emailPart;
-      },
+    {
+      id: "project",
+      name: "Project",
+      selector: (row) => row.name || "",
+      cell: (row) => (
+        <div className="pzp-two">
+          <strong title={row.name || "Untitled project"}>{row.name || "Untitled project"}</strong>
+        </div>
+      ),
       sortable: true,
       reorder: true,
       ignoreRowClick: true,
+      minWidth: "200px",
+    },
+    ...(isClientViewer ? [] : [{
+      id: "owner",
+      name: "Owner",
+      selector: (row) => row?.ownerUser?.name || row?.ownerUser?.email || "",
+      cell: (row) => (
+        <div className="pzp-two">
+          <strong>{row?.ownerUser?.name || row?.ownerUser?.email || "—"}</strong>
+          {row?.ownerUser?.name && row?.ownerUser?.email ? (
+            <span>{row.ownerUser.email}</span>
+          ) : null}
+        </div>
+      ),
+      sortable: true,
+      reorder: true,
+      ignoreRowClick: true,
+      omit: hide("owner"),
+      minWidth: "200px",
     }]),
     {
+      id: "date",
       name: "Date",
-      selector: (row) => {
-        const createdDate = new Date(row.createdAt);
-        const todayDate = new Date();
-        const yesterdayDate = new Date(todayDate);
-        yesterdayDate.setDate(todayDate.getDate() - 1);
-        if (createdDate.toDateString() === todayDate.toDateString()) {
-          return "Today";
-        } else if (
-          createdDate.toDateString() === yesterdayDate.toDateString()
-        ) {
-          return "Yesterday";
-        } else {
-          return createdDate.toDateString();
-        }
-      },
+      // Sorted by the real time; shown as "Today", "Yesterday" or "02 Nov 2026".
+      selector: (row) => new Date(row.createdAt).getTime() || 0,
+      cell: (row) => <span className="pzp-muted">{formatDay(row.createdAt)}</span>,
       sortable: true,
       reorder: true,
       ignoreRowClick: true,
+      omit: hide("date"),
+      width: "130px",
     },
     {
-      name: "Client Name",
+      id: "client",
+      omit: hide("client"),
+      name: "Client",
       // Fall back to the owner account's name when the project has no explicit
       // clientName. The owner IS the client, so their account name is the right
       // stand-in — otherwise the column is blank for every project whose client
@@ -646,61 +984,59 @@ const Projects = () => {
       ignoreRowClick: true,
     },
     {
+      id: "address",
       name: "Address",
       selector: (row) => row.address,
+      cell: (row) => <span className="pzp-muted">{row.address || "—"}</span>,
       sortable: true,
       reorder: true,
       wrap: true,
       ignoreRowClick: true,
+      omit: hide("address"),
     },
     ...(isClientViewer ? [] : [{
+      id: "architect",
       name: "Architect",
-      selector: (row) => {
+      omit: hide("architect"),
+      selector: (row) => row.architectUser?.name || row.architectUser?.email || "",
+      cell: (row) => {
+        const assign = () => {
+          setEditingProject(row);
+          setShowAssignArchitectModal(true);
+        };
         if (row.architectUser) {
+          const who = row.architectUser.name ?? row.architectUser.email;
           return (
-            <div className="d-flex ">
-              <span className="py-2 w-100 text-truncate flex-grow-1">
-                {row.architectUser.name ?? row.architectUser.email}
-              </span>
-              <img
-                src={EditIcon}
-                alt="edit-icon"
-                className="flex-shrink-1"
-                onClick={() => {
-                  setEditingProject(row);
-                  setShowAssignArchitectModal(true);
-                }}
-              />
+            <div className="pzp-person">
+              <span className="pzp-av">{initialsOf(who)}</span>
+              <span className="pzp-person-name" title={who}>{who}</span>
+              <button type="button" className="pzp-pencil" aria-label={`Change architect for ${row.name || "this project"}`} title="Change architect" onClick={assign}>
+                <PencilIcon />
+              </button>
             </div>
           );
-        } else {
-          if (
-            currentUser?.permissions === USER_ROLES.ADMIN ||
-            currentUser?.permissions === USER_ROLES.SUPER_ADMIN
-          ) {
-            return (
-              <Button
-                className="w-100"
-                variant="outline-secondary"
-                onClick={() => {
-                  setEditingProject(row);
-                  setShowAssignArchitectModal(true);
-                }}
-              >
-                Assign Architect
-              </Button>
-            );
-          } else {
-            return null;
-          }
         }
+        if (isStaffAdmin) {
+          return (
+            <Button variant="light" className="pzp-btn pzp-btn-dashed" onClick={assign}>
+              <Icon size={14} strokeWidth="2.4">
+                <path d="M12 5v14M5 12h14" />
+              </Icon>
+              Assign architect
+            </Button>
+          );
+        }
+        return <span className="pzp-muted">Not assigned</span>;
       },
+      sortable: true,
       reorder: true,
       ignoreRowClick: true,
-      minWidth: "203px",
+      minWidth: "190px",
     }]),
     {
+      id: "status",
       name: "Status",
+      omit: hide("status"),
       cell: (row) => {
         // A pending change replaces the whole status with a single amber
         // "Change requested" — no stacked second badge.
@@ -709,27 +1045,21 @@ const Projects = () => {
         const statusLabel = changeRequested
           ? "⚠ Change requested"
           : getProjectStatus(row.status);
-        const statusVariant = changeRequested
-          ? "warning"
-          : getColorForStatus(row.status);
+        const pillClass = changeRequested
+          ? "pzp-status pzp-status--change"
+          : statusClass(row.status);
         const statusTitle = changeRequested
           ? "The client requested a change — send a revised quote"
           : undefined;
-        if (
-          currentUser?.permissions === USER_ROLES.ADMIN ||
-          currentUser?.permissions === USER_ROLES.SUPER_ADMIN
-        ) {
+        if (isStaffAdmin) {
           return (
-            <Dropdown title={statusTitle}>
+            <Dropdown title={statusTitle || "Change status"}>
               <Dropdown.Toggle
-                variant={statusVariant}
-                id={`dropdown-status-${row.index}`}
-                style={{
-                  width: "100%",
-                  fontSize: "12px",
-                }}
-                className="d-flex align-items-center justify-content-between"
+                variant="light"
+                id={`dropdown-status-${row._id}`}
+                className={pillClass}
               >
+                <i />
                 {statusLabel}
               </Dropdown.Toggle>
 
@@ -743,16 +1073,19 @@ const Projects = () => {
                   it is first shown, so the very first open is placed correctly
                   rather than jumping. */}
               <Dropdown.Menu
+                className="pzp-menu"
                 renderOnMount
                 popperConfig={{ strategy: "fixed" }}
               >
                 {projectStatus.map((status, index) => (
                   <Dropdown.Item
                     key={status.id}
+                    active={false}
                     onClick={() =>
                       handleStatusChange(row.index, row._id, status.value)
                     }
                   >
+                    <span className={`pzp-menu-dot pzp-status--${status.value}`} />
                     {status.name}
                   </Dropdown.Item>
                 ))}
@@ -761,17 +1094,10 @@ const Projects = () => {
           );
         } else {
           return (
-            <Badge
-              title={statusTitle}
-              style={{
-                width: "150px",
-                fontSize: "12px",
-                padding: "10px",
-              }}
-              bg={statusVariant}
-            >
+            <span className={pillClass} title={statusTitle}>
+              <i />
               {statusLabel}
-            </Badge>
+            </span>
           );
         }
       },
@@ -785,79 +1111,43 @@ const Projects = () => {
       minWidth: "150px",
     },
     {
+      id: "actions",
       name: "Actions",
-      minWidth: "460px",
+      width: isStaffAdmin ? "160px" : "110px",
+      center: true,
+      // One icon per action, its name on hover. The first (indigo) is the
+      // main step: into the 3D app.
       cell: (row) => (
-        <>
-          <Button
-            variant="outline-success"
+        <div className="pzp-actions">
+          {/* A client now does the design themselves, so they get the
+              architect's label rather than "Prepare Quote" - which described
+              the old flow where someone else designed it. */}
+          <ActionIcon
+            primary
+            label={isStaffAdmin ? "Prepare Quote" : "Open Design"}
+            onClick={() => openDesign(row)}
+          >
+            {isStaffAdmin ? <QuoteIcon /> : <CubeIcon />}
+          </ActionIcon>
+          <ActionIcon
+            label="Workspace"
             onClick={() => navigate(`/project-detail/${row._id}?tab=workspace`)}
-            title="Open the project's documents, tasks, changes & discussions"
           >
-            Workspace
-          </Button>
-          <Button
-            variant="dark mx-2"
-            onClick={() => {
-              // Navigate in the SAME tab (not a new one). Hand the current
-              // Inspire session token to the 3D app via ?login=&email= so it
-              // authenticates seamlessly (its ProtectedRoute consumes these) —
-              // no bounce to the login screen. Both apps validate against the
-              // same auth backend, so the token is cross-valid.
-              const base =
-                process.env.REACT_APP_PAZL_DESIGN_URL || "http://localhost:3040";
-              const token = getAccessToken();
-              const email = currentUser?.email || "";
-              const qs = new URLSearchParams();
-              if (token && email) {
-                qs.set("login", token);
-                qs.set("email", email);
-              }
-              // Tell the 3D app where this hop started, so ITS back arrow
-              // returns here instead of dropping the user on the 3D app's own
-              // dashboard — a page they were never on. It validates this
-              // against its configured Inspire origin before using it.
-              qs.set("from", window.location.href);
-              // Merged app: the 3D Designer lives under /design/* (Inspire owns
-              // the root routes). A full-page nav is required so main.tsx loads
-              // the Designer bundle instead of the Inspire one.
-              window.location.href = `${base}/design/project-detail/${row._id}?${qs.toString()}`;
-            }}
-            title="Open the 3D app to design this project / build its BOQ"
-          >
-            {/* A client now does the design themselves, so they get the
-                architect's label rather than "Prepare Quote" - which
-                described the old flow where someone else designed it. */}
-            {currentUser?.permissions === USER_ROLES.ADMIN ||
-            currentUser?.permissions === USER_ROLES.SUPER_ADMIN
-              ? "Prepare Quote"
-              : "Open Design"}
-          </Button>
-          {/* Edit / Share are admin actions — hidden from architects. */}
-          {(currentUser?.permissions === USER_ROLES.ADMIN ||
-            currentUser?.permissions === USER_ROLES.SUPER_ADMIN) && (
-            <>
-              <Button
-                variant="outline-primary mx-2"
-                onClick={() => {
-                  setEditingProject(row);
-                  setShowEditProjectModal(true);
-                }}
-              >
-                Edit
-              </Button>
-              <Button
-                variant="outline-secondary"
-                onClick={() => {
-                  setShowShareModal(true);
-                  setProjectShareId(row?.shareId);
-                }}
-              >
-                Share
-              </Button>
-            </>
+            <FolderIcon />
+          </ActionIcon>
+          {/* Edit is an admin action — hidden from architects. */}
+          {isStaffAdmin && (
+            <ActionIcon
+              label="Edit details"
+              onClick={() => {
+                setEditingProject(row);
+                setShowEditProjectModal(true);
+              }}
+            >
+              <EditIcon />
+            </ActionIcon>
           )}
-        </>
+        </div>
       ),
       ignoreRowClick: true,
       button: true,
@@ -880,7 +1170,7 @@ const Projects = () => {
   return (
     <div className="pz-app-shell">
       <NavRail variant="app" />
-      <div className="pz-app-main">
+      <div className="pz-app-main pz-projects-main">
       <ToastContainer />
       <ShareModal
         show={showShareModal}
@@ -913,81 +1203,144 @@ const Projects = () => {
       <div className="sticky">
         <AppHeader />
       </div>
-      <Container
-        fluid
-        className="p-4 bg-light overflow-x-hidden overflow-y-auto"
-        style={{
-          height: "100vh",
-        }}
-      >
-        <div className="d-flex flex-wrap align-items-center justify-content-start">
-          <Row className="gx-0 row-cols-auto">
-            <Col>
-              <DashboardCard
-                title={"All projects"}
-                subtitle={totalProjectsCount}
-                handleView={() => handleFilterData("All")}
-                variant="primary"
-                isSelected={selectedProjectStatus === "All"}
-              />
-            </Col>
-            <Col>
-              <DashboardCard
-                title={"Open"}
-                subtitle={openProjectsCount}
-                handleView={() => handleFilterData("open")}
-                variant="info"
-                isSelected={selectedProjectStatus === "open"}
-              />
-            </Col>
-            <Col>
-              <DashboardCard
-                title={"Quotation requested"}
-                subtitle={quotationRequestedProjectsCount}
-                handleView={() => handleFilterData("quotation_requested")}
-                variant="danger"
-                isSelected={selectedProjectStatus === "quotation_requested"}
-              />
-            </Col>
-            <Col>
-              <DashboardCard
-                title={"Closed"}
-                subtitle={closedProjectsCount}
-                handleView={() => handleFilterData("closed")}
-                variant="success"
-                isSelected={selectedProjectStatus === "closed"}
-              />
-            </Col>
-            <Col>
-              <DashboardCard
-                title={"Quotation sent"}
-                subtitle={quotationSentProjectsCount}
-                handleView={() => handleFilterData("quotation_sent")}
-                variant="secondary"
-                isSelected={selectedProjectStatus === "quotation_sent"}
-              />
-            </Col>
-          </Row>
-        </div>
+      {/* Fills the window below the header (Projects.css), so the table's
+          foot — the pagination — stays on screen instead of under the fold. */}
+      <Container fluid className="pz-projects overflow-x-hidden overflow-y-auto">
+        <div className="pz-projects-inner">
+          <div>
+            <h1 className="pzp-title">Projects</h1>
+            <p className="pzp-subtitle">
+              {isClientViewer
+                ? "Your designs and where each quote stands."
+                : "Every design, its client, its architect and where the quote stands."}
+            </p>
+          </div>
 
-        <DataTable
-          columns={columns}
-          data={filteredProjects}
-          pagination
-          fixedHeader
-          contextActions={contextActions}
-          fixedHeaderScrollHeight="400px"
-          progressPending={loading}
-          pointerOnHover
-          highlightOnHover
-          persistTableHead
-          responsive
-          striped
-          subHeader
-          subHeaderComponent={subHeaderComponentMemo}
-          onSelectedRowsChange={handleRowSelected}
-          clearSelectedRows={toggleCleared}
-        />
+          {/* The counters are also the status filter: tap one to show only those. */}
+          <div className="pzp-stats" role="group" aria-label="Filter by status">
+            {[
+              { status: "All", label: "All projects", count: totalProjectsCount },
+              { status: "open", label: "Open", count: openProjectsCount },
+              { status: "quotation_requested", label: "Quotation requested", count: quotationRequestedProjectsCount },
+              { status: "quotation_sent", label: "Quotation sent", count: quotationSentProjectsCount },
+              { status: "closed", label: "Closed", count: closedProjectsCount },
+            ].map((s) => (
+              <button
+                key={s.status}
+                type="button"
+                className={`pzp-stat${selectedProjectStatus === s.status ? " is-on" : ""}`}
+                aria-pressed={selectedProjectStatus === s.status}
+                onClick={() => handleFilterData(s.status)}
+              >
+                <span className="pzp-stat-label">
+                  <i style={{ background: STAT_DOT[s.status] }} />
+                  {s.label}
+                </span>
+                <span className="pzp-stat-value">{s.count ?? "–"}</span>
+              </button>
+            ))}
+          </div>
+
+          <div className="pzp-card">
+            <div className="pzp-toolbar">
+              <div className="pzp-toolbar-title">
+                {getProjectStatus(selectedProjectStatus) || "Projects"}
+                <span className="pzp-count">{filteredProjects.length}</span>
+              </div>
+              <div className="pzp-toolbar-tools">
+                {/* Searching your own single project is not a search: hidden
+                    for a client, as before. */}
+                {!isClientViewer && (
+                  <span className="pzp-search">
+                    <SearchIcon />
+                    <input
+                      className="pzp-search-input"
+                      type="search"
+                      aria-label="Search projects"
+                      placeholder="Search projects, clients, addresses"
+                      value={filterText}
+                      onChange={(e) => handleSearch(e.target.value)}
+                    />
+                    {filterText ? (
+                      <button type="button" className="pzp-search-clear" aria-label="Clear search" onClick={() => handleSearch("")}>
+                        <ClearIcon />
+                      </button>
+                    ) : null}
+                  </span>
+                )}
+                <ColumnSettings
+                  columns={settableColumns}
+                  hidden={hiddenCols}
+                  onToggle={toggleColumn}
+                  dense={denseRows}
+                  onDense={(dense) => savePrefs({ dense })}
+                  onReset={() => savePrefs({ hidden: [], dense: false })}
+                />
+              </div>
+            </div>
+
+            <DataTable
+              // The table reads its rows-per-page only when it mounts, and on a
+              // reload the user arrives after that. Keyed on the user, it
+              // mounts again once they do and picks up their saved choice.
+              key={prefsUserId || "anon"}
+              columns={columns}
+              data={filteredProjects}
+              pagination
+              paginationPerPage={perPage}
+              paginationRowsPerPageOptions={ROWS_PER_PAGE}
+              paginationResetDefaultPage={resetPaginationToggle}
+              paginationComponent={Pager}
+              onChangeRowsPerPage={(n) => savePrefs({ perPage: n })}
+              fixedHeader
+              contextActions={contextActions}
+              // The card sets the height (Projects.css): rows scroll under a
+              // sticky header, and the pager sits right below them.
+              fixedHeaderScrollHeight="none"
+              progressPending={loading}
+              progressComponent={<TableSkeleton />}
+              noDataComponent={
+                <div className="pzp-empty">
+                  <div className="pzp-empty-icon">
+                    <Icon size={24}>
+                      <path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                    </Icon>
+                  </div>
+                  {query ? (
+                    <>
+                      <strong>No projects match “{filterText.trim()}”</strong>
+                      <span>Check the spelling, or search by client, address or architect.</span>
+                      <Button variant="light" className="pzp-btn pzp-btn-secondary" onClick={() => handleSearch("")}>
+                        Clear search
+                      </Button>
+                    </>
+                  ) : selectedProjectStatus !== "All" ? (
+                    <>
+                      <strong>No {String(getProjectStatus(selectedProjectStatus) || "").toLowerCase()} projects</strong>
+                      <span>Nothing has this status right now.</span>
+                      <Button variant="light" className="pzp-btn pzp-btn-secondary" onClick={() => handleFilterData("All")}>
+                        Show all projects
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <strong>No projects yet</strong>
+                      <span>New projects show here as soon as they are created.</span>
+                    </>
+                  )}
+                </div>
+              }
+              customStyles={tableStyles}
+              dense={denseRows}
+              pointerOnHover
+              highlightOnHover
+              persistTableHead
+              responsive
+              onSelectedRowsChange={handleRowSelected}
+              clearSelectedRows={toggleCleared}
+            />
+          </div>
+        </div>
       </Container>
       </div>
     </div>

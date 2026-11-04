@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
+import "@pazl/components/Dialog/dialog.css";
 import { CategoriesService } from "@pazl/services/categoriesService";
 
 interface EditCategoryModalProps {
@@ -50,36 +52,52 @@ function EditCategoryModal({
     }
   };
 
-  return (
+  // Into <body>, like Add category, so no panel can clip it.
+  return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+      className="pz-dlg-backdrop"
       onClick={busy ? undefined : onClose}
     >
       <div
-        className="bg-white dark:bg-[#333333] rounded-lg shadow-xl w-[420px] max-w-[95vw]"
+        className="pz-dlg"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="pz-editcat-title"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between px-5 py-3 border-b border-neutral-200 dark:border-neutral-700">
-          <h3 className="font-semibold text-base text-[#414063] dark:text-white">
-            Edit Category / Title Name
-          </h3>
+        <div className="pz-dlg-head">
+          <div className="pz-dlg-head-row">
+            <span className="pz-dlg-badge" aria-hidden="true">
+              <span className="material-symbols-outlined">edit</span>
+            </span>
+            <div>
+              <h3 id="pz-editcat-title" className="pz-dlg-title">
+                Rename category
+              </h3>
+              <p className="pz-dlg-sub">Change the name shown in the list.</p>
+            </div>
+          </div>
           <button
+            type="button"
             onClick={onClose}
             disabled={busy}
-            className="text-2xl leading-none text-neutral-500 hover:text-neutral-800 disabled:opacity-30"
+            className="pz-dlg-close"
+            aria-label="Close"
           >
-            ×
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true">
+              <path d="M6 6l12 12M18 6 6 18" />
+            </svg>
           </button>
         </div>
 
-        <div className="p-5 space-y-4">
-          <label className="block text-sm">
-            <span className="text-neutral-600 dark:text-neutral-300 font-medium">
-              Title Name
+        <div className="pz-dlg-body">
+          <label className="pz-dlg-field">
+            <span className="pz-dlg-label">
+              Name <span className="pz-dlg-req">*</span>
             </span>
             <input
               type="text"
-              className="mt-1.5 block w-full border rounded px-3 py-1.5 dark:bg-neutral-800 dark:text-white text-sm"
+              className="block w-full"
               value={name}
               onChange={(e) => {
                 setName(e.target.value);
@@ -92,30 +110,33 @@ function EditCategoryModal({
           </label>
 
           {error && (
-            <div className="text-sm text-red-600 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded px-3 py-2">
+            <div className="pz-dlg-alert" role="alert">
               {error}
             </div>
           )}
         </div>
 
-        <div className="flex items-center justify-end gap-2 px-5 py-3 border-t border-neutral-200 dark:border-neutral-700">
+        <div className="pz-dlg-foot">
           <button
+            type="button"
             onClick={onClose}
             disabled={busy}
-            className="px-4 py-1.5 text-sm border rounded text-neutral-600 hover:bg-neutral-100 disabled:opacity-40"
+            className="pz-dlg-btn pz-dlg-btn--ghost"
           >
             Cancel
           </button>
           <button
+            type="button"
             onClick={handleUpdate}
             disabled={busy || !name.trim()}
-            className="px-4 py-1.5 text-sm rounded bg-[#414063] text-white disabled:opacity-40 font-medium"
+            className="pz-dlg-btn pz-dlg-btn--primary"
           >
-            {busy ? "Saving…" : "Save Changes"}
+            {busy ? "Saving…" : "Save changes"}
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 

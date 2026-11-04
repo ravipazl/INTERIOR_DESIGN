@@ -103,12 +103,8 @@ const RoomFocusChip: React.FC = () => {
     <div className="pr-px">
       <button
         type="button"
-        style={{
-          backgroundColor: showingOneRoom
-            ? "var(--pz-accent-soft)"
-            : "transparent",
-        }}
-        className="min-w-[44px] h-[46px] px-1 rounded flex flex-col items-center justify-center gap-0.5 transition-colors hover:bg-[color:var(--pz-panel-hover)]"
+        className={`pz-tb${showingOneRoom ? " is-on" : ""}`}
+        data-tone="amber"
         title={
           showingOneRoom
             ? `Designing "${focusedName}" on its own — show the whole house`
@@ -121,31 +117,14 @@ const RoomFocusChip: React.FC = () => {
           )
         }
       >
-        <span
-          style={{ fontSize: 22, lineHeight: "22px" }}
-          className={`material-symbols-outlined font-extralight dark:text-[#ffffff] ${
-            showingOneRoom
-              ? "text-[color:var(--pz-accent)] dark:text-[color:var(--pz-accent)]"
-              : ""
-          }`}
-        >
-          {showingOneRoom ? "center_focus_strong" : "home_work"}
+        <span className="pz-tb-tile">
+          <span className="material-symbols-outlined pz-tb-ic">
+            {showingOneRoom ? "center_focus_strong" : "home_work"}
+          </span>
         </span>
-        <p
-          style={{
-            fontSize: 10.5,
-            lineHeight: "12px",
-            margin: 0,
-            whiteSpace: "nowrap",
-          }}
-          className={`menu-button-text dark:text-[#ffffff] ${
-            showingOneRoom
-              ? "font-semibold text-[color:var(--pz-accent)] dark:text-[color:var(--pz-accent)]"
-              : ""
-          }`}
-        >
+        <span className="pz-tb-label menu-button-text">
           {showingOneRoom ? "All rooms" : "One room"}
-        </p>
+        </span>
       </button>
     </div>
   );

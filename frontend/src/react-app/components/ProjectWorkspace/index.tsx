@@ -9,6 +9,7 @@ import { AuthService } from "@pazl/services/authService";
 import TrackerAdmin from "@pazl/components/TrackerAdmin";
 import Toast, { ToastState } from "@pazl/components/Toast";
 import { TRACKER_STAGES } from "@pazl/utils/trackerStages";
+import "./index.css";
 
 // Human label for a tracker step key (e.g. "design_finalized" → "Design finalized").
 const stageLabel = (key?: string) =>
@@ -31,29 +32,6 @@ const TABS: { key: ItemKind; label: string }[] = [
 
 const DOC_TYPES = ["Requirement", "Reference", "Contract", "Recording", "Other"];
 
-const input: React.CSSProperties = {
-  border: "1px solid #e5e7eb",
-  borderRadius: 6,
-  padding: "6px 8px",
-  fontSize: 13,
-};
-const btn: React.CSSProperties = {
-  background: "var(--pz-accent, #5b3df5)",
-  color: "#fff",
-  border: "none",
-  borderRadius: 6,
-  padding: "6px 14px",
-  fontSize: 13,
-  cursor: "pointer",
-};
-const card: React.CSSProperties = {
-  border: "1px solid #e5e7eb",
-  borderRadius: 8,
-  padding: 12,
-  marginBottom: 10,
-  background: "#fff",
-};
-const muted: React.CSSProperties = { color: "#6b7280", fontSize: 12 };
 
 const fmtDate = (s?: string) =>
   s ? new Date(s).toLocaleString() : "";
@@ -512,7 +490,7 @@ const ProjectWorkspace: React.FC<{
   // a tracker step (optional).
   const stageSelect = () => (
     <select
-      style={{ ...input, minWidth: 150 }}
+      className="pz-ws-input pz-ws-stage"
       value={relStage}
       onChange={(e) => setRelStage(e.target.value)}
       title="Link this to a tracker step (optional)"
@@ -532,24 +510,18 @@ const ProjectWorkspace: React.FC<{
     : items;
 
   return (
-    <div style={{ padding: 16 }}>
+    <div className="pz-ws">
       <Toast toast={toast} />
       {/* Tabs */}
-      <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
+      <div className="pz-ws-tabs" role="tablist">
         {visibleTabs.map((t) => (
           <button
             key={t.key}
+            type="button"
+            role="tab"
+            aria-selected={tab === t.key}
+            className={`pz-ws-tab${tab === t.key ? " is-on" : ""}`}
             onClick={() => setTab(t.key)}
-            style={{
-              padding: "6px 14px",
-              borderRadius: 6,
-              border: "none",
-              cursor: "pointer",
-              fontSize: 13,
-              fontWeight: 500,
-              background: tab === t.key ? "var(--pz-accent, #5b3df5)" : "#f3f4f6",
-              color: tab === t.key ? "#fff" : "#374151",
-            }}
           >
             {t.label}
           </button>
@@ -570,52 +542,52 @@ const ProjectWorkspace: React.FC<{
       ) : (
       <>
       {/* Add form (per tab) */}
-      <div style={{ ...card, background: "#f9fafb" }}>
+      <div className="pz-ws-form">
         {tab === "document" && (
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-            <select style={input} value={docType} onChange={(e) => setDocType(e.target.value)}>
+          <div className="pz-ws-row">
+            <select className="pz-ws-input" value={docType} onChange={(e) => setDocType(e.target.value)}>
               {DOC_TYPES.map((t) => (
                 <option key={t} value={t}>
                   {t}
                 </option>
               ))}
             </select>
-            <input style={{ ...input, flex: "1 1 160px" }} placeholder="Title (optional)" value={title} onChange={(e) => setTitle(e.target.value)} />
-            <input style={{ ...input, flex: "1 1 160px" }} placeholder="Note (optional)" value={note} onChange={(e) => setNote(e.target.value)} />
+            <input className="pz-ws-input pz-ws-grow" placeholder="Title (optional)" value={title} onChange={(e) => setTitle(e.target.value)} />
+            <input className="pz-ws-input pz-ws-grow" placeholder="Note (optional)" value={note} onChange={(e) => setNote(e.target.value)} />
             {stageSelect()}
-            <input ref={fileRef} type="file" accept=".pdf,image/*,video/*,audio/*" style={{ fontSize: 12 }} />
-            <button style={btn} disabled={busy} onClick={addDocument}>
+            <input ref={fileRef} className="pz-ws-file" type="file" accept=".pdf,image/*,video/*,audio/*" />
+            <button type="button" className="pz-ws-btn" disabled={busy} onClick={addDocument}>
               {busy ? "Uploading…" : "Upload"}
             </button>
           </div>
         )}
         {tab === "change" && (
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-            <input style={{ ...input, flex: "1 1 300px" }} placeholder="What change did the client ask for?" value={text} onChange={(e) => setText(e.target.value)} />
+          <div className="pz-ws-row">
+            <input className="pz-ws-input pz-ws-grow pz-ws-wide" placeholder="What change did the client ask for?" value={text} onChange={(e) => setText(e.target.value)} />
             {stageSelect()}
-            <input ref={fileRef} type="file" accept=".pdf,image/*,video/*,audio/*" style={{ fontSize: 12 }} />
-            <button style={btn} disabled={busy} onClick={addChange}>
+            <input ref={fileRef} className="pz-ws-file" type="file" accept=".pdf,image/*,video/*,audio/*" />
+            <button type="button" className="pz-ws-btn" disabled={busy} onClick={addChange}>
               {busy ? "Saving…" : "Add change"}
             </button>
           </div>
         )}
         {tab === "task" && (
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-            <input style={{ ...input, flex: "1 1 220px" }} placeholder="Task" value={title} onChange={(e) => setTitle(e.target.value)} />
-            <input style={{ ...input, width: 140 }} placeholder="Assignee" value={assignee} onChange={(e) => setAssignee(e.target.value)} />
-            <input style={input} type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
+          <div className="pz-ws-row">
+            <input className="pz-ws-input pz-ws-grow pz-ws-wide" placeholder="Task" value={title} onChange={(e) => setTitle(e.target.value)} />
+            <input className="pz-ws-input pz-ws-assignee" placeholder="Assignee" value={assignee} onChange={(e) => setAssignee(e.target.value)} />
+            <input className="pz-ws-input" type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
             {stageSelect()}
-            <button style={btn} disabled={busy} onClick={addTask}>
+            <button type="button" className="pz-ws-btn" disabled={busy} onClick={addTask}>
               Add task
             </button>
           </div>
         )}
         {tab === "discussion" && (
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-            <input style={{ ...input, flex: "1 1 300px" }} placeholder="Note a discussion / decision…" value={text} onChange={(e) => setText(e.target.value)} />
+          <div className="pz-ws-row">
+            <input className="pz-ws-input pz-ws-grow pz-ws-wide" placeholder="Note a discussion / decision…" value={text} onChange={(e) => setText(e.target.value)} />
             {stageSelect()}
-            <input ref={fileRef} type="file" accept=".pdf,image/*,video/*,audio/*" style={{ fontSize: 12 }} />
-            <button style={btn} disabled={busy} onClick={addDiscussion}>
+            <input ref={fileRef} className="pz-ws-file" type="file" accept=".pdf,image/*,video/*,audio/*" />
+            <button type="button" className="pz-ws-btn" disabled={busy} onClick={addDiscussion}>
               {busy ? "Saving…" : "Add note"}
             </button>
           </div>
@@ -624,37 +596,19 @@ const ProjectWorkspace: React.FC<{
 
       {/* Active step filter (set by clicking a step in "Track your project"). */}
       {filterStage && (
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-            marginBottom: 10,
-            fontSize: 13,
-            color: "#374151",
-          }}
-        >
+        <div className="pz-ws-filter">
           <span>Showing items for:</span>
-          <span
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 8,
-              background: "#E6F1FB",
-              color: "#0C447C",
-              padding: "3px 10px",
-              borderRadius: 999,
-              fontWeight: 600,
-            }}
-          >
+          <span className="pz-ws-chip pz-ws-chip--lg">
             {stageLabel(filterStage) || filterStage}
-            <span
+            <button
+              type="button"
+              className="pz-ws-chip-x"
               onClick={onClearFilter}
               title="Clear filter"
-              style={{ cursor: "pointer", fontWeight: 700 }}
+              aria-label="Clear filter"
             >
               ×
-            </span>
+            </button>
           </span>
         </div>
       )}
@@ -662,46 +616,58 @@ const ProjectWorkspace: React.FC<{
       {/* List — capped height so a long list scrolls INSIDE this box instead
           of pushing the rest of the page (Bill of Quantity) down. Only the
           uploaded items scroll; tabs and the add form above stay put. */}
-      <div style={{ maxHeight: 360, overflowY: "auto", paddingRight: 4 }}>
+      <div className="pz-ws-list">
       {loading ? (
-        <p style={muted}>Loading…</p>
+        <div className="pz-ws-skeleton" aria-label="Loading">
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="pz-ws-sk" />
+          ))}
+        </div>
       ) : shown.length === 0 ? (
-        <p style={muted}>
-          {filterStage
-            ? `Nothing linked to “${stageLabel(filterStage) || filterStage}” here.`
-            : "Nothing here yet."}
-        </p>
+        <div className="pz-ws-empty">
+          <span className="pz-ws-empty-icon" aria-hidden="true">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+            </svg>
+          </span>
+          <span>
+            {filterStage
+              ? `Nothing linked to “${stageLabel(filterStage) || filterStage}” here.`
+              : "Nothing here yet."}
+          </span>
+        </div>
       ) : (
         shown.map((it) => (
-          <div key={it._id} style={card}>
-            <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
-              <div style={{ flex: 1 }}>
+          <div key={it._id} className="pz-ws-item">
+            <div className="pz-ws-item-row">
+              <div className="pz-ws-item-body">
                 {tab === "document" && (
                   <>
                     {editId === it._id ? (
                       // Edit mode: type / title / note become editable. The
                       // uploaded file below is left untouched.
-                      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginBottom: 6 }}>
-                        <select style={input} value={editType} onChange={(e) => setEditType(e.target.value)}>
+                      <div className="pz-ws-row pz-ws-edit">
+                        <select className="pz-ws-input" value={editType} onChange={(e) => setEditType(e.target.value)}>
                           {DOC_TYPES.map((t) => (
                             <option key={t} value={t}>
                               {t}
                             </option>
                           ))}
                         </select>
-                        <input style={{ ...input, flex: "1 1 160px" }} placeholder="Title (optional)" value={editTitle} onChange={(e) => setEditTitle(e.target.value)} />
-                        <input style={{ ...input, flex: "1 1 160px" }} placeholder="Note (optional)" value={editNote} onChange={(e) => setEditNote(e.target.value)} />
+                        <input className="pz-ws-input pz-ws-grow" placeholder="Title (optional)" value={editTitle} onChange={(e) => setEditTitle(e.target.value)} />
+                        <input className="pz-ws-input pz-ws-grow" placeholder="Note (optional)" value={editNote} onChange={(e) => setEditNote(e.target.value)} />
                         {/* Optional replacement. Leave empty to keep the
                             current file; the label reminds the user of that. */}
-                        <label style={{ ...muted, display: "flex", alignItems: "center", gap: 4 }}>
+                        <label className="pz-ws-muted pz-ws-replace">
                           Replace file:
-                          <input ref={editFileRef} type="file" accept=".pdf,image/*,video/*,audio/*" style={{ fontSize: 12 }} />
+                          <input ref={editFileRef} className="pz-ws-file" type="file" accept=".pdf,image/*,video/*,audio/*" />
                         </label>
-                        <button style={btn} disabled={busy} onClick={() => saveEdit(it._id)}>
+                        <button type="button" className="pz-ws-btn" disabled={busy} onClick={() => saveEdit(it._id)}>
                           {busy ? "Saving…" : "Save"}
                         </button>
                         <button
-                          style={{ ...btn, background: "#e5e7eb", color: "#374151" }}
+                          type="button"
+                          className="pz-ws-btn pz-ws-btn--ghost"
                           disabled={busy}
                           onClick={cancelEdit}
                         >
@@ -709,32 +675,27 @@ const ProjectWorkspace: React.FC<{
                         </button>
                       </div>
                     ) : (
-                      <div style={{ fontWeight: 600, fontSize: 13 }}>
-                        <span style={{ color: "#5b3df5" }}>{it.type}</span> · {it.title}
+                      <div className="pz-ws-item-title">
+                        <span className="pz-ws-type">{it.type}</span>
+                        <span>{it.title}</span>
                       </div>
                     )}
-                    {editId !== it._id && it.note ? <div style={muted}>{it.note}</div> : null}
+                    {editId !== it._id && it.note ? <div className="pz-ws-note">{it.note}</div> : null}
                     <FilePreview url={it.fileUrl} mime={it.mimeType} />
                   </>
                 )}
                 {tab === "change" && (
                   <>
-                    <div style={{ fontSize: 13 }}>{it.description}</div>
-                    <div style={{ marginTop: 4 }}>
+                    <div className="pz-ws-text">{it.description}</div>
+                    <div className="pz-ws-seg" role="group" aria-label="Status">
                       {["pending", "in_progress", "done"].map((s) => (
                         <button
                           key={s}
+                          type="button"
                           onClick={() => setStatus(it._id, s)}
-                          style={{
-                            marginRight: 6,
-                            padding: "2px 8px",
-                            fontSize: 11,
-                            borderRadius: 4,
-                            border: "1px solid #e5e7eb",
-                            cursor: "pointer",
-                            background: it.status === s ? "#5b3df5" : "#fff",
-                            color: it.status === s ? "#fff" : "#374151",
-                          }}
+                          className={`pz-ws-seg-btn${it.status === s ? " is-on" : ""}`}
+                          data-status={s}
+                          aria-pressed={it.status === s}
                         >
                           {s.replace("_", " ")}
                         </button>
@@ -744,7 +705,7 @@ const ProjectWorkspace: React.FC<{
                   </>
                 )}
                 {tab === "task" && (
-                  <label style={{ display: "flex", gap: 8, alignItems: "center", fontSize: 13 }}>
+                  <label className="pz-ws-task">
                     <input
                       type="checkbox"
                       checked={it.status === "done"}
@@ -756,12 +717,12 @@ const ProjectWorkspace: React.FC<{
                         )
                       }
                     />
-                    <span style={{ textDecoration: it.status === "done" ? "line-through" : "none" }}>
+                    <span className={`pz-ws-task-title${it.status === "done" ? " is-done" : ""}`}>
                       {it.title}
                     </span>
-                    {it.assignedTo ? <span style={muted}>· {it.assignedTo}</span> : null}
+                    {it.assignedTo ? <span className="pz-ws-muted">· {it.assignedTo}</span> : null}
                     {it.dueDate ? (
-                      <span style={{ ...muted, color: isToday(it.dueDate) ? "#b45309" : "#6b7280" }}>
+                      <span className={`pz-ws-muted${isToday(it.dueDate) ? " pz-ws-due-today" : ""}`}>
                         · due {it.dueDate}
                         {isToday(it.dueDate) ? " (today)" : ""}
                       </span>
@@ -770,63 +731,50 @@ const ProjectWorkspace: React.FC<{
                 )}
                 {tab === "discussion" && (
                   <>
-                    <div style={{ fontSize: 13 }}>{it.text}</div>
-                    <div style={muted}>
+                    <div className="pz-ws-text">{it.text}</div>
+                    <div className="pz-ws-muted">
                       {it.author} · {fmtDate(it.createdAt)}
                     </div>
                     <FilePreview url={it.attachmentUrl} mime={it.mimeType} />
                   </>
                 )}
                 {tab !== "discussion" && (
-                  <div style={{ ...muted, marginTop: 4 }}>
+                  <div className="pz-ws-muted pz-ws-meta">
                     {it.createdBy ? `${it.createdBy} · ` : ""}
                     {fmtDate(it.createdAt)}
                   </div>
                 )}
                 {it.stage && stageLabel(it.stage) && (
-                  <span
-                    style={{
-                      display: "inline-block",
-                      marginTop: 6,
-                      fontSize: 11,
-                      fontWeight: 600,
-                      color: "#0C447C",
-                      background: "#E6F1FB",
-                      padding: "2px 9px",
-                      borderRadius: 999,
-                    }}
-                  >
-                    {stageLabel(it.stage)}
-                  </span>
+                  <span className="pz-ws-chip">{stageLabel(it.stage)}</span>
                 )}
               </div>
-              <div style={{ display: "flex", gap: 6, alignItems: "flex-start" }}>
+              <div className="pz-ws-item-actions">
                 {tab === "document" && editId !== it._id && (
                   <button
+                    type="button"
                     onClick={() => startEdit(it)}
-                    title="Edit"
-                    style={{ border: "none", background: "none", color: "#2563eb", cursor: "pointer", fontSize: 14 }}
+                    className="pz-ws-icon"
+                    data-tip="Edit"
+                    aria-label="Edit"
                   >
-                    ✎
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M11 4H5a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h13a2 2 0 0 0 2-2v-6" />
+                      <path d="M18.5 2.5a2.1 2.1 0 0 1 3 3L12 15l-4 1 1-4z" />
+                    </svg>
                   </button>
                 )}
                 <button
+                  type="button"
                   onClick={() => removeItem(it._id)}
-                  title="Delete"
-                  style={{
-                    border: "none",
-                    background: "none",
-                    cursor: "pointer",
-                    padding: 2,
-                    lineHeight: 0,
-                    color: "#dc2626",
-                  }}
+                  className="pz-ws-icon pz-ws-icon--danger"
+                  data-tip="Delete"
+                  aria-label="Delete"
                 >
                   {/* Inline SVG trash can — unlike the 🗑️ emoji, this honours
                       `color`, so it can actually render red. */}
                   <svg
-                    width="17"
-                    height="17"
+                    width="16"
+                    height="16"
                     viewBox="0 0 24 24"
                     fill="none"
                     stroke="currentColor"

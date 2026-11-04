@@ -201,6 +201,351 @@
   min-width: 0;
 }
 
+/* Every rail, the Designer's included, wears the coloured tiles below
+   (`.pz-nav--tiles`). What the Designer does NOT take is `.pz-nav--flyout`:
+   it keeps its 64px width (the editor's panels are placed by it) and the
+   native tooltips. These are the parts of the flyout rules the tiles need
+   on their own; the flyout rail overrides the marker's offset further down. */
+.pz-nav--tiles .pz-nav-i {
+  position: relative;
+  transition: background-color 0.15s ease, color 0.15s ease, box-shadow 0.2s ease,
+    transform 0.15s ease;
+}
+.pz-nav--tiles .pz-nav-i:active:not(:disabled) {
+  transform: scale(0.95);
+}
+.pz-nav--tiles .pz-nav-i.is-active {
+  cursor: default;
+}
+/* The marker on the rail's edge: (64px rail - 44px tile) / 2. */
+.pz-nav--tiles .pz-nav-i.is-active::before {
+  content: "";
+  position: absolute;
+  left: -10px;
+  top: 10px;
+  bottom: 10px;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+}
+.pz-nav--tiles .pz-nav-links,
+.pz-nav--tiles .pz-nav-account {
+  border-color: rgba(255, 255, 255, 0.16);
+}
+.pz-nav--tiles .pz-nav-avatar {
+  width: 32px;
+  height: 32px;
+  font-size: 13px;
+}
+
+/* ===========================================================================
+   The rail OUTSIDE the Designer (Projects, Teams, Rate card, project pages,
+   the client's pages): `.pz-nav--flyout`. A deeper surface, a lit active item
+   with a marker on the rail's edge, and each item's name in a flyout beside
+   the rail on hover — the browser's slow plain tooltip is off there (see
+   NavRail.tsx). The Designer's rail does not carry the class and is unchanged.
+   =========================================================================== */
+.pz-nav.pz-nav--flyout {
+  /* visible: the flyouts sit outside the rail's 64px. Nothing inside the rail
+     itself overflows. */
+  overflow: visible;
+  background: linear-gradient(180deg, #141c38 0%, #0f172a 45%, #0b1222 100%);
+  box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.05);
+  padding-top: 16px;
+}
+.pz-nav--flyout .pz-nav-links,
+.pz-nav--flyout .pz-nav-account {
+  border-color: rgba(148, 163, 184, 0.14);
+}
+.pz-nav--flyout .pz-nav-i {
+  position: relative;
+  height: 44px;
+  border-radius: 12px;
+  transition: background-color 0.15s ease, color 0.15s ease, box-shadow 0.2s ease,
+    transform 0.15s ease;
+}
+.pz-nav--flyout .pz-nav-i:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+.pz-nav--flyout .pz-nav-i:active:not(:disabled) {
+  transform: scale(0.95);
+}
+.pz-nav--flyout .pz-nav-i.is-active {
+  background: linear-gradient(180deg, #6a50f7 0%, #5b3df5 100%);
+  color: #fff;
+  box-shadow: 0 6px 16px rgba(91, 61, 245, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+/* The marker on the rail's edge beside the page you are on. */
+.pz-nav--flyout .pz-nav-i.is-active::before {
+  content: "";
+  position: absolute;
+  /* (72px rail - 44px item) / 2: exactly on the rail's edge. */
+  left: -14px;
+  top: 10px;
+  bottom: 10px;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: #a996ff;
+}
+/* Dimmed, but still showing their colour: unavailable, not missing. */
+.pz-nav--flyout .pz-nav-i.is-disabled {
+  opacity: 0.62;
+}
+/* Sign out turns red on hover: it is the one item that ends something. */
+.pz-nav--flyout .pz-nav-signout:hover {
+  background: rgba(229, 72, 77, 0.16);
+  color: #ff8a8d;
+}
+.pz-nav--flyout .pz-nav-avatar {
+  width: 32px;
+  height: 32px;
+  background: linear-gradient(135deg, #4b30dc 0%, #8d76ff 100%);
+  box-shadow: 0 0 0 2px #0f172a, 0 0 0 3.5px rgba(169, 150, 255, 0.55);
+  font-size: 13px;
+}
+
+/* The flyout: the item's name in a dark pill just right of the rail, on hover
+   or keyboard focus. Not interactive; the item itself is the target. */
+.pz-nav--flyout .pz-nav-label {
+  clip: auto;
+  width: auto;
+  height: auto;
+  margin: 0;
+  overflow: visible;
+  /* Clear of the 72px rail's edge: the item sits 14px in from it. */
+  left: calc(100% + 20px);
+  top: 50%;
+  padding: 7px 11px;
+  border-radius: 9px;
+  background: #172033;
+  color: #fff;
+  font: 600 12.5px/1.2 Inter, Arial, sans-serif;
+  letter-spacing: 0.01em;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.28);
+  opacity: 0;
+  transform: translate(-4px, -50%);
+  transition: opacity 0.14s ease, transform 0.14s ease;
+  pointer-events: none;
+  z-index: 5;
+}
+/* Its little pointer, towards the rail. */
+.pz-nav--flyout .pz-nav-label::before {
+  content: "";
+  position: absolute;
+  left: -4px;
+  top: 50%;
+  width: 8px;
+  height: 8px;
+  background: #172033;
+  transform: translateY(-50%) rotate(45deg);
+  border-radius: 2px;
+}
+.pz-nav--flyout .pz-nav-i:hover .pz-nav-label,
+.pz-nav--flyout .pz-nav-i:focus-visible .pz-nav-label {
+  opacity: 1;
+  transform: translate(0, -50%);
+}
+@media (hover: none) {
+  /* Touch: no hover, so no flyout left hanging after a tap. Back to the
+     screen-reader-only label (not display:none, which would take the item's
+     name away from screen readers too). */
+  .pz-nav--flyout .pz-nav-label {
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    opacity: 1;
+    box-shadow: none;
+  }
+  .pz-nav--flyout .pz-nav-label::before {
+    display: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pz-nav--flyout .pz-nav-label,
+  .pz-nav--flyout .pz-nav-i {
+    transition: none;
+  }
+}
+
+/* --- Bold, coloured icons (every rail, see .pz-nav--tiles above) ----------
+   Each destination wears its own colour on the dark rail, so they are told
+   apart at a glance; the strokes are heavier so they read on it. Hover tints
+   the item in that colour; the page you are on keeps the indigo tile, its
+   icon white. The greyed project steps keep their colour, dimmed. */
+.pz-nav--tiles .pz-nav-i svg {
+  stroke-width: 2.3;
+}
+.pz-nav--tiles .pz-nav-i {
+  --pz-ic: #cbd5e1;
+  color: var(--pz-ic);
+}
+.pz-nav--tiles a.pz-nav-i[href="/"] {
+  --pz-ic: #a996ff;
+}
+.pz-nav--tiles a.pz-nav-i[href="/teams"] {
+  --pz-ic: #2dd4bf;
+}
+.pz-nav--tiles a.pz-nav-i[href="/rate-card"] {
+  --pz-ic: #fbbf24;
+}
+/* The client's rail: My rooms, Uploaded images, Project workspace. */
+.pz-nav--tiles a.pz-nav-i[href="/dashboard"] {
+  --pz-ic: #a996ff;
+}
+.pz-nav--tiles a.pz-nav-i[href*="uploadedImages"] {
+  --pz-ic: #f472b6;
+}
+.pz-nav--tiles a.pz-nav-i[href*="workspace"] {
+  --pz-ic: #60a5fa;
+}
+/* The four project steps, in work order. */
+.pz-nav--tiles .pz-nav-list li:nth-child(1) .pz-nav-i {
+  --pz-ic: #60a5fa;
+}
+.pz-nav--tiles .pz-nav-list li:nth-child(2) .pz-nav-i {
+  --pz-ic: #a78bfa;
+}
+.pz-nav--tiles .pz-nav-list li:nth-child(3) .pz-nav-i {
+  --pz-ic: #f472b6;
+}
+.pz-nav--tiles .pz-nav-list li:nth-child(4) .pz-nav-i {
+  --pz-ic: #34d399;
+}
+.pz-nav--tiles .pz-nav-signout {
+  --pz-ic: #f87171;
+}
+.pz-nav--tiles .pz-nav-i:hover {
+  color: var(--pz-ic);
+  background: rgba(255, 255, 255, 0.08);
+  background: color-mix(in srgb, var(--pz-ic) 16%, transparent);
+}
+.pz-nav--tiles .pz-nav-i.is-active,
+.pz-nav--tiles .pz-nav-i.is-active:hover {
+  color: #fff;
+}
+.pz-nav--tiles .pz-nav-i.is-disabled:hover {
+  color: var(--pz-ic);
+  background: transparent;
+}
+
+/* --- The rail as a gradient band with filled icon tiles --------------------
+   On every rail: the band continues the top bar's indigo → violet, and
+   every item is a tile filled with its own colour, its glyph white. The page
+   you are on is a white tile with its glyph in that colour. Greyed steps keep
+   their tiles, dimmed. (The colours themselves are the --pz-ic set above,
+   deepened here so a white glyph reads on them.) */
+.pz-nav.pz-nav--tiles {
+  background: linear-gradient(180deg, #2c1c8a 0%, #4528b6 42%, #6a2fc2 78%, #8a2fb8 100%);
+  box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.08), 2px 0 12px rgba(38, 24, 122, 0.18);
+}
+.pz-nav--tiles .pz-nav-links,
+.pz-nav--tiles .pz-nav-account {
+  gap: 10px;
+  border-color: rgba(255, 255, 255, 0.16);
+}
+.pz-nav--tiles .pz-nav-list {
+  gap: 10px;
+}
+.pz-nav--tiles a.pz-nav-i[href="/"],
+.pz-nav--tiles a.pz-nav-i[href="/dashboard"] {
+  --pz-ic: #f5a524;
+}
+.pz-nav--tiles a.pz-nav-i[href="/teams"] {
+  --pz-ic: #3b82f6;
+}
+.pz-nav--tiles a.pz-nav-i[href="/rate-card"] {
+  --pz-ic: #f43f5e;
+}
+.pz-nav--tiles a.pz-nav-i[href*="uploadedImages"] {
+  --pz-ic: #ec4899;
+}
+.pz-nav--tiles a.pz-nav-i[href*="workspace"] {
+  --pz-ic: #14b8a6;
+}
+.pz-nav--tiles .pz-nav-list li:nth-child(1) .pz-nav-i {
+  --pz-ic: #ec4899;
+}
+.pz-nav--tiles .pz-nav-list li:nth-child(2) .pz-nav-i {
+  --pz-ic: #22c55e;
+}
+.pz-nav--tiles .pz-nav-list li:nth-child(3) .pz-nav-i {
+  --pz-ic: #06b6d4;
+}
+.pz-nav--tiles .pz-nav-list li:nth-child(4) .pz-nav-i {
+  --pz-ic: #8b5cf6;
+}
+.pz-nav--tiles .pz-nav-signout {
+  --pz-ic: #ef4444;
+}
+.pz-nav--tiles .pz-nav-i {
+  width: 44px;
+  height: 44px;
+  border-radius: 13px;
+  color: #fff;
+  background: var(--pz-ic);
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--pz-ic) 78%, #fff) 0%,
+    var(--pz-ic) 100%
+  );
+  box-shadow: 0 6px 14px rgba(15, 23, 42, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.28);
+}
+.pz-nav--tiles .pz-nav-i:hover {
+  color: #fff;
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--pz-ic) 70%, #fff) 0%,
+    var(--pz-ic) 100%
+  );
+  transform: translateY(-1px);
+  box-shadow: 0 10px 20px rgba(15, 23, 42, 0.34),
+    inset 0 1px 0 rgba(255, 255, 255, 0.32);
+}
+/* The page you are on: a white tile, its glyph in its colour. */
+.pz-nav--tiles .pz-nav-i.is-active,
+.pz-nav--tiles .pz-nav-i.is-active:hover {
+  background: #fff;
+  color: var(--pz-ic);
+  transform: none;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.32), 0 0 0 3px rgba(255, 255, 255, 0.22);
+}
+.pz-nav--tiles .pz-nav-i.is-active::before {
+  background: #fff;
+}
+/* Greyed project steps: their tiles, dimmed, and no lift on hover. */
+.pz-nav--tiles .pz-nav-i.is-disabled {
+  opacity: 0.5;
+}
+.pz-nav--tiles .pz-nav-i.is-disabled:hover {
+  color: #fff;
+  transform: none;
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--pz-ic) 78%, #fff) 0%,
+    var(--pz-ic) 100%
+  );
+  box-shadow: 0 6px 14px rgba(15, 23, 42, 0.28);
+}
+/* You: a white circle on the band. */
+.pz-nav--tiles .pz-nav-avatar {
+  background: #fff;
+  color: #3d27b8;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.22), 0 4px 10px rgba(15, 23, 42, 0.3);
+}
+
+/* Outside the Designer the icon rail is 72px. !important and doubly-classed
+   because the shell rule (inspire/index.css `.pz-app-shell > .pz-nav`) sets
+   the rail's flex-basis too; the tablet rule below still makes it 74px. The
+   Designer's rail does not carry the class and stays 64px. */
+.pz-nav.pz-nav--flyout {
+  flex: 0 0 64px !important;
+  width: 64px !important;
+}
+
 /* Tablet: a 10px wider rail with bigger touch targets and icons, so each
    destination is clear under a finger. --pz-nav-w moves with it, so every
    fixed panel anchored beside the rail shifts too. */
@@ -225,4 +570,413 @@
     width: 22px;
     height: 22px;
   }
+  /* Bigger tiles under a finger; (74px rail - 50px tile) / 2 for the marker
+     beside the current page. */
+  .pz-nav--tiles .pz-nav-i {
+    width: 50px;
+    height: 50px;
+    border-radius: 14px;
+  }
+  .pz-nav--tiles .pz-nav-links,
+  .pz-nav--tiles .pz-nav-account {
+    width: 50px;
+  }
+  .pz-nav--tiles .pz-nav-i.is-active::before {
+    left: -12px;
+  }
+}
+
+/* --- Smaller type and icons (one size down across the app) --------------- */
+/* A computer: 38px tiles and 17px icons on a 64px rail, the Designer's
+   width too. The tablet sizes above (50px tiles on a 74px rail) are left
+   alone so the iPad keeps finger-sized targets. */
+@media (min-width: 1101px) {
+  .pz-nav--tiles .pz-nav-i {
+    width: 38px;
+    height: 38px;
+    border-radius: 11px;
+  }
+  .pz-nav--tiles .pz-nav-i svg {
+    width: 17px;
+    height: 17px;
+  }
+  .pz-nav--tiles .pz-nav-links,
+  .pz-nav--tiles .pz-nav-account {
+    width: 38px;
+    gap: 8px;
+  }
+  .pz-nav--tiles .pz-nav-list {
+    gap: 8px;
+  }
+  /* The marker on the rail's edge: (64px rail - 38px tile) / 2. */
+  .pz-nav--tiles .pz-nav-i.is-active::before {
+    left: -13px;
+  }
+  /* The flyout name clears the rail: 13px to its edge, then 6px. */
+  .pz-nav--flyout .pz-nav-label {
+    left: calc(100% + 19px);
+  }
+  .pz-nav--tiles .pz-nav-avatar {
+    width: 28px;
+    height: 28px;
+    font-size: 12px;
+  }
+}
+
+/* --- ...and one more small step down ------------------------------------- */
+@media (min-width: 1101px) {
+  .pz-nav--tiles .pz-nav-i {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+  }
+  .pz-nav--tiles .pz-nav-i svg {
+    width: 16px;
+    height: 16px;
+  }
+  .pz-nav--tiles .pz-nav-links,
+  .pz-nav--tiles .pz-nav-account {
+    width: 36px;
+  }
+  /* (64px rail - 36px tile) / 2 */
+  .pz-nav--tiles .pz-nav-i.is-active::before {
+    left: -14px;
+  }
+  .pz-nav--flyout .pz-nav-label {
+    left: calc(100% + 20px);
+  }
+  .pz-nav--flyout .pz-nav-label {
+    font-size: 12px;
+  }
+}
+
+/* --- Compact: a third step down (type everywhere; controls on a computer) - */
+@media (min-width: 1101px) {
+  .pz-nav--tiles .pz-nav-i {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+  }
+  .pz-nav--tiles .pz-nav-i svg {
+    width: 15px;
+    height: 15px;
+  }
+  .pz-nav--tiles .pz-nav-links,
+  .pz-nav--tiles .pz-nav-account {
+    width: 34px;
+    gap: 7px;
+  }
+  .pz-nav--tiles .pz-nav-list {
+    gap: 7px;
+  }
+  /* (64px rail - 34px tile) / 2 */
+  .pz-nav--tiles .pz-nav-i.is-active::before {
+    left: -15px;
+    top: 9px;
+    bottom: 9px;
+  }
+  .pz-nav--flyout .pz-nav-label {
+    left: calc(100% + 21px);
+    font-size: 11.5px;
+    padding: 6px 10px;
+  }
+  .pz-nav--tiles .pz-nav-avatar {
+    width: 26px;
+    height: 26px;
+    font-size: 11px;
+  }
+}
+
+/* --- Table headers, sidebar and editor icons: one more step down ---------- */
+@media (min-width: 1101px) {
+  .pz-nav--tiles .pz-nav-i {
+    width: 32px;
+    height: 32px;
+    border-radius: 9px;
+  }
+  .pz-nav--tiles .pz-nav-i svg {
+    width: 14px;
+    height: 14px;
+  }
+  .pz-nav--tiles .pz-nav-links,
+  .pz-nav--tiles .pz-nav-account {
+    width: 32px;
+    gap: 6px;
+  }
+  .pz-nav--tiles .pz-nav-list {
+    gap: 6px;
+  }
+  /* (64px rail - 32px tile) / 2 */
+  .pz-nav--tiles .pz-nav-i.is-active::before {
+    left: -16px;
+    top: 8px;
+    bottom: 8px;
+  }
+  .pz-nav--flyout .pz-nav-label {
+    left: calc(100% + 22px);
+  }
+  .pz-nav--tiles .pz-nav-avatar {
+    width: 24px;
+    height: 24px;
+    font-size: 10.5px;
+  }
+}
+
+/* ===========================================================================
+   Open / closed sidebar (the « / » button at its top).
+   Closed: icons only, 64px — as before. Open: 232px, each icon with its name,
+   group headings, and who is signed in at the foot. Colours as before.
+   Open pushes the page over (the shell is a flex row), on every screen size.
+   =========================================================================== */
+.pz-nav.pz-nav--tiles {
+  overflow: visible;
+  transition: width 0.22s ease, flex-basis 0.22s ease;
+}
+/* Only where nothing else positions the rail (the Designer): a frame for the
+   toggle. The shells' sticky / fixed rules are more specific and win. */
+.pz-nav--tiles {
+  position: relative;
+}
+
+.pz-nav-top {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  margin-bottom: 10px;
+  flex: none;
+}
+button.pz-nav-toggle {
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: none;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.85);
+  cursor: pointer;
+  transition: background-color 0.15s, color 0.15s;
+}
+button.pz-nav-toggle:hover {
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+}
+button.pz-nav-toggle:focus-visible {
+  outline: 2px solid #a996ff;
+  outline-offset: 2px;
+}
+
+/* Group headings and the "who am I" block: open only. */
+.pz-nav-group,
+.pz-nav-me {
+  display: none;
+}
+
+/* --- open ------------------------------------------------------------------ */
+.pz-nav.pz-nav--tiles.is-open {
+  flex: 0 0 176px !important;
+  width: 176px !important;
+  align-items: stretch;
+  padding: 14px 10px 12px;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+html:root.pz-rail-open {
+  --pz-nav-w: 176px;
+}
+.pz-nav--tiles.is-open .pz-nav-top {
+  justify-content: flex-end;
+  margin-bottom: 4px;
+}
+.pz-nav--tiles.is-open .pz-nav-group:not([hidden]) {
+  display: block;
+  padding: 12px 8px 6px;
+  font: 700 10px/1 Inter, Arial, sans-serif;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.45);
+}
+.pz-nav--tiles.is-open .pz-nav-links,
+.pz-nav--tiles.is-open .pz-nav-list {
+  width: 100%;
+  align-items: stretch;
+  gap: 2px;
+}
+.pz-nav--tiles.is-open .pz-nav-links {
+  padding-bottom: 0;
+  margin-bottom: 0;
+  border-bottom: none;
+}
+/* Each item: a row — its coloured tile, then its name. */
+.pz-nav--tiles.is-open .pz-nav-i,
+.pz-nav--tiles.is-open .pz-nav-i:hover,
+.pz-nav--tiles.is-open .pz-nav-i.is-disabled:hover {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px;
+  width: 100%;
+  height: 38px;
+  padding: 0 8px;
+  border-radius: 10px;
+  background: transparent;
+  box-shadow: none;
+  transform: none;
+  color: #fff;
+}
+.pz-nav--tiles.is-open .pz-nav-i:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+.pz-nav--tiles.is-open .pz-nav-i svg {
+  flex: none;
+  box-sizing: content-box;
+  width: 14px;
+  height: 14px;
+  padding: 6px;
+  border-radius: 8px;
+  color: #fff;
+  background: var(--pz-ic);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--pz-ic) 78%, #fff) 0%, var(--pz-ic) 100%);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.22);
+}
+/* The page you are on: a lit row, its tile white with the glyph coloured. */
+.pz-nav--tiles.is-open .pz-nav-i.is-active,
+.pz-nav--tiles.is-open .pz-nav-i.is-active:hover {
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+}
+.pz-nav--tiles.is-open .pz-nav-i.is-active svg {
+  background: #fff;
+  color: var(--pz-ic);
+}
+.pz-nav--tiles.is-open .pz-nav-i.is-active::before {
+  left: -10px;
+  top: 9px;
+  bottom: 9px;
+}
+/* The name sits in the row (not in a flyout). */
+.pz-nav--tiles.is-open .pz-nav-label,
+.pz-nav--tiles.is-open .pz-nav-i:hover .pz-nav-label,
+.pz-nav--tiles.is-open .pz-nav-i:focus-visible .pz-nav-label {
+  position: static;
+  width: auto;
+  height: auto;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  clip: auto;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  opacity: 1;
+  transform: none;
+  background: none;
+  box-shadow: none;
+  color: rgba(255, 255, 255, 0.92);
+  font: 600 13px/1.2 Inter, Arial, sans-serif;
+  pointer-events: none;
+}
+.pz-nav--tiles.is-open .pz-nav-label::before,
+.pz-nav--tiles.is-open .pz-nav-hint {
+  display: none;
+}
+/* Foot: avatar, name and role, and sign-out as a plain icon. */
+.pz-nav--tiles.is-open .pz-nav-account {
+  width: 100%;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 4px 2px;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+.pz-nav--tiles.is-open .pz-nav-me {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+.pz-nav-me b {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font: 700 12.5px/1.2 Inter, Arial, sans-serif;
+  color: #fff;
+}
+.pz-nav-me small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font: 500 11px/1.2 Inter, Arial, sans-serif;
+  color: rgba(255, 255, 255, 0.6);
+}
+.pz-nav--tiles.is-open .pz-nav-account .pz-nav-signout,
+.pz-nav--tiles.is-open .pz-nav-account .pz-nav-signout:hover {
+  width: 32px;
+  height: 32px;
+  flex: none;
+  padding: 0;
+  justify-content: center;
+}
+.pz-nav--tiles.is-open .pz-nav-account .pz-nav-signout svg {
+  padding: 0;
+  background: none;
+  box-shadow: none;
+  color: rgba(255, 255, 255, 0.7);
+}
+.pz-nav--tiles.is-open .pz-nav-account .pz-nav-signout:hover svg {
+  color: #ff8a8d;
+}
+.pz-nav--tiles.is-open .pz-nav-account .pz-nav-signout .pz-nav-label {
+  display: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .pz-nav.pz-nav--tiles {
+    transition: none;
+  }
+}
+
+/* On the PAZL web pages the « / » button is in the header (AppHeader), at the
+   edge of the logo area — so the sidebar's own copy is not shown there. The
+   Designer has no such header and keeps it. */
+.pz-app-shell:has(.pz-topbar) .pz-nav-top {
+  display: none;
+}
+
+/* --- Brand at the top of the rail (pages without the PAZL header) ---------- */
+.pz-nav-top {
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+.pz-nav-brand {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+}
+.pz-nav-brand img {
+  flex: none;
+  box-sizing: content-box;
+  padding: 6px;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 4px 10px rgba(15, 23, 42, 0.25);
+}
+/* Closed: the logo alone; its name only while open. */
+.pz-nav-brand b {
+  display: none;
+}
+.pz-nav--tiles.is-open .pz-nav-top {
+  flex-direction: row;
+  justify-content: space-between;
+  padding: 0 2px;
+  margin-bottom: 6px;
+}
+.pz-nav--tiles.is-open .pz-nav-brand b {
+  display: block;
+  font: 800 15px/1 Inter, Arial, sans-serif;
+  letter-spacing: 0.08em;
+  color: #fff;
 }

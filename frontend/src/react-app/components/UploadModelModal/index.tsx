@@ -1,4 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import "@pazl/components/Dialog/dialog.css";
 import { Box3, Vector3 } from "three";
 import BlueprintInterface from "@pazl/blueprint-interface";
 import { ModelsService } from "@pazl/services/ModelsService";
@@ -348,39 +350,54 @@ function UploadModelModal({
 
   const queued = items.filter((it) => it.status !== "done").length;
 
-  return (
+  // Into <body>, so the panel it is opened from cannot clip it.
+  return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+      className="pz-dlg-backdrop"
       onClick={busy ? undefined : onClose}
     >
       <div
-        className="bg-white dark:bg-[#333333] rounded-lg shadow-xl w-[640px] max-w-[95vw] max-h-[90vh] overflow-y-auto"
+        className="pz-dlg pz-dlg--wide"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="pz-upload-title"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between px-5 py-3 border-b border-neutral-200 dark:border-neutral-700">
-          <h3 className="font-semibold text-base text-[#414063] dark:text-white">
-            Upload custom GLB models
-            {categoryName ? (
-              <span className="font-normal text-sm text-neutral-500 ml-2">
-                → {categoryName}
-              </span>
-            ) : null}
-            {!categoryName && effectiveCategoryId ? (
-              <span className="font-normal text-sm text-neutral-500 ml-2">
-                → {allCategories.find((c) => c._id === effectiveCategoryId)?.name || ""}
-              </span>
-            ) : null}
-          </h3>
+        <div className="pz-dlg-head">
+          <div className="pz-dlg-head-row">
+            <span className="pz-dlg-badge" aria-hidden="true">
+              <span className="material-symbols-outlined">upload</span>
+            </span>
+            <div>
+              <h3 id="pz-upload-title" className="pz-dlg-title">
+                Upload models
+              </h3>
+              <p className="pz-dlg-sub">
+                Custom .glb files
+                {categoryName ? <> → <b>{categoryName}</b></> : null}
+                {!categoryName && effectiveCategoryId ? (
+                  <>
+                    {" "}→{" "}
+                    <b>{allCategories.find((c) => c._id === effectiveCategoryId)?.name || ""}</b>
+                  </>
+                ) : null}
+              </p>
+            </div>
+          </div>
           <button
+            type="button"
             onClick={onClose}
             disabled={busy}
-            className="text-2xl leading-none text-neutral-500 hover:text-neutral-800 disabled:opacity-30"
+            className="pz-dlg-close"
+            aria-label="Close"
           >
-            ×
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true">
+              <path d="M6 6l12 12M18 6 6 18" />
+            </svg>
           </button>
         </div>
 
-        <div className="p-5 space-y-4">
+        <div className="pz-dlg-body">
           {/* Category picker — only when no categoryId was passed in (toolbar mode) */}
           {needsCategoryPicker && (
             <div className="block text-sm" ref={catBoxRef}>
@@ -501,8 +518,11 @@ function UploadModelModal({
 
           {/* File picker */}
           <label className="block">
-            <div className="border-2 border-dashed border-neutral-300 dark:border-neutral-600 rounded-lg p-6 text-center cursor-pointer hover:bg-neutral-50 dark:hover:bg-neutral-800">
-              <p className="text-sm text-neutral-600 dark:text-neutral-300">
+            <div className="pz-dlg-drop text-center cursor-pointer">
+              <span className="pz-dlg-drop-ic" aria-hidden="true">
+                <span className="material-symbols-outlined">deployed_code</span>
+              </span>
+              <p className="text-sm font-semibold text-[#172033]">
                 Click to choose one or more <code>.glb</code> files
               </p>
               <p className="text-xs text-neutral-400 mt-1">
@@ -724,18 +744,20 @@ function UploadModelModal({
           )}
         </div>
 
-        <div className="flex items-center justify-end gap-2 px-5 py-3 border-t border-neutral-200 dark:border-neutral-700">
+        <div className="pz-dlg-foot">
           <button
+            type="button"
             onClick={onClose}
             disabled={busy}
-            className="px-4 py-1.5 text-sm border rounded text-neutral-600 hover:bg-neutral-100 disabled:opacity-40"
+            className="pz-dlg-btn pz-dlg-btn--ghost"
           >
             Close
           </button>
           <button
+            type="button"
             onClick={uploadAll}
             disabled={busy || !canUpload}
-            className="px-4 py-1.5 text-sm rounded bg-[#414063] text-white disabled:opacity-40"
+            className="pz-dlg-btn pz-dlg-btn--primary"
             title={
               !effectiveCategoryId
                 ? "Select a target category first"
@@ -752,7 +774,8 @@ function UploadModelModal({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 

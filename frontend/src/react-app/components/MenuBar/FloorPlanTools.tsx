@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import "material-symbols";
+import "./panels.css";
 import BlueprintInterface from "@pazl/blueprint-interface.js";
 import { handleDrawFreeShape } from "@pazl/viewer2d-state-interface";
 import { HISTORY_TITLES } from "@pazl/services/ProjectManager";
@@ -37,27 +38,26 @@ const Card = ({
   label,
   onClick,
   isActive,
+  tone = "indigo",
 }: {
   icon: string;
   label: string;
   onClick: () => void;
   isActive?: boolean;
+  /** Its colour (MenuBar/panels.css), matching the toolbar's groups. */
+  tone?: string;
 }) => (
   <button
     type="button"
     onClick={onClick}
-    className={`flex flex-col items-center justify-center gap-1 rounded-lg border p-2 w-[74px] h-[70px] transition ${
-      isActive
-        ? "border-[color:var(--pz-accent)] bg-[color:var(--pz-accent)]/10"
-        : "border-[color:var(--pz-panel-border)] bg-white dark:bg-[#3a3a3a] hover:border-[color:var(--pz-accent)]"
-    }`}
+    aria-pressed={isActive}
+    data-tone={tone}
+    className={`pz-pcard${isActive ? " is-on" : ""}`}
   >
-    <span className="material-symbols-outlined text-[22px] text-[color:var(--pz-accent)]">
-      {icon}
+    <span className="pz-pcard-tile">
+      <span className="material-symbols-outlined pz-pcard-ic">{icon}</span>
     </span>
-    <span className="text-[11px] leading-tight text-neutral-600 dark:text-neutral-200 text-center">
-      {label}
-    </span>
+    <span className="pz-pcard-label">{label}</span>
   </button>
 );
 
@@ -74,25 +74,17 @@ const PanelSection = ({
   onToggle: () => void;
   children: React.ReactNode;
 }) => (
-  <div className="border-b border-[color:var(--pz-panel-border)] last:border-b-0">
+  <div className={`pz-ps${open ? " is-open" : ""}`}>
     <button
       type="button"
       onClick={onToggle}
       aria-expanded={open}
-      className="w-full flex items-center gap-2 px-3 py-2.5 text-left"
+      className="pz-ps-head"
     >
-      <span
-        className={`material-symbols-outlined text-[18px] text-[color:var(--pz-panel-muted)] transition-transform ${
-          open ? "rotate-90" : ""
-        }`}
-      >
-        chevron_right
-      </span>
-      <span className="text-[13px] font-semibold text-[color:var(--pz-text)]">
-        {title}
-      </span>
+      <span className="material-symbols-outlined pz-ps-chev">chevron_right</span>
+      <span className="pz-ps-title">{title}</span>
     </button>
-    {open ? <div className="px-3 pb-3">{children}</div> : null}
+    {open ? <div className="pz-ps-body">{children}</div> : null}
   </div>
 );
 
@@ -333,7 +325,7 @@ const FloorPlanTools: React.FC = () => {
     <div className="pz-fp-tools">
       <PanelSection title="Import floor plan" {...sectionProps("import")}>
         <FloorPlanAiImport inline />
-        <p className="mt-2 text-[11px] leading-snug text-[color:var(--pz-text-2)]">
+        <p className="pz-ps-hint">
           PDF, PNG, JPG or WEBP. Walls and rooms are read from the drawing.
         </p>
 
@@ -349,17 +341,18 @@ const FloorPlanTools: React.FC = () => {
               a few centimetres from the project Save in the top bar. This one
               stores the plan as a reusable template — the Template card in
               "Draw room" is what loads them back. */}
-          <p className="mt-2 text-[11px] leading-snug text-[color:var(--pz-text-2)]">
+          <p className="pz-ps-hint">
             Saves this plan as a reusable template, not as the project.
           </p>
         </div>
       </PanelSection>
 
       <PanelSection title="Draw room" {...sectionProps("draw")}>
-        <div className="grid grid-cols-2 gap-2">
+        <div className="pz-pgrid">
           <Card
             icon="edit"
             label="Draw"
+            tone="indigo"
             onClick={toggleDraw}
             isActive={active === "walls"}
           />
@@ -367,20 +360,18 @@ const FloorPlanTools: React.FC = () => {
               already in - the 2D editor starts in MOVE - so it read as an
               action when it was really the resting state. Draw now toggles
               back to it, which is the only thing the card was used for. */}
-          <Card icon="ink_eraser" label="Clear" onClick={clearFloorplan} />
-          <Card icon="space_dashboard" label="Template" onClick={openTemplates} />
+          <Card icon="ink_eraser" label="Clear" tone="red" onClick={clearFloorplan} />
+          <Card icon="space_dashboard" label="Template" tone="blue" onClick={openTemplates} />
         </div>
 
         {/* Units is a dropdown, not an action, so it reads as a labelled field
             rather than a card. */}
-        <label className="mt-3 block">
-          <span className="block text-[11px] font-semibold text-[color:var(--pz-panel-muted)] mb-1">
-            Units
-          </span>
+        <label className="pz-pfield">
+          <span className="pz-pfield-label">Units</span>
           <select
             value={unit}
             onChange={(e) => changeUnit(e.target.value)}
-            className="w-full rounded-lg border border-[color:var(--pz-panel-border)] bg-[color:var(--pz-panel-surface)] text-[color:var(--pz-text)] text-[12px] px-2 py-1.5"
+            className="pz-pselect"
           >
             <option value={dimMilliMeter}>Millimetres (mm)</option>
             <option value={dimMeter}>Metres (m)</option>
@@ -390,24 +381,26 @@ const FloorPlanTools: React.FC = () => {
       </PanelSection>
 
       <PanelSection title="Place doors and windows" {...sectionProps("openings")}>
-        <div className="grid grid-cols-2 gap-2">
+        <div className="pz-pgrid">
           <Card
             icon="door_front"
             label="Door"
+            tone="amber"
             onClick={() => setPicker(picker === "door" ? null : "door")}
             isActive={picker === "door"}
           />
           <Card
             icon="window"
             label="Window"
+            tone="cyan"
             onClick={() => setPicker(picker === "window" ? null : "window")}
             isActive={picker === "window"}
           />
         </div>
 
         {picker ? (
-          <div className="mt-2 rounded-lg border border-[color:var(--pz-panel-border)] bg-[color:var(--pz-input-bg)] p-1">
-            <div className="text-[11px] font-semibold text-[color:var(--pz-panel-muted)] px-1 py-1">
+          <div className="pz-ppick">
+            <div className="pz-ppick-title">
               {picker === "door" ? "Choose a door" : "Choose a window"}
             </div>
             {(picker === "door" ? DOOR_OPTIONS : WINDOW_OPTIONS).map(
@@ -418,9 +411,10 @@ const FloorPlanTools: React.FC = () => {
                   onClick={() =>
                     picker === "door" ? placeDoor(o) : placeWindow(o)
                   }
-                  className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-[12px] text-[color:var(--pz-text)] hover:bg-[color:var(--pz-accent)]/10"
+                  className="pz-ppick-item"
+                  data-tone={picker === "door" ? "amber" : "cyan"}
                 >
-                  <span className="material-symbols-outlined text-[18px] text-[color:var(--pz-accent)]">
+                  <span className="material-symbols-outlined pz-ppick-ic">
                     {o.icon}
                   </span>
                   {o.label}
@@ -448,24 +442,26 @@ const FloorPlanTools: React.FC = () => {
       </PanelSection>
 
       <PanelSection title="Measurements" {...sectionProps("measure")}>
-        <div className="grid grid-cols-2 gap-2">
+        <div className="pz-pgrid">
           <Card
             icon="crop_free"
             label="Outer"
+            tone="teal"
             onClick={() => setDims("outer")}
             isActive={dimMode === "outer"}
           />
           <Card
             icon="straighten"
             label="Inner"
+            tone="green"
             onClick={() => setDims("inner")}
             isActive={dimMode === "inner"}
           />
         </div>
         {interiorArea !== null && interiorArea > 0 ? (
-          <div className="mt-2 flex items-center justify-between text-[12px] text-[color:var(--pz-text-2)]">
+          <div className="pz-pstat">
             <span>Interior area</span>
-            <span className="font-medium text-[color:var(--pz-text)]">{interiorArea.toFixed(2)} m²</span>
+            <strong>{interiorArea.toFixed(2)} m²</strong>
           </div>
         ) : null}
       </PanelSection>

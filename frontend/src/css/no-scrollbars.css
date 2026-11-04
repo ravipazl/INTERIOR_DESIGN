@@ -1,0 +1,28 @@
+/* ===========================================================================
+   No visible scrollbars, anywhere in the app — scrolling itself still works
+   (mouse wheel, trackpad, touch, keyboard, Shift + wheel sideways). Loaded by
+   both apps (inspire-boot.jsx, design-boot.tsx).
+
+   !important because a few lists style their own bars (.itemlist,
+   .right-side-content in styles.css), and those rules are more specific.
+   `scrollbar-width: none` covers Chrome 121+, Edge and Firefox; the
+   ::-webkit-scrollbar rule covers older Chrome and Safari (the iPad).
+   =========================================================================== */
+* {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+*::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  background: transparent !important;
+}
+
+/* react-perfect-scrollbar draws its own bars (PAZL web): hidden too, the
+   content still scrolls under the wheel and on touch. */
+.ps__rail-x,
+.ps__rail-y {
+  opacity: 0 !important;
+  pointer-events: none !important;
+}

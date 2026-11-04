@@ -4,6 +4,13 @@ import { describeRoom, selectedRoom3D } from "@pazl/react-app/roomTemplates/appl
 import { planBedroomRoom, applyFurnishPlan } from "@pazl/react-app/roomTemplates/applyBedroomTemplate";
 import { planLivingRoom } from "@pazl/react-app/roomTemplates/applyLivingTemplate";
 import { rectCorners } from "@pazl/react-app/roomTemplates/furnishGeometry";
+import "./panels.css";
+
+// The colour and icon of each room's planner (MenuBar/panels.css).
+const LOOK: Record<string, { tone: string; icon: string }> = {
+  bedroom: { tone: "violet", icon: "bed" },
+  living: { tone: "blue", icon: "weekend" },
+};
 
 /**
  * Auto-furnish a bedroom or a living room from the floor plan.
@@ -285,7 +292,7 @@ const RoomFurnishPlanner: React.FC<{ kind: Kind; mode: "2d" | "3d" }> = ({ kind,
     config.extras.find((e) => e.key === key)?.label || MAIN_LABELS[key] || key;
 
   return (
-    <div className="text-[color:var(--pz-text)]">
+    <div className="pz-planner" data-tone={(LOOK[kind] || LOOK.living).tone}>
       {mode === "2d" ? (
         <button
           type="button"
@@ -297,37 +304,41 @@ const RoomFurnishPlanner: React.FC<{ kind: Kind; mode: "2d" | "3d" }> = ({ kind,
             setNote("");
             setResult("");
           }}
-          className={`w-full rounded-md border px-2 py-1.5 text-[12px] mb-2 ${
-            active
-              ? "border-[color:var(--pz-accent)] bg-[color:var(--pz-accent-soft)] text-[color:var(--pz-accent)]"
-              : "border-[color:var(--pz-panel-border)]"
-          }`}
+          aria-pressed={active}
+          className={`pz-roomstart${active ? " is-on" : ""}`}
         >
-          {active ? config.stop : config.start}
+          <span className="pz-roomstart-tile" aria-hidden="true">
+            <span className="material-symbols-outlined">
+              {active ? "close" : (LOOK[kind] || LOOK.living).icon}
+            </span>
+          </span>
+          <span className="pz-roomstart-label">
+            {active ? config.stop : config.start}
+          </span>
         </button>
       ) : null}
 
       {mode === "2d" && active && !room ? (
-        <p className="text-[11px] text-[color:var(--pz-text-2)] leading-snug mb-2">{config.pickHint}</p>
+        <p className="pz-phint">{config.pickHint}</p>
       ) : null}
       {mode === "3d" && !room ? (
-        <p className="text-[12px] text-[color:var(--pz-text-2)] leading-snug">
+        <p className="pz-phint">
           Select the room first — click its floor in the 3D view.
         </p>
       ) : null}
 
       {room && (mode === "3d" || active) ? (
         <>
-          <p className="text-[11px] text-[color:var(--pz-text-2)] mb-1">
+          <p className="pz-phint">
             Room: <b>{room.name || "unnamed"}</b>
             {usedWall !== undefined ? ` · ${config.wallWord} on wall ${usedWall + 1}` : ""}
           </p>
           {mode === "2d" ? (
-            <p className="text-[11px] text-[color:var(--pz-text-2)] leading-snug mb-2">
+            <p className="pz-phint">
               Click another wall to move the {config.wallWord} there, or{" "}
               <button
                 type="button"
-                className="underline text-[color:var(--pz-accent)]"
+                className="pz-plink"
                 onClick={() => setMainWall(null)}
               >
                 let it choose
@@ -337,12 +348,12 @@ const RoomFurnishPlanner: React.FC<{ kind: Kind; mode: "2d" | "3d" }> = ({ kind,
           ) : null}
 
           {config.styles.map((s) => (
-            <label key={s.key} className="flex items-center gap-2 text-[12px] mb-2">
-              <span className="w-[68px] shrink-0">{s.label}</span>
+            <label key={s.key} className="pz-prow">
+              <span className="pz-prow-label">{s.label}</span>
               <select
                 value={styles[s.key]}
                 onChange={(e) => setStyles((x) => ({ ...x, [s.key]: e.target.value }))}
-                className="flex-1 rounded border border-[color:var(--pz-panel-border)] bg-[color:var(--pz-input-bg)] px-1.5 py-1 text-[12px]"
+                className="pz-pselect pz-pselect--sm"
               >
                 {s.options.map((o) => (
                   <option key={o.value} value={o.value}>
@@ -353,31 +364,31 @@ const RoomFurnishPlanner: React.FC<{ kind: Kind; mode: "2d" | "3d" }> = ({ kind,
             </label>
           ))}
 
-          <div className="flex items-center gap-1.5 mb-2">
+          <div className="pz-pdesign">
             <button
               type="button"
               onClick={() => setDesign((d) => Math.max(0, d - 1))}
               disabled={design === 0 || busy}
-              className="rounded-md border border-[color:var(--pz-panel-border)] px-2 py-1 text-[12px] disabled:opacity-40"
+              className="pz-pbtn pz-pbtn--ghost pz-pbtn--sm"
               title="The previous design"
             >
               ← Back
             </button>
-            <span className="text-[12px] font-medium px-1">Design {design + 1}</span>
+            <span className="pz-pdesign-n">Design {design + 1}</span>
             <button
               type="button"
               onClick={() => setDesign((d) => d + 1)}
               disabled={busy}
-              className="flex-1 rounded-md border border-[color:var(--pz-accent)] text-[color:var(--pz-accent)] px-2 py-1 text-[12px] disabled:opacity-40"
+              className="pz-pbtn pz-pbtn--outline pz-pbtn--sm"
               title="Another layout and other models — same walkways and clearances"
             >
               Try another design →
             </button>
           </div>
 
-          <div className="grid grid-cols-2 gap-x-2 gap-y-1 mb-2">
+          <div className="pz-pchecks">
             {config.extras.map((e) => (
-              <label key={e.key} className="flex items-center gap-1.5 text-[12px] cursor-pointer">
+              <label key={e.key} className="pz-pcheck">
                 <input
                   type="checkbox"
                   checked={!!extras[e.key]}
@@ -389,18 +400,18 @@ const RoomFurnishPlanner: React.FC<{ kind: Kind; mode: "2d" | "3d" }> = ({ kind,
           </div>
 
           {planned?.error || planned?.plan?.reason ? (
-            <p className="text-[12px] text-red-600 leading-snug mb-2">
+            <p className="pz-pnote pz-pnote--err">
               {planned?.error || `Can't furnish: ${planned.plan.reason}.`}
             </p>
           ) : (
             <>
-              <p className="text-[11px] text-[color:var(--pz-text-2)] mb-1 leading-snug">
+              <p className="pz-phint">
                 {Object.entries(counts)
                   .map(([label, n]) => (n > 1 ? `${n} × ${label}` : label))
                   .join(" · ")}
               </p>
               {skipped.length ? (
-                <p className="text-[11px] text-amber-600 mb-2 leading-snug">
+                <p className="pz-pnote pz-pnote--warn">
                   Left out: {skipped.map((s: any) => `${labelOf(s.kind)} (${s.reason})`).join("; ")}
                 </p>
               ) : null}
@@ -408,22 +419,20 @@ const RoomFurnishPlanner: React.FC<{ kind: Kind; mode: "2d" | "3d" }> = ({ kind,
                 type="button"
                 onClick={place}
                 disabled={busy || !slots.length}
-                className={`w-full rounded-md px-3 py-1.5 text-[13px] text-white ${
-                  busy ? "bg-neutral-400 cursor-not-allowed" : "bg-[color:var(--pz-accent)] hover:opacity-90"
-                }`}
+                className="pz-pbtn pz-pbtn--primary"
               >
                 {busy ? result || "Placing…" : `Place ${slots.length} items`}
               </button>
             </>
           )}
-          {note ? <p className="text-[11px] text-amber-600 mt-2">{note}</p> : null}
+          {note ? <p className="pz-pnote pz-pnote--warn">{note}</p> : null}
         </>
       ) : note ? (
-        <p className="text-[11px] text-amber-600">{note}</p>
+        <p className="pz-pnote pz-pnote--warn">{note}</p>
       ) : null}
 
       {!busy && result ? (
-        <p className="mt-2 text-[12px] text-green-600 dark:text-green-400">{result}</p>
+        <p className="pz-pnote pz-pnote--ok">{result}</p>
       ) : null}
     </div>
   );

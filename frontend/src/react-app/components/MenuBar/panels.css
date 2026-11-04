@@ -1,0 +1,1035 @@
+/* ===========================================================================
+   The editor's side panels (Floor plan, 3D model): the panel title, the
+   collapsible sections, the tool boxes and the fields inside them. Each box
+   wears a colour (`data-tone`), the same set as the toolbar. Plain classes,
+   no Tailwind, so nothing here fights Tailwind's `important: true`.
+   =========================================================================== */
+.pz-pcard,
+.pz-panel-badge,
+.pz-ppick-item,
+.pz-planner,
+.pz-cat-ic {
+  --tb-c: #5b3df5;
+}
+:is(.pz-pcard, .pz-panel-badge, .pz-ppick-item, .pz-planner, .pz-cat-ic)[data-tone="blue"] { --tb-c: #2563eb; }
+:is(.pz-pcard, .pz-panel-badge, .pz-ppick-item, .pz-planner, .pz-cat-ic)[data-tone="red"] { --tb-c: #dc2626; }
+:is(.pz-pcard, .pz-panel-badge, .pz-ppick-item, .pz-planner, .pz-cat-ic)[data-tone="indigo"] { --tb-c: #5b3df5; }
+:is(.pz-pcard, .pz-panel-badge, .pz-ppick-item, .pz-planner, .pz-cat-ic)[data-tone="teal"] { --tb-c: #0d9488; }
+:is(.pz-pcard, .pz-panel-badge, .pz-ppick-item, .pz-planner, .pz-cat-ic)[data-tone="green"] { --tb-c: #16a34a; }
+:is(.pz-pcard, .pz-panel-badge, .pz-ppick-item, .pz-planner, .pz-cat-ic)[data-tone="orange"] { --tb-c: #ea580c; }
+:is(.pz-pcard, .pz-panel-badge, .pz-ppick-item, .pz-planner, .pz-cat-ic)[data-tone="violet"] { --tb-c: #7c3aed; }
+:is(.pz-pcard, .pz-panel-badge, .pz-ppick-item, .pz-planner, .pz-cat-ic)[data-tone="cyan"] { --tb-c: #0891b2; }
+:is(.pz-pcard, .pz-panel-badge, .pz-ppick-item, .pz-planner, .pz-cat-ic)[data-tone="pink"] { --tb-c: #db2777; }
+:is(.pz-pcard, .pz-panel-badge, .pz-ppick-item, .pz-planner, .pz-cat-ic)[data-tone="amber"] { --tb-c: #d97706; }
+
+/* --- panel title ---------------------------------------------------------- */
+.pz-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 14px 14px 12px;
+  background: var(--pz-panel-header);
+  border-bottom: 1px solid var(--pz-panel-border);
+}
+.pz-panel-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font: 700 16px/1.2 Inter, Arial, sans-serif;
+  letter-spacing: -0.01em;
+  color: var(--pz-text);
+}
+.pz-panel-badge {
+  width: 30px;
+  height: 30px;
+  flex: none;
+  border-radius: 9px;
+  display: grid;
+  place-items: center;
+  color: var(--tb-c);
+  background: color-mix(in srgb, var(--tb-c) 16%, #fff);
+}
+.pz-panel-badge .material-symbols-outlined {
+  font-size: 18px;
+  font-variation-settings: "wght" 500;
+}
+button.pz-panel-close {
+  width: 30px;
+  height: 30px;
+  flex: none;
+  padding: 0;
+  border: 1px solid var(--pz-panel-border);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--pz-text-2);
+  font: 400 20px/1 Inter, Arial, sans-serif;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: background-color 0.15s, color 0.15s, transform 0.15s;
+}
+button.pz-panel-close:hover {
+  background: #f4f2ff;
+  color: #4b30dc;
+  transform: rotate(90deg);
+}
+
+/* --- collapsible sections -------------------------------------------------- */
+.pz-ps {
+  border-bottom: 1px solid var(--pz-panel-border);
+}
+.pz-ps:last-child {
+  border-bottom: none;
+}
+.pz-ps-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-right: 12px;
+}
+button.pz-ps-head {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 13px 14px;
+  border: none;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+.pz-ps-row button.pz-ps-head {
+  flex: 1;
+  min-width: 0;
+  padding-right: 0;
+}
+button.pz-ps-head:hover {
+  background: rgba(91, 61, 245, 0.04);
+}
+.pz-ps-chev {
+  font-size: 20px !important;
+  color: var(--pz-panel-muted);
+  transition: transform 0.18s ease, color 0.15s;
+}
+.pz-ps.is-open .pz-ps-chev {
+  transform: rotate(90deg);
+  color: #5b3df5;
+}
+.pz-ps-title {
+  font: 700 14px/1.3 Inter, Arial, sans-serif;
+  color: var(--pz-text);
+}
+.pz-ps-body {
+  padding: 2px 14px 16px;
+}
+.pz-ps-hint {
+  margin: 8px 0 0;
+  font: 400 12px/1.45 Inter, Arial, sans-serif;
+  color: var(--pz-text-2);
+}
+
+/* --- tool boxes ------------------------------------------------------------ */
+.pz-pgrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+button.pz-pcard {
+  min-height: 80px;
+  padding: 10px 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border: 1px solid var(--pz-panel-border);
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(23, 32, 51, 0.05);
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.2s ease, border-color 0.15s,
+    background-color 0.15s;
+}
+button.pz-pcard--sm {
+  min-height: 74px;
+}
+.pz-pcard-tile {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  color: var(--tb-c);
+  background: color-mix(in srgb, var(--tb-c) 16%, #fff);
+  transition: background-color 0.15s, color 0.15s;
+}
+.pz-pcard .pz-pcard-ic {
+  font-size: 21px;
+  font-variation-settings: "wght" 500;
+}
+.pz-pcard-label {
+  font: 600 12.5px/1.2 Inter, Arial, sans-serif;
+  color: var(--pz-text);
+  text-align: center;
+}
+button.pz-pcard:hover {
+  transform: translateY(-2px);
+  border-color: color-mix(in srgb, var(--tb-c) 45%, #fff);
+  box-shadow: 0 8px 18px color-mix(in srgb, var(--tb-c) 18%, transparent);
+}
+button.pz-pcard:hover .pz-pcard-tile {
+  background: color-mix(in srgb, var(--tb-c) 26%, #fff);
+}
+button.pz-pcard:active {
+  transform: scale(0.97);
+}
+button.pz-pcard:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px #fff, 0 0 0 4px color-mix(in srgb, var(--tb-c) 60%, transparent);
+}
+/* In use (Draw while drawing, the door picker while open, …). */
+button.pz-pcard.is-on {
+  border-color: var(--tb-c);
+  background: color-mix(in srgb, var(--tb-c) 8%, #fff);
+}
+button.pz-pcard.is-on .pz-pcard-tile {
+  background: var(--tb-c);
+  color: #fff;
+}
+button.pz-pcard.is-on .pz-pcard-label {
+  color: var(--tb-c);
+}
+
+/* --- fields ------------------------------------------------------------------ */
+.pz-pfield {
+  display: block;
+  margin-top: 14px;
+}
+.pz-pfield-label {
+  display: block;
+  margin-bottom: 6px;
+  font: 600 12px/1.2 Inter, Arial, sans-serif;
+  color: var(--pz-text-2);
+}
+select.pz-pselect {
+  width: 100%;
+  height: 40px;
+  padding: 0 10px;
+  border: 1px solid var(--pz-panel-border);
+  border-radius: 10px;
+  background: var(--pz-panel-surface, #fff);
+  color: var(--pz-text);
+  font: 500 13.5px/1.2 Inter, Arial, sans-serif;
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+select.pz-pselect:hover {
+  border-color: #c9cede;
+}
+select.pz-pselect:focus {
+  border-color: #a99bfa;
+  box-shadow: 0 0 0 3px rgba(91, 61, 245, 0.14);
+}
+
+/* The door / window list under its box. */
+.pz-ppick {
+  margin-top: 10px;
+  padding: 6px;
+  border: 1px solid var(--pz-panel-border);
+  border-radius: 12px;
+  background: var(--pz-input-bg, #f8f9fc);
+}
+.pz-ppick-title {
+  padding: 4px 6px 6px;
+  font: 700 12px/1.2 Inter, Arial, sans-serif;
+  color: var(--pz-text-2);
+}
+button.pz-ppick-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--pz-text);
+  font: 500 13px/1.2 Inter, Arial, sans-serif;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.15s, color 0.15s;
+}
+button.pz-ppick-item:hover {
+  background: color-mix(in srgb, var(--tb-c) 12%, transparent);
+  color: var(--tb-c);
+}
+.pz-ppick-ic {
+  font-size: 20px !important;
+  color: var(--tb-c);
+}
+
+/* Interior area, under Measurements. */
+.pz-pstat {
+  margin-top: 12px;
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-radius: 10px;
+  background: color-mix(in srgb, #0d9488 9%, #fff);
+  font: 500 13px/1.2 Inter, Arial, sans-serif;
+  color: var(--pz-text-2);
+}
+.pz-pstat strong {
+  font-size: 14px;
+  font-weight: 700;
+  color: #0f766e;
+}
+
+/* --- dark theme -------------------------------------------------------------- */
+.dark button.pz-pcard {
+  background: #3a3a3a;
+}
+.dark button.pz-pcard.is-on {
+  background: color-mix(in srgb, var(--tb-c) 22%, #3a3a3a);
+}
+.dark .pz-pcard-tile,
+.dark .pz-panel-badge {
+  background: color-mix(in srgb, var(--tb-c) 28%, #3a3a3a);
+  color: color-mix(in srgb, var(--tb-c) 55%, #fff);
+}
+.dark .pz-pstat {
+  background: rgba(13, 148, 136, 0.18);
+}
+.dark .pz-pstat strong {
+  color: #5eead4;
+}
+
+/* --- Room planners (Kitchen, Bedroom, Living Room) ---------------------------
+   `.pz-planner[data-tone]` sets the colour: kitchen orange, bedroom violet,
+   living room blue. */
+.pz-planner {
+  color: var(--pz-text);
+}
+.pz-layouts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 10px;
+}
+button.pz-layout {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 6px 9px;
+  border: 1px solid var(--pz-panel-border);
+  border-radius: 12px;
+  background: #fff;
+  color: var(--pz-text);
+  box-shadow: 0 1px 2px rgba(23, 32, 51, 0.05);
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.2s ease, border-color 0.15s,
+    background-color 0.15s;
+}
+.pz-layout-shape {
+  padding: 4px 6px;
+  box-sizing: content-box;
+  border-radius: 9px;
+  color: var(--tb-c);
+  background: color-mix(in srgb, var(--tb-c) 14%, #fff);
+}
+.pz-layout-name {
+  font: 600 12.5px/1.2 Inter, Arial, sans-serif;
+}
+button.pz-layout:hover {
+  transform: translateY(-2px);
+  border-color: color-mix(in srgb, var(--tb-c) 45%, #fff);
+  box-shadow: 0 8px 18px color-mix(in srgb, var(--tb-c) 18%, transparent);
+}
+button.pz-layout.is-on {
+  border-color: var(--tb-c);
+  background: color-mix(in srgb, var(--tb-c) 8%, #fff);
+}
+button.pz-layout.is-on .pz-layout-shape {
+  background: var(--tb-c);
+  color: #fff;
+}
+button.pz-layout.is-on .pz-layout-name {
+  color: var(--tb-c);
+}
+
+/* Bedroom / Living Room: one wide button with its icon. */
+button.pz-roomstart {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px 8px 8px;
+  margin-bottom: 10px;
+  border: 1px solid var(--pz-panel-border);
+  border-radius: 12px;
+  background: #fff;
+  color: var(--pz-text);
+  box-shadow: 0 1px 2px rgba(23, 32, 51, 0.05);
+  text-align: left;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.2s ease, border-color 0.15s,
+    background-color 0.15s;
+}
+.pz-roomstart-tile {
+  width: 34px;
+  height: 34px;
+  flex: none;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  color: var(--tb-c);
+  background: color-mix(in srgb, var(--tb-c) 16%, #fff);
+}
+.pz-roomstart-tile .material-symbols-outlined {
+  font-size: 20px;
+  font-variation-settings: "wght" 500;
+}
+.pz-roomstart-label {
+  font: 600 13px/1.25 Inter, Arial, sans-serif;
+}
+button.pz-roomstart:hover {
+  transform: translateY(-1px);
+  border-color: color-mix(in srgb, var(--tb-c) 45%, #fff);
+  box-shadow: 0 8px 18px color-mix(in srgb, var(--tb-c) 18%, transparent);
+}
+button.pz-roomstart.is-on {
+  border-color: var(--tb-c);
+  background: color-mix(in srgb, var(--tb-c) 8%, #fff);
+}
+button.pz-roomstart.is-on .pz-roomstart-tile {
+  background: var(--tb-c);
+  color: #fff;
+}
+button.pz-roomstart.is-on .pz-roomstart-label {
+  color: var(--tb-c);
+}
+
+/* Hints, notes and the step rows under them. */
+.pz-phint {
+  margin: 0 0 8px;
+  font: 400 12px/1.45 Inter, Arial, sans-serif;
+  color: var(--pz-text-2);
+}
+.pz-phint b {
+  color: var(--pz-text);
+}
+button.pz-plink {
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--tb-c);
+  font: 600 12px/1.45 Inter, Arial, sans-serif;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.pz-pnote {
+  margin: 8px 0;
+  padding: 8px 10px;
+  border-radius: 9px;
+  font: 500 12px/1.45 Inter, Arial, sans-serif;
+}
+.pz-pnote--ok { background: #f0fdf4; color: #166534; }
+.pz-pnote--warn { background: #fff7ed; color: #9a3412; }
+.pz-pnote--err { background: #fef2f2; color: #991b1b; }
+
+.pz-wallrow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+  padding: 7px 10px;
+  border: 1px solid var(--pz-panel-border);
+  border-radius: 9px;
+  background: #fff;
+  font: 500 12.5px/1.2 Inter, Arial, sans-serif;
+}
+.pz-wallrow-n {
+  width: 20px;
+  height: 20px;
+  flex: none;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--tb-c);
+  color: #fff;
+  font: 700 11px/1 Inter, Arial, sans-serif;
+}
+.pz-wallrow-len {
+  margin-left: auto;
+  color: var(--pz-text-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.pz-prow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  font: 500 12.5px/1.2 Inter, Arial, sans-serif;
+}
+.pz-prow-label {
+  width: 70px;
+  flex: none;
+  color: var(--pz-text-2);
+}
+select.pz-pselect--sm {
+  flex: 1;
+  min-width: 0;
+  height: 34px;
+  font-size: 12.5px;
+}
+.pz-pdesign {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+.pz-pdesign-n {
+  padding: 0 4px;
+  font: 700 12.5px/1 Inter, Arial, sans-serif;
+  white-space: nowrap;
+}
+.pz-pchecks {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px 8px;
+  margin-bottom: 10px;
+}
+.pz-pcheck {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font: 500 12.5px/1.2 Inter, Arial, sans-serif;
+  cursor: pointer;
+}
+.pz-pcheck input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--tb-c);
+  cursor: pointer;
+}
+
+/* Planner buttons: the main action in the room's colour. */
+button.pz-pbtn {
+  width: 100%;
+  height: 38px;
+  padding: 0 14px;
+  border: none;
+  border-radius: 10px;
+  font: 600 13px/1 Inter, Arial, sans-serif;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.2s ease, filter 0.15s,
+    background-color 0.15s;
+}
+button.pz-pbtn--sm {
+  width: auto;
+  height: 32px;
+  padding: 0 10px;
+  font-size: 12px;
+}
+button.pz-pbtn--primary {
+  color: #fff;
+  background: var(--tb-c);
+  box-shadow: 0 6px 14px color-mix(in srgb, var(--tb-c) 30%, transparent);
+}
+button.pz-pbtn--primary:hover:not(:disabled) {
+  transform: translateY(-1px);
+  filter: brightness(1.06);
+}
+button.pz-pbtn--ghost {
+  margin-top: 8px;
+  border: 1px solid var(--pz-panel-border);
+  background: #fff;
+  color: var(--pz-text);
+}
+.pz-pdesign button.pz-pbtn--ghost {
+  margin-top: 0;
+}
+button.pz-pbtn--ghost:hover:not(:disabled) {
+  background: #f6f7fb;
+}
+button.pz-pbtn--outline {
+  flex: 1;
+  border: 1px solid var(--tb-c);
+  background: color-mix(in srgb, var(--tb-c) 6%, #fff);
+  color: var(--tb-c);
+}
+button.pz-pbtn--outline:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--tb-c) 14%, #fff);
+}
+button.pz-pbtn:active:not(:disabled) {
+  transform: scale(0.98);
+}
+button.pz-pbtn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+.dark button.pz-layout,
+.dark button.pz-roomstart,
+.dark .pz-wallrow,
+.dark button.pz-pbtn--ghost {
+  background: #3a3a3a;
+}
+
+/* --- 3D model panel: the category tree ----------------------------------------
+   Each top category has its colour (`data-tone` on the row); its icon sits on
+   a tile in that colour, lighter for the rows under it. The selected row is an
+   indigo tint with a bar on its left edge. */
+.pz-cat-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 34px;
+  padding: 2px 4px 2px 2px;
+  margin: 1px 0;
+  border-radius: 9px;
+  cursor: pointer;
+  transition: background-color 0.12s ease;
+}
+.pz-cat-row:hover {
+  background: #f4f5f9;
+}
+.pz-cat-row.is-sel {
+  background: #f1edff;
+}
+.pz-cat-row.is-sel::before {
+  content: "";
+  position: absolute;
+  left: -2px;
+  top: 7px;
+  bottom: 7px;
+  width: 3px;
+  border-radius: 3px;
+  background: #5b3df5;
+}
+.pz-cat-chev {
+  width: 20px;
+  flex: none;
+  font-size: 19px !important;
+  color: #8a91a1;
+  text-align: center;
+  transition: transform 0.18s ease, color 0.15s;
+}
+.pz-cat-chev.is-open {
+  transform: rotate(90deg);
+  color: #5b3df5;
+}
+.pz-cat-chev-gap {
+  width: 4px;
+  flex: none;
+}
+.pz-cat-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.pz-cat-ic {
+  width: 26px;
+  height: 26px;
+  flex: none;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  color: var(--tb-c);
+  background: color-mix(in srgb, var(--tb-c) 16%, #fff);
+}
+.pz-cat-ic--sub {
+  width: 22px;
+  height: 22px;
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--tb-c) 9%, #fff);
+}
+.pz-cat-ic--sub svg {
+  width: 13px;
+  height: 13px;
+}
+.pz-cat-name {
+  font: 500 13px/1.3 Inter, Arial, sans-serif;
+  color: var(--pz-text);
+}
+.pz-cat-row.is-top .pz-cat-name {
+  font-weight: 700;
+}
+.pz-cat-row.is-sel .pz-cat-name {
+  color: #4b30dc;
+}
+/* Rename / + / delete: over the row's end while pointed at, on the row's
+   own background so the name does not show through. */
+.pz-cat-actions {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  align-items: center;
+  padding: 0 4px 0 12px;
+  border-radius: 0 9px 9px 0;
+  background: inherit;
+}
+.pz-cat-row:not(:hover):not(.is-sel) .pz-cat-actions {
+  background: var(--pz-panel-surface, #fff);
+}
+button.pz-cat-add {
+  width: 26px;
+  height: 26px;
+  flex: none;
+  padding: 0;
+  border: none;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  background: linear-gradient(180deg, #6a50f7 0%, #5b3df5 100%);
+  box-shadow: 0 4px 10px rgba(91, 61, 245, 0.3);
+  cursor: pointer;
+  transition: transform 0.15s ease, filter 0.15s;
+}
+button.pz-cat-add .material-symbols-outlined {
+  font-size: 18px;
+}
+button.pz-cat-add:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.08);
+}
+.dark .pz-cat-row:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+.dark .pz-cat-row.is-sel {
+  background: rgba(91, 61, 245, 0.25);
+}
+.dark .pz-cat-row.is-sel .pz-cat-name {
+  color: #fff;
+}
+.dark .pz-cat-ic {
+  background: color-mix(in srgb, var(--tb-c) 28%, #3a3a3a);
+  color: color-mix(in srgb, var(--tb-c) 55%, #fff);
+}
+
+/* --- Smaller type and icons (one size down across the app) --------------- */
+.pz-panel-title {
+  font-size: 14.5px;
+}
+.pz-ps-title {
+  font-size: 13px;
+}
+.pz-pcard-label {
+  font-size: 12px;
+}
+.pz-ps-hint,
+.pz-phint {
+  font-size: 11.5px;
+}
+
+/* --- ...and one more small step down ------------------------------------- */
+.pz-panel-title {
+  font-size: 14px;
+}
+.pz-ps-title {
+  font-size: 12.5px;
+}
+.pz-pcard-label {
+  font-size: 11.5px;
+}
+.pz-ps-hint,
+.pz-phint {
+  font-size: 11px;
+}
+
+/* --- Compact: a third step down (type everywhere; controls on a computer) - */
+.pz-panel-title {
+  font-size: 13.5px;
+}
+.pz-ps-title {
+  font-size: 12px;
+}
+.pz-pcard-label {
+  font-size: 11px;
+}
+@media (min-width: 1101px) {
+  button.pz-pcard {
+    min-height: 70px;
+  }
+  .pz-pcard-tile {
+    width: 32px;
+    height: 32px;
+  }
+  select.pz-pselect {
+    height: 36px;
+    font-size: 13px;
+  }
+  button.pz-pbtn {
+    height: 34px;
+    font-size: 12.5px;
+  }
+}
+
+/* --- Table headers, sidebar and editor icons: one more step down ---------- */
+.pz-pcard-tile {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+}
+.pz-pcard .pz-pcard-ic {
+  font-size: 18px;
+}
+.pz-panel-badge {
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+}
+.pz-panel-badge .material-symbols-outlined {
+  font-size: 16px;
+}
+.pz-cat-ic {
+  width: 22px;
+  height: 22px;
+  border-radius: 7px;
+}
+.pz-cat-ic--sub {
+  width: 20px;
+  height: 20px;
+}
+.pz-cat-ic svg {
+  width: 13px;
+  height: 13px;
+}
+.pz-roomstart-tile {
+  width: 30px;
+  height: 30px;
+}
+.pz-roomstart-tile .material-symbols-outlined {
+  font-size: 18px;
+}
+@media (min-width: 1101px) {
+  button.pz-pcard {
+    min-height: 62px;
+    gap: 5px;
+  }
+}
+
+/* --- Category names: regular weight, a size down --------------------------- */
+.pz-cat-name,
+.pz-cat-row.is-top .pz-cat-name {
+  font-size: 12.5px;
+  font-weight: 500;
+}
+.pz-cat-row.is-sel .pz-cat-name {
+  font-weight: 600;
+}
+
+/* ===========================================================================
+   3D model → the item panel beside the category tree (a category's
+   sub-categories or its models): the app's look — a white header with the
+   name, rounded buttons, a round ✕, rows and cards that lift on hover.
+   =========================================================================== */
+.pz-items {
+  background: #f6f7fb;
+  border-left: 1px solid #e9ebf0;
+  box-shadow: 6px 0 18px rgba(23, 32, 51, 0.08);
+  font-family: Inter, Arial, sans-serif;
+}
+.pz-items-head {
+  gap: 10px;
+  padding: 12px 14px;
+  background: #fff;
+  border-bottom: 1px solid #e9ebf0;
+}
+.pz-items-title {
+  margin: 0;
+  font: 700 14px/1.3 Inter, Arial, sans-serif;
+  color: #172033;
+}
+button.pz-items-back {
+  width: 22px;
+  height: 22px;
+  flex: none;
+  padding: 0;
+  border: none;
+  border-radius: 7px;
+  display: grid;
+  place-items: center;
+  background: transparent;
+  color: #4d5566;
+  cursor: pointer;
+}
+button.pz-items-back:hover {
+  background: #f1edff;
+  color: #4b30dc;
+}
+.pz-items-actions {
+  gap: 8px;
+}
+button.pz-items-btn {
+  height: 30px;
+  padding: 0 12px;
+  border-radius: 9px;
+  font: 600 12px/1 Inter, Arial, sans-serif;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.2s ease, background-color 0.15s,
+    border-color 0.15s, filter 0.15s;
+}
+button.pz-items-btn--ghost {
+  border: 1px solid #e6e8ee;
+  background: #fff;
+  color: #172033;
+}
+button.pz-items-btn--ghost:hover:not(:disabled) {
+  border-color: #cfc5fd;
+  color: #4b30dc;
+}
+button.pz-items-btn--ghost.is-on {
+  border-color: #5b3df5;
+  background: #f1edff;
+  color: #4b30dc;
+}
+button.pz-items-btn--primary {
+  border: none;
+  color: #fff;
+  background: linear-gradient(180deg, #6a50f7 0%, #5b3df5 100%);
+  box-shadow: 0 4px 12px rgba(91, 61, 245, 0.28);
+}
+button.pz-items-btn--primary:hover:not(:disabled) {
+  transform: translateY(-1px);
+  filter: brightness(1.06);
+}
+button.pz-items-btn--danger {
+  border: none;
+  color: #fff;
+  background: linear-gradient(180deg, #f05252 0%, #dc2626 100%);
+}
+button.pz-items-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+button.pz-items-close {
+  width: 28px;
+  height: 28px;
+  flex: none;
+  padding: 0;
+  border: 1px solid #e6e8ee;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: #fff;
+  color: #4d5566;
+  cursor: pointer;
+  transition: background-color 0.15s, color 0.15s, transform 0.15s;
+}
+button.pz-items-close:hover {
+  background: #f1edff;
+  color: #4b30dc;
+  transform: rotate(90deg);
+}
+.pz-items-bar {
+  padding: 8px 12px;
+  background: #f1edff;
+  border-bottom: 1px solid #e6e0ff;
+  font-size: 12px;
+}
+
+/* A sub-category: a white row that lifts on hover. */
+.pz-items-row {
+  padding: 10px 12px;
+  border: 1px solid #e9ebf0;
+  border-radius: 11px;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(23, 32, 51, 0.04);
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.2s ease, border-color 0.15s;
+}
+.pz-items-row:hover {
+  transform: translateY(-1px);
+  border-color: #cfc5fd;
+  box-shadow: 0 6px 14px rgba(91, 61, 245, 0.12);
+}
+.pz-items-row-name {
+  margin: 0;
+  font: 500 12.5px/1.35 Inter, Arial, sans-serif;
+  color: #172033;
+}
+.pz-items-row-chev {
+  color: #a3a9b8;
+  transition: transform 0.15s ease, color 0.15s;
+}
+.pz-items-row:hover .pz-items-row-chev {
+  color: #5b3df5;
+  transform: translateX(2px);
+}
+
+/* A model card. */
+.pz-item-card {
+  border: 1px solid #e9ebf0;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(23, 32, 51, 0.05);
+  transition: box-shadow 0.2s ease, border-color 0.15s;
+}
+.pz-item-card:hover {
+  border-color: #cfc5fd;
+  box-shadow: 0 10px 22px rgba(91, 61, 245, 0.14);
+}
+.pz-item-card.is-on {
+  border-color: #5b3df5;
+  box-shadow: 0 0 0 2px #5b3df5;
+}
+button.pz-item-add {
+  height: 26px;
+  padding: 0 14px;
+  border: none;
+  border-radius: 8px;
+  background: linear-gradient(180deg, #6a50f7 0%, #5b3df5 100%);
+  color: #fff;
+  font: 600 11.5px/1 Inter, Arial, sans-serif;
+  cursor: pointer;
+  box-shadow: 0 4px 10px rgba(91, 61, 245, 0.28);
+}
+button.pz-item-add:disabled {
+  opacity: 0.45;
+}
+
+/* Pager and the empty message. */
+.pz-items-pager {
+  font: 600 12px/1 Inter, Arial, sans-serif;
+  color: #4d5566;
+}
+button.pz-items-page {
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 1px solid #e6e8ee;
+  border-radius: 9px;
+  background: #fff;
+  color: #172033;
+  cursor: pointer;
+}
+button.pz-items-page:hover:not(:disabled) {
+  border-color: #cfc5fd;
+  color: #4b30dc;
+}
+button.pz-items-page:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.pz-items-empty {
+  margin: 60px 8px;
+  padding: 22px 14px;
+  border: 1px dashed #d8dbe3;
+  border-radius: 14px;
+  font: 500 13px/1.45 Inter, Arial, sans-serif;
+  color: #697386;
+  text-align: center;
+}

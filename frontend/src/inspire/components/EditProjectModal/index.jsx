@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import Modal from "react-bootstrap/Modal";
 import { Button, Form } from "react-bootstrap";
 import "./index.css";
+import "../PzTable/Modal.css";
 
 function EditProjectModal({ show, onHide, onConfirm, project }) {
   const [editingProject, setEditingProject] = useState({
@@ -38,7 +39,13 @@ function EditProjectModal({ show, onHide, onConfirm, project }) {
   };
 
   return (
-    <Modal show={show} onHide={onHide} centered>
+    <Modal
+      show={show}
+      onHide={onHide}
+      centered
+      className="pz-modal pz-edit-project"
+      backdropClassName="pz-modal-backdrop"
+    >
       <Modal.Header closeButton onClick={resetFields}>
         <Modal.Title className="fw-bold" style={{ fontSize: "18px" }}>
           Edit Project

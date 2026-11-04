@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import "./index.css";
+import "../PzTable/Modal.css";
 import Modal from "react-bootstrap/Modal";
 import { Button } from "react-bootstrap";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
@@ -37,7 +38,14 @@ function ShareModal({ show, onHide, shareUrl }) {
       {/* dialogClassName scopes this component's CSS (index.css). Its
           `.modal-body` override used to be GLOBAL — every modal in the app
           picked it up. */}
-      <Modal show={show} onHide={onHide} centered dialogClassName="share-modal">
+      <Modal
+        show={show}
+        onHide={onHide}
+        centered
+        dialogClassName="share-modal"
+        className="pz-modal"
+        backdropClassName="pz-modal-backdrop"
+      >
         <Modal.Header className="bg-primary">
           <Modal.Title className="fs-16 text-white">Share</Modal.Title>
           <img src={Close} alt="close" style={{ cursor: "pointer" }} onClick={onHide} />

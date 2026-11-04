@@ -1,12 +1,5 @@
 import React, { useEffect, useState } from "react";
-import {
-  TEModal,
-  TERipple,
-  TEModalDialog,
-  TEModalContent,
-  TEModalBody,
-  TEModalFooter,
-} from "tw-elements-react";
+import { createPortal } from "react-dom";
 import "./index.css";
 import { ProjectsService } from "@pazl/services/projectsService";
 import { AuthService } from "@pazl/services/authService";
@@ -35,6 +28,9 @@ const CreateProjectModal = ({
   const [showError, setShowError] = useState(false);
   const [phoneError, setPhoneError] = useState("");
   const [architectUsers, setArchitectUsers] = useState<User[]>([]);
+  // While the save request runs: the buttons show it and can't be pressed
+  // twice (a double click used to be able to create the project twice).
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (editingProject) {
@@ -127,6 +123,16 @@ const CreateProjectModal = ({
     }
   };
 
+  const save = async () => {
+    if (saving) return;
+    setSaving(true);
+    try {
+      await handleSave();
+    } finally {
+      setSaving(false);
+    }
+  };
+
   // The field edits only the local 10 digits; the +91 is a fixed visual prefix
   // and the backend adds the country code at send time. Strip a legacy "91"
   // prefix (12-digit stored values) so old numbers still show their local part.
@@ -138,247 +144,209 @@ const CreateProjectModal = ({
     return d.slice(0, 10);
   })();
 
-  return (
-    <>
-      <TEModal show={true} setShow={onClose} staticBackdrop>
-        <TEModalDialog
-          centered
-          style={{
-            bottom:
-              currentUser?.permissions === UserPermission.ADMIN ||
-              currentUser?.permissions === UserPermission.SUPER_ADMIN
-                ? "42%"
-                : "40%",
-            right: "10%",
-          }}
-          className={`${isDarkMode ? "dark" : "light"}`}
-        >
-          <TEModalContent className="bg-white dark:bg-[#333333]">
-            <div
-              className="project-modal-content dark:bg-[#333333]"
-              style={{
-                height:
-                  currentUser?.permissions === UserPermission.ADMIN ||
-                  currentUser?.permissions === UserPermission.SUPER_ADMIN
-                    ? "600px"
-                    : "555px",
-              }}
-            >
-              <div className="project-modal-header">
-                <div className="project-spacing" />
-                <h5 className="project-modal-title dark:text-[#FFFFFF]">
-                  {editingProject && !isCloneProject
-                    ? "UPDATE PROJECT"
-                    : "CREATE PROJECT"}
-                </h5>
-                <img
-                  className="project-modal-close-icon"
-                  src={require("../../images/close.svg")}
-                  onClick={onClose}
+  const isEdit = !!editingProject && !isCloneProject;
+  const isAdmin =
+    currentUser?.permissions === UserPermission.ADMIN ||
+    currentUser?.permissions === UserPermission.SUPER_ADMIN;
+
+  // Rendered into <body> so no page layout (transforms, overflow) can clip or
+  // shift it. Clicking the backdrop does nothing, as before (static backdrop):
+  // a stray click must not throw away what was typed.
+  return createPortal(
+    <div className={`pz-pm-backdrop ${isDarkMode ? "dark" : "light"}`}>
+      <div
+        className="pz-pm"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="pz-pm-title"
+      >
+        <div className="pz-pm-head">
+          <div>
+            <h5 id="pz-pm-title" className="pz-pm-title">
+              {isEdit
+                ? "Edit project"
+                : isCloneProject
+                ? "Duplicate project"
+                : "Create project"}
+            </h5>
+            <p className="pz-pm-sub">
+              {isEdit
+                ? "Update the project and client details."
+                : "Add the project and client details."}
+            </p>
+          </div>
+          <button
+            type="button"
+            className="pz-pm-close"
+            aria-label="Close"
+            onClick={onClose}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true">
+              <path d="M6 6l12 12M18 6 6 18" />
+            </svg>
+          </button>
+        </div>
+
+        <div className="pz-pm-body">
+          <div className="pz-pm-grid">
+            <div className="pz-pm-field">
+              <label htmlFor="projectname">
+                Project Name <span className="pz-pm-req">*</span>
+              </label>
+              <input
+                required
+                type="text"
+                className="pz-pm-input"
+                id="projectname"
+                placeholder="e.g. 3BHK Interiors"
+                value={project?.name ?? ""}
+                onChange={(e) => {
+                  setProject({ ...project, name: e.target.value });
+                }}
+              />
+            </div>
+            <div className="pz-pm-field">
+              <label htmlFor="address">
+                Address <span className="pz-pm-req">*</span>
+              </label>
+              <input
+                required
+                type="text"
+                className="pz-pm-input"
+                id="address"
+                placeholder="Site address"
+                value={project?.address ?? ""}
+                onChange={(e) => {
+                  setProject({ ...project, address: e.target.value });
+                }}
+              />
+            </div>
+            <div className="pz-pm-field">
+              <label htmlFor="clientname">
+                Client Name <span className="pz-pm-req">*</span>
+              </label>
+              <input
+                required
+                type="text"
+                className="pz-pm-input"
+                id="clientname"
+                placeholder="Client's full name"
+                value={project?.clientName ?? ""}
+                onChange={(e) => {
+                  setProject({ ...project, clientName: e.target.value });
+                }}
+              />
+            </div>
+            <div className="pz-pm-field">
+              <label htmlFor="clientPhoneNumber">Client Phone Number</label>
+              <div className={`pz-pm-phone${phoneError ? " is-error" : ""}`}>
+                <span className="pz-pm-cc">+91</span>
+                <input
+                  type="tel"
+                  inputMode="numeric"
+                  maxLength={10}
+                  placeholder="98765 43210"
+                  className="pz-pm-input"
+                  id="clientPhoneNumber"
+                  value={localPhone}
+                  onChange={(e) => {
+                    const d = e.target.value
+                      .replace(/[^\d]/g, "")
+                      .slice(0, 10);
+                    setProject({ ...project, clientPhoneNumber: d });
+                    if (phoneError) setPhoneError("");
+                  }}
                 />
               </div>
-              <TEModalBody>
-                <div className="modal-body d-flex justify-content-center align-items-center">
-                  <div className="project-modal-form-container dark:bg-[#333333]">
-                    <label className="project-modal-form-label dark:text-[#FFFFFF]">
-                      Project Name
-                    </label>
-                    <input
-                      required
-                      type="text"
-                      className="project-modal-form-input"
-                      id="projectname"
-                      value={project?.name}
-                      onChange={(e) => {
-                        setProject({ ...project, name: e.target.value });
-                      }}
-                    />
-                  </div>
-                  <div className="project-modal-form-container dark:bg-[#333333]">
-                    <label className="project-modal-form-label dark:text-[#FFFFFF]">
-                      Address
-                    </label>
-                    <input
-                      required
-                      type="text"
-                      className="project-modal-form-input"
-                      id="address"
-                      value={project?.address}
-                      onChange={(e) => {
-                        setProject({ ...project, address: e.target.value });
-                      }}
-                    />
-                  </div>
-                  <div className="project-modal-form-container dark:bg-[#333333]">
-                    <label className="project-modal-form-label dark:text-[#FFFFFF]">
-                      Client Name
-                    </label>
-                    <input
-                      required
-                      type="text"
-                      className="project-modal-form-input"
-                      id="clientname"
-                      value={project?.clientName}
-                      onChange={(e) => {
-                        setProject({ ...project, clientName: e.target.value });
-                      }}
-                    />
-                  </div>
-                  <div className="project-modal-form-container dark:bg-[#333333]">
-                    <label className="project-modal-form-label dark:text-[#FFFFFF]">
-                      Client Phone Number
-                    </label>
-                    <div
-                      style={{
-                        display: "flex",
-                        flexDirection: "column",
-                        width: 244,
-                      }}
-                    >
-                      <div style={{ display: "flex", width: "100%" }}>
-                        <span
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            padding: "0 8px",
-                            background: "#e2dfe6",
-                            borderRadius: "2px 0 0 2px",
-                            fontSize: 14,
-                            color: "#414063",
-                            flex: "0 0 auto",
-                          }}
-                        >
-                          +91
-                        </span>
-                        <input
-                          type="tel"
-                          inputMode="numeric"
-                          maxLength={10}
-                          placeholder="98765 43210"
-                          className="project-modal-form-input"
-                          id="clientPhoneNumber"
-                          style={{
-                            width: "auto",
-                            flex: 1,
-                            borderRadius: "0 2px 2px 0",
-                          }}
-                          value={localPhone}
-                          onChange={(e) => {
-                            const d = e.target.value
-                              .replace(/[^\d]/g, "")
-                              .slice(0, 10);
-                            setProject({ ...project, clientPhoneNumber: d });
-                            if (phoneError) setPhoneError("");
-                          }}
-                        />
-                      </div>
-                      {phoneError && (
-                        <div
-                          style={{
-                            color: "#dc2626",
-                            fontSize: 11,
-                            lineHeight: "15px",
-                            marginTop: 4,
-                          }}
-                        >
-                          {phoneError}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  <div className="project-modal-form-container dark:bg-[#333333]">
-                    <label className="project-modal-form-label dark:text-[#FFFFFF]">
-                      Client Email Id
-                    </label>
-                    <input
-                      required
-                      type="email"
-                      className="project-modal-form-input"
-                      id="clientEmail"
-                      value={project?.clientEmail}
-                      onChange={(e) => {
-                        setProject({ ...project, clientEmail: e.target.value });
-                      }}
-                    />
-                  </div>
-                  <div className="project-modal-form-container dark:bg-[#333333]">
-                    <label className="project-modal-form-label dark:text-[#FFFFFF]">
-                      Client GST Number
-                    </label>
-                    <input
-                      required
-                      type="text"
-                      className="project-modal-form-input"
-                      id="clientGSTNumber"
-                      value={project?.clientGSTNumber}
-                      onChange={(e) => {
-                        setProject({
-                          ...project,
-                          clientGSTNumber: e.target.value,
-                        });
-                      }}
-                    />
-                  </div>
-                  {currentUser?.permissions === UserPermission.ADMIN ||
-                  currentUser?.permissions === UserPermission.SUPER_ADMIN ? (
-                    <div className="project-modal-form-container dark:bg-[#333333]">
-                      <label className="project-modal-form-label dark:text-[#FFFFFF]">
-                        Architect
-                      </label>
-                      <select
-                        id="dropdown"
-                        value={project?.architectUserId}
-                        onChange={(e) => {
-                          setProject({
-                            ...project,
-                            architectUserId: e.target.value,
-                          });
-                        }}
-                        className="project-modal-dropdown"
-                      >
-                        {architectUsers?.map((architectUser) => (
-                          <option
-                            key={architectUser._id}
-                            value={architectUser._id}
-                          >
-                            {architectUser.name}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  ) : null}
-                  {/* Project Status editor removed: status is managed by the quote
-                      lifecycle (Get Quote / Send to client / Accept / Close) and the
-                      list page. Editing it here re-fired emails/notifications and
-                      could set a status without doing the real action (e.g. marking
-                      a quote "sent" without emailing it). */}
-                  {showError ? (
-                    <div className="text-danger font-semibold text-xs mb-2 -mt-4">
-                      Please fill all the required parameters.
-                    </div>
-                  ) : null}
-                  <div className="project-modal-footer">
-                    <TERipple rippleColor="light">
-                      <button
-                        type="button"
-                        className="save-project-button bg-[#414063]"
-                        onClick={handleSave}
-                      >
-                        <p className="save-project-button-text">
-                          {editingProject && !isCloneProject
-                            ? "Update"
-                            : "Create"}
-                        </p>
-                      </button>
-                    </TERipple>
-                  </div>
-                </div>
-              </TEModalBody>
+              {phoneError && <div className="pz-pm-error">{phoneError}</div>}
             </div>
-          </TEModalContent>
-        </TEModalDialog>
-      </TEModal>
-    </>
+            <div className="pz-pm-field">
+              <label htmlFor="clientEmail">Client Email Id</label>
+              <input
+                required
+                type="email"
+                className="pz-pm-input"
+                id="clientEmail"
+                placeholder="name@example.com"
+                value={project?.clientEmail ?? ""}
+                onChange={(e) => {
+                  setProject({ ...project, clientEmail: e.target.value });
+                }}
+              />
+            </div>
+            <div className="pz-pm-field">
+              <label htmlFor="clientGSTNumber">Client GST Number</label>
+              <input
+                required
+                type="text"
+                className="pz-pm-input"
+                id="clientGSTNumber"
+                placeholder="Optional"
+                value={project?.clientGSTNumber ?? ""}
+                onChange={(e) => {
+                  setProject({
+                    ...project,
+                    clientGSTNumber: e.target.value,
+                  });
+                }}
+              />
+            </div>
+            {isAdmin ? (
+              <div className="pz-pm-field pz-pm-field--full">
+                <label htmlFor="dropdown">Architect</label>
+                <select
+                  id="dropdown"
+                  value={project?.architectUserId}
+                  onChange={(e) => {
+                    setProject({
+                      ...project,
+                      architectUserId: e.target.value,
+                    });
+                  }}
+                  className="pz-pm-input pz-pm-select"
+                >
+                  {architectUsers?.map((architectUser) => (
+                    <option key={architectUser._id} value={architectUser._id}>
+                      {architectUser.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            ) : null}
+            {/* Project Status editor removed: status is managed by the quote
+                lifecycle (Get Quote / Send to client / Accept / Close) and the
+                list page. Editing it here re-fired emails/notifications and
+                could set a status without doing the real action (e.g. marking
+                a quote "sent" without emailing it). */}
+          </div>
+          {showError ? (
+            <div className="pz-pm-alert" role="alert">
+              Please fill all the required parameters.
+            </div>
+          ) : null}
+        </div>
+
+        <div className="pz-pm-foot">
+          <button
+            type="button"
+            className="pz-pm-btn pz-pm-btn--ghost"
+            onClick={onClose}
+            disabled={saving}
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            className="pz-pm-btn pz-pm-btn--primary"
+            onClick={save}
+            disabled={saving}
+          >
+            {saving ? (isEdit ? "Updating…" : "Creating…") : isEdit ? "Update" : "Create"}
+          </button>
+        </div>
+      </div>
+    </div>,
+    document.body
   );
 };
 

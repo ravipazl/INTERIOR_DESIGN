@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import Modal from "react-bootstrap/Modal";
 import { Button, Col, Form, Row } from "react-bootstrap";
 import "./index.css";
+import "../PzTable/Modal.css";
 
 function InviteTeamsModal({
   show,
@@ -151,10 +152,12 @@ function InviteTeamsModal({
       show={show || isDuplicateEmail}
       onHide={() => (isDuplicateEmail ? setIsDuplicateEmail(false) : onHide())}
       centered
+      className="pz-modal"
+      backdropClassName="pz-modal-backdrop"
     >
       <Modal.Header closeButton onClick={resetFields}>
         <Modal.Title className="fw-bold" style={{ fontSize: "18px" }}>
-          Add Team
+          {isCreate ? "Invite member" : "Edit member"}
         </Modal.Title>
       </Modal.Header>
       <Modal.Body>

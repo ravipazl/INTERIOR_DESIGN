@@ -8,6 +8,8 @@ import ErrorBoundary from "./react-app/errorBoundary";
 import { LoaderProvider } from "@pazl/context/loaderContext";
 import { SyncService } from "./react-app/services/syncService";
 import { LocalDBManager } from "./react-app/services/LocalDBManager";
+// No visible scrollbars anywhere (scrolling still works) — see the file.
+import "./css/no-scrollbars.css";
 
 export async function renderDesign(root: Root) {
   // Light theme only (the 2D/3D canvas reads this flag directly).

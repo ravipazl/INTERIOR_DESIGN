@@ -50,10 +50,568 @@
   border: none !important;
 }
 
+/* --- The refreshed top bar (.pz-topbar). Looks only: every bell, menu and
+   button inside keeps its own markup and code. Several of them carry inline
+   styles, hence the !important here and there. ------------------------------ */
+.pz-topbar {
+  /* No backdrop-filter, transform or z-index here. The mobile menu is a
+     position:fixed offcanvas INSIDE this bar: a filter or transform would trap
+     it in the bar's box, and a z-index would sink it under its own backdrop. */
+  background: #fff !important;
+  border-bottom: 1px solid #e9ebf0 !important;
+  box-shadow: 0 1px 2px rgba(23, 32, 51, 0.03), 0 6px 20px rgba(23, 32, 51, 0.03);
+  font-family: Inter, Arial, sans-serif;
+}
+.pz-topbar .navbar {
+  min-height: 64px;
+}
+/* The brand: a smaller mark beside a bold word. */
+.pz-topbar .navbar-brand .btn {
+  gap: 10px;
+  border-radius: 12px;
+  padding: 4px 8px 4px 2px !important;
+  transition: background-color 0.15s;
+}
+.pz-topbar .navbar-brand .btn:hover {
+  background: #f6f5fe;
+}
+.pz-topbar .navbar-brand img {
+  width: 38px;
+  height: 38px;
+}
+.pz-topbar .navbar-brand h3 {
+  font: 800 19px/1 Inter, Arial, sans-serif !important;
+  letter-spacing: 0.06em;
+  color: #172033 !important;
+}
+
+/* The bell: a round button that lights on hover, its count a crisp pill. */
+.pz-topbar .notification-bell {
+  width: 42px;
+  height: 42px;
+  padding: 0 !important;
+  border-radius: 12px;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent;
+  transition: background-color 0.15s, border-color 0.15s, box-shadow 0.2s;
+}
+.pz-topbar .notification-bell:hover,
+.pz-topbar .notification-bell[aria-expanded="true"] {
+  background: #f4f2ff;
+  border-color: #e2dcff;
+}
+.pz-topbar .notification-bell[aria-expanded="true"] {
+  box-shadow: 0 0 0 4px rgba(91, 61, 245, 0.12);
+}
+.pz-topbar .notification-bell svg {
+  color: #3b4356 !important;
+  font-size: 23px !important;
+  transition: color 0.15s;
+}
+.pz-topbar .notification-bell:hover svg,
+.pz-topbar .notification-bell[aria-expanded="true"] svg {
+  color: #4b30dc !important;
+}
+.pz-topbar .notification-bell .badge {
+  top: 3px !important;
+  right: 2px !important;
+  min-width: 19px;
+  height: 19px;
+  padding: 0 5px;
+  border: 2px solid #fff;
+  border-radius: 999px;
+  background: #e5484d !important;
+  font: 700 10px/15px Inter, Arial, sans-serif !important;
+  box-shadow: 0 2px 6px rgba(229, 72, 77, 0.35);
+}
+
+/* The notification list: a soft card with rounded rows. */
+.pz-topbar .dropdown-menu {
+  padding: 6px;
+  border: 1px solid #e9ebf0;
+  border-radius: 14px;
+  box-shadow: 0 4px 8px rgba(23, 32, 51, 0.06), 0 20px 44px rgba(23, 32, 51, 0.16);
+  font-family: Inter, Arial, sans-serif;
+}
+.pz-topbar .dropdown-header {
+  padding: 8px 10px 10px;
+  font: 700 13px Inter, Arial, sans-serif;
+  color: #172033;
+}
+.pz-topbar .dropdown-menu .dropdown-item {
+  margin: 2px 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  transition: filter 0.15s;
+}
+.pz-topbar .dropdown-menu .dropdown-item:hover {
+  filter: brightness(0.97);
+}
+.pz-topbar .dropdown-divider {
+  margin: 6px 4px;
+  border-color: #eef0f4;
+}
+
+/* ===========================================================================
+   On the pages with the nav rail (`.pz-app-shell`): the top bar runs the FULL
+   width of the window, over the rail too, and the rail starts below it. The
+   bar is fixed to the top; the shell leaves room for it.
+   Scoped with :has(.pz-topbar) so a shell page without the bar (the Rate
+   card's admins-only notice) is left exactly as it was.
+   z-index 1150: above the rail (1100), below modals (1200, NavRail/index.css).
+   It also keeps the mobile menu — a position:fixed offcanvas inside this bar —
+   above its own backdrop (1040, on <body>). No transform or filter here: those
+   would trap that menu inside the bar's box.
+   =========================================================================== */
+.pz-app-shell:has(.pz-topbar) {
+  box-sizing: border-box;
+  padding-top: 64px;
+}
+.pz-app-shell .pz-topbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 64px;
+  z-index: 1150;
+}
+.pz-app-shell .pz-topbar .navbar,
+.pz-app-shell .pz-topbar .navbar > .container-fluid {
+  height: 64px;
+  min-height: 64px;
+}
+/* The logo sits over the rail, centred on it; then PAZL, then the sidebar
+   button; everything else to the right as before. */
+.pz-app-shell .pz-topbar .navbar > .container-fluid {
+  justify-content: flex-start;
+  padding-left: 15px !important;
+  padding-right: 40px !important;
+  flex-wrap: nowrap;
+}
+.pz-app-shell:has(.pz-topbar) > .pz-nav {
+  top: 64px;
+  height: calc(100vh - 64px);
+}
+.pz-app-shell:has(.pz-topbar) > .pz-app-main {
+  min-height: calc(100vh - 64px);
+}
+.pz-app-shell:has(.pz-topbar) > .pz-app-main.pz-projects-main {
+  height: calc(100vh - 64px);
+}
+
+/* A thin brand line along the bar's foot, fading out to the right. */
+.pz-app-shell .pz-topbar::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 2px;
+  background: linear-gradient(90deg, #5b3df5 0%, #a996ff 28%, rgba(169, 150, 255, 0) 62%);
+  opacity: 0.75;
+  pointer-events: none;
+}
+
+/* The divider between the brand and the sidebar button. */
+.pz-topbar-sep {
+  display: none;
+}
+.pz-app-shell .pz-topbar-sep {
+  display: block;
+  flex: none;
+  width: 1px;
+  height: 28px;
+  margin-left: 16px;
+  background: #e6e8ee;
+}
+
+/* Right side: the bell, then who is signed in. */
+.pz-topbar .navbar-nav {
+  align-items: center;
+  gap: 8px;
+}
+.pz-topbar-me {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: 6px;
+  padding: 4px 14px 4px 4px;
+  border: 1px solid #e9ebf0;
+  border-radius: 999px;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(23, 32, 51, 0.04);
+  cursor: default;
+  white-space: nowrap;
+}
+.pz-topbar-av {
+  width: 34px;
+  height: 34px;
+  flex: none;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #4b30dc 0%, #8d76ff 100%);
+  color: #fff;
+  font: 700 12.5px Inter, Arial, sans-serif;
+  box-shadow: 0 3px 8px rgba(91, 61, 245, 0.3);
+}
+.pz-topbar-who {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  max-width: 180px;
+}
+.pz-topbar-who strong {
+  font: 600 13.5px/1.15 Inter, Arial, sans-serif;
+  color: #172033;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pz-topbar-who small {
+  font: 500 11.5px/1.15 Inter, Arial, sans-serif;
+  color: #697386;
+}
+/* Narrow screens: the avatar alone. */
+@media (max-width: 1100px) {
+  .pz-topbar-me {
+    padding: 4px;
+  }
+  .pz-topbar-who {
+    display: none;
+  }
+}
+
+/* The show / hide sidebar button, right after PAZL. Hidden on any page that
+   has no sidebar to show or hide. */
+.pz-topbar-rail {
+  display: none;
+}
+.pz-app-shell .pz-topbar-rail {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  margin-left: 16px;
+  padding: 0;
+  border: 1px solid #e6e8ee;
+  border-radius: 11px;
+  background: #fff;
+  color: #3b4356;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(23, 32, 51, 0.05);
+  transition: background-color 0.15s, color 0.15s, border-color 0.15s, box-shadow 0.2s,
+    transform 0.15s ease;
+}
+.pz-app-shell .pz-topbar-rail:hover {
+  background: #f4f2ff;
+  border-color: #d9d2fd;
+  color: #4b30dc;
+  box-shadow: 0 6px 14px rgba(91, 61, 245, 0.16);
+}
+.pz-app-shell .pz-topbar-rail:active {
+  transform: scale(0.95);
+}
+.pz-app-shell .pz-topbar-rail:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px #fff, 0 0 0 5px rgba(91, 61, 245, 0.55);
+}
+
+/* Sidebar hidden: it slides off to the left and the page takes the width.
+   `visibility` follows the slide, so its links cannot be tabbed to while
+   hidden. */
+.pz-app-shell > .pz-nav {
+  transition: margin-left 0.22s ease, visibility 0s linear 0s;
+}
+html.pz-rail-hidden .pz-app-shell > .pz-nav {
+  margin-left: -64px;
+  visibility: hidden;
+  transition: margin-left 0.22s ease, visibility 0s linear 0.22s;
+}
+@media (max-width: 1100px) {
+  html.pz-rail-hidden .pz-app-shell > .pz-nav {
+    margin-left: -74px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pz-app-shell > .pz-nav,
+  html.pz-rail-hidden .pz-app-shell > .pz-nav {
+    transition: none;
+  }
+}
+
+/* ===========================================================================
+   The bar as a deep indigo → violet band, on the pages with the sidebar: white
+   brand and controls, see-through white buttons, the bell and the signed-in
+   person flush at the right end.
+   The light-on-colour rules are for DESKTOP only (≥992px): below that the
+   bell and the rest live in the slide-in menu, a white panel, where they keep
+   their dark colours.
+   =========================================================================== */
+.pz-app-shell .pz-topbar {
+  background: linear-gradient(90deg, #26187a 0%, #3d27b8 38%, #5b3df5 72%, #7a3fd8 100%) !important;
+  border-bottom: none !important;
+  box-shadow: 0 2px 10px rgba(38, 24, 122, 0.28);
+}
+.pz-app-shell .pz-topbar::after {
+  display: none;
+}
+/* Brand: the logo on a white tile; PAZL, and the role under it. */
+.pz-app-shell .pz-topbar .navbar-brand img {
+  padding: 4px;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.25);
+}
+.pz-topbar-brand-text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+}
+.pz-topbar-brand-sub {
+  display: none;
+}
+.pz-app-shell .pz-topbar .navbar-brand h3 {
+  color: #fff !important;
+  letter-spacing: 0.08em;
+}
+.pz-app-shell .pz-topbar-brand-sub {
+  display: block;
+  font: 600 11.5px/1 Inter, Arial, sans-serif;
+  letter-spacing: 0.02em;
+  color: rgba(255, 255, 255, 0.72);
+}
+.pz-app-shell .pz-topbar .navbar-brand .btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+.pz-app-shell .pz-topbar-sep {
+  background: rgba(255, 255, 255, 0.22);
+}
+/* The sidebar button: a see-through white square. */
+.pz-app-shell .pz-topbar-rail {
+  background: rgba(255, 255, 255, 0.14);
+  border-color: rgba(255, 255, 255, 0.28);
+  color: #fff;
+  box-shadow: none;
+}
+.pz-app-shell .pz-topbar-rail:hover {
+  background: rgba(255, 255, 255, 0.24);
+  border-color: rgba(255, 255, 255, 0.45);
+  color: #fff;
+  box-shadow: 0 6px 14px rgba(15, 23, 42, 0.2);
+}
+
+@media (min-width: 992px) {
+  /* Bootstrap's desktop menu box does not grow (flex-grow: 0), which left
+     the bell and the rest stopping short of the bar's right edge. */
+  .pz-app-shell .pz-topbar .navbar > .container-fluid > .offcanvas,
+  .pz-app-shell .pz-topbar .navbar > .container-fluid > .offcanvas-lg {
+    flex-grow: 1;
+    /* The menu carries an inline max-width: 75vw (and min-width: 40vw) for
+       its life as the phone's slide-in panel. On desktop it is part of the
+       bar, and that cap stopped the bell and the chip ~a quarter of the
+       screen short of the right edge. !important to beat the inline style;
+       the phone panel (below 992px) keeps its size. */
+    max-width: none !important;
+    min-width: 0 !important;
+  }
+  .pz-app-shell .pz-topbar .offcanvas-body {
+    flex-grow: 1;
+    justify-content: flex-end;
+  }
+  .pz-app-shell .pz-topbar .navbar-nav {
+    gap: 12px;
+  }
+  /* The bell: a see-through white pill, white bell. */
+  .pz-app-shell .pz-topbar .notification-bell {
+    background: rgba(255, 255, 255, 0.14);
+    border-color: rgba(255, 255, 255, 0.28);
+  }
+  .pz-app-shell .pz-topbar .notification-bell svg {
+    color: #fff !important;
+  }
+  .pz-app-shell .pz-topbar .notification-bell:hover,
+  .pz-app-shell .pz-topbar .notification-bell[aria-expanded="true"] {
+    background: rgba(255, 255, 255, 0.26);
+    border-color: rgba(255, 255, 255, 0.45);
+    box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.12);
+  }
+  .pz-app-shell .pz-topbar .notification-bell:hover svg,
+  .pz-app-shell .pz-topbar .notification-bell[aria-expanded="true"] svg {
+    color: #fff !important;
+  }
+  .pz-app-shell .pz-topbar .notification-bell .badge {
+    border-color: #4b30dc;
+  }
+  /* You: name and role, then the avatar, in a see-through pill. */
+  .pz-app-shell .pz-topbar-me {
+    /* The bell sits in a Bootstrap row, whose negative margin swallows the
+       nav's gap; the space is given here instead. */
+    margin-left: 12px;
+    padding: 4px 4px 4px 16px;
+    border-color: rgba(255, 255, 255, 0.28);
+    background: rgba(255, 255, 255, 0.12);
+    box-shadow: none;
+  }
+  .pz-app-shell .pz-topbar-who {
+    align-items: flex-end;
+    text-align: right;
+  }
+  .pz-app-shell .pz-topbar-who strong {
+    color: #fff;
+    font-weight: 700;
+  }
+  .pz-app-shell .pz-topbar-who small {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    color: rgba(255, 255, 255, 0.78);
+  }
+  /* A small green dot: signed in, active. */
+  .pz-app-shell .pz-topbar-who small::before {
+    content: "";
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #34d399;
+    box-shadow: 0 0 0 2px rgba(52, 211, 153, 0.25);
+  }
+  .pz-app-shell .pz-topbar-av {
+    width: 38px;
+    height: 38px;
+    background: #0f172a;
+    border: 2px solid rgba(255, 255, 255, 0.85);
+    box-shadow: 0 3px 8px rgba(15, 23, 42, 0.35);
+    font-size: 13px;
+  }
+}
+/* Tablet widths: the avatar alone (the name is hidden there), so no room
+   kept for it. */
+@media (min-width: 992px) and (max-width: 1100px) {
+  .pz-app-shell .pz-topbar-me {
+    padding: 4px;
+  }
+}
+
 .profile-button {
   background-color: #FFFFFF !important;
   border: none !important;
   color: #414063 !important;
   box-shadow: none !important;
   padding-left: 2px !important;
+}
+
+/* --- Smaller type and icons (one size down across the app) --------------- */
+.pz-topbar .navbar-brand h3 {
+  font-size: 17px !important;
+}
+.pz-app-shell .pz-topbar-brand-sub {
+  font-size: 11px;
+}
+
+/* --- ...and one more small step down ------------------------------------- */
+.pz-topbar .navbar-brand h3 {
+  font-size: 16px !important;
+}
+.pz-app-shell .pz-topbar-brand-sub {
+  font-size: 10.5px;
+}
+
+/* --- Compact: a third step down (type everywhere; controls on a computer) - */
+.pz-topbar .navbar-brand h3 {
+  font-size: 15px !important;
+}
+.pz-app-shell .pz-topbar-brand-sub {
+  font-size: 10px;
+}
+@media (min-width: 1101px) {
+  .pz-topbar .navbar-brand img {
+    width: 32px;
+    height: 32px;
+  }
+  .pz-topbar .notification-bell {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+  }
+  .pz-app-shell .pz-topbar-rail {
+    width: 34px;
+    height: 34px;
+  }
+}
+
+/* --- The logo area follows the sidebar ------------------------------------
+   On the pages with the sidebar, the header's logo block is exactly as wide
+   as the sidebar under it: 64px with the logo alone while the sidebar is
+   closed, 232px with "PAZL" beside it while open (html.pz-rail-open, set by
+   NavRail). The sidebar button and the rest of the bar follow it. */
+@media (min-width: 992px) {
+  .pz-app-shell .pz-topbar .navbar > .container-fluid {
+    padding-left: 0 !important;
+  }
+  .pz-app-shell .pz-topbar .navbar-brand {
+    flex: none;
+    width: 64px;
+    display: flex;
+    justify-content: center;
+    overflow: hidden;
+    transition: width 0.22s ease;
+  }
+  /* Closed: the logo alone, centred over the sidebar. */
+  .pz-app-shell .pz-topbar .navbar-brand .btn {
+    gap: 10px;
+    padding: 4px !important;
+  }
+  html.pz-rail-open .pz-app-shell .pz-topbar .navbar-brand .btn {
+    padding: 4px 8px 4px 2px !important;
+  }
+  .pz-app-shell .pz-topbar-brand-text {
+    display: none;
+  }
+  html.pz-rail-open .pz-app-shell .pz-topbar .navbar-brand {
+    width: 176px;
+    justify-content: flex-start;
+    padding-left: 16px;
+  }
+  html.pz-rail-open .pz-app-shell .pz-topbar-brand-text {
+    display: flex;
+  }
+  /* The divider before the sidebar button sits on the sidebar's edge. */
+  .pz-app-shell .pz-topbar-sep {
+    display: none;
+  }
+  .pz-app-shell .pz-topbar-rail {
+    margin-left: 12px;
+  }
+}
+@media (min-width: 992px) and (max-width: 1100px) {
+  /* The tablet sidebar is 74px wide. */
+  .pz-app-shell .pz-topbar .navbar-brand {
+    width: 74px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pz-app-shell .pz-topbar .navbar-brand {
+    transition: none;
+  }
+}
+
+/* --- The sidebar's « / » button lives here, at the edge of the logo area ---- */
+.pz-app-shell .pz-topbar-rail {
+  width: 28px;
+  height: 28px;
+  margin-left: 8px;
+  border-radius: 8px;
+}
+@media (min-width: 1101px) {
+  .pz-app-shell .pz-topbar-rail {
+    width: 28px;
+    height: 28px;
+  }
 }

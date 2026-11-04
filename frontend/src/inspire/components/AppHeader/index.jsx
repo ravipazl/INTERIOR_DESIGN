@@ -165,6 +165,48 @@ const AppHeader = ({ user, showLogo, isGuestUser }) => {
   // admin's and the assigned architect's existing bell).
   const adminBellCount = quoteRequestCount + changeReqCount;
   const architectBellCount = assignmentCount + changeReqCount + updateCount;
+  // The sidebar button opens and closes the rail (icons only <-> icons with
+  // names). The rail owns that state (NavRail); this button asks it to switch
+  // ("pz:rail-toggle") and follows what it reports ("pz:rail-change").
+  //
+  // It used to HIDE the rail outright (`pz-rail-hidden`). That mode is retired:
+  // closed now means icons only, so the class is cleared for anyone who had
+  // hidden it, or their sidebar would stay gone with no button to bring it back.
+  const [railOpen, setRailOpen] = useState(() => {
+    try {
+      const v = window.localStorage.getItem("pz.rail.open.v2");
+      if (v === "1" || v === "0") return v === "1";
+    } catch (e) {
+      /* fall through to the default */
+    }
+    return window.innerWidth > 1100;
+  });
+  useEffect(() => {
+    document.documentElement.classList.remove("pz-rail-hidden");
+    const onChange = (e) => setRailOpen(!!e.detail);
+    window.addEventListener("pz:rail-change", onChange);
+    return () => window.removeEventListener("pz:rail-change", onChange);
+  }, []);
+  const toggleRail = () => window.dispatchEvent(new Event("pz:rail-toggle"));
+
+  // The identity chip at the right of the bar.
+  const roleLabel =
+    {
+      super_admin: "Super admin",
+      admin: "Admin",
+      architect: "Architect",
+      user: "Client",
+    }[currentUser?.permissions] || "";
+  const initialsOfUser =
+    String(currentUser?.name || currentUser?.email || "?")
+      .trim()
+      .split(/[\s@._-]+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((w) => w[0])
+      .join("")
+      .toUpperCase() || "?";
+
   const headerTitle = {
     title: "PAZL",
     color: "#414063",
@@ -638,7 +680,8 @@ const AppHeader = ({ user, showLogo, isGuestUser }) => {
         sending={sendingQuote}
       />
 
-      <Container fluid className="border-bottom p-0">
+      {/* pz-topbar: the refreshed look (index.css) — styles only. */}
+      <Container fluid className="pz-topbar border-bottom p-0">
         {["lg"].map((expand) => (
           <Navbar key={expand} expand={expand} className="p-0">
             <Container fluid>
@@ -654,15 +697,40 @@ const AppHeader = ({ user, showLogo, isGuestUser }) => {
                     width={"60px"}
                     height={"60px"}
                   />
-                  <Title
-                    className="fw-bold"
-                    title={headerTitle.title}
-                    color={headerTitle.color}
-                    fontSize={headerTitle.fontSize}
-                    fontWeight={headerTitle.fontWeight}
-                  />
+                  <span className="pz-topbar-brand-text">
+                    <Title
+                      className="fw-bold"
+                      title={headerTitle.title}
+                      color={headerTitle.color}
+                      fontSize={headerTitle.fontSize}
+                      fontWeight={headerTitle.fontWeight}
+                    />
+                    {/* The role line ("Admin") under the name was removed on
+                        request: the identity chip at the right already says
+                        who is signed in. */}
+                  </span>
                 </Button>
               </Navbar.Brand>
+              {/* Show / hide the sidebar. Only where there is one: index.css
+                  shows this (and the divider before it) inside
+                  `.pz-app-shell` — the pages with the nav rail — and nowhere
+                  else. */}
+              <span className="pz-topbar-sep" aria-hidden="true" />
+              <button
+                type="button"
+                className="pz-topbar-rail"
+                aria-label={railOpen ? "Collapse sidebar" : "Expand sidebar"}
+                aria-pressed={railOpen}
+                title={railOpen ? "Collapse sidebar" : "Expand sidebar"}
+                onClick={toggleRail}
+              >
+                {/* « while open (close it), » while closed (open it) — the
+                    sidebar's own button, moved up here; NavRail hides its
+                    copy on the pages with this header. */}
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  {railOpen ? <path d="m11 17-5-5 5-5M18 17l-5-5 5-5" /> : <path d="m13 17 5-5-5-5M6 17l5-5-5-5" />}
+                </svg>
+              </button>
               {isheaderMobile && (
                 <Col className="d-flex justify-content-end align-items-center">
                   {/* Same button as the desktop row below. The desktop row is
@@ -683,13 +751,10 @@ const AppHeader = ({ user, showLogo, isGuestUser }) => {
                       {sendingQuote ? "Sending…" : "Request quote"}
                     </Button>
                   )}
-                  <Button variant="link">
-                    <img
-                      src={Share}
-                      alt="share"
-                      onClick={() => setShowShareModal(true)}
-                    />
-                  </Button>
+                  {/* The share icon stood here (and in the desktop row below).
+                      Removed on request, as it was from the Projects list and
+                      Project Detail; ShareModal and its state are kept, so it
+                      comes back with a paste. */}
                 </Col>
               )}
               <Navbar.Toggle
@@ -793,15 +858,7 @@ const AppHeader = ({ user, showLogo, isGuestUser }) => {
                           </Col>
                         )}
 
-                        <Col className="p-0">
-                          <Button className="button-icons">
-                            <img
-                              src={Share} alt="share"
-                              width={48} height={48}
-                              onClick={() => setShowShareModal(true)}
-                            />
-                          </Button>
-                        </Col>
+                        {/* Share icon removed — see the note in the mobile row. */}
                       </Row>
                     )}
                     {(isAdmin || isSuperAdmin) && (
@@ -1123,6 +1180,34 @@ const AppHeader = ({ user, showLogo, isGuestUser }) => {
                         </Dropdown.Menu>
                       </Dropdown>
                     )}
+                    {/* Who is signed in: a read-only chip, after the bell.
+                        Deliberately not a menu — signing out stays in the nav
+                        rail (see the note below), so there is still one way
+                        out, not two. */}
+                    {currentUser && !isGuestUser ? (
+                      <div
+                        className="pz-topbar-me"
+                        title={currentUser.email || undefined}
+                      >
+                        <span className="pz-topbar-who">
+                          <strong>{currentUser.name || currentUser.email}</strong>
+                          {(() => {
+                            // Under the name: the role — or, when the name IS
+                            // the role ("Admin" / "Admin"), the email instead.
+                            const name = String(currentUser.name || "").trim().toLowerCase();
+                            const sameAsRole =
+                              !!roleLabel && name === String(roleLabel).trim().toLowerCase();
+                            const second = sameAsRole ? currentUser.email : roleLabel;
+                            return second && second !== currentUser.name ? (
+                              <small>{second}</small>
+                            ) : null;
+                          })()}
+                        </span>
+                        <span className="pz-topbar-av" aria-hidden="true">
+                          {initialsOfUser}
+                        </span>
+                      </div>
+                    ) : null}
                     {/* The profile avatar and its Logout dropdown used to sit
                         here. Both moved to the foot of the nav rail, which
                         shows the same account and signs out the same way — and

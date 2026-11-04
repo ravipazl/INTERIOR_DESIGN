@@ -256,6 +256,11 @@ const NavRail = ({
   onBeforeLeave,
 }: NavRailProps) => {
   const isClient = variant === "client";
+  // Outside the Designer each item's name shows in a styled flyout beside the
+  // rail (NavRail/index.css, `.pz-app-shell`), so the browser's own tooltip is
+  // left off there — two labels for one hover. The Designer keeps the native
+  // tooltip; its rail is unchanged.
+  const flyout = variant !== "designer";
   const links = isClient
     ? buildClientLinks(clientHasProject)
     : buildLinks();
@@ -264,6 +269,60 @@ const NavRail = ({
     typeof window !== "undefined" ? window.location.pathname : "/";
   const user = AuthService.getCurrentUser();
   const [leavingTo, setLeavingTo] = React.useState<string | null>(null);
+
+  // Open (icons + names, 176px) or closed (icons only, 64px) — the person's
+  // choice, kept in this browser. The Designer keeps its own setting, closed
+  // unless opened, so the canvas keeps its room. While open, <html> carries
+  // `pz-rail-open`, which moves --pz-nav-w (the editor's fixed panels sit
+  // beside the rail by it). The PAZL web header's sidebar button toggles the
+  // rail through the "pz:rail-toggle" event and follows "pz:rail-change".
+  const openKey = variant === "designer" ? "pz.rail.open.designer" : "pz.rail.open.v2";
+  const [open, setOpen] = React.useState<boolean>(() => {
+    try {
+      const v = window.localStorage.getItem(openKey);
+      if (v === "1" || v === "0") return v === "1";
+    } catch {
+      /* fall through to the default */
+    }
+    // Nothing chosen yet: open on a computer, closed on a tablet (where an
+    // open rail would take a quarter of the screen) and in the Designer.
+    return variant !== "designer" && window.innerWidth > 1100;
+  });
+  const toggleOpen = React.useCallback(() => {
+    setOpen((was) => {
+      const next = !was;
+      try {
+        window.localStorage.setItem(openKey, next ? "1" : "0");
+      } catch {
+        /* not remembered this time; it still opens */
+      }
+      return next;
+    });
+  }, [openKey]);
+  React.useEffect(() => {
+    const root = document.documentElement;
+    root.classList.toggle("pz-rail-open", open);
+    window.dispatchEvent(new CustomEvent("pz:rail-change", { detail: open }));
+    // Canvases size themselves on resize: tell them once the width has moved.
+    const t = window.setTimeout(() => window.dispatchEvent(new Event("resize")), 240);
+    return () => window.clearTimeout(t);
+  }, [open]);
+  React.useEffect(() => {
+    window.addEventListener("pz:rail-toggle", toggleOpen);
+    return () => {
+      window.removeEventListener("pz:rail-toggle", toggleOpen);
+      document.documentElement.classList.remove("pz-rail-open");
+    };
+  }, [toggleOpen]);
+  const roleRaw = String(user?.permissions || "")
+    .replace(/_/g, " ")
+    .toLowerCase()
+    .replace(/^\w/, (c) => c.toUpperCase());
+  // Under the name: the role — or the email when the name already says it.
+  const roleName =
+    roleRaw && String(user?.name || "").trim().toLowerCase() === roleRaw.toLowerCase()
+      ? user?.email || ""
+      : roleRaw;
 
   const leave = async (e: React.MouseEvent, href: string) => {
     if (!onBeforeLeave) return; // no flush wired -> let the anchor do its job
@@ -330,9 +389,33 @@ const NavRail = ({
 
   return (
   <nav
-    className="pz-nav"
+    className={`pz-nav pz-nav--tiles${flyout ? " pz-nav--flyout" : ""}${open ? " is-open" : ""}`}
     aria-label={isClient ? "Your project" : "Design steps"}
   >
+    {/* Open / close: icons only, or icons with their names. */}
+    <div className="pz-nav-top">
+      {/* The brand, for the pages with no PAZL header above the rail (the
+          Designer, the designer's project pages). On PAZL web the header has
+          it and this whole row is hidden (index.css). Display only — Dashboard
+          just below is the way home. */}
+      <span className="pz-nav-brand">
+        <img src="/assets/icons/pazl_logo.svg" alt="" width={20} height={20} />
+        <b>PAZL</b>
+      </span>
+      <button
+        type="button"
+        className="pz-nav-toggle"
+        onClick={toggleOpen}
+        aria-expanded={open}
+        aria-label={open ? "Collapse sidebar" : "Expand sidebar"}
+        title={open ? "Collapse sidebar" : "Expand sidebar"}
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          {open ? <path d="m11 17-5-5 5-5M18 17l-5-5 5-5" /> : <path d="m13 17 5-5-5-5M6 17l5-5-5-5" />}
+        </svg>
+      </button>
+    </div>
+    <div className="pz-nav-group">{isClient ? "Your project" : "Overview"}</div>
     {/* The brand tile used to sit here, linking to "/" with the tooltip
         "back to dashboard" — which is precisely what the Dashboard item just
         below already does. Two controls with one destination, so it went. */}
@@ -346,11 +429,13 @@ const NavRail = ({
             isHere(l.href) ? "is-active" : ""
           }`}
           href={l.href}
-          title={leavingTo === l.href ? "Saving…" : l.label}
+          title={flyout ? undefined : leavingTo === l.href ? "Saving…" : l.label}
           onClick={(e) => leave(e, l.href)}
         >
           {l.icon}
-          <span className="pz-nav-label">{l.label}</span>
+          <span className="pz-nav-label">
+            {flyout && leavingTo === l.href ? "Saving…" : l.label}
+          </span>
         </a>
       ))}
     </div>
@@ -362,6 +447,9 @@ const NavRail = ({
         Omitted ENTIRELY for a client: these are views inside the 3D editor,
         which a client never opens, so for them the four would not be "disabled
         for now" — they would be four buttons that can never work. */}
+    <div className="pz-nav-group" hidden={isClient}>
+      Design steps
+    </div>
     <ul className="pz-nav-list" hidden={isClient}>
       {(isClient ? [] : STEPS).map((s) => {
         const inDesigner = variant === "designer";
@@ -373,13 +461,20 @@ const NavRail = ({
               className={`pz-nav-i ${isActive ? "is-active" : ""} ${
                 inDesigner ? "" : "is-disabled"
               }`}
-              title={inDesigner ? s.label : `${s.label} — open a project first`}
+              title={
+                flyout ? undefined : inDesigner ? s.label : `${s.label} — open a project first`
+              }
               aria-current={isActive ? "page" : undefined}
               disabled={!inDesigner}
               onClick={() => inDesigner && onNavigate?.(s.key)}
             >
               {s.icon}
-              <span className="pz-nav-label">{s.label}</span>
+              <span className="pz-nav-label">
+                {s.label}
+                {flyout && !inDesigner ? (
+                  <span className="pz-nav-hint"> · open a project first</span>
+                ) : null}
+              </span>
             </button>
           </li>
         );
@@ -391,11 +486,16 @@ const NavRail = ({
       <span className="pz-nav-avatar" title={user?.email || "Signed in"}>
         {(user?.email || "?").trim().charAt(0).toUpperCase() || "?"}
       </span>
+      {/* Shown only while the rail is open. */}
+      <span className="pz-nav-me">
+        <b>{user?.name || user?.email || "Signed in"}</b>
+        {roleName ? <small>{roleName}</small> : null}
+      </span>
       <button
         type="button"
-        className={`pz-nav-i ${leavingTo === SIGN_OUT ? "is-leaving" : ""}`}
+        className={`pz-nav-i pz-nav-signout ${leavingTo === SIGN_OUT ? "is-leaving" : ""}`}
         title={
-          user?.email ? `Sign out (${user.email})` : "Sign out"
+          flyout ? undefined : user?.email ? `Sign out (${user.email})` : "Sign out"
         }
         onClick={signOut}
       >
@@ -404,7 +504,12 @@ const NavRail = ({
           <path d="m16 17 5-5-5-5" />
           <path d="M21 12H9" />
         </Svg>
-        <span className="pz-nav-label">Sign out</span>
+        <span className="pz-nav-label">
+          Sign out
+          {flyout && user?.email ? (
+            <span className="pz-nav-hint"> · {user.email}</span>
+          ) : null}
+        </span>
       </button>
     </div>
   </nav>

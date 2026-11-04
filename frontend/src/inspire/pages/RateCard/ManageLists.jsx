@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Button, Form, Spinner } from "react-bootstrap";
 import {
   coreMaterialTypes,
@@ -7,6 +7,14 @@ import {
   finishingBrands,
   setGrades,
 } from "../../services/ratesService";
+import {
+  ActionIcon,
+  ClearIcon,
+  EditIcon,
+  SearchIcon,
+  TrashIcon,
+  pageList,
+} from "../../components/PzTable";
 
 /**
  * MANAGE LISTS — the catalogue behind the rate-card dropdowns.
@@ -63,7 +71,9 @@ const Row = ({
   const [editing, setEditing] = useState(false);
   const [text, setText] = useState(label);
   return (
-    <div className="border-bottom px-2 py-1">
+    // `pz-row-has-extra`: a row with something of its own beside the name (a
+    // coating grade's 3D look) — laid out on one line in the lists page CSS.
+    <div className={`border-bottom px-2 py-1${children ? " pz-row-has-extra" : ""}`}>
       <div className="d-flex align-items-center gap-2">
         {editing ? (
           <>
@@ -108,10 +118,8 @@ const Row = ({
         ) : (
           <>
             <span className="flex-grow-1">{label}</span>
-            <Button
-              size="sm"
-              variant="link"
-              className="p-0"
+            <ActionIcon
+              label="Rename"
               disabled={busy}
               onClick={() => {
                 if (renameBlocked) {
@@ -122,12 +130,11 @@ const Row = ({
                 setEditing(true);
               }}
             >
-              Edit
-            </Button>
-            <Button
-              size="sm"
-              variant="link"
-              className="p-0 text-danger"
+              <EditIcon />
+            </ActionIcon>
+            <ActionIcon
+              danger
+              label="Delete"
               disabled={busy}
               onClick={() => {
                 if (deleteBlocked) {
@@ -137,8 +144,8 @@ const Row = ({
                 onDelete();
               }}
             >
-              Delete
-            </Button>
+              <TrashIcon />
+            </ActionIcon>
           </>
         )}
       </div>
@@ -278,7 +285,150 @@ const AddRow = ({ placeholder, onAdd, busy }) => {
   );
 };
 
-const ManageLists = ({ tab, data, onClose, onChanged }) => {
+// The three rate tabs that have lists behind them, for the switch at the top.
+const LIST_TABS = [
+  { key: "material", label: "Material" },
+  { key: "coating", label: "Coating" },
+  { key: "interior", label: "Interior" },
+];
+
+const PAGE_SIZE = 6;
+
+/**
+ * One list as a card, every card the same size: its name, count and a search
+ * on top; six rows a page with page buttons below them; its Add box (or note)
+ * pinned at the foot.
+ *
+ * Search and pages only choose WHICH rows show. Each row is drawn by the
+ * section's own `renderItem`, unchanged, so renaming, deleting and the rules
+ * that refuse them behave exactly as they did in the one long list.
+ */
+const ListCard = ({ title, items, textOf, renderItem, noun, footer }) => {
+  const [query, setQuery] = useState("");
+  const [page, setPage] = useState(1);
+  const q = query.trim().toLowerCase();
+  const shown = q
+    ? items.filter((it) => String(textOf(it) || "").toLowerCase().includes(q))
+    : items;
+  const pages = Math.max(1, Math.ceil(shown.length / PAGE_SIZE));
+  const current = Math.min(page, pages);
+  const first = (current - 1) * PAGE_SIZE;
+  const visible = shown.slice(first, first + PAGE_SIZE);
+
+  // Something was just added: show the page it landed on, so the new entry is
+  // in view rather than pages away. Found by name rather than assumed to be
+  // last — a grade lands among its own material's or type's grades.
+  const texts = items.map((it) => String(textOf(it) || ""));
+  const textsKey = texts.join("\u0001");
+  const lastTexts = useRef(null);
+  useEffect(() => {
+    const before = lastTexts.current;
+    lastTexts.current = new Set(texts);
+    if (!before || q || texts.length <= before.size) return;
+    const at = texts.findIndex((t) => !before.has(t));
+    if (at >= 0) setPage(Math.floor(at / PAGE_SIZE) + 1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [textsKey]);
+
+  const search = (value) => {
+    setQuery(value);
+    setPage(1);
+  };
+
+  return (
+    <section className="pz-list-card">
+      <div className="pz-list-head">
+        <span className="pz-list-title">
+          {title}
+          <span className="pzp-count">{items.length}</span>
+        </span>
+        <span className="pz-list-search">
+          <SearchIcon />
+          <input
+            type="search"
+            aria-label={`Search ${title.toLowerCase()}`}
+            placeholder="Search"
+            value={query}
+            onChange={(e) => search(e.target.value)}
+          />
+          {query ? (
+            <button type="button" aria-label="Clear search" onClick={() => search("")}>
+              <ClearIcon />
+            </button>
+          ) : null}
+        </span>
+      </div>
+
+      <div className="pz-list-body">
+        {visible.length ? (
+          visible.map(renderItem)
+        ) : (
+          <div className="pz-list-empty">
+            {q ? (
+              <>
+                <span>
+                  No {noun} match “{query.trim()}”.
+                </span>
+                <button type="button" className="pzp-crumb" onClick={() => search("")}>
+                  Clear search
+                </button>
+              </>
+            ) : (
+              <span>No {noun} yet{footer ? " — add one below." : "."}</span>
+            )}
+          </div>
+        )}
+      </div>
+
+      {pages > 1 ? (
+        <div className="pz-list-pager">
+          <span className="pz-list-range">
+            {first + 1}–{first + visible.length} of {shown.length}
+          </span>
+          <span className="pz-list-pages">
+            <button
+              type="button"
+              aria-label="Previous page"
+              disabled={current <= 1}
+              onClick={() => setPage(current - 1)}
+            >
+              ‹
+            </button>
+            {pageList(current, pages).map((p, i) =>
+              p === "…" ? (
+                <span key={`gap-${i}`} className="pz-list-gap">
+                  …
+                </span>
+              ) : (
+                <button
+                  key={p}
+                  type="button"
+                  className={p === current ? "is-on" : ""}
+                  aria-current={p === current ? "page" : undefined}
+                  onClick={() => setPage(p)}
+                >
+                  {p}
+                </button>
+              )
+            )}
+            <button
+              type="button"
+              aria-label="Next page"
+              disabled={current >= pages}
+              onClick={() => setPage(current + 1)}
+            >
+              ›
+            </button>
+          </span>
+        </div>
+      ) : null}
+
+      {footer ? <div className="pz-list-foot">{footer}</div> : null}
+    </section>
+  );
+};
+
+const ManageLists = ({ tab, data, onClose, onChanged, onTab }) => {
   const [busy, setBusy] = useState(false);
   const {
     materialTypes = [],
@@ -352,43 +502,60 @@ const ManageLists = ({ tab, data, onClose, onChanged }) => {
       : null;
 
   return (
-    // 360 rather than 300: a grade row carries "Material · Grade" plus the use
-    // count, Edit and Delete, which wraps at the narrower width.
-    //
-    // THE DRAWER SCROLLS ON ITS OWN. Three sections of rows outgrow the window
-    // as soon as a few grades exist, and the page's own scrollbar is no help —
-    // it moves the rates table too, so Add sits off-screen while you are
-    // reading the list you want to add to. Capping the height and scrolling
-    // the body keeps the header, the Close link and every Add row reachable.
-    // `sticky` keeps the drawer in view while the rates table scrolls past it.
-    <div
-      className="border rounded bg-white d-flex flex-column"
-      style={{
-        width: 360,
-        position: "sticky",
-        top: 16,
-        maxHeight: "calc(100vh - 140px)",
-      }}
-    >
-      <div className="d-flex align-items-center justify-content-between px-2 py-2 border-bottom flex-shrink-0">
-        <strong style={{ fontSize: 14 }}>Manage lists</strong>
-        <div className="d-flex align-items-center gap-2">
-          {busy ? <Spinner animation="border" size="sm" /> : null}
-          <Button size="sm" variant="link" className="p-0" onClick={onClose}>
-            Close
-          </Button>
+    // A PAGE OF ITS OWN, not a drawer. The lists used to sit in a 360 px
+    // column beside the rates table, scrolling on their own; with a few grades
+    // and brands that was a long thin strip. Here each list is a card, side by
+    // side, and the page header (RateCard) carries "‹ Back to Rate card".
+    // The rows, their Add boxes and every rule about what may be renamed or
+    // deleted are exactly as they were.
+    <div className="pz-lists">
+      <div className="pz-lists-bar">
+        <div className="pz-lists-switch" role="tablist" aria-label="Which lists">
+          {LIST_TABS.map((t) => (
+            <button
+              key={t.key}
+              type="button"
+              role="tab"
+              aria-selected={tab === t.key}
+              className={tab === t.key ? "is-on" : ""}
+              disabled={busy}
+              onClick={() => onTab && onTab(t.key)}
+            >
+              {t.label}
+            </button>
+          ))}
         </div>
+        {busy ? (
+          <span className="pz-lists-busy">
+            <Spinner animation="border" size="sm" /> Saving…
+          </span>
+        ) : (
+          <span className="pz-lists-hint">
+            Rename or delete with the icons; add at the bottom of each list.
+          </span>
+        )}
       </div>
-      {/* minHeight:0 — without it a flex child refuses to shrink below its
-          content and the overflow never engages. */}
-      <div className="flex-grow-1" style={{ overflowY: "auto", minHeight: 0 }}>
 
+      {/* Keyed on the tab: each tab's cards are their own, so a search or page
+          on Materials does not carry over to Coating's Finish types. */}
+      <div className="pz-lists-grid" key={tab}>
       {isMaterial ? (
         <>
-          <div className="px-2 py-1 bg-light border-bottom">
-            <small className="text-muted">MATERIALS</small>
-          </div>
-          {materialTypes.map((t) => (
+          <ListCard
+            title="Materials"
+            noun="materials"
+            items={materialTypes}
+            textOf={(t) => t.type}
+            footer={
+              <AddRow
+                placeholder="New material name"
+                busy={busy}
+                onAdd={(type) =>
+                  run(() => coreMaterialTypes.create({ type, grades: [] }))
+                }
+              />
+            }
+            renderItem={(t) => (
             <Row
               key={t._id}
               label={t.type}
@@ -416,13 +583,7 @@ const ManageLists = ({ tab, data, onClose, onChanged }) => {
                 );
               }}
             />
-          ))}
-          <AddRow
-            placeholder="New material name"
-            busy={busy}
-            onAdd={(type) =>
-              run(() => coreMaterialTypes.create({ type, grades: [] }))
-            }
+            )}
           />
 
           {/* GRADES, flat.
@@ -432,11 +593,25 @@ const ManageLists = ({ tab, data, onClose, onChanged }) => {
               future MDF BWP would be two different things priced differently.
               A material with no grades yet simply contributes no rows — pick it
               in the Material box below to give it its first one. */}
-          <div className="px-2 py-1 bg-light border-top border-bottom">
-            <small className="text-muted">GRADES</small>
-          </div>
-          {materialTypes.flatMap((t) =>
-            (t.grades || []).map((g) => {
+          <ListCard
+            title="Grades"
+            noun="grades"
+            items={materialTypes.flatMap((t) =>
+              (t.grades || []).map((g) => ({ t, g }))
+            )}
+            textOf={({ t, g }) => `${t.type} · ${g}`}
+            footer={
+              <GradeAddRow
+                busy={busy}
+                materials={materialTypes}
+                onAdd={(typeId, name) => {
+                  const t = materialTypes.find((x) => x._id === typeId);
+                  if (!t) return;
+                  run(() => setGrades(typeId, [...(t.grades || []), name]));
+                }}
+              />
+            }
+            renderItem={({ t, g }) => {
               const uses = useCount(
                 (r) => r.coreMaterialTypeId === t._id && r.grade === g,
                 materialRates
@@ -482,22 +657,22 @@ const ManageLists = ({ tab, data, onClose, onChanged }) => {
                   }
                 />
               );
-            })
-          )}
-          <GradeAddRow
-            busy={busy}
-            materials={materialTypes}
-            onAdd={(typeId, name) => {
-              const t = materialTypes.find((x) => x._id === typeId);
-              if (!t) return;
-              run(() => setGrades(typeId, [...(t.grades || []), name]));
             }}
           />
 
-          <div className="px-2 py-1 bg-light border-top border-bottom">
-            <small className="text-muted">BOARD BRANDS</small>
-          </div>
-          {coreBrands.map((b) => (
+          <ListCard
+            title="Board brands"
+            noun="brands"
+            items={coreBrands}
+            textOf={(b) => b.name}
+            footer={
+              <AddRow
+                placeholder="New brand name"
+                busy={busy}
+                onAdd={(name) => run(() => coreMaterialBrands.create({ name }))}
+              />
+            }
+            renderItem={(b) => (
             <Row
               key={b._id}
               label={b.name}
@@ -514,11 +689,7 @@ const ManageLists = ({ tab, data, onClose, onChanged }) => {
                 run(() => coreMaterialBrands.remove(b._id))
               }
             />
-          ))}
-          <AddRow
-            placeholder="New brand name"
-            busy={busy}
-            onAdd={(name) => run(() => coreMaterialBrands.create({ name }))}
+            )}
           />
         </>
       ) : isInterior ? (
@@ -529,10 +700,24 @@ const ManageLists = ({ tab, data, onClose, onChanged }) => {
               to manage. These two lists are the SAME ones the coating tab
               edits — one catalogue, two rate tables — so a rename here shows up
               there too. */}
-          <div className="px-2 py-1 bg-light border-bottom">
-            <small className="text-muted">FINISH TYPES</small>
-          </div>
-          {interiorTypes.map((parent) => (
+          {/* NO ADD BOX ON FINISH TYPES HERE, deliberately.
+              This list is filtered to the types the Interior tab can price, so
+              a type added here under any other name would be created and then
+              vanish from the list — saved, invisible, and apparently broken.
+              Finish types belong to the shared catalogue; the Coating tab is
+              where the whole list is, so that is where they are added. */}
+          <ListCard
+            title="Finish types"
+            noun="finish types"
+            items={interiorTypes}
+            textOf={(parent) => parent.name}
+            footer={
+              <div className="pz-list-note">
+                Finish types are shared with Coating — add or remove the full list
+                on the Coating rates tab.
+              </div>
+            }
+            renderItem={(parent) => (
             <Row
               key={parent._id}
               label={parent.name}
@@ -563,24 +748,22 @@ Delete those first, on the Coating tab.`
                 run(() => finishingCategories.remove(parent._id))
               }
             />
-          ))}
-          {/* NO ADD BOX HERE, deliberately.
-              This list is filtered to the types the Interior tab can price, so
-              a type added here under any other name would be created and then
-              vanish from the list — saved, invisible, and apparently broken.
-              Finish types belong to the shared catalogue; the Coating tab is
-              where the whole list is, so that is where they are added. */}
-          <div className="px-2 py-2 bg-light" style={{ fontSize: 11.5 }}>
-            <span className="text-muted">
-              Finish types are shared with Coating — add or remove the full list
-              on the Coating rates tab.
-            </span>
-          </div>
+            )}
+          />
 
-          <div className="px-2 py-1 bg-light border-top border-bottom">
-            <small className="text-muted">FINISH BRANDS</small>
-          </div>
-          {finishBrands.map((b) => (
+          <ListCard
+            title="Finish brands"
+            noun="brands"
+            items={finishBrands}
+            textOf={(b) => b.name}
+            footer={
+              <AddRow
+                placeholder="New brand name"
+                busy={busy}
+                onAdd={(name) => run(() => finishingBrands.create({ name }))}
+              />
+            }
+            renderItem={(b) => (
             <Row
               key={b._id}
               label={b.name}
@@ -597,11 +780,7 @@ Delete those first, on the Coating tab.`
                 run(() => finishingBrands.remove(b._id))
               }
             />
-          ))}
-          <AddRow
-            placeholder="New brand name"
-            busy={busy}
-            onAdd={(name) => run(() => finishingBrands.create({ name }))}
+            )}
           />
         </>
       ) : (
@@ -611,10 +790,29 @@ Delete those first, on the Coating tab.`
               A finish category with no parent IS a finish type; one WITH a
               parent is a grade sold under it. Same collection, two sections,
               so the drawer reads the way the form is filled in. */}
-          <div className="px-2 py-1 bg-light border-bottom">
-            <small className="text-muted">FINISH TYPES</small>
-          </div>
-          {finishTypes.map((parent) => (
+          <ListCard
+            title="Finish types"
+            noun="finish types"
+            items={finishTypes}
+            textOf={(parent) => parent.name}
+            footer={
+              <AddRow
+                placeholder="New finish type"
+                busy={busy}
+                onAdd={(name) =>
+                  run(() =>
+                    finishingCategories.create({
+                      name,
+                      parentCategoryId: null,
+                      // Every existing category is 'wall'; a new top-level type
+                      // follows them rather than inventing a surface.
+                      type: "wall",
+                    })
+                  )
+                }
+              />
+            }
+            renderItem={(parent) => (
             <Row
               key={parent._id}
               label={parent.name}
@@ -645,28 +843,36 @@ Delete those first, on the Coating tab.`
                 run(() => finishingCategories.remove(parent._id))
               }
             />
-          ))}
-          <AddRow
-            placeholder="New finish type"
-            busy={busy}
-            onAdd={(name) =>
-              run(() =>
-                finishingCategories.create({
-                  name,
-                  parentCategoryId: null,
-                  // Every existing category is 'wall'; a new top-level type
-                  // follows them rather than inventing a surface.
-                  type: "wall",
-                })
-              )
-            }
+            )}
           />
 
-          <div className="px-2 py-1 bg-light border-top border-bottom">
-            <small className="text-muted">GRADES</small>
-          </div>
-          {finishTypes.flatMap((parent) =>
-            gradesOf(parent._id).map((style) => (
+          <ListCard
+            title="Grades"
+            noun="grades"
+            items={finishTypes.flatMap((parent) =>
+              gradesOf(parent._id).map((style) => ({ parent, style }))
+            )}
+            textOf={({ parent, style }) => `${parent.name} · ${style.name}`}
+            footer={
+              <FinishGradeAddRow
+                busy={busy}
+                types={finishTypes}
+                onAdd={(parentId, name) => {
+                  const parent = finishTypes.find((x) => x._id === parentId);
+                  if (!parent) return;
+                  run(() =>
+                    finishingCategories.create({
+                      name,
+                      parentCategoryId: parentId,
+                      // Carried from the parent: a grade covers the same surface
+                      // as the type it sits under.
+                      type: parent.type,
+                    })
+                  );
+                }}
+              />
+            }
+            renderItem={({ parent, style }) => (
               <Row
                 key={style._id}
                 // "Laminates · Wood Grain", matching the material grades above.
@@ -706,30 +912,22 @@ Delete those first, on the Coating tab.`
                   }
                 />
               </Row>
-            ))
-          )}
-          <FinishGradeAddRow
-            busy={busy}
-            types={finishTypes}
-            onAdd={(parentId, name) => {
-              const parent = finishTypes.find((x) => x._id === parentId);
-              if (!parent) return;
-              run(() =>
-                finishingCategories.create({
-                  name,
-                  parentCategoryId: parentId,
-                  // Carried from the parent: a grade covers the same surface
-                  // as the type it sits under.
-                  type: parent.type,
-                })
-              );
-            }}
+            )}
           />
 
-          <div className="px-2 py-1 bg-light border-top border-bottom">
-            <small className="text-muted">FINISH BRANDS</small>
-          </div>
-          {finishBrands.map((b) => (
+          <ListCard
+            title="Finish brands"
+            noun="brands"
+            items={finishBrands}
+            textOf={(b) => b.name}
+            footer={
+              <AddRow
+                placeholder="New brand name"
+                busy={busy}
+                onAdd={(name) => run(() => finishingBrands.create({ name }))}
+              />
+            }
+            renderItem={(b) => (
             <Row
               key={b._id}
               label={b.name}
@@ -746,11 +944,7 @@ Delete those first, on the Coating tab.`
                 run(() => finishingBrands.remove(b._id))
               }
             />
-          ))}
-          <AddRow
-            placeholder="New brand name"
-            busy={busy}
-            onAdd={(name) => run(() => finishingBrands.create({ name }))}
+            )}
           />
         </>
       )}

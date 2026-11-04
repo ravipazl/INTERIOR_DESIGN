@@ -43,8 +43,46 @@ const getDataFromLocalDB = async () => {
 // synced successfully are sent. Nothing is skipped — a changed or new record is
 // always sent, and a failed sync is retried in full on the next run.
 
-/** entity:_id → the exact JSON last accepted by the server. */
-const lastSynced = new Map<string, string>();
+// What the server last accepted is remembered for this tab across reloads
+// (sessionStorage). Without it every reload started from nothing and uploaded
+// the whole design again, and the editor stays blank until that upload is
+// done (design-boot awaits it). A record is kept as a short fingerprint of its
+// JSON, not the JSON itself, so the store stays small. A record whose
+// fingerprint differs - new, edited, or never accepted - is always sent.
+const SYNCED_KEY = "pz.sync.accepted.v1";
+
+/** A 53-bit string hash (cyrb53): cheap, and a collision is vanishingly rare. */
+const fingerprint = (str: string) => {
+  let h1 = 0xdeadbeef;
+  let h2 = 0x41c6ce57;
+  for (let i = 0; i < str.length; i++) {
+    const ch = str.charCodeAt(i);
+    h1 = Math.imul(h1 ^ ch, 2654435761);
+    h2 = Math.imul(h2 ^ ch, 1597334677);
+  }
+  h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+  h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+  return (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(36) + ":" + str.length;
+};
+
+const loadAccepted = (): Map<string, string> => {
+  try {
+    const raw = sessionStorage.getItem(SYNCED_KEY);
+    return new Map(raw ? (JSON.parse(raw) as [string, string][]) : []);
+  } catch {
+    return new Map();
+  }
+};
+const saveAccepted = () => {
+  try {
+    sessionStorage.setItem(SYNCED_KEY, JSON.stringify([...lastSynced]));
+  } catch {
+    // Storage full or blocked: the in-memory copy still works for this load.
+  }
+};
+
+/** entity:_id → fingerprint of the JSON last accepted by the server. */
+const lastSynced = loadAccepted();
 let running: Promise<boolean> | null = null;
 let runAgain = false;
 
@@ -57,7 +95,7 @@ const syncChanged = async (): Promise<boolean> => {
     const signatures = new Map<string, string>();
     for (const item of all) {
       const key = recordKey(item);
-      const sig = JSON.stringify(item);
+      const sig = fingerprint(JSON.stringify(item));
       if (lastSynced.get(key) !== sig) {
         changed.push(item);
         signatures.set(key, sig);
@@ -85,6 +123,7 @@ const syncChanged = async (): Promise<boolean> => {
       // Remember exactly what was sent; anything edited meanwhile has a
       // different signature and goes out on the next run.
       signatures.forEach((sig, key) => lastSynced.set(key, sig));
+      saveAccepted();
       return true;
     }
     return false;
