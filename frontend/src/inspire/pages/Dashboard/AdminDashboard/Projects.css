@@ -976,3 +976,16 @@ button.pzp-link {
 .pz-projects .pzp-pager {
   font-size: 12px;
 }
+
+/* --- Plain-text cells at the table's size ------------------------------------
+   PAZL web's index.css sets `* { font-size: 14px }` on EVERY element, so the
+   text the table wraps in its own <div> (Client, and any plain column) and
+   the muted spans (Date, Address) came out at 14px while styled cells
+   (Project, Owner) were 12px. The cell's first wrapper and those spans take
+   the table size here; elements with their own size class keep theirs. */
+.rdt_Table .rdt_TableCell > div,
+.rdt_Table .rdt_TableCell .pzp-muted,
+.rdt_Table .rdt_TableCell .pzp-person-name {
+  font-size: 12px !important;
+}
+

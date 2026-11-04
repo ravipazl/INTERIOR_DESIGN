@@ -148,7 +148,7 @@ const ObjectFinishingVariants = React.memo(
               return (
                 <div className={fixed ? "p-2 min-w-0" : "p-2.5"} key={finishing?._id}>
                   <div
-                    className="finishing-texture-container"
+                    className="finishing-texture-container pz-fin-tile"
                     onClick={() => pick(finishing)}
                   >
                     <img
@@ -164,7 +164,7 @@ const ObjectFinishingVariants = React.memo(
                       }
                     />
                     <div className={fixed ? "w-full min-w-0" : "w-[97px]"}>
-                      <p className="text-xs font-normal truncate">
+                      <p className="pz-fin-name truncate">
                         {capitalizeText(finishing?.name)}
                       </p>
                       {/* THE MAKER'S SURFACE CODES — RH, HGL, MR+, VNR.

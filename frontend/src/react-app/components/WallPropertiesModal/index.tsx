@@ -152,7 +152,7 @@ function WallPropertiesModal({
   return (
     <>
       <Draggable handle="strong">
-        <div className="box absolute top-36 right-3 z-10 max-w-60 max-h-60 shadow-[0_4px_4px_0px_rgba(0,0,0,0.25)]">
+        <div className="pz-props pz-wall-props box absolute top-36 right-3 z-10 max-w-60 max-h-60 shadow-[0_4px_4px_0px_rgba(0,0,0,0.25)]">
           <div className="wall-modal-title-container">
             <div className="wall-modal-title">Wall Properties</div>
             <img

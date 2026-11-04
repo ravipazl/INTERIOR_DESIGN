@@ -1033,3 +1033,399 @@ button.pz-items-page:disabled {
   color: #697386;
   text-align: center;
 }
+
+/* ===========================================================================
+   3D → selected item: the Material / Properties panel and its finish picker,
+   in the app's look. The tab bar comes from tw-elements, whose classes are
+   !important (Tailwind's important: true), hence the !important here.
+   =========================================================================== */
+.pz-object-panel {
+  font-family: Inter, Arial, sans-serif;
+  background: #fff !important;
+  border-left: 1px solid #e9ebf0;
+  box-shadow: -8px 0 24px rgba(23, 32, 51, 0.1) !important;
+}
+.pz-op-tabs {
+  display: flex !important;
+  gap: 4px;
+  padding: 10px 12px !important;
+  background: #fff;
+  border-bottom: 1px solid #e9ebf0;
+}
+.pz-object-panel .pz-op-tab {
+  flex: none;
+  height: 32px !important;
+  margin: 0 !important;
+  padding: 0 14px !important;
+  border: none !important;
+  border-radius: 9px !important;
+  background: #f1f2f6 !important;
+  color: #4d5566 !important;
+  font: 600 12.5px/32px Inter, Arial, sans-serif !important;
+  text-transform: none !important;
+  letter-spacing: 0 !important;
+  cursor: pointer;
+  transition: background-color 0.15s, color 0.15s;
+}
+.pz-object-panel .pz-op-tab:hover {
+  color: #4b30dc !important;
+}
+.pz-object-panel .pz-op-tab.is-on {
+  background: linear-gradient(180deg, #6a50f7 0%, #5b3df5 100%) !important;
+  color: #fff !important;
+  box-shadow: 0 4px 10px rgba(91, 61, 245, 0.28);
+}
+button.pz-op-close {
+  width: 28px;
+  height: 28px;
+  margin-left: auto;
+  padding: 0;
+  border: 1px solid #e6e8ee;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: #fff;
+  color: #4d5566;
+  cursor: pointer;
+  transition: background-color 0.15s, color 0.15s, transform 0.15s;
+}
+button.pz-op-close:hover {
+  background: #f1edff;
+  color: #4b30dc;
+  transform: rotate(90deg);
+}
+.pz-object-panel .pz-op-body {
+  border: none !important;
+  background: #fff !important;
+}
+.pz-op-hint {
+  margin: 14px 8px;
+  padding: 22px 14px;
+  border: 1px dashed #d8dbe3;
+  border-radius: 14px;
+  font: 500 13px/1.45 Inter, Arial, sans-serif;
+  color: #697386;
+  text-align: center;
+}
+
+/* --- the finish picker ------------------------------------------------------ */
+.pz-fin-title {
+  padding: 12px 14px 6px;
+  font: 700 14px/1.3 Inter, Arial, sans-serif;
+  color: #172033;
+}
+.pz-fin-seg {
+  display: flex;
+  gap: 3px;
+  margin: 4px 12px 6px;
+  padding: 3px;
+  border-radius: 11px;
+  background: #f1f2f6;
+}
+button.pz-fin-seg-btn {
+  flex: 1;
+  height: 32px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: #4d5566;
+  font: 600 12.5px/1 Inter, Arial, sans-serif;
+  cursor: pointer;
+  transition: background-color 0.15s, color 0.15s, box-shadow 0.2s;
+}
+button.pz-fin-seg-btn:hover {
+  color: #4b30dc;
+}
+button.pz-fin-seg-btn.is-on {
+  background: linear-gradient(180deg, #6a50f7 0%, #5b3df5 100%);
+  color: #fff;
+  cursor: default;
+  box-shadow: 0 4px 10px rgba(91, 61, 245, 0.28);
+}
+.pz-fin-grid {
+  gap: 10px 10px;
+  margin: 10px 0 12px;
+}
+.pz-fin-lab {
+  margin: 0 0 5px;
+  font: 600 11.5px/1.2 Inter, Arial, sans-serif;
+  color: #697386;
+}
+select.pz-fin-select {
+  width: 100%;
+  height: 34px;
+  padding: 0 8px;
+  border: 1px solid #e6e8ee;
+  border-radius: 9px;
+  background: #fff;
+  color: #172033;
+  font: 500 12.5px/1.2 Inter, Arial, sans-serif;
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+select.pz-fin-select:hover {
+  border-color: #cfd3dd;
+}
+select.pz-fin-select:focus {
+  border-color: #a99bfa;
+  box-shadow: 0 0 0 3px rgba(91, 61, 245, 0.14);
+}
+.pz-fin-none {
+  height: 34px;
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+  border: 1px dashed #e2e5eb;
+  border-radius: 9px;
+  font: 500 11px/1.2 Inter, Arial, sans-serif;
+  color: #9aa1b0;
+}
+input.pz-fin-search {
+  width: 100%;
+  height: 34px;
+  margin-bottom: 8px;
+  padding: 0 12px 0 34px;
+  border: 1px solid #e6e8ee;
+  border-radius: 10px;
+  background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%238a91a1' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m20 20-3.5-3.5'/%3E%3C/svg%3E") no-repeat 11px 50%;
+  color: #172033;
+  font: 400 12.5px/1.2 Inter, Arial, sans-serif;
+  outline: none;
+}
+input.pz-fin-search:focus {
+  border-color: #a99bfa;
+  box-shadow: 0 0 0 3px rgba(91, 61, 245, 0.14);
+}
+/* A swatch: a rounded card that lifts, its name under it. */
+.pz-fin-tile {
+  padding: 5px;
+  border: 1px solid #e9ebf0;
+  border-radius: 12px;
+  background: #fff;
+  align-items: stretch !important;
+  transition: transform 0.15s ease, box-shadow 0.2s ease, border-color 0.15s;
+}
+.pz-fin-tile:hover {
+  transform: translateY(-2px);
+  border-color: #cfc5fd;
+  box-shadow: 0 8px 18px rgba(91, 61, 245, 0.14);
+}
+.pz-fin-tile img {
+  border-radius: 8px;
+}
+.pz-fin-tile > div {
+  padding: 5px 2px 1px;
+}
+.pz-fin-name {
+  margin: 0;
+  font: 600 11.5px/1.3 Inter, Arial, sans-serif;
+  color: #172033;
+}
+
+/* ===========================================================================
+   Room Properties / Wall Properties (2D and 3D) and the selected item's
+   Properties tab — the app's look. Their markup is Tailwind (!important),
+   hence the !important on what they set.
+   =========================================================================== */
+/* No overflow clip and no max-height: the panels' own Tailwind max-h-44 /
+   max-h-60 only ever worked because the content spilled past them — clipped,
+   the lower fields (Floor, Ceiling, Wall Editor…) were hidden. */
+.pz-props {
+  max-height: none !important;
+  overflow: visible;
+  border: 1px solid #e9ebf0;
+  border-radius: 16px;
+  background: #fff;
+  font-family: Inter, Arial, sans-serif;
+  box-shadow: 0 16px 36px rgba(15, 18, 34, 0.16) !important;
+}
+.pz-props :is(.room-modal-title-container, .wall-modal-title-container) {
+  border-radius: 16px 16px 0 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  background: #fff !important;
+  border-bottom: 1px solid #e9ebf0;
+}
+.pz-props :is(.room-modal-title, .wall-modal-title) {
+  font: 700 14px/1.2 Inter, Arial, sans-serif !important;
+  color: #172033 !important;
+}
+.pz-props .finishing-modal-close-icon {
+  width: 24px;
+  height: 24px;
+  cursor: pointer;
+  transition: transform 0.15s;
+}
+.pz-props .finishing-modal-close-icon:hover {
+  transform: rotate(90deg);
+}
+/* Labels. */
+.pz-props :is(.floor-title, .wall-title),
+.pz-props p.font-bold {
+  margin-bottom: 6px;
+  padding: 0 !important;
+  font: 600 12px/1.2 Inter, Arial, sans-serif !important;
+  color: #697386 !important;
+}
+.pz-props input[type="text"] {
+  height: 34px !important;
+  padding: 0 10px !important;
+  border: 1px solid #e6e8ee !important;
+  border-radius: 9px !important;
+  background: #fff !important;
+  color: #172033 !important;
+  font: 500 13px/1.2 Inter, Arial, sans-serif !important;
+  outline: none;
+}
+.pz-props input[type="text"]:focus {
+  border-color: #a99bfa !important;
+  box-shadow: 0 0 0 3px rgba(91, 61, 245, 0.14);
+}
+/* The finish "dropdown" (it opens the swatch picker) and its swatch. */
+.pz-props :is(.floor-selected-container, .wall-selected-container) {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.pz-props select {
+  flex: 1;
+  min-width: 0;
+  height: 34px !important;
+  margin: 0 !important;
+  padding: 0 8px !important;
+  border: 1px solid #e6e8ee !important;
+  border-radius: 9px !important;
+  background: #fff !important;
+  color: #172033 !important;
+  font: 600 12.5px/1.2 Inter, Arial, sans-serif !important;
+  cursor: pointer;
+}
+.pz-props select:hover {
+  border-color: #cfc5fd !important;
+}
+.pz-props :is(.floor-selected-container, .wall-selected-container) img {
+  width: 34px !important;
+  height: 34px !important;
+  border-radius: 9px;
+  border: 1px solid #e6e8ee;
+  object-fit: cover;
+  cursor: pointer;
+}
+/* "Ceiling Editor", "Wall Editor", "Select Items": soft indigo buttons. */
+.pz-props .select-items {
+  display: inline-flex;
+  align-items: center;
+  margin: 0 !important;
+  padding: 7px 12px;
+  border-radius: 9px;
+  background: #f1edff;
+  color: #4b30dc !important;
+  font: 600 12px/1 Inter, Arial, sans-serif !important;
+  text-decoration: none !important;
+  transition: background-color 0.15s;
+}
+.pz-props button:hover .select-items {
+  background: #e6e0ff;
+}
+
+/* --- the item's Properties tab --------------------------------------------- */
+.pz-op-props .text-primary {
+  color: #172033 !important;
+}
+.pz-op-props figure img {
+  border-radius: 12px;
+  background: #f6f7fb;
+  box-shadow: 0 6px 16px rgba(23, 32, 51, 0.1) !important;
+}
+/* Input groups (W / H / D, X / Y / Z, Name): one rounded box each. */
+.pz-op-props .flex-wrap.items-stretch {
+  overflow: hidden;
+  border: 1px solid #e6e8ee;
+  border-radius: 9px;
+  background: #fff;
+}
+.pz-op-props .flex-wrap.items-stretch .uppercase {
+  background: #f6f7fb !important;
+  color: #697386 !important;
+  font-weight: 700 !important;
+}
+.pz-op-props .flex-wrap.items-stretch input {
+  background: #fff !important;
+  color: #172033 !important;
+}
+.pz-op-props select {
+  height: 34px !important;
+  border: 1px solid #e6e8ee !important;
+  border-radius: 9px !important;
+  background-color: #fff !important;
+  font-size: 12.5px !important;
+}
+/* The item's actions (2D Drawing, Export GLB, Split parts, Delete). */
+.pz-op-props .flex-col > button:has(> .material-symbols-outlined) {
+  justify-content: flex-start !important;
+  gap: 8px;
+  margin: 3px 4px;
+  padding: 7px 10px !important;
+  border: 1px solid #e6e8ee;
+  border-radius: 10px;
+  background: #fff;
+  transition: transform 0.15s ease, box-shadow 0.2s ease, border-color 0.15s;
+}
+.pz-op-props .flex-col > button:has(> .material-symbols-outlined):hover {
+  transform: translateY(-1px);
+  border-color: #cfc5fd;
+  box-shadow: 0 6px 14px rgba(91, 61, 245, 0.12);
+}
+.pz-op-props .flex-col > button:has(> .material-symbols-outlined) p {
+  font-weight: 600 !important;
+}
+/* Rotate and the other bordered small buttons. */
+.pz-op-props .rounded.border {
+  border-radius: 9px !important;
+  border-color: #e6e8ee !important;
+}
+/* Components heading and the selected part's card. */
+.pz-comp-head {
+  margin: 12px 0 0;
+  padding: 10px 12px;
+  border-top: 1px solid #e9ebf0;
+  border-bottom: 1px solid #e9ebf0;
+  background: #f6f7fb;
+  font: 700 13.5px/1.2 Inter, Arial, sans-serif;
+  color: #172033;
+  text-align: left;
+}
+.pz-comp-card {
+  padding: 10px;
+  border: 1px solid #cfc5fd;
+  border-radius: 14px;
+  background: #faf9ff;
+  box-shadow: 0 6px 16px rgba(91, 61, 245, 0.08);
+}
+.pz-comp-card input[type="text"] {
+  height: 32px;
+  border: 1px solid #e6e8ee !important;
+  border-radius: 9px !important;
+  background: #fff !important;
+}
+/* The white body under the title keeps the card's rounded foot. */
+.pz-props > div:last-child {
+  border-radius: 0 0 16px 16px;
+}
+
+
+/* Room and Wall Properties: one fixed width, so switching from a room to a
+   wall keeps the panel the same size (each used to size to its content).
+   Narrow screens: never wider than the window. */
+.pz-props.pz-room-props,
+.pz-props.pz-wall-props {
+  width: 270px !important;
+  max-width: calc(100vw - 24px) !important;
+}
+.pz-props :is(.floor-selected-container, .wall-selected-container) select {
+  width: auto !important;
+  flex: 1;
+}

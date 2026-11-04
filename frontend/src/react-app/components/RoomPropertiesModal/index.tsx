@@ -210,7 +210,7 @@ const RoomPropertiesModal = ({
 
   return (
     <Draggable handle="strong">
-      <div className="pz-room-props box absolute top-36 right-3 z-10 max-w-60 max-h-44 shadow-[0_4px_4px_0px_rgba(0,0,0,0.25)]">
+      <div className="pz-props pz-room-props box absolute top-36 right-3 z-10 max-w-60 max-h-44 shadow-[0_4px_4px_0px_rgba(0,0,0,0.25)]">
         <div className="room-modal-title-container">
           <div className="room-modal-title">Room Properties</div>
           <img

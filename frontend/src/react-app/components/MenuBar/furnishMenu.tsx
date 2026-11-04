@@ -379,6 +379,9 @@ const FurnishMenu = ({
       handleWallClicked((evt: any) => {
         /* PERF-REMOVED */ // console.debug("furnishedMenu.tsx ~ handleWallClicked ~ event", evt);
         setShowWallPropertiesModal(true);
+        // One properties panel at a time: they open in the same corner, so
+        // a room's panel left open sat on top of the wall's.
+        setShowRoomPropertiesModal(false);
         setShowObjectPanel(false);
         setShowRoomPanel(false);
         setShowDoorPropertiesModal(false);
@@ -477,6 +480,8 @@ const FurnishMenu = ({
         if (evt.item) {
           setSelectedRoom(evt.item);
           setShowRoomPropertiesModal(true);
+          // …and the other way round: picking a room closes the wall's panel.
+          setShowWallPropertiesModal(false);
         } else {
           // Empty space — close and clear. This is the ONLY place room state is
           // cleared now (see the NO_ITEM_SELECTED handler above), so it must
