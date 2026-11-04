@@ -264,7 +264,7 @@ const ComponentsGroup = ({
 
   return (
     <>
-      <h5 className="p-1 bg-[#E9E5EC] dark:bg-[#333333] text-l text-center font-medium leading-tight text-neutral-800 dark:text-neutral-50">
+      <h5 className="pz-comp-head">
         {isMultiSelectMode ? "Common " : ""}Components
       </h5>
       <div
@@ -348,9 +348,7 @@ const ComponentsGroup = ({
             <div
               key={groupIndex}
               className={`font-semibold text-xs text-neutral-800 dark:text-neutral-50${
-                cardMode
-                  ? " border border-[#00aaff] rounded-lg p-2 bg-[#f5fbff] dark:bg-[#1c2632]"
-                  : ""
+                cardMode ? " pz-comp-card" : ""
               }`}
             >
               <div

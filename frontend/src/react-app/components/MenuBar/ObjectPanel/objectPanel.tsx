@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { TETabs, TETabsContent, TETabsItem } from "tw-elements-react";
+import "../panels.css";
 import { convertToTitleCase } from "@pazl/utils/genericFunctions";
 import ObjectProperties from "./objectProperties";
 import { MaterialTabContext } from "./materialTabContext";
@@ -93,7 +94,7 @@ function ObjectPanel({
           ended, and zooming the browser out revealed more of it — people were
           compensating for a missing scrollbar with page zoom. */}
       <div className="relative flex flex-col flex-1 min-h-0">
-        <TETabs className="mb-0 items-center shrink-0">
+        <TETabs className="pz-op-tabs mb-0 items-center shrink-0">
           {[ObjectPanelTabs.MATERIAL, ObjectPanelTabs.PROPERTIES].map(
             (item, index) => (
               <TETabsItem
@@ -101,29 +102,28 @@ function ObjectPanel({
                 onClick={() => handleTabItemClick(item)}
                 active={activeTab === item}
                 tag="button"
-                className={`p-3 mt-0 ${
-                  activeTab === item
-                    ? "bg-[color:var(--pz-panel-surface)] border-t border-r border-l border-b-0 border-inherit"
-                    : ""
-                }`}
+                className={`pz-op-tab${activeTab === item ? " is-on" : ""}`}
               >
-                <span className={`${activeTab === item ? "font-bold" : ""}`}>
-                  {convertToTitleCase(item)}
-                </span>
+                <span>{convertToTitleCase(item)}</span>
               </TETabsItem>
             )
           )}
           {/* auto keeps the X hard right whatever the tabs are named */}
-          <img
-            className="finishing-modal-close-icon"
-            src={require("../../../images/close.svg")}
+          <button
+            type="button"
+            className="pz-op-close"
             onClick={onHideObjectPanel}
-            style={{ marginLeft: "auto", marginRight: "12px" }}
-          />
+            aria-label="Close"
+            title="Close"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" aria-hidden="true">
+              <path d="M6 6l12 12M18 6 6 18" />
+            </svg>
+          </button>
         </TETabs>
         {/* flex-1 + min-h-0 give this element a bounded height, which is what
             finally makes its overflow-y-auto produce a real scrollbar. */}
-        <TETabsContent className="m-0 flex-1 min-h-0 overflow-y-auto border-t-2 bg-[color:var(--pz-panel-surface)]">
+        <TETabsContent className="pz-op-body m-0 flex-1 min-h-0 overflow-y-auto">
           {/* Material: the finish panel portals itself in here (see
               MaterialTabContext). Until a part is picked there is nothing to
               show, so the hint takes its place — the app deliberately does not
@@ -136,7 +136,7 @@ function ObjectPanel({
             }}
           >
             {!isMaterialOpen ? (
-              <p className="p-4 text-sm text-center text-neutral-500 dark:text-neutral-300">
+              <p className="pz-op-hint">
                 Click a part of this item in 3D to choose its finish.
               </p>
             ) : null}
@@ -146,7 +146,7 @@ function ObjectPanel({
               unmounting would throw away the selected part, the loaded finishes
               and the scroll position every time you switch tabs. */}
           <div
-            className="px-2 py-2"
+            className="pz-op-props px-2 py-2"
             style={{
               display:
                 activeTab === ObjectPanelTabs.PROPERTIES ? "block" : "none",

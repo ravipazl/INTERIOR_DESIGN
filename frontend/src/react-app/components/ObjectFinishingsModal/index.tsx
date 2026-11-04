@@ -196,7 +196,7 @@ const ObjectFinishingsModal = ({
               the panel's own close icon is dropped — the tab bar already has
               one, and two X's side by side read as a mistake. */}
           {docked ? (
-            <div className="px-4 pt-3 pb-1 text-sm font-bold">
+            <div className="pz-fin-title">
               {selectedChildComponent
                 ? capitalizeText(selectedChildComponent.name)
                 : capitalizeText(selectedComponentGroup?.name)
@@ -229,7 +229,7 @@ const ObjectFinishingsModal = ({
             </TETabs>
           )}
           {onSwitchFinishingType ? (
-            <div className="flex gap-1.5 px-3 py-2 bg-white dark:bg-neutral-700">
+            <div className="pz-fin-seg" role="group" aria-label="Side">
               {(["exterior", "interior"] as const).map((t) => {
                 const on = selectedFinishingType === t;
                 return (
@@ -239,17 +239,8 @@ const ObjectFinishingsModal = ({
                     onClick={() => {
                       if (!on) onSwitchFinishingType(t);
                     }}
-                    style={{
-                      flex: 1,
-                      borderRadius: 6,
-                      padding: "6px 0",
-                      fontSize: 12,
-                      fontWeight: 600,
-                      cursor: on ? "default" : "pointer",
-                      border: on ? "1px solid #5b3df5" : "1px solid #dfe2ea",
-                      background: on ? "rgba(91,61,245,0.08)" : "#fff",
-                      color: on ? "#4b30dc" : "#394055",
-                    }}
+                    aria-pressed={on}
+                    className={`pz-fin-seg-btn${on ? " is-on" : ""}`}
                   >
                     {t === "exterior" ? "Exterior" : "Interior"}
                   </button>
@@ -285,9 +276,9 @@ const ObjectFinishingsModal = ({
                       {/* Type · Style / Brand · Grain as a 2 × 2 grid: half the
                           height of four stacked rows, so more swatches show
                           without scrolling. Same selects, same handlers. */}
-                      <div className="grid grid-cols-2 gap-x-2 gap-y-2 mt-3 mb-2.5">
+                      <div className="pz-fin-grid grid grid-cols-2">
                         <div className="min-w-0">
-                          <h6 className="type-pattern-title text-[12px] mb-1">
+                          <h6 className="pz-fin-lab">
                             Type
                           </h6>
                           <select
@@ -300,7 +291,7 @@ const ObjectFinishingsModal = ({
                                 : internalType?.name // Optional chaining
                             }
                             onChange={handleSelectedType}
-                            className="type-pattern-dropdown bg-[#F9F9FA] border-0 w-full h-[28px]"
+                            className="pz-fin-select"
                           >
                             {finishingCategories?.map((category: any) => (
                               <option key={category._id} value={category.name}>
@@ -317,14 +308,14 @@ const ObjectFinishingsModal = ({
                             on, and matches the Coating tab in the Rate Card
                             where these are priced. */}
                         <div className="min-w-0">
-                          <h6 className="type-pattern-title text-[12px] mb-1">
+                          <h6 className="pz-fin-lab">
                             Brand
                           </h6>
                           <select
                             id="dropdown"
                             value={selectedBrandId}
                             onChange={handleSelectedBrand}
-                            className="type-pattern-dropdown bg-[#F9F9FA] border-0 w-full h-[28px]"
+                            className="pz-fin-select"
                           >
                             <option value="">All brands</option>
                             {brandOptions.map((brand: FinishingBrand) => (
@@ -336,7 +327,7 @@ const ObjectFinishingsModal = ({
                         </div>
                         {styles?.length ? (
                           <div className="min-w-0">
-                            <h6 className="type-pattern-title text-[12px] mb-1">
+                            <h6 className="pz-fin-lab">
                               Style
                             </h6>
                             <select
@@ -367,7 +358,7 @@ const ObjectFinishingsModal = ({
                                 ""
                               }
                               onChange={handleSelectedStyle}
-                              className="type-pattern-dropdown bg-[#F9F9FA] border-0 w-full h-[28px]"
+                              className="pz-fin-select"
                             >
                               {styles?.map((finishing: Finishing) => (
                                 <option key={finishing._id} value={finishing._id}>
@@ -384,11 +375,11 @@ const ObjectFinishingsModal = ({
                           // has not been loaded. Also keeps Grain Direction on
                           // the second line, as the empty div it replaces did.
                           <div className="min-w-0">
-                            <h6 className="type-pattern-title text-[12px] mb-1">
+                            <h6 className="pz-fin-lab">
                               Style
                             </h6>
                             <div
-                              className="w-full h-[28px] flex items-center text-[11px] leading-tight text-[#9A9AA5] px-1"
+                              className="pz-fin-none"
                               title={
                                 selectedBrandName
                                   ? `${selectedBrandName} has no materials under this type yet.`
@@ -402,7 +393,7 @@ const ObjectFinishingsModal = ({
                           </div>
                         )}
                         <div className="min-w-0">
-                          <h6 className="type-pattern-title text-[12px] mb-1">
+                          <h6 className="pz-fin-lab">
                             Grain Direction
                           </h6>
                           <select
@@ -425,7 +416,7 @@ const ObjectFinishingsModal = ({
                               ) || "Vertical"
                             }
                             onChange={handleSelectedGrainDirection}
-                            className="type-pattern-dropdown bg-[#F9F9FA] border-0 w-full h-[28px]"
+                            className="pz-fin-select"
                           >
                             {grainDirections.map((grainDirection: any) => (
                               <option
@@ -460,7 +451,7 @@ const ObjectFinishingsModal = ({
                         : "Search by name or number"
                     }
                     aria-label="Search materials"
-                    className="w-full h-[28px] mb-2 px-2 text-[12px] rounded bg-[#F9F9FA] border border-[#E4E4EC] outline-none focus:border-[#5b4bd6]"
+                    className="pz-fin-search"
                   />
                   {/* Zero-height marker: where the swatch area starts. */}
                   <div ref={swatchTopRef} aria-hidden="true" />
