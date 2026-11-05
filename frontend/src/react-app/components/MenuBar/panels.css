@@ -492,12 +492,48 @@ select.pz-pselect--sm {
   display: flex;
   align-items: center;
   gap: 6px;
-  margin-bottom: 10px;
+  margin-bottom: 12px;
 }
-.pz-pdesign-n {
-  padding: 0 4px;
-  font: 700 12.5px/1 Inter, Arial, sans-serif;
+/* Back and Try another: half the row each. */
+.pz-pdesign button.pz-pbtn {
+  flex: 1 1 0;
+  min-width: 0;
   white-space: nowrap;
+}
+/* The room's choices (style, design, extras), grouped on one soft card. */
+.pz-pbox {
+  margin: 4px 0 10px;
+  padding: 10px 8px;
+  border: 1px solid var(--pz-panel-border);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--tb-c) 4%, #fff);
+}
+.pz-pbox .pz-pchecks {
+  margin-bottom: 0;
+}
+/* In the card the style's label sits above its box, so the full name shows. */
+.pz-pbox .pz-prow {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 5px;
+  margin-bottom: 12px;
+}
+.pz-pbox .pz-prow-label {
+  width: auto;
+  font: 700 11px/1.2 Inter, Arial, sans-serif;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.pz-pbox select.pz-pselect--sm {
+  flex: none;
+  width: 100%;
+}
+.pz-psub {
+  margin: 0 0 6px;
+  font: 700 11px/1.2 Inter, Arial, sans-serif;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--pz-text-2);
 }
 .pz-pchecks {
   display: grid;
@@ -574,6 +610,9 @@ button.pz-pbtn:disabled {
   opacity: 0.45;
   cursor: not-allowed;
   box-shadow: none;
+}
+.dark .pz-pbox {
+  background: color-mix(in srgb, var(--tb-c) 8%, #2f2f2f);
 }
 .dark button.pz-layout,
 .dark button.pz-roomstart,

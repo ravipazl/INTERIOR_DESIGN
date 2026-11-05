@@ -347,56 +347,59 @@ const RoomFurnishPlanner: React.FC<{ kind: Kind; mode: "2d" | "3d" }> = ({ kind,
             </p>
           ) : null}
 
-          {config.styles.map((s) => (
-            <label key={s.key} className="pz-prow">
-              <span className="pz-prow-label">{s.label}</span>
-              <select
-                value={styles[s.key]}
-                onChange={(e) => setStyles((x) => ({ ...x, [s.key]: e.target.value }))}
-                className="pz-pselect pz-pselect--sm"
-              >
-                {s.options.map((o) => (
-                  <option key={o.value} value={o.value}>
-                    {o.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-          ))}
-
-          <div className="pz-pdesign">
-            <button
-              type="button"
-              onClick={() => setDesign((d) => Math.max(0, d - 1))}
-              disabled={design === 0 || busy}
-              className="pz-pbtn pz-pbtn--ghost pz-pbtn--sm"
-              title="The previous design"
-            >
-              ← Back
-            </button>
-            <span className="pz-pdesign-n">Design {design + 1}</span>
-            <button
-              type="button"
-              onClick={() => setDesign((d) => d + 1)}
-              disabled={busy}
-              className="pz-pbtn pz-pbtn--outline pz-pbtn--sm"
-              title="Another layout and other models — same walkways and clearances"
-            >
-              Try another design →
-            </button>
-          </div>
-
-          <div className="pz-pchecks">
-            {config.extras.map((e) => (
-              <label key={e.key} className="pz-pcheck">
-                <input
-                  type="checkbox"
-                  checked={!!extras[e.key]}
-                  onChange={(ev) => setExtras((x) => ({ ...x, [e.key]: ev.target.checked }))}
-                />
-                {e.label}
+          <div className="pz-pbox">
+            {config.styles.map((s) => (
+              <label key={s.key} className="pz-prow">
+                <span className="pz-prow-label">{s.label}</span>
+                <select
+                  value={styles[s.key]}
+                  onChange={(e) => setStyles((x) => ({ ...x, [s.key]: e.target.value }))}
+                  className="pz-pselect pz-pselect--sm"
+                >
+                  {s.options.map((o) => (
+                    <option key={o.value} value={o.value}>
+                      {o.label}
+                    </option>
+                  ))}
+                </select>
               </label>
             ))}
+
+            <p className="pz-psub">Design {design + 1}</p>
+            <div className="pz-pdesign">
+              <button
+                type="button"
+                onClick={() => setDesign((d) => Math.max(0, d - 1))}
+                disabled={design === 0 || busy}
+                className="pz-pbtn pz-pbtn--ghost pz-pbtn--sm"
+                title="The previous design"
+              >
+                ← Back
+              </button>
+              <button
+                type="button"
+                onClick={() => setDesign((d) => d + 1)}
+                disabled={busy}
+                className="pz-pbtn pz-pbtn--outline pz-pbtn--sm"
+                title="Another layout and other models — same walkways and clearances"
+              >
+                Try another →
+              </button>
+            </div>
+
+            <p className="pz-psub">Also add</p>
+            <div className="pz-pchecks">
+              {config.extras.map((e) => (
+                <label key={e.key} className="pz-pcheck">
+                  <input
+                    type="checkbox"
+                    checked={!!extras[e.key]}
+                    onChange={(ev) => setExtras((x) => ({ ...x, [e.key]: ev.target.checked }))}
+                  />
+                  {e.label}
+                </label>
+              ))}
+            </div>
           </div>
 
           {planned?.error || planned?.plan?.reason ? (
@@ -415,16 +418,18 @@ const RoomFurnishPlanner: React.FC<{ kind: Kind; mode: "2d" | "3d" }> = ({ kind,
                   Left out: {skipped.map((s: any) => `${labelOf(s.kind)} (${s.reason})`).join("; ")}
                 </p>
               ) : null}
-              <button
-                type="button"
-                onClick={place}
-                disabled={busy || !slots.length}
-                className="pz-pbtn pz-pbtn--primary"
-              >
-                {busy ? result || "Placing…" : `Place ${slots.length} items`}
-              </button>
             </>
           )}
+          {/* Always shown, so it is clear where placing happens; greyed out
+              (with the reason above) when there is nothing to place. */}
+          <button
+            type="button"
+            onClick={place}
+            disabled={busy || !slots.length}
+            className="pz-pbtn pz-pbtn--primary"
+          >
+            {busy ? result || "Placing…" : slots.length ? `Place ${slots.length} items` : "Place items"}
+          </button>
           {note ? <p className="pz-pnote pz-pnote--warn">{note}</p> : null}
         </>
       ) : note ? (
