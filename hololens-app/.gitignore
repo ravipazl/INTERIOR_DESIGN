@@ -1,0 +1,24 @@
+# Unity: keep Assets, Packages and ProjectSettings; the rest is rebuilt.
+/[Ll]ibrary/
+/[Tt]emp/
+/[Oo]bj/
+/[Bb]uild/
+/[Bb]uilds/
+/[Ll]ogs/
+/[Uu]ser[Ss]ettings/
+/[Mm]emoryCaptures/
+*.csproj
+*.sln
+*.suo
+*.user
+*.pidb
+*.booproj
+.vs/
+*.apk
+*.appx
+*.msix
+*.appxbundle
+
+# the app's test signing certificate (made on this PC)
+*.pfx
+*.cer

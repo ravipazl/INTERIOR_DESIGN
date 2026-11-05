@@ -4,6 +4,21 @@
 <head>
   <title>Pazl Designer</title>
   <link rel="icon" href="/assets/favicon.ico" sizes="any" />
+  <script>
+    // Phones only: lay the page out at the phone's own width, for the phone
+    // layouts in css/phone.css. Tablets and computers get no viewport tag, so
+    // they show the page exactly as before.
+    (function () {
+      try {
+        if (Math.min(screen.width, screen.height) <= 640) {
+          var m = document.createElement("meta");
+          m.name = "viewport";
+          m.content = "width=device-width, initial-scale=1, viewport-fit=cover";
+          document.head.appendChild(m);
+        }
+      } catch (e) {}
+    })();
+  </script>
 </head>
 
 <body>

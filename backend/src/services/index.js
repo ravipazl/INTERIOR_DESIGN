@@ -45,6 +45,7 @@ import { publicQuote } from './public-quote/public-quote.js'
 import { whatsappTest } from './whatsapp-test/whatsapp-test.js'
 // Folded in from the former standalone auth backend (auth is now in-process).
 import { verify } from './verify/verify.js'
+import { deviceLogin } from './device_login/device_login.js'
 import { invite } from './invite/invite.js'
 // Folded in from the former standalone AI backend.
 import { aiGeneratorService } from './generator/generator.js'
@@ -99,6 +100,7 @@ export const services = (app) => {
   app.configure(publicQuote)
   app.configure(whatsappTest)
   app.configure(verify)
+  app.configure(deviceLogin)
   app.configure(invite)
   app.configure(aiGeneratorService)
   app.configure(image)

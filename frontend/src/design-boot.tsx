@@ -10,8 +10,13 @@ import { SyncService } from "./react-app/services/syncService";
 import { LocalDBManager } from "./react-app/services/LocalDBManager";
 // No visible scrollbars anywhere (scrolling still works) — see the file.
 import "./css/no-scrollbars.css";
+// Phone layouts (up to 640px only) — see the file.
+import "./css/phone.css";
+import { phoneDesignerNotice } from "./phoneNotice";
 
 export async function renderDesign(root: Root) {
+  // On a phone: a note that the Designer needs a bigger screen (dismissible).
+  phoneDesignerNotice();
   // Light theme only (the 2D/3D canvas reads this flag directly).
   localStorage.setItem("isDarkMode", "false");
   try {
