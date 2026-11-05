@@ -248,6 +248,9 @@ interface NavRailProps {
 /** Sentinel for the "leaving" state — sign-out is not a plain href. */
 const SIGN_OUT = "__signout__";
 
+// A phone, as css/phone.css sees one.
+const PHONE_QUERY = "(max-width: 640px)";
+
 const NavRail = ({
   variant = "designer",
   clientHasProject,
@@ -299,14 +302,24 @@ const NavRail = ({
       return next;
     });
   }, [openKey]);
+  // On a phone the rail is a bar along the bottom (css/phone.css), icons
+  // only: it never opens there. The saved choice is kept for bigger screens.
+  const [phone, setPhone] = React.useState<boolean>(() => window.matchMedia(PHONE_QUERY).matches);
+  React.useEffect(() => {
+    const mq = window.matchMedia(PHONE_QUERY);
+    const on = () => setPhone(mq.matches);
+    mq.addEventListener("change", on);
+    return () => mq.removeEventListener("change", on);
+  }, []);
+  const shownOpen = open && !phone;
   React.useEffect(() => {
     const root = document.documentElement;
-    root.classList.toggle("pz-rail-open", open);
-    window.dispatchEvent(new CustomEvent("pz:rail-change", { detail: open }));
+    root.classList.toggle("pz-rail-open", shownOpen);
+    window.dispatchEvent(new CustomEvent("pz:rail-change", { detail: shownOpen }));
     // Canvases size themselves on resize: tell them once the width has moved.
     const t = window.setTimeout(() => window.dispatchEvent(new Event("resize")), 240);
     return () => window.clearTimeout(t);
-  }, [open]);
+  }, [shownOpen]);
   React.useEffect(() => {
     window.addEventListener("pz:rail-toggle", toggleOpen);
     return () => {
@@ -389,7 +402,7 @@ const NavRail = ({
 
   return (
   <nav
-    className={`pz-nav pz-nav--tiles${flyout ? " pz-nav--flyout" : ""}${open ? " is-open" : ""}`}
+    className={`pz-nav pz-nav--tiles${flyout ? " pz-nav--flyout" : ""}${shownOpen ? " is-open" : ""}`}
     aria-label={isClient ? "Your project" : "Design steps"}
   >
     {/* Open / close: icons only, or icons with their names. */}

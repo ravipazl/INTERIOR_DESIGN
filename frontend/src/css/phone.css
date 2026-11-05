@@ -1,0 +1,291 @@
+/* ===========================================================================
+   PHONES — up to 640px wide. Nothing in this file applies on a tablet or a
+   computer: every rule is inside the media query below. The page is laid out
+   at the phone's own width only on phones (the viewport tag is added for
+   them alone, in index.html), so tablets and computers render as before.
+   Loaded last by both apps (inspire-boot.jsx, design-boot.tsx).
+   =========================================================================== */
+@media (max-width: 640px) {
+  /* --- The sidebar becomes a bar along the bottom ------------------------- */
+  /* Nothing sits beside a rail any more. */
+  html:root,
+  html:root.pz-rail-open {
+    --pz-nav-w: 0px;
+  }
+  .pz-app-shell,
+  .pz-page-shell {
+    padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px));
+  }
+  .pz-nav,
+  .pz-nav.pz-nav--flyout,
+  .pz-nav.pz-nav--tiles.is-open,
+  .pz-app-shell > .pz-nav,
+  .pz-app-shell:has(.pz-topbar) > .pz-nav,
+  .pz-page-shell > .pz-nav {
+    position: fixed !important;
+    top: auto !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    width: 100% !important;
+    height: calc(64px + env(safe-area-inset-bottom, 0px)) !important;
+    flex: none !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    gap: 6px;
+    padding: 8px 10px calc(8px + env(safe-area-inset-bottom, 0px)) !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    z-index: 1100 !important;
+    background: linear-gradient(90deg, #2c1c8a 0%, #4528b6 42%, #6a2fc2 78%, #8a2fb8 100%) !important;
+    box-shadow: 0 -4px 16px rgba(38, 24, 122, 0.22) !important;
+  }
+  .pz-nav .pz-nav-top,
+  .pz-nav .pz-nav-group,
+  .pz-nav .pz-nav-me,
+  .pz-nav .pz-nav-hint,
+  .pz-nav .pz-nav-label {
+    display: none !important;
+  }
+  .pz-nav .pz-nav-links,
+  .pz-nav .pz-nav-list,
+  .pz-nav .pz-nav-account {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    width: auto !important;
+    flex: none !important;
+    gap: 6px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+  }
+  /* Leaving the project | the project's steps | you, sign out. */
+  .pz-nav .pz-nav-links {
+    padding-right: 8px !important;
+    border-right: 1px solid rgba(255, 255, 255, 0.18) !important;
+  }
+  .pz-nav .pz-nav-account {
+    margin-left: auto !important;
+    padding-left: 8px !important;
+    border-left: 1px solid rgba(255, 255, 255, 0.18) !important;
+  }
+  .pz-nav .pz-nav-i {
+    width: 44px !important;
+    height: 44px !important;
+    border-radius: 12px !important;
+    flex: none !important;
+  }
+  .pz-nav .pz-nav-i svg {
+    width: 18px !important;
+    height: 18px !important;
+  }
+  /* The marker beside the current page belongs to a side rail. */
+  .pz-nav .pz-nav-i.is-active::before {
+    display: none !important;
+  }
+  .pz-nav .pz-nav-avatar {
+    width: 30px !important;
+    height: 30px !important;
+    font-size: 12px !important;
+  }
+  /* The header's sidebar button has nothing to open on a phone. */
+  .pz-topbar-rail {
+    display: none !important;
+  }
+
+  /* --- Projects: a list of cards instead of a wide table ------------------- */
+  .pz-app-main.pz-projects-main,
+  .pz-app-shell:has(.pz-topbar) > .pz-app-main.pz-projects-main {
+    height: auto !important;
+    overflow: visible !important;
+  }
+  .pz-projects {
+    padding: 16px 12px 20px !important;
+  }
+  .pz-projects-inner {
+    gap: 16px;
+  }
+  .pz-projects h1.pzp-title {
+    font-size: 20px !important;
+  }
+  .pz-projects .pzp-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 10px !important;
+  }
+  .pz-projects .pzp-card {
+    min-height: 0 !important;
+    overflow: visible !important;
+  }
+  .pz-projects .pzp-card > .pzp-toolbar + div {
+    overflow: visible !important;
+  }
+  .pz-projects .pzp-toolbar {
+    padding: 12px !important;
+  }
+  .pz-projects .pzp-toolbar-tools {
+    width: 100%;
+  }
+  .pz-projects .pzp-search {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+  .pz-projects input.pzp-search-input {
+    width: 100% !important;
+  }
+  .pz-projects .rdt_TableHead {
+    display: none !important;
+  }
+  .pz-projects .rdt_Table,
+  .pz-projects .rdt_TableBody {
+    min-width: 0 !important;
+    width: 100% !important;
+  }
+  .pz-projects .rdt_TableBody {
+    display: flex !important;
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px;
+    background: #f6f7fb;
+  }
+  .pz-projects .rdt_TableRow {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px 14px;
+    padding: 14px !important;
+    min-height: 0 !important;
+    border: 1px solid #e9ebf0 !important;
+    border-radius: 14px;
+    background: #fff !important;
+  }
+  .pz-projects .rdt_TableCell {
+    min-width: 0 !important;
+    max-width: none !important;
+    width: auto !important;
+    flex: none !important;
+    padding: 0 !important;
+    display: flex !important;
+    flex-direction: column;
+    align-items: flex-start !important;
+    justify-content: flex-start !important;
+    overflow: visible !important;
+    font-size: 13px !important;
+  }
+  .pz-projects .rdt_TableCell > div {
+    white-space: normal !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+    max-width: 100%;
+  }
+  /* Each value under its column's name (the table's own column ids). */
+  .pz-projects .rdt_TableCell::before {
+    content: attr(data-column-id);
+    display: block;
+    margin-bottom: 4px;
+    font: 700 10px/1.2 Inter, Arial, sans-serif;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #8a93a6;
+  }
+  .pz-projects .rdt_TableCell[data-column-id="project"],
+  .pz-projects .rdt_TableCell[data-column-id="address"],
+  .pz-projects .rdt_TableCell[data-column-id="actions"] {
+    grid-column: 1 / -1;
+  }
+  .pz-projects .rdt_TableCell[data-column-id="project"]::before,
+  .pz-projects .rdt_TableCell[data-column-id="actions"]::before {
+    display: none;
+  }
+  .pz-projects .rdt_TableCell[data-column-id="project"] strong {
+    font-size: 15px !important;
+  }
+  .pz-projects .rdt_TableCell[data-column-id="actions"] .pzp-actions {
+    justify-content: flex-start;
+    gap: 10px;
+  }
+  .pz-projects .pzp-pager {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px;
+    padding: 12px !important;
+  }
+
+  /* --- Pop-ups: the full width of the phone, scrolling inside -------------- */
+  .modal-dialog {
+    margin: 10px auto !important;
+    max-width: calc(100vw - 20px) !important;
+  }
+  .pz-dlg {
+    max-height: calc(100dvh - 20px);
+  }
+  .pz-dlg .pz-dlg-body {
+    overflow-y: auto;
+  }
+  .pz-dlg-choices {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* --- The Designer on a phone: a note, with a way back ------------------- */
+  .pz-phone-note {
+    position: fixed;
+    inset: 0;
+    z-index: 2000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background: rgba(15, 18, 34, 0.55);
+    font-family: Inter, Arial, sans-serif;
+  }
+  .pz-phone-note-box {
+    width: 100%;
+    max-width: 360px;
+    padding: 22px 20px 18px;
+    border-radius: 18px;
+    background: #fff;
+    color: #172033;
+    box-shadow: 0 24px 60px rgba(15, 18, 34, 0.3);
+    text-align: center;
+  }
+  .pz-phone-note-icon {
+    width: 48px;
+    height: 48px;
+    margin: 0 auto 12px;
+    border-radius: 14px;
+    display: grid;
+    place-items: center;
+    background: #f1eefe;
+    color: #5b3df5;
+  }
+  .pz-phone-note h2 {
+    margin: 0 0 6px;
+    font: 700 17px/1.3 Inter, Arial, sans-serif;
+  }
+  .pz-phone-note p {
+    margin: 0 0 16px;
+    font: 400 13.5px/1.5 Inter, Arial, sans-serif;
+    color: #697386;
+  }
+  .pz-phone-note-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .pz-phone-note button {
+    height: 44px;
+    border-radius: 12px;
+    font: 600 14px/1 Inter, Arial, sans-serif;
+    cursor: pointer;
+  }
+  .pz-phone-note button.is-primary {
+    border: none;
+    background: linear-gradient(180deg, #6a50f7 0%, #5b3df5 100%);
+    color: #fff;
+  }
+  .pz-phone-note button.is-plain {
+    border: 1px solid #e2e5eb;
+    background: #fff;
+    color: #172033;
+  }
+}

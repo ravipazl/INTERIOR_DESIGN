@@ -41,6 +41,7 @@ import NotificationsIcon from "@mui/icons-material/Notifications";
 import { USER_ROLES } from "../../utils/constants";
 import Title from "../AppHeaderTitle";
 import ShareModal from "../ShareModal";
+import ConnectHeadset from "../ConnectHeadset";
 import "./index.css";
 import Dropdown from 'react-bootstrap/Dropdown';
 import SplitButton from 'react-bootstrap/SplitButton';
@@ -1180,6 +1181,8 @@ const AppHeader = ({ user, showLogo, isGuestUser }) => {
                         </Dropdown.Menu>
                       </Dropdown>
                     )}
+                    {/* Sign the Pazl HoloLens app in as you, with the code it shows. */}
+                    {currentUser && !isGuestUser ? <ConnectHeadset /> : null}
                     {/* Who is signed in: a read-only chip, after the bell.
                         Deliberately not a menu — signing out stays in the nav
                         rail (see the note below), so there is still one way

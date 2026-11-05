@@ -18,6 +18,8 @@ import "react-perfect-scrollbar/dist/css/styles.css";
 import "react-toastify/dist/ReactToastify.css";
 // Last, so it wins: no visible scrollbars anywhere (scrolling still works).
 import "./css/no-scrollbars.css";
+// Phone layouts (up to 640px only) — see the file.
+import "./css/phone.css";
 
 // Restores the prop filtering that styled-components v5 did automatically.
 //

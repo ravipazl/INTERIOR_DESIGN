@@ -12,6 +12,7 @@ import SetPassword from "../pages/SetPassword";
 import NotFound from "../pages/NotFound";
 import ProtectedRoute from "./ProtectedRoute";
 import HomeDispatcher from "./HomeDispatcher";
+import LandingGate, { LandingPage } from "./LandingGate";
 import Teams from "../pages/Dashboard/AdminDashboard/Teams";
 import Projects from "../pages/Dashboard/AdminDashboard/Projects";
 import RateCard from "../pages/RateCard";
@@ -68,9 +69,12 @@ const Router = () => {
           exact
           path="/"
           element={
-            <ProtectedRoute>
-              <HomeDispatcher />
-            </ProtectedRoute>
+            // Signed out: the landing page. Signed in: as before.
+            <LandingGate>
+              <ProtectedRoute>
+                <HomeDispatcher />
+              </ProtectedRoute>
+            </LandingGate>
           }
         />
         {currentUser?.permissions === USER_ROLES.USER && (
@@ -165,6 +169,7 @@ const Router = () => {
         )}
 
         {/* PUBLIC ROUTES */}
+        <Route path="/welcome" element={<LandingPage />} />
         <Route path="/signup" element={<SignUp />} />
         <Route path="/signin" element={<SignIn />} />
         {/* Landing page for the emailed invite / password-reset link. Public:
