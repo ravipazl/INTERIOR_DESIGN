@@ -49,7 +49,6 @@ namespace Pazl
         PazlProject project;
         List<PazlUnit> units = new List<PazlUnit>();
         int chosen;
-        bool wholeRun;
         UnitRun run;
         int buildNo;
         bool turned;
@@ -270,30 +269,119 @@ namespace Pazl
                 menu.SetButtons(new[] { new HoloMenu.Item("Try again", () => OpenProject(p)), new HoloMenu.Item("Projects", ShowProjects) });
                 return;
             }
+            projectUnits = units;
+            browsing = null;
+            designWalls = UnitRun.Walls(units);
+            chosen = 0;
+            wallIdx = 0;
+            turned = false;
+            ShowModes();
+        }
+
+        // --- 3. what to see: a full wall, one module, or the whole room ---------------------
+        // Only the modules designed in this project. A full wall stands all the
+        // modules of one design wall on a real wall; the whole room lines one
+        // design wall up with a real wall and brings every other module with it.
+        enum Mode { Module, Wall, Room }
+        Mode mode = Mode.Module;
+        List<UnitRun.DesignWall> designWalls = new List<UnitRun.DesignWall>();
+        int wallIdx;
+
+        void ShowModes()
+        {
+            step = Step.Choose;
+            ClearRun();
+            menu.Recentre();
+            menu.SetTitle(project != null ? project.Name : "Project");
             if (units.Count == 0)
             {
-                menu.SetStatus("No units in this design yet");
+                menu.SetStatus("No modules in this design yet · add them on the website, then come back");
                 menu.SetButtons(new[] { new HoloMenu.Item("Projects", ShowProjects) });
                 return;
             }
-            chosen = 0;
-            wholeRun = false;
-            turned = false;
-            Choose();
+            menu.SetStatus(units.Count + " modules on " + designWalls.Count + (designWalls.Count == 1 ? " wall" : " walls") + " · how do you want to see them?");
+            menu.SetButtons(new[]
+            {
+                new HoloMenu.Item("Full wall…", () => { mode = Mode.Wall; listPage = 0; ShowWallList(); }),
+                new HoloMenu.Item("One module…", () => { mode = Mode.Module; listPage = chosen / ListPerPage; ShowUnitList(); }),
+                new HoloMenu.Item("Whole room…", () => { mode = Mode.Room; listPage = 0; ShowWallList(); }),
+                new HoloMenu.Item("Projects", ShowProjects),
+            });
         }
 
-        // --- 3. unit ----------------------------------------------------------------
+        string WallLabel(int i)
+        {
+            var w = designWalls[i];
+            return "Wall " + (i + 1) + (string.IsNullOrEmpty(w.Room) ? "" : " · " + w.Room) + " · " +
+                   w.Units.Count + (w.Units.Count == 1 ? " module" : " modules") + " · " + (w.LengthM).ToString("0.0") + " m";
+        }
+
+        /// <summary>The design's walls: pick one to stand on a real wall (or, for the whole room, to line up with).</summary>
+        void ShowWallList()
+        {
+            int pages = Mathf.Max(1, Mathf.CeilToInt(designWalls.Count / (float)ListPerPage));
+            listPage = Mathf.Clamp(listPage, 0, pages - 1);
+            menu.Recentre();
+            menu.SetTitle(mode == Mode.Room ? "Whole room · line up which wall?" : "Full wall · which wall?");
+            menu.SetStatus(mode == Mode.Room
+                ? "Pick the design wall you will point at; the rest of the room comes with it · page " + (listPage + 1) + " of " + pages
+                : "Air-tap a wall of the design · page " + (listPage + 1) + " of " + pages);
+            var items = new List<HoloMenu.Item>();
+            for (int i = listPage * ListPerPage; i < Mathf.Min(designWalls.Count, (listPage + 1) * ListPerPage); i++)
+            {
+                var pick = i;
+                items.Add(new HoloMenu.Item(WallLabel(i), () => { wallIdx = pick; Choose(); }, on: i == wallIdx));
+            }
+            if (listPage > 0) items.Add(new HoloMenu.Item("◀ Page", () => { listPage--; ShowWallList(); }));
+            if (listPage < pages - 1) items.Add(new HoloMenu.Item("Page ▶", () => { listPage++; ShowWallList(); }));
+            items.Add(new HoloMenu.Item("◀ Back", ShowModes));
+            menu.SetButtons(items);
+        }
+
+        /// <summary>The modules on the chosen design wall, left to right as you face it.</summary>
+        void ShowWallModules()
+        {
+            var w = designWalls[wallIdx];
+            menu.SetTitle(WallLabel(wallIdx));
+            menu.SetStatus(string.Join(" · ", w.Units.Select(u => u.Name + " " + Mathf.RoundToInt(u.WidthMm))) );
+            menu.SetButtons(new[] { new HoloMenu.Item("◀ Back", () => ShowChooseMenu(null)) });
+        }
+
         async void Choose()
         {
+            if (units.Count == 0)
+            {
+                ShowModes();
+                return;
+            }
+            chosen = Mathf.Clamp(chosen, 0, units.Count - 1);
+            wallIdx = Mathf.Clamp(wallIdx, 0, Mathf.Max(0, designWalls.Count - 1));
             step = Step.Choose;
             menu.Recentre();
-            ShowChooseMenu("Loading the model…");
+            List<PazlUnit> picked, lineUp = null;
+            string title;
+            if (mode == Mode.Wall && designWalls.Count > 0)
+            {
+                picked = designWalls[wallIdx].Units;
+                title = WallLabel(wallIdx);
+            }
+            else if (mode == Mode.Room && designWalls.Count > 0)
+            {
+                picked = units;
+                lineUp = designWalls[wallIdx].Units;
+                title = "Whole room · lined up on Wall " + (wallIdx + 1);
+            }
+            else
+            {
+                picked = new List<PazlUnit> { units[chosen] };
+                title = null;
+            }
+            ShowChooseMenu(picked.Count > 1 ? "Loading " + picked.Count + " modules…" : "Loading the model…");
             var no = ++buildNo;
-            var picked = UnitRun.Pick(units, units[chosen], wholeRun);
             UnitRun built;
             try
             {
-                built = await UnitRun.Build(api, cache, picked);
+                built = await UnitRun.Build(api, cache, picked, lineUp);
             }
             catch (Exception e)
             {
@@ -303,6 +391,7 @@ namespace Pazl
             if (no != buildNo) { built.Destroy(); return; } // chosen again meanwhile
             ClearRun();
             run = built;
+            run.Title = title;
             run.SetTurned(turned);
             ShowChooseMenu(null);
         }
@@ -310,23 +399,170 @@ namespace Pazl
         void ShowChooseMenu(string message)
         {
             var u = units[chosen];
-            var what = run != null && step == Step.Choose ? run.Name + " · " + run.WidthMm + " mm wide" : u.Name;
+            string what;
+            if (mode == Mode.Module)
+                what = run != null ? u.Name + " · " + run.WidthMm + " mm wide" : u.Name;
+            else if (mode == Mode.Wall)
+                what = run != null ? run.Units.Count + " modules · " + run.WidthMm + " mm long" : WallLabel(wallIdx);
+            else
+                what = run != null ? "All " + run.Units.Count + " modules · point at the real wall for Wall " + (wallIdx + 1) + " (" + run.WidthMm + " mm)" : "Whole room";
             // A model that could not be had shows as a size box; say which and why.
             if (message == null && run != null && run.Missing > 0)
-                what = "Shown as a size box · model not loaded: " + cache.LastProblem;
-            else if (message == null && run != null && step == Step.Choose)
-                what += " · 3D model loaded, " + cache.LastLoaded;
-            menu.SetTitle((chosen + 1) + " of " + units.Count + (string.IsNullOrEmpty(u.RoomName) ? "" : " · " + u.RoomName));
+                what += " · " + run.Missing + " shown as size boxes: " + cache.LastProblem;
+            else if (message == null && run != null)
+                what += " · 3D loaded";
+
+            if (mode == Mode.Module)
+                menu.SetTitle((chosen + 1) + " of " + units.Count + (string.IsNullOrEmpty(u.RoomName) ? "" : " · " + u.RoomName));
+            else
+                menu.SetTitle(run != null ? run.Name : (mode == Mode.Wall ? WallLabel(wallIdx) : "Whole room"));
             menu.SetStatus(message ?? what);
-            menu.SetButtons(new[]
+
+            var items = new List<HoloMenu.Item>();
+            if (mode == Mode.Module)
             {
-                new HoloMenu.Item("◀ Previous", () => { chosen = (chosen + units.Count - 1) % units.Count; Choose(); }),
-                new HoloMenu.Item("Next ▶", () => { chosen = (chosen + 1) % units.Count; Choose(); }),
-                new HoloMenu.Item(wholeRun ? "Whole run" : "One unit", () => { wholeRun = !wholeRun; Choose(); }, on: wholeRun),
-                new HoloMenu.Item("Place on wall ▶", StartAim),
-                new HoloMenu.Item(showScan ? "Scan: shown" : "Scan: hidden", ToggleScan, on: showScan),
-                new HoloMenu.Item("Projects", ShowProjects),
-            });
+                items.Add(new HoloMenu.Item("◀ Previous", () => { chosen = (chosen + units.Count - 1) % units.Count; Choose(); }));
+                items.Add(new HoloMenu.Item("Next ▶", () => { chosen = (chosen + 1) % units.Count; Choose(); }));
+                items.Add(new HoloMenu.Item("Choose module…", () => { listPage = chosen / ListPerPage; ShowUnitList(); }));
+            }
+            else
+            {
+                var n = Mathf.Max(1, designWalls.Count);
+                var prev = mode == Mode.Room ? "◀ Line-up wall" : "◀ Previous wall";
+                var next = mode == Mode.Room ? "Line-up wall ▶" : "Next wall ▶";
+                items.Add(new HoloMenu.Item(prev, () => { wallIdx = (wallIdx + n - 1) % n; Choose(); }));
+                items.Add(new HoloMenu.Item(next, () => { wallIdx = (wallIdx + 1) % n; Choose(); }));
+                items.Add(new HoloMenu.Item("Walls…", () => { listPage = wallIdx / ListPerPage; ShowWallList(); }));
+            }
+            items.Add(new HoloMenu.Item("Place on wall ▶", StartAim));
+            if (mode != Mode.Module) items.Add(new HoloMenu.Item("Modules on this wall", ShowWallModules));
+            items.Add(new HoloMenu.Item(showScan ? "Scan: shown" : "Scan: hidden", ToggleScan, on: showScan));
+            items.Add(new HoloMenu.Item("◀ Back", ShowModes));
+            menu.SetButtons(items);
+        }
+
+        // --- choosing from a list: the project's units, or the catalogue -----------------
+        const int ListPerPage = 6;
+        int listPage;
+        string browsing; // null: the project's own units; else where in the catalogue
+        List<PazlUnit> projectUnits = new List<PazlUnit>();
+        List<PazlCategory> categories;
+
+        /// <summary>The units (or catalogue items) as a list: six to a page, air-tap one.</summary>
+        void ShowUnitList()
+        {
+            int pages = Mathf.Max(1, Mathf.CeilToInt(units.Count / (float)ListPerPage));
+            listPage = Mathf.Clamp(listPage, 0, pages - 1);
+            menu.Recentre();
+            menu.SetTitle(browsing ?? (project != null ? project.Name : "Units"));
+            menu.SetStatus("Air-tap a unit · page " + (listPage + 1) + " of " + pages);
+            var items = new List<HoloMenu.Item>();
+            for (int i = listPage * ListPerPage; i < Mathf.Min(units.Count, (listPage + 1) * ListPerPage); i++)
+            {
+                var pick = i;
+                var u = units[i];
+                items.Add(new HoloMenu.Item(u.Name + " · " + Mathf.RoundToInt(u.WidthMm) + " mm",
+                    () => { chosen = pick; Choose(); }, on: i == chosen));
+            }
+            if (listPage > 0) items.Add(new HoloMenu.Item("◀ Page", () => { listPage--; ShowUnitList(); }));
+            if (listPage < pages - 1) items.Add(new HoloMenu.Item("Page ▶", () => { listPage++; ShowUnitList(); }));
+            // Back to the module on show, or (none yet) to the choice of how to see the project.
+            items.Add(new HoloMenu.Item("◀ Back", run != null ? (Action)(() => ShowChooseMenu(null)) : ShowModes));
+            menu.SetButtons(items);
+        }
+
+        async void OpenCatalogue()
+        {
+            menu.Recentre();
+            menu.SetTitle("Catalogue");
+            menu.SetStatus("Loading the catalogue…");
+            menu.SetButtons(new[] { new HoloMenu.Item("Back", Choose) });
+            if (categories == null)
+            {
+                try
+                {
+                    categories = await api.Categories();
+                }
+                catch (Exception e)
+                {
+                    menu.SetStatus("Could not load the catalogue · " + e.Message);
+                    return;
+                }
+            }
+            listPage = 0;
+            ShowCategories(null, "Catalogue");
+        }
+
+        /// <summary>A level of the catalogue: main categories, then their sub-categories.</summary>
+        void ShowCategories(PazlCategory parent, string path)
+        {
+            var here = categories.Where(c => c.ParentId == (parent != null ? parent.Id : null)).OrderBy(c => c.Name).ToList();
+            int pages = Mathf.Max(1, Mathf.CeilToInt(here.Count / (float)ListPerPage));
+            listPage = Mathf.Clamp(listPage, 0, pages - 1);
+            menu.SetTitle(path);
+            menu.SetStatus(here.Count == 0 ? "Nothing here" : "Air-tap a category · page " + (listPage + 1) + " of " + pages);
+            var items = new List<HoloMenu.Item>();
+            foreach (var c in here.Skip(listPage * ListPerPage).Take(ListPerPage))
+            {
+                var pick = c;
+                var deeper = path + " › " + c.Name;
+                items.Add(new HoloMenu.Item(c.Name, () =>
+                {
+                    listPage = 0;
+                    if (categories.Any(x => x.ParentId == pick.Id)) ShowCategories(pick, deeper);
+                    else OpenCategory(pick, deeper);
+                }));
+            }
+            if (listPage > 0) items.Add(new HoloMenu.Item("◀ Page", () => { listPage--; ShowCategories(parent, path); }));
+            if (listPage < pages - 1) items.Add(new HoloMenu.Item("Page ▶", () => { listPage++; ShowCategories(parent, path); }));
+            // Items can sit in a category that also has sub-categories.
+            if (parent != null) items.Add(new HoloMenu.Item("Items here", () => OpenCategory(parent, path)));
+            items.Add(new HoloMenu.Item(parent == null ? "Back" : "◀ Up", () =>
+            {
+                listPage = 0;
+                if (parent == null) Choose();
+                else
+                {
+                    var up = categories.FirstOrDefault(x => x.Id == parent.ParentId);
+                    ShowCategories(up, up == null ? "Catalogue" : path.Substring(0, path.LastIndexOf(" › ")));
+                }
+            }));
+            menu.SetButtons(items);
+        }
+
+        async void OpenCategory(PazlCategory cat, string path)
+        {
+            menu.SetTitle(path);
+            menu.SetStatus("Loading the items…");
+            List<PazlUnit> items;
+            try
+            {
+                items = await api.CatalogueItems(cat.Id);
+            }
+            catch (Exception e)
+            {
+                menu.SetStatus("Could not load the items · " + e.Message);
+                return;
+            }
+            if (items.Count == 0)
+            {
+                menu.SetStatus("No items in " + cat.Name + " · choose another");
+                return;
+            }
+            units = items;
+            browsing = path;
+            chosen = 0;
+            turned = false;
+            listPage = 0;
+            ShowUnitList();
+        }
+
+        void BackToProjectUnits()
+        {
+            units = projectUnits;
+            browsing = null;
+            chosen = 0;
+            Choose();
         }
 
         void ToggleScan()
@@ -341,6 +577,12 @@ namespace Pazl
         void ShowPreview()
         {
             if (run == null || run.Root == null) return;
+            // The whole room is too big to hang in front of you: it appears on the wall.
+            if (mode == Mode.Room)
+            {
+                run.Root.SetActive(false);
+                return;
+            }
             var dir = head.forward;
             dir.y = 0;
             if (dir.sqrMagnitude < 1e-4f) return;
@@ -358,6 +600,7 @@ namespace Pazl
             if (run == null) return;
             step = Step.Aim;
             wall = null;
+            lastOnWall = -10f;
             run.Root.SetActive(false);
             menu.SetTitle("Point at an empty wall");
             menu.SetButtons(new[]
@@ -367,6 +610,13 @@ namespace Pazl
             });
         }
 
+        // A hand ray shakes and a scanned wall has gaps, so a frame without a
+        // hit does not mean "no wall": the unit stays where it was this long,
+        // and moves to a new spot smoothly rather than jumping.
+        const float HoldOnWallS = 0.75f;
+        const float GlidePerFrame = 0.3f;
+        float lastOnWall = -10f;
+
         void AimAtWall()
         {
             floorY = walls.FloorY(head);
@@ -375,17 +625,23 @@ namespace Pazl
             bool tapped = false;
             foreach (var h in hands.Poll())
             {
-                if (h.OverMenu) continue;
+                if (h.Tapped && !h.OverMenu) tapped = true;
+                if (h.OverMenu || found != null) continue;
                 if (walls.Aim(h.Ray, head, out var w, out var p))
                 {
                     found = w;
                     point = p;
-                    tapped = h.Tapped;
-                    break;
                 }
             }
             if (found == null)
             {
+                // Lost it only for a moment: keep the unit (and a tap still drops it there).
+                if (wall != null && Time.unscaledTime - lastOnWall < HoldOnWallS)
+                {
+                    if (tapped) Drop();
+                    return;
+                }
+                wall = null;
                 walls.Light(null);
                 run.Root.SetActive(false);
                 menu.SetStatus(walls.WallCount == 0
@@ -393,8 +649,11 @@ namespace Pazl
                     : "Point your hand at a wall · it lights up when found");
                 return;
             }
+            bool sameWall = wall != null && wall.Plane == found.Plane;
             wall = found;
-            Stand(wall.AlongOf(point));
+            lastOnWall = Time.unscaledTime;
+            var target = wall.AlongOf(point);
+            Stand(sameWall && run.Root.activeSelf ? Mathf.Lerp(along, target, GlidePerFrame) : target);
             menu.SetStatus(FitText() + " · air-tap to drop it here");
             if (tapped) Drop();
         }
@@ -431,8 +690,11 @@ namespace Pazl
                 new HoloMenu.Item("Centre", () => SnapTo((wall.Min + wall.Max) / 2f)),
                 new HoloMenu.Item("Right end", () => SnapTo(wall.Min + run.WidthM / 2f)),
                 new HoloMenu.Item("Turn 180°", () => { turned = !turned; run.SetTurned(turned); }, on: turned),
-                new HoloMenu.Item("Other unit", Choose),
-                new HoloMenu.Item("Projects", ShowProjects),
+                // A full wall goes on to the design's next wall, for the next real wall.
+                mode == Mode.Wall
+                    ? new HoloMenu.Item("Next wall ▶", () => { wallIdx = (wallIdx + 1) % Mathf.Max(1, designWalls.Count); Choose(); })
+                    : new HoloMenu.Item(mode == Mode.Room ? "Line-up wall…" : "Other module", mode == Mode.Room ? (Action)(() => { listPage = wallIdx / ListPerPage; ShowWallList(); }) : Choose),
+                new HoloMenu.Item("◀ Back", ShowModes),
             });
         }
 
