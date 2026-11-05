@@ -135,13 +135,14 @@ namespace Pazl
                 }
                 var m = models[modelId];
                 var file = m != null ? (string)m["modelFileUrl"] : null;
-                if (string.IsNullOrEmpty(file)) continue;
+                // A unit whose model was taken out of the catalogue still has its
+                // place and size: it is listed, and shown as a box of that size.
                 units.Add(new PazlUnit
                 {
                     Id = (string)r["_id"],
                     ModelId = modelId,
-                    Name = m != null ? ((string)m["name"] ?? "Unit") : "Unit",
-                    ModelUrl = file,
+                    Name = m != null ? ((string)m["name"] ?? "Unit") : "Removed model",
+                    ModelUrl = file ?? "",
                     PositionCm = new Vector3((float)pos[0], (float)pos[1], (float)pos[2]),
                     TurnDeg = rot != null && rot.Count > 1 ? (float)rot[1] : 0f,
                     HeightMm = (float)dim[0],

@@ -71,6 +71,19 @@ namespace Pazl
             if (planes != null) planes.planesChanged -= OnPlanesChanged;
         }
 
+        // AR Foundation's plane visualizer hides a surface whenever the headset
+        // calls it "not fully tracked" — on HoloLens that is often, so the
+        // walls never lit up or hid holograms behind them. Keep them drawn.
+        void LateUpdate()
+        {
+            if (planes == null) return;
+            foreach (var p in planes.trackables)
+            {
+                var r = p.GetComponent<MeshRenderer>();
+                if (r != null && !r.enabled) r.enabled = true;
+            }
+        }
+
         void OnPlanesChanged(ARPlanesChangedEventArgs e)
         {
             foreach (var p in e.added) Dress(p);
