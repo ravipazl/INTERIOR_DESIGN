@@ -107,7 +107,9 @@ function openingsOnWall(edge, startPoint, unit) {
   return openings.sort((p, q) => p.startCm - q.startCm);
 }
 
-const lower = (s) => String(s || "").trim().toLowerCase();
+// Category names are matched ignoring case and spaces: renaming "BEDROOM" to
+// "Bed Room" in the catalogue must not stop auto-furnish finding its cots.
+const lower = (s) => String(s || "").replace(/\s+/g, "").toLowerCase();
 
 /** The category tree as stored, indexed by id. */
 function categoryIndex() {
