@@ -19,6 +19,14 @@ namespace Pazl
         public string Client;
     }
 
+    /// <summary>A catalogue category (KITCHEN, BEDROOM…, and their sub-categories).</summary>
+    public class PazlCategory
+    {
+        public string Id;
+        public string Name;
+        public string ParentId; // null for a main category
+    }
+
     /// <summary>
     /// One unit placed in the design: where it stands (cm, the 3D view's own
     /// right-handed space), its turn (degrees about up) and its size (mm).
@@ -152,6 +160,56 @@ namespace Pazl
                 });
             }
             return units;
+        }
+
+        /// <summary>The catalogue's categories: main ones have no parent.</summary>
+        public async Task<List<PazlCategory>> Categories()
+        {
+            var json = await Send("GET", "/categories?$limit=1000", null, true);
+            var list = new List<PazlCategory>();
+            foreach (var c in Rows(json))
+            {
+                if (c["invisible"] != null && c["invisible"].Type == JTokenType.Boolean && (bool)c["invisible"]) continue;
+                list.Add(new PazlCategory
+                {
+                    Id = (string)c["_id"],
+                    Name = (string)c["name"] ?? "Category",
+                    ParentId = c["parentCategoryId"] != null && c["parentCategoryId"].Type == JTokenType.String
+                        ? (string)c["parentCategoryId"] : null,
+                });
+            }
+            return list;
+        }
+
+        /// <summary>The catalogue's items in one category, as units ready to stand on a wall.</summary>
+        public async Task<List<PazlUnit>> CatalogueItems(string categoryId)
+        {
+            var json = await Send("GET", "/models?categoryId=" + Uri.EscapeDataString(categoryId) +
+                                         "&$limit=200&$sort[name]=1", null, true);
+            var list = new List<PazlUnit>();
+            foreach (var m in Rows(json))
+            {
+                var dim = m["dimensions"] as JArray;
+                var file = (string)m["modelFileUrl"];
+                if (dim == null || dim.Count < 3 || string.IsNullOrEmpty(file)) continue;
+                float h = (float)dim[0], w = (float)dim[1], d = (float)dim[2];
+                if (h <= 0 || w <= 0 || d <= 0) continue;
+                list.Add(new PazlUnit
+                {
+                    Id = (string)m["_id"],
+                    ModelId = (string)m["_id"],
+                    Name = (string)m["name"] ?? "Item",
+                    ModelUrl = file,
+                    // Standing on the floor at the origin, facing forward.
+                    PositionCm = new Vector3(0, h / 20f, 0),
+                    TurnDeg = 0,
+                    HeightMm = h,
+                    WidthMm = w,
+                    DepthMm = d,
+                    RoomName = "",
+                });
+            }
+            return list;
         }
 
         /// <summary>Full addresses to try for a model file: the API's, then the site's.</summary>

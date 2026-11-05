@@ -4,6 +4,7 @@
 // front along +z, its middle (along the wall) at x = 0, the floor at y = 0.
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using GLTFast;
 using UnityEngine;
@@ -25,7 +26,8 @@ namespace Pazl
 
         public int WidthMm => Mathf.RoundToInt(WidthM * 1000f);
 
-        public string Name => Units.Count == 1 ? Units[0].Name : Units.Count + " units on one wall";
+        public string Title; // set by the app ("Wall 2 · Kitchen"); else made from the units
+        public string Name => Title ?? (Units.Count == 1 ? Units[0].Name : Units.Count + " modules on one wall");
 
         /// <summary>
         /// Turn every model 180° inside its own box: for a model that came in
@@ -74,27 +76,76 @@ namespace Pazl
 
         static float BackOf(PazlUnit u, Vector3 f) => Vector3.Dot(ToUnity(u.PositionCm), f) - u.DepthMm * 0.0005f;
 
-        /// <summary>Load and lay out the units, in the run's own frame.</summary>
-        public static async Task<UnitRun> Build(PazlApi api, ModelCache cache, List<PazlUnit> units)
+        /// <summary>
+        /// A wall of the design: the modules that stand against it (facing the
+        /// same way, backs on one line, in one room), left to right, and its length.
+        /// </summary>
+        public class DesignWall
         {
-            var run = new UnitRun { Units = units };
-            var first = units[0];
-            var f = TurnOf(first) * Vector3.forward;
-            var a = Vector3.Cross(Vector3.up, f).normalized; // the run's right
-            float minA = float.MaxValue, maxA = float.MinValue, back = float.MaxValue, top = 0f;
+            public List<PazlUnit> Units;
+            public string Room;
+            public float LengthM;
+            public int LengthMm => Mathf.RoundToInt(LengthM * 1000f);
+        }
+
+        /// <summary>The design's walls, from where its modules stand: most modules first, room by room.</summary>
+        public static List<DesignWall> Walls(List<PazlUnit> all)
+        {
+            var left = new List<PazlUnit>(all);
+            var walls = new List<DesignWall>();
+            while (left.Count > 0)
+            {
+                var group = Pick(left, left[0], true);
+                foreach (var u in group) left.Remove(u);
+                var fr = Frame(group);
+                // Left to right as you face the wall: along the run's right, reversed.
+                group = group.OrderByDescending(u => Vector3.Dot(ToUnity(u.PositionCm), fr.right)).ToList();
+                walls.Add(new DesignWall { Units = group, Room = group[0].RoomName, LengthM = fr.maxA - fr.minA });
+            }
+            return walls.OrderBy(w => w.Room).ThenByDescending(w => w.Units.Count).ThenByDescending(w => w.LengthM).ToList();
+        }
+
+        // Where a set of units stands: its facing, its right, how far it reaches
+        // along its right, and its back line.
+        struct RunFrame
+        {
+            public Vector3 facing, right;
+            public float minA, maxA, back;
+        }
+
+        static RunFrame Frame(List<PazlUnit> units)
+        {
+            var f = TurnOf(units[0]) * Vector3.forward;
+            var r = new RunFrame { facing = f, right = Vector3.Cross(Vector3.up, f).normalized, minA = float.MaxValue, maxA = float.MinValue, back = float.MaxValue };
             foreach (var u in units)
             {
                 var p = ToUnity(u.PositionCm);
                 float halfW = u.WidthMm * 0.0005f;
-                minA = Mathf.Min(minA, Vector3.Dot(p, a) - halfW);
-                maxA = Mathf.Max(maxA, Vector3.Dot(p, a) + halfW);
-                back = Mathf.Min(back, BackOf(u, f));
-                top = Mathf.Max(top, p.y + u.HeightMm * 0.0005f);
+                r.minA = Mathf.Min(r.minA, Vector3.Dot(p, r.right) - halfW);
+                r.maxA = Mathf.Max(r.maxA, Vector3.Dot(p, r.right) + halfW);
+                r.back = Mathf.Min(r.back, BackOf(u, f));
             }
-            run.WidthM = maxA - minA;
+            return r;
+        }
+
+        /// <summary>
+        /// Load and lay out the units, in the frame of `lineUp` (the units the
+        /// real wall takes: by default all of them). For the whole room, `units`
+        /// is every module and `lineUp` one wall's: the rest of the design
+        /// stands where it does around that wall.
+        /// </summary>
+        public static async Task<UnitRun> Build(PazlApi api, ModelCache cache, List<PazlUnit> units, List<PazlUnit> lineUp = null)
+        {
+            var run = new UnitRun { Units = units };
+            var fr = Frame(lineUp ?? units);
+            var f = fr.facing;
+            var a = fr.right;
+            float top = 0f;
+            foreach (var u in units) top = Mathf.Max(top, ToUnity(u.PositionCm).y + u.HeightMm * 0.0005f);
+            run.WidthM = fr.maxA - fr.minA;
             run.HeightM = top;
 
-            var origin = a * ((minA + maxA) / 2f) + f * back;
+            var origin = a * ((fr.minA + fr.maxA) / 2f) + f * fr.back;
             origin.y = 0f;
             var frame = Quaternion.Inverse(Quaternion.LookRotation(f, Vector3.up));
 
