@@ -168,3 +168,6 @@ backups/**/baked-parts*.json
 backups/baked-finish-*.json
 backups/tall-unit-finish-*.json
 backups/cabinet-finishes-run-*.json
+
+# The landing page's own small 3D models (the catalogue stays ignored above)
+!frontend/public/landing/models/*.glb

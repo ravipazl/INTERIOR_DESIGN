@@ -21,6 +21,7 @@ namespace Pazl
         public float WidthM;
         public float HeightM;
         public List<PazlUnit> Units = new List<PazlUnit>();
+        public int Missing; // units shown as a size box: their model could not be loaded
 
         public int WidthMm => Mathf.RoundToInt(WidthM * 1000f);
 
@@ -101,8 +102,14 @@ namespace Pazl
             run.Root.SetActive(false); // shown once placed
             foreach (var u in units)
             {
+                // A model that cannot be had stands in as a box of the unit's
+                // real size, so the fit on the wall can still be checked.
                 var unit = await cache.Make(api, u);
-                if (unit == null) continue;
+                if (unit == null)
+                {
+                    unit = ModelCache.SizeBox(u);
+                    run.Missing++;
+                }
                 unit.transform.SetParent(run.Root.transform, false);
                 unit.transform.localPosition = frame * (ToUnity(u.PositionCm) - origin);
                 unit.transform.localRotation = frame * TurnOf(u);
@@ -119,6 +126,11 @@ namespace Pazl
 
         public async Task<GameObject> Make(PazlApi api, PazlUnit u)
         {
+            if (string.IsNullOrEmpty(u.ModelUrl))
+            {
+                LastProblem = "its model was removed from the catalogue";
+                return null;
+            }
             var gltf = await Get(api, u.ModelUrl);
             if (gltf == null) return null;
 
@@ -136,6 +148,7 @@ namespace Pazl
             }
             FitToSize(model.transform, new Vector3(u.WidthMm, u.HeightMm, u.DepthMm) * 0.001f);
             unit.SetActive(true);
+            LastLoaded = model.GetComponentsInChildren<Renderer>(true).Length + " parts";
             return unit;
         }
 
@@ -152,16 +165,72 @@ namespace Pazl
             return gltf;
         }
 
-        static async Task<GltfImport> Load(PazlApi api, string file)
+        /// <summary>Why the last model could not be loaded, for the menu (empty when all is well).</summary>
+        public string LastProblem { get; private set; } = "";
+        /// <summary>What the last model that did load holds ("12 parts"), for the menu.</summary>
+        public string LastLoaded { get; private set; } = "";
+
+        async Task<GltfImport> Load(PazlApi api, string file)
         {
+            var tried = new List<string>();
             foreach (var url in api.ModelAddresses(file))
             {
+                // Ask first: a missing file comes back as a 404, or as the
+                // website's own page (HTML) — neither is a model.
+                var check = await Probe(url);
+                if (check != null)
+                {
+                    tried.Add(check);
+                    continue;
+                }
                 var gltf = new GltfImport();
                 if (await gltf.Load(url)) return gltf;
                 gltf.Dispose();
+                tried.Add("not a readable model");
             }
-            Debug.LogWarning("Pazl: could not load model " + file);
+            var name = file.Substring(file.LastIndexOf('/') + 1);
+            LastProblem = name + " · " + string.Join(" / ", tried);
+            Debug.LogWarning("Pazl: could not load model " + file + " · " + string.Join(" / ", tried));
             return null;
+        }
+
+        /// <summary>Null when the address holds a model; else what it holds instead.</summary>
+        static async Task<string> Probe(string url)
+        {
+            using (var req = UnityEngine.Networking.UnityWebRequest.Head(url))
+            {
+                req.timeout = 20;
+                var op = req.SendWebRequest();
+                while (!op.isDone) await Task.Yield();
+                if (req.responseCode == 404) return "not found (404)";
+                if (req.result == UnityEngine.Networking.UnityWebRequest.Result.ConnectionError)
+                    return "no connection";
+                if (req.responseCode >= 400) return "error " + req.responseCode;
+                var type = req.GetResponseHeader("Content-Type") ?? "";
+                if (type.Contains("text/html")) return "not found (web page)";
+                return null;
+            }
+        }
+
+        static Material boxMaterial;
+
+        /// <summary>A box of the unit's real size (width × height × depth), for a model that is missing.</summary>
+        public static GameObject SizeBox(PazlUnit u)
+        {
+            var unit = new GameObject(u.Name + " (size box)");
+            var turn = new GameObject("turn");
+            turn.transform.SetParent(unit.transform, false);
+            var box = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            UnityEngine.Object.Destroy(box.GetComponent<Collider>()); // the hand ray is for walls
+            box.transform.SetParent(turn.transform, false);
+            box.transform.localScale = new Vector3(u.WidthMm, u.HeightMm, u.DepthMm) * 0.001f;
+            if (boxMaterial == null)
+            {
+                boxMaterial = new Material(Resources.Load<Shader>("PazlBox"));
+                boxMaterial.color = new Color(0.78f, 0.62f, 0.42f, 1f); // a wood tone
+            }
+            box.GetComponent<MeshRenderer>().sharedMaterial = boxMaterial;
+            return unit;
         }
 
         /// <summary>

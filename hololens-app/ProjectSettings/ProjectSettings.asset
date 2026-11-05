@@ -142,7 +142,11 @@ PlayerSettings:
   visionOSBundleVersion: 1.0
   tvOSBundleVersion: 1.0
   bundleVersion: 1.0
-  preloadedAssets: []
+  preloadedAssets:
+  - {fileID: 11400000, guid: c677e5c4eb85b7849a8da406775c299d, type: 2}
+  - {fileID: 1942025928122164672, guid: ae6c5f9b7bc90af4a9e34233a9f38b44, type: 2}
+  - {fileID: 11400000, guid: c3da580b3b2847c4b84557f11099bc4c, type: 2}
+  - {fileID: -7378430866021924034, guid: 81ac4045f7b8cc9469deebb98d706879, type: 2}
   metroInputSource: 0
   wsaTransparentSwapchain: 0
   m_HolographicPauseOnTrackingLoss: 1
@@ -589,7 +593,7 @@ PlayerSettings:
   m_RenderingPath: 1
   m_MobileRenderingPath: 1
   metroPackageName: PazlRealWall
-  metroPackageVersion: 1.0.1.0
+  metroPackageVersion: 1.0.3.0
   metroCertificatePath: Assets/Pazl/Editor/PazlTest.pfx
   metroCertificatePassword: "P\u02DD"
   metroCertificateSubject: Pazl

@@ -311,6 +311,11 @@ namespace Pazl
         {
             var u = units[chosen];
             var what = run != null && step == Step.Choose ? run.Name + " · " + run.WidthMm + " mm wide" : u.Name;
+            // A model that could not be had shows as a size box; say which and why.
+            if (message == null && run != null && run.Missing > 0)
+                what = "Shown as a size box · model not loaded: " + cache.LastProblem;
+            else if (message == null && run != null && step == Step.Choose)
+                what += " · 3D model loaded, " + cache.LastLoaded;
             menu.SetTitle((chosen + 1) + " of " + units.Count + (string.IsNullOrEmpty(u.RoomName) ? "" : " · " + u.RoomName));
             menu.SetStatus(message ?? what);
             menu.SetButtons(new[]
