@@ -197,6 +197,17 @@ namespace Pazl
                 UnityEngine.Object.Destroy(unit);
                 return null;
             }
+            // A file that loads but holds no shapes would show nothing at all.
+            int points = 0;
+            foreach (var mf in model.GetComponentsInChildren<MeshFilter>(true))
+                if (mf.sharedMesh != null) points += mf.sharedMesh.vertexCount;
+            if (points == 0)
+            {
+                UnityEngine.Object.Destroy(unit);
+                LastProblem = "its model file holds no shapes";
+                return null;
+            }
+            UseOwnLook(model.transform);
             FitToSize(model.transform, new Vector3(u.WidthMm, u.HeightMm, u.DepthMm) * 0.001f);
             unit.SetActive(true);
             LastLoaded = model.GetComponentsInChildren<Renderer>(true).Length + " parts";
@@ -261,6 +272,57 @@ namespace Pazl
                 if (type.Contains("text/html")) return "not found (web page)";
                 return null;
             }
+        }
+
+        // Each model part is drawn with Pazl's own HoloLens shader (both eyes),
+        // keeping its colour and laminate texture from the model file.
+        static Shader modelShader;
+        static readonly Dictionary<Material, Material> looks = new Dictionary<Material, Material>();
+        static readonly string[] TextureNames = { "baseColorTexture", "_BaseMap", "_MainTex" };
+        static readonly string[] ColourNames = { "baseColorFactor", "_BaseColor", "_Color" };
+
+        static void UseOwnLook(Transform model)
+        {
+            if (modelShader == null) modelShader = Resources.Load<Shader>("PazlModel");
+            if (modelShader == null) return;
+            foreach (var r in model.GetComponentsInChildren<Renderer>(true))
+            {
+                var mats = r.sharedMaterials;
+                for (int i = 0; i < mats.Length; i++) mats[i] = Look(mats[i]);
+                r.sharedMaterials = mats;
+                r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                r.receiveShadows = false;
+            }
+        }
+
+        static Material Look(Material m)
+        {
+            if (m != null && looks.TryGetValue(m, out var done)) return done;
+            var own = new Material(modelShader);
+            var colour = Color.white;
+            if (m != null)
+            {
+                foreach (var n in TextureNames)
+                {
+                    if (!m.HasProperty(n)) continue;
+                    var tex = m.GetTexture(n);
+                    if (tex == null) continue;
+                    own.mainTexture = tex;
+                    own.mainTextureScale = m.GetTextureScale(n);
+                    own.mainTextureOffset = m.GetTextureOffset(n);
+                    break;
+                }
+                foreach (var n in ColourNames)
+                {
+                    if (!m.HasProperty(n)) continue;
+                    colour = m.GetColor(n);
+                    break;
+                }
+            }
+            colour.a = 1f;
+            own.color = colour;
+            if (m != null) looks[m] = own;
+            return own;
         }
 
         static Material boxMaterial;

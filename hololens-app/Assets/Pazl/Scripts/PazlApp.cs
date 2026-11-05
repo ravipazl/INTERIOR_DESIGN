@@ -23,7 +23,14 @@ namespace Pazl
         public string siteBase = "https://design.pazl.info";
 
         const float SlideM = 0.05f;
-        const float PreviewAheadM = 2.0f;
+        // While choosing, a small copy floats just above the menu: one standing on
+        // the floor ahead sits below what HoloLens can show, and the menu fills the middle.
+        const float PreviewAheadM = 1.5f;
+        const float PreviewAboveEyesM = 0.3f;
+        const float PreviewWidthM = 0.7f;
+        const float PreviewHeightM = 0.45f;
+        // Steeper below your eyes than this, a unit is out of HoloLens' view.
+        const float BelowViewDeg = 12f;
         const float FitSlackM = 0.005f; // 5 mm: a fit, not a clash
         const int ProjectsPerPage = 6;
 
@@ -53,6 +60,7 @@ namespace Pazl
         int buildNo;
         bool turned;
         bool showScan;
+        bool hideBehind;
 
         // on the wall
         WallInfo wall;
@@ -410,7 +418,7 @@ namespace Pazl
             if (message == null && run != null && run.Missing > 0)
                 what += " · " + run.Missing + " shown as size boxes: " + cache.LastProblem;
             else if (message == null && run != null)
-                what += " · 3D loaded";
+                what += mode == Mode.Room ? " · 3D loaded" : " · 3D loaded · preview just above ↑";
 
             if (mode == Mode.Module)
                 menu.SetTitle((chosen + 1) + " of " + units.Count + (string.IsNullOrEmpty(u.RoomName) ? "" : " · " + u.RoomName));
@@ -437,6 +445,7 @@ namespace Pazl
             items.Add(new HoloMenu.Item("Place on wall ▶", StartAim));
             if (mode != Mode.Module) items.Add(new HoloMenu.Item("Modules on this wall", ShowWallModules));
             items.Add(new HoloMenu.Item(showScan ? "Scan: shown" : "Scan: hidden", ToggleScan, on: showScan));
+            items.Add(HideItem());
             items.Add(new HoloMenu.Item("◀ Back", ShowModes));
             menu.SetButtons(items);
         }
@@ -565,6 +574,17 @@ namespace Pazl
             Choose();
         }
 
+        HoloMenu.Item HideItem() =>
+            new HoloMenu.Item(hideBehind ? "Hide behind walls: on" : "Hide behind walls: off", ToggleHide, on: hideBehind);
+
+        void ToggleHide()
+        {
+            hideBehind = !hideBehind;
+            walls.HideBehind(hideBehind);
+            if (step == Step.Choose) ShowChooseMenu(null);
+            else if (step == Step.Aim) StartAim();
+        }
+
         void ToggleScan()
         {
             showScan = !showScan;
@@ -573,7 +593,7 @@ namespace Pazl
             else if (step == Step.Placed) ShowPlacedMenu();
         }
 
-        /// <summary>While choosing: the unit stands on the floor a little ahead of you.</summary>
+        /// <summary>While choosing: a small copy of the unit floats just above the menu.</summary>
         void ShowPreview()
         {
             if (run == null || run.Root == null) return;
@@ -583,14 +603,17 @@ namespace Pazl
                 run.Root.SetActive(false);
                 return;
             }
-            var dir = head.forward;
+            // Ahead of you past the menu (which moves smoothly), not stuck to your head.
+            var dir = menu.Transform.position - head.position;
             dir.y = 0;
             if (dir.sqrMagnitude < 1e-4f) return;
             dir.Normalize();
+            float s = Mathf.Min(1f, PreviewWidthM / Mathf.Max(0.01f, run.WidthM), PreviewHeightM / Mathf.Max(0.01f, run.HeightM));
             var at = head.position + dir * PreviewAheadM;
-            at.y = walls.FloorY(head);
+            at.y = head.position.y + PreviewAboveEyesM - run.HeightM * s / 2f; // its middle there
             // As if against a wall behind it: its front towards you.
             run.Root.transform.SetPositionAndRotation(at, Quaternion.LookRotation(-dir, Vector3.up));
+            run.Root.transform.localScale = Vector3.one * s;
             run.Root.SetActive(true);
         }
 
@@ -607,6 +630,7 @@ namespace Pazl
             {
                 new HoloMenu.Item("◀ Back", Choose),
                 new HoloMenu.Item(showScan ? "Scan: shown" : "Scan: hidden", ToggleScan, on: showScan),
+                HideItem(),
             });
         }
 
@@ -654,7 +678,7 @@ namespace Pazl
             lastOnWall = Time.unscaledTime;
             var target = wall.AlongOf(point);
             Stand(sameWall && run.Root.activeSelf ? Mathf.Lerp(along, target, GlidePerFrame) : target);
-            menu.SetStatus(FitText() + " · air-tap to drop it here");
+            menu.SetStatus(FitText() + LookHint() + " · air-tap to drop it here");
             if (tapped) Drop();
         }
 
@@ -673,6 +697,7 @@ namespace Pazl
             p.y = floorY;
             // Front out of the wall towards you; the run's right is then your right.
             run.Root.transform.SetPositionAndRotation(p, Quaternion.LookRotation(wall.Normal, Vector3.up));
+            run.Root.transform.localScale = Vector3.one; // real size (the preview is small)
             run.Root.SetActive(true);
         }
 
@@ -680,7 +705,7 @@ namespace Pazl
         void ShowPlacedMenu()
         {
             menu.SetTitle(run.Name);
-            menu.SetStatus(FitText());
+            menu.SetStatus(FitText() + LookHint());
             menu.SetButtons(new[]
             {
                 new HoloMenu.Item("◀ 5 cm", () => Slide(SlideM)),
@@ -726,6 +751,17 @@ namespace Pazl
         }
 
         /// <summary>How the run sits on the wall: fits (and the gaps), or by how much it does not.</summary>
+        /// <summary>When the units stand too low for HoloLens' view: say to look down.</summary>
+        string LookHint()
+        {
+            if (run == null || run.Root == null || !run.Root.activeSelf) return "";
+            var to = run.Root.transform.position - head.position;
+            float far = new Vector2(to.x, to.z).magnitude;
+            float topBelowEyes = head.position.y - (run.Root.transform.position.y + run.HeightM);
+            return Mathf.Atan2(topBelowEyes, Mathf.Max(0.1f, far)) * Mathf.Rad2Deg > BelowViewDeg
+                ? " · look down: it stands on the floor" : "";
+        }
+
         string FitText()
         {
             if (wall == null || run == null) return "";

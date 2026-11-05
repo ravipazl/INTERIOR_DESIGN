@@ -1,7 +1,8 @@
 // The real room as the HoloLens sees it: its walls and floor, found by the
 // headset's room scan (Scene Understanding, through AR Foundation planes).
-// Every found surface quietly hides what is behind it (real walls stay in
-// front of holograms); the wall you point at lights up.
+// The wall you point at lights up. With "Hide behind walls" on, every found
+// surface also hides what is behind it (real walls stay in front of
+// holograms); it is off by default, as a rough scan can hide the units too.
 using System.Collections.Generic;
 using Unity.XR.CoreUtils;
 using UnityEngine;
@@ -38,6 +39,11 @@ namespace Pazl
         Material litMaterial;
         ARPlane lit;
         bool showSurfaces;
+        bool hideBehind;
+
+        // How a surface looks when it is not the lit one, and whether it is drawn at all.
+        Material Rest => showSurfaces ? litMaterial : hideMaterial;
+        bool Drawn(ARPlane p) => p == lit || showSurfaces || hideBehind;
 
         public bool Ready => planes != null;
         public int WallCount { get; private set; }
@@ -73,14 +79,16 @@ namespace Pazl
 
         // AR Foundation's plane visualizer hides a surface whenever the headset
         // calls it "not fully tracked" — on HoloLens that is often, so the
-        // walls never lit up or hid holograms behind them. Keep them drawn.
+        // walls never lit up. Draw exactly the surfaces that should be drawn.
         void LateUpdate()
         {
             if (planes == null) return;
             foreach (var p in planes.trackables)
             {
                 var r = p.GetComponent<MeshRenderer>();
-                if (r != null && !r.enabled) r.enabled = true;
+                if (r == null) continue;
+                bool want = Drawn(p);
+                if (r.enabled != want) r.enabled = want;
             }
         }
 
@@ -99,7 +107,8 @@ namespace Pazl
             if (p.GetComponent<MeshFilter>() == null) p.gameObject.AddComponent<MeshFilter>();
             var r = p.GetComponent<MeshRenderer>();
             if (r == null) r = p.gameObject.AddComponent<MeshRenderer>();
-            r.sharedMaterial = hideMaterial;
+            r.sharedMaterial = Rest;
+            r.enabled = Drawn(p);
             r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             r.receiveShadows = false;
             if (p.GetComponent<MeshCollider>() == null) p.gameObject.AddComponent<MeshCollider>();
@@ -114,9 +123,12 @@ namespace Pazl
             foreach (var p in planes.trackables)
             {
                 var r = p.GetComponent<MeshRenderer>();
-                if (r != null && p != lit) r.sharedMaterial = on ? litMaterial : hideMaterial;
+                if (r != null && p != lit) r.sharedMaterial = Rest;
             }
         }
+
+        /// <summary>Let found surfaces hide the holograms behind them (off by default).</summary>
+        public void HideBehind(bool on) => hideBehind = on;
 
         public static bool IsWall(ARPlane p)
         {
@@ -173,7 +185,7 @@ namespace Pazl
             if (lit != null)
             {
                 var old = lit.GetComponent<MeshRenderer>();
-                if (old != null) old.sharedMaterial = showSurfaces ? litMaterial : hideMaterial;
+                if (old != null) old.sharedMaterial = Rest;
             }
             lit = p;
             if (lit != null)
