@@ -6,7 +6,8 @@ import {
 } from "@pazl/utils/unitsUtils.js";
 
 /**
- * A length box: holds mm, shows and takes the display unit. The value commits
+ * A length box: holds mm, shows and takes the display unit (or `unit`, when
+ * the caller shows its sizes in a unit of its own). The value commits
  * on blur or Enter, so "3." or "3'" part way through typing is left alone.
  *
  * Nothing is committed unless the text was edited: a size shown rounded (910 mm
@@ -15,12 +16,15 @@ import {
 const UnitLengthInput: React.FC<{
   valueMm: number;
   onCommit: (mm: number) => void;
+  unit?: string;
 } & Omit<React.InputHTMLAttributes<HTMLInputElement>, "value" | "onChange">> = ({
   valueMm,
   onCommit,
+  unit: ownUnit,
   ...inputProps
 }) => {
-  const unit = useDisplayUnit();
+  const displayUnit = useDisplayUnit();
+  const unit = ownUnit || displayUnit;
   const shown = mmToDisplayText(valueMm, unit);
   const [draft, setDraft] = useState(shown);
   useEffect(() => setDraft(shown), [shown]);

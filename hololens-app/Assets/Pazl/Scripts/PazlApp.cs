@@ -1,9 +1,9 @@
 // PAZL ON THE REAL WALL — the HoloLens 2 app.
 //
 // Sign in with your Pazl account, pick a project, pick a unit (or the whole
-// run of units on its wall), then point at an empty real wall. The HoloLens'
-// room scan finds the wall; the unit stands against it, at real size on the
-// real floor, following your hand. Air-tap to drop it. The menu says whether
+// run of units on its wall). The HoloLens' room scan finds the real wall you
+// look at; the units stand against it by themselves, at real size on the real
+// floor (a hand pointing moves them). Air-tap to fix them there. The menu says whether
 // it fits: how wide it is, how wide the wall is, and the space left on each
 // side. Slide it, snap it to either end, or move it to another wall.
 //
@@ -12,6 +12,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using UnityEngine.XR.ARFoundation;
 
 namespace Pazl
 {
@@ -89,7 +90,7 @@ namespace Pazl
         {
             menu.Follow(head);
             TypeOnKeyboard();
-            if (step == Step.Choose) ShowPreview();
+            if (step == Step.Choose) FindWallWhileChoosing();
             else if (step == Step.Aim) AimAtWall();
             else if (step == Step.Placed) TapToMove();
         }
@@ -384,6 +385,7 @@ namespace Pazl
                 picked = new List<PazlUnit> { units[chosen] };
                 title = null;
             }
+            ClearRun(); // the last choice goes while the next loads
             ShowChooseMenu(picked.Count > 1 ? "Loading " + picked.Count + " modules…" : "Loading the model…");
             var no = ++buildNo;
             UnitRun built;
@@ -407,24 +409,11 @@ namespace Pazl
         void ShowChooseMenu(string message)
         {
             var u = units[chosen];
-            string what;
-            if (mode == Mode.Module)
-                what = run != null ? u.Name + " · " + run.WidthMm + " mm wide" : u.Name;
-            else if (mode == Mode.Wall)
-                what = run != null ? run.Units.Count + " modules · " + run.WidthMm + " mm long" : WallLabel(wallIdx);
-            else
-                what = run != null ? "All " + run.Units.Count + " modules · point at the real wall for Wall " + (wallIdx + 1) + " (" + run.WidthMm + " mm)" : "Whole room";
-            // A model that could not be had shows as a size box; say which and why.
-            if (message == null && run != null && run.Missing > 0)
-                what += " · " + run.Missing + " shown as size boxes: " + cache.LastProblem;
-            else if (message == null && run != null)
-                what += mode == Mode.Room ? " · 3D loaded" : " · 3D loaded · preview just above ↑";
-
             if (mode == Mode.Module)
                 menu.SetTitle((chosen + 1) + " of " + units.Count + (string.IsNullOrEmpty(u.RoomName) ? "" : " · " + u.RoomName));
             else
                 menu.SetTitle(run != null ? run.Name : (mode == Mode.Wall ? WallLabel(wallIdx) : "Whole room"));
-            menu.SetStatus(message ?? what);
+            menu.SetStatus(message ?? ChooseText());
 
             var items = new List<HoloMenu.Item>();
             if (mode == Mode.Module)
@@ -442,12 +431,36 @@ namespace Pazl
                 items.Add(new HoloMenu.Item(next, () => { wallIdx = (wallIdx + 1) % n; Choose(); }));
                 items.Add(new HoloMenu.Item("Walls…", () => { listPage = wallIdx / ListPerPage; ShowWallList(); }));
             }
-            items.Add(new HoloMenu.Item("Place on wall ▶", StartAim));
+            // Standing on the wall the app found: keep it there. Else point at one.
+            items.Add(onWall && run != null
+                ? new HoloMenu.Item("Fix it here ✓", Drop, on: true)
+                : new HoloMenu.Item("Point at wall ▶", StartAim));
             if (mode != Mode.Module) items.Add(new HoloMenu.Item("Modules on this wall", ShowWallModules));
             items.Add(new HoloMenu.Item(showScan ? "Scan: shown" : "Scan: hidden", ToggleScan, on: showScan));
             items.Add(HideItem());
             items.Add(new HoloMenu.Item("◀ Back", ShowModes));
             menu.SetButtons(items);
+        }
+
+        /// <summary>What is chosen, and where it stands: on the real wall found, or as the small copy.</summary>
+        string ChooseText()
+        {
+            var u = units[chosen];
+            string what;
+            if (mode == Mode.Module)
+                what = run != null ? u.Name + " · " + run.WidthMm + " mm wide" : u.Name;
+            else if (mode == Mode.Wall)
+                what = run != null ? run.Units.Count + " modules · " + run.WidthMm + " mm long" : WallLabel(wallIdx);
+            else
+                what = run != null ? "All " + run.Units.Count + " modules · lined up on Wall " + (wallIdx + 1) + " (" + run.WidthMm + " mm)" : "Whole room";
+            if (run == null) return what;
+            // A model that could not be had shows as a size box; say which and why.
+            if (run.Missing > 0) what += " · " + run.Missing + " shown as size boxes: " + cache.LastProblem;
+            if (onWall && wall != null)
+                return what + " · on the real wall: " + FitText() + LookHint() + " · air-tap or Fix it here";
+            return what + (walls.WallCount == 0
+                ? " · look around slowly so the HoloLens finds the walls"
+                : " · look at the real wall to stand it there") + (mode == Mode.Room ? "" : " · small copy above ↑");
         }
 
         // --- choosing from a list: the project's units, or the catalogue -----------------
@@ -617,6 +630,87 @@ namespace Pazl
             run.Root.SetActive(true);
         }
 
+        // While choosing, the app finds the real wall in front of you by itself
+        // (where you look, or where a hand points) and stands the units on it at
+        // real size. It stays there as you look at the menu; it moves when a hand
+        // points at another spot, or when you look at another wall for a moment.
+        // Until a wall is found, the small copy floats above the menu.
+        const float SwitchWallS = 1.0f;
+        const float StatusEveryS = 0.3f;
+        bool onWall;
+        ARPlane lookingAt;
+        float lookingSince, nextStatus;
+
+        void FindWallWhileChoosing()
+        {
+            if (run == null || run.Root == null) return;
+            WallInfo found = null;
+            Vector3 point = Vector3.zero;
+            bool tapped = false, byHand = false;
+            foreach (var h in hands.Poll())
+            {
+                if (h.Tapped && !h.OverMenu) tapped = true;
+                if (h.OverMenu || found != null) continue;
+                if (walls.Aim(h.Ray, head, out var w, out var p, false)) { found = w; point = p; byHand = true; }
+            }
+            if (found == null)
+            {
+                // Where you look, kept level: the wall straight ahead of your eyes.
+                var dir = head.forward;
+                dir.y = 0;
+                if (dir.sqrMagnitude > 1e-4f &&
+                    walls.Aim(new Ray(head.position, dir.normalized), head, out var w, out var p, false))
+                {
+                    found = w;
+                    point = p;
+                }
+            }
+
+            // A wall the scan has since dropped: find one again.
+            if (onWall && (wall == null || wall.Plane == null)) onWall = false;
+            bool firstFind = !onWall;
+            if (found != null)
+            {
+                bool sameWall = onWall && wall.Plane == found.Plane;
+                if (sameWall) lookingAt = null;
+                else if (lookingAt != found.Plane) { lookingAt = found.Plane; lookingSince = Time.unscaledTime; }
+                // A first wall, a hand pointing, or a look held on another wall: go there.
+                if (!onWall || byHand || (!sameWall && Time.unscaledTime - lookingSince >= SwitchWallS))
+                {
+                    wall = found;
+                    floorY = walls.FloorY(head);
+                    var target = FitOnWall(wall.AlongOf(point));
+                    Stand(sameWall && run.Root.activeSelf ? Mathf.Lerp(along, target, GlidePerFrame) : target);
+                    onWall = true;
+                    lookingAt = null;
+                }
+            }
+            if (onWall)
+            {
+                if (!run.Root.activeSelf || run.Root.transform.localScale.x < 0.999f)
+                    Stand(FitOnWall(along)); // a newly chosen wall's units
+                walls.Light(wall.Plane);
+                if (firstFind) ShowChooseMenu(null); // "Fix it here" now
+                else if (Time.unscaledTime >= nextStatus)
+                {
+                    nextStatus = Time.unscaledTime + StatusEveryS;
+                    menu.SetStatus(ChooseText());
+                }
+                if (tapped) Drop();
+                return;
+            }
+            walls.Light(null);
+            ShowPreview();
+        }
+
+        /// <summary>A spot on the wall, moved in so the whole run stays on the wall where it fits.</summary>
+        float FitOnWall(float at)
+        {
+            float half = run.WidthM / 2f;
+            if (wall.Width < run.WidthM) return (wall.Min + wall.Max) / 2f;
+            return Mathf.Clamp(at, wall.Min + half, wall.Max - half);
+        }
+
         // --- 4. point at a real wall ---------------------------------------------------
         void StartAim()
         {
@@ -750,7 +844,6 @@ namespace Pazl
             }
         }
 
-        /// <summary>How the run sits on the wall: fits (and the gaps), or by how much it does not.</summary>
         /// <summary>When the units stand too low for HoloLens' view: say to look down.</summary>
         string LookHint()
         {
@@ -762,6 +855,7 @@ namespace Pazl
                 ? " · look down: it stands on the floor" : "";
         }
 
+        /// <summary>How the run sits on the wall: fits (and the gaps), or by how much it does not.</summary>
         string FitText()
         {
             if (wall == null || run == null) return "";

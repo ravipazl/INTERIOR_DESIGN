@@ -179,7 +179,10 @@ export class GenerateBoqServiceService {
       const lookupCache = new Map()
       const lookup = (collection, id) => {
         if (!id) return Promise.resolve(null)
-        const key = `${collection}:${id}`
+        // The id's type is part of the key: a string id and its ObjectId print
+        // the same, and a miss on one must not hide a hit on the other (newer
+        // categories — wardrobe, wall cladding, TV back panel — have ObjectIds).
+        const key = `${collection}:${typeof id === 'string' ? 's' : 'o'}:${id}`
         if (!lookupCache.has(key)) {
           lookupCache.set(
             key,

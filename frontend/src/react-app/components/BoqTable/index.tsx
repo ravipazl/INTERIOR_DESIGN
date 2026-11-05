@@ -146,9 +146,10 @@ const rupee = (n: number) =>
 // a room) show as ONE line, e.g. 4 Tall Units → Qty 4. Cabinets are priced by
 // the area of their front: Width (unit width × qty) × Height = Area,
 // Area × Rate per sq.ft = Amount. Loose items (decor, lamps…) stay per no.
+// Wall cladding and the TV back panel are priced by their face area too.
 // Removed lines are not counted anywhere.
 const SQFT_ITEM =
-  /\b(tall|wall|base)\s*units?\b|below\s*counter|pull\s*-?\s*out|\bloft|wardrobe|drawer\s*unit|sink\s*unit|corner\s*unit|crockery|vanity/i;
+  /\b(tall|wall|base)\s*units?\b|below\s*counter|pull\s*-?\s*out|\bloft|wardrobe|drawer\s*unit|draw\s*unit|sink\s*unit|corner\s*unit|crockery|vanity|cladding|back\s*panel|tv\s*panel/i;
 const round2 = (n: number) => Number((Number(n) || 0).toFixed(2));
 const mmToFt = (mm?: number) => round2((Number(mm) || 0) / 304.8);
 // One unit's width / height in ft: the size set on the BOQ page, else the

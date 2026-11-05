@@ -29,10 +29,16 @@ namespace Pazl
 
     public class WallFinder : MonoBehaviour
     {
-        // A vertical surface counts as a wall when it is at least this big.
+        // An unnamed upright surface counts as a wall only when at least this wide.
         const float MinWallWidthM = 0.4f;
-        const float MinWallHeightM = 0.8f;
         const float FallbackEyeHeightM = 1.6f;
+        // A level surface counts as the floor only this far below your eyes.
+        const float FloorBelowEyesM = 1.2f;
+        // A wall reaches down to (about) the floor and up past this height.
+        const float NamedWallBottomM = 1.0f;
+        const float WallBottomM = 0.5f;
+        const float WallTopM = 1.6f;
+        float floorGuess = -1.6f;
 
         ARPlaneManager planes;
         Material hideMaterial;
@@ -130,41 +136,81 @@ namespace Pazl
         /// <summary>Let found surfaces hide the holograms behind them (off by default).</summary>
         public void HideBehind(bool on) => hideBehind = on;
 
-        public static bool IsWall(ARPlane p)
+        /// <summary>
+        /// A real wall of the room: upright, from (near) the floor to above head
+        /// height. A desk's side or a glass partition between desks is upright
+        /// too, but stands on the desk and stops low: not a wall.
+        /// </summary>
+        public bool IsWall(ARPlane p)
         {
-            if (p.classification == PlaneClassification.Wall) return true;
-            // Where the scan does not name surfaces, a big upright one is a wall.
-            if (p.classification != PlaneClassification.None) return false;
-            return p.alignment == PlaneAlignment.Vertical && p.size.x >= MinWallWidthM && p.size.y >= MinWallHeightM;
+            bool named = p.classification == PlaneClassification.Wall;
+            // Where the scan does not name surfaces, a big upright one may be a wall.
+            if (!named && (p.classification != PlaneClassification.None || p.alignment != PlaneAlignment.Vertical ||
+                           p.size.x < MinWallWidthM)) return false;
+            Reach(p, out float bottom, out float top);
+            return named
+                ? bottom <= floorGuess + NamedWallBottomM && top >= floorGuess + WallTopM
+                : bottom <= floorGuess + WallBottomM && top >= floorGuess + WallTopM + 0.2f;
         }
 
-        /// <summary>The real floor's height: the lowest floor found, else below your eyes.</summary>
+        // How low and how high a surface reaches.
+        static void Reach(ARPlane p, out float bottom, out float top)
+        {
+            var outline = p.boundary;
+            if (outline.Length < 3)
+            {
+                float h = Mathf.Max(p.size.x, p.size.y) / 2f;
+                bottom = p.center.y - h;
+                top = p.center.y + h;
+                return;
+            }
+            bottom = float.MaxValue;
+            top = float.MinValue;
+            for (int i = 0; i < outline.Length; i++)
+            {
+                float y = p.transform.TransformPoint(new Vector3(outline[i].x, 0, outline[i].y)).y;
+                bottom = Mathf.Min(bottom, y);
+                top = Mathf.Max(top, y);
+            }
+        }
+
+        /// <summary>
+        /// The real floor's height: the lowest surface the scan calls floor; else
+        /// the lowest level surface well below your eyes (a desk top is not
+        /// that low); else below your eyes.
+        /// </summary>
         public float FloorY(Transform head)
         {
-            float best = float.MaxValue;
+            float named = float.MaxValue, level = float.MaxValue;
             if (planes != null)
             {
                 foreach (var p in planes.trackables)
                 {
-                    bool floor = p.classification == PlaneClassification.Floor ||
-                                 (p.classification == PlaneClassification.None && p.alignment == PlaneAlignment.HorizontalUp);
-                    if (!floor || p.center.y > head.position.y - 0.8f) continue;
-                    best = Mathf.Min(best, p.center.y);
+                    float y = p.center.y;
+                    if (p.classification == PlaneClassification.Floor && y < head.position.y - 0.8f)
+                        named = Mathf.Min(named, y);
+                    else if (p.classification == PlaneClassification.None && p.alignment == PlaneAlignment.HorizontalUp &&
+                             y < head.position.y - FloorBelowEyesM)
+                        level = Mathf.Min(level, y);
                 }
             }
-            return best < float.MaxValue ? best : head.position.y - FallbackEyeHeightM;
+            floorGuess = named < float.MaxValue ? named
+                : level < float.MaxValue ? level
+                : head.position.y - FallbackEyeHeightM;
+            return floorGuess;
         }
 
         /// <summary>
-        /// The real wall a ray lands on, and where. The wall lights up. Returns
-        /// false (and lights nothing) when the ray meets no wall.
+        /// The real wall a ray lands on, and where. The wall lights up (unless
+        /// `light` is false). Returns false when the ray meets no wall.
         /// </summary>
-        public bool Aim(Ray ray, Transform head, out WallInfo wall, out Vector3 point)
+        public bool Aim(Ray ray, Transform head, out WallInfo wall, out Vector3 point, bool light = true)
         {
             wall = null;
             point = Vector3.zero;
             ARPlane found = null;
             float bestDist = float.MaxValue;
+            FloorY(head); // walls are told from partitions by how they meet the floor
             foreach (var hit in Physics.RaycastAll(ray, 10f))
             {
                 var p = hit.collider.GetComponent<ARPlane>();
@@ -173,7 +219,7 @@ namespace Pazl
                 found = p;
                 point = hit.point;
             }
-            Light(found);
+            if (light) Light(found);
             if (found == null) return false;
             wall = Describe(found, head);
             return true;
