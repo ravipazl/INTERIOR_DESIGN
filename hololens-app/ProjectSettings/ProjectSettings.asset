@@ -589,7 +589,7 @@ PlayerSettings:
   m_RenderingPath: 1
   m_MobileRenderingPath: 1
   metroPackageName: PazlRealWall
-  metroPackageVersion: 1.0.5.0
+  metroPackageVersion: 1.0.6.0
   metroCertificatePath: Assets/Pazl/Editor/PazlTest.pfx
   metroCertificatePassword: "P\u02DD"
   metroCertificateSubject: Pazl
