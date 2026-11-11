@@ -7,6 +7,7 @@ import {
   sendStepMail,
 } from "../../services/projectWorkspaceService";
 import { getCurrentUser } from "../../services/authService";
+import { fillEmailTemplate, listEmailTemplateOptions } from "../../services/emailTemplatesService";
 import {
   TRACKER_STAGES,
   stageLabel,
@@ -52,6 +53,8 @@ const TrackerAdmin = ({ projectId, status, clientEmail, projectCreatedAt, onAdva
   const [mailCc, setMailCc] = useState("");
   const [mailFile, setMailFile] = useState(null);
   const [mailSending, setMailSending] = useState(false);
+  const [mailTemplates, setMailTemplates] = useState([]);
+  const [mailTemplate, setMailTemplate] = useState("");
   const [toast, setToast] = useState(null);
   const showToast = (type, text) => {
     setToast({ type, text });
@@ -228,8 +231,21 @@ const TrackerAdmin = ({ projectId, status, clientEmail, projectCreatedAt, onAdva
     }
   };
 
+  // Picking a template (Settings → Email Templates) fills the subject and
+  // message; both stay editable.
+  const pickMailTemplate = async (key) => {
+    setMailTemplate(key);
+    if (!key) return;
+    const res = await fillEmailTemplate(key, projectId);
+    if (res.error) return;
+    setMailSubject(res.data.subject);
+    setMailMessage(res.data.message);
+  };
+
   const openMail = (s) => {
     setMailKey(s.key);
+    setMailTemplate("");
+    listEmailTemplateOptions().then((res) => setMailTemplates(Array.isArray(res.data) ? res.data : []));
     setMailSubject(`Update on ${labelForStage(s)}`);
     setMailMessage("");
     setMailCc("");
@@ -382,6 +398,17 @@ const TrackerAdmin = ({ projectId, status, clientEmail, projectCreatedAt, onAdva
             </div>
             <label style={{ fontSize: 12, color: "#6b7280" }}>Cc (optional)</label>
             <input value={mailCc} onChange={(e) => setMailCc(e.target.value)} placeholder="architect@pazl.info, colleague@pazl.info" style={{ border: "1px solid #d1d5db", borderRadius: 8, padding: "8px 10px", fontSize: 14 }} />
+            {mailTemplates.length ? (
+              <>
+                <label style={{ fontSize: 12, color: "#6b7280" }}>Template (optional)</label>
+                <select value={mailTemplate} onChange={(e) => pickMailTemplate(e.target.value)} style={{ border: "1px solid #d1d5db", borderRadius: 8, padding: "8px 10px", fontSize: 14, background: "#fff" }}>
+                  <option value="">Write my own</option>
+                  {mailTemplates.map((t) => (
+                    <option key={t.key} value={t.key}>{t.name}</option>
+                  ))}
+                </select>
+              </>
+            ) : null}
             <label style={{ fontSize: 12, color: "#6b7280" }}>Subject</label>
             <input autoFocus value={mailSubject} onChange={(e) => setMailSubject(e.target.value)} placeholder="Subject" style={{ border: "1px solid #d1d5db", borderRadius: 8, padding: "8px 10px", fontSize: 14 }} />
             <label style={{ fontSize: 12, color: "#6b7280" }}>Message</label>

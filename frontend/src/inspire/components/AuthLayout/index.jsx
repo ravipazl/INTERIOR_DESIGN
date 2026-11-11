@@ -1,5 +1,6 @@
 import React from "react";
 import pazlLogo from "../../assets/images/pazl_logo.svg";
+import { BrandLogo, BrandName } from "@pazl/components/BrandLogo";
 import livingRoom from "../../assets/images/livingroom.jpg";
 import "./index.css";
 
@@ -34,8 +35,10 @@ const AuthLayout = ({ mode = "signin", title, subtitle, children, footer }) => (
       style={{ "--pza-photo": `url(${livingRoom})` }}
     >
       <div className="pz-auth-logo">
-        <img src={pazlLogo} alt="" width="40" height="40" />
-        <span>Pazl</span>
+        <BrandLogo fallback={pazlLogo} alt="" width="40" height="40" />
+        <span>
+          <BrandName fallback="Pazl" />
+        </span>
       </div>
 
       {/* Over the photo, on its right: what the app does, as it would look. */}
@@ -98,7 +101,7 @@ const AuthLayout = ({ mode = "signin", title, subtitle, children, footer }) => (
         <div className="pz-auth-head">
           {/* Sign up's form is long: its room goes to the fields instead. */}
           {mode !== "signup" && (
-            <img className="pz-auth-mark" src={pazlLogo} alt="Pazl" width="44" height="44" />
+            <BrandLogo className="pz-auth-mark" fallback={pazlLogo} alt="" width="44" height="44" />
           )}
           <h1>{title}</h1>
           {subtitle ? <p>{subtitle}</p> : null}
@@ -106,7 +109,9 @@ const AuthLayout = ({ mode = "signin", title, subtitle, children, footer }) => (
         {children}
         {footer ? <div className="pz-auth-foot">{footer}</div> : null}
       </div>
-      <p className="pz-auth-legal">© {new Date().getFullYear()} Pazl</p>
+      <p className="pz-auth-legal">
+        © {new Date().getFullYear()} <BrandName fallback="Pazl" />
+      </p>
     </main>
   </div>
 );

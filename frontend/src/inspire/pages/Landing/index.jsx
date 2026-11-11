@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { mountHome, mountTurntables, LAMINATES, HOME_PIECES, ROOMS } from "./kitchen";
+import { BrandLogo, BrandName } from "@pazl/components/BrandLogo";
 import "./landing.css";
 
 /* The page signed-out visitors see at "/": what Pazl does, shown with the
@@ -506,8 +507,10 @@ const Landing = () => {
       <header className="lp-top">
         <div className="lp-wrap lp-top-row">
           <a className="lp-brand" href="#top" aria-label="Pazl, to the top">
-            <img src="/assets/icons/pazl_logo.svg" alt="" width="26" height="26" />
-            <b>PAZL</b>
+            <BrandLogo fallback="/assets/icons/pazl_logo.svg" alt="" width="26" height="26" />
+            <b>
+              <BrandName />
+            </b>
           </a>
           <nav className="lp-nav" aria-label="Page">
             <a href="#how">How it works</a>
@@ -547,8 +550,10 @@ const Landing = () => {
       <footer className="lp-foot">
         <div className="lp-wrap lp-foot-row">
           <span className="lp-brand lp-brand--dark">
-            <img src="/assets/icons/pazl_logo.svg" alt="" width="20" height="20" />
-            <b>PAZL</b>
+            <BrandLogo fallback="/assets/icons/pazl_logo.svg" alt="" width="20" height="20" />
+            <b>
+              <BrandName />
+            </b>
           </span>
           <span>© {new Date().getFullYear()} Pazl · Design, quote and build home interiors</span>
         </div>

@@ -1,0 +1,86 @@
+/* Settings → Branding: the "where it shows" previews. */
+
+.pzb-previews {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 18px;
+  background: #fff;
+  border: 1px solid var(--pzp-line);
+  border-radius: 14px;
+  box-shadow: var(--pzp-shadow-card);
+}
+.pzb-place {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.pzb-cap {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #8a8f9c;
+}
+.pzb-place img { object-fit: contain; }
+
+/* The top header bar (purple, white logo tile). */
+.pzb-topbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  background: linear-gradient(100deg, #4c1d95 0%, #5b21b6 48%, #7e22ce 78%, #a21caf 100%);
+  color: #fff;
+  font-size: 18px;
+  letter-spacing: 0.04em;
+}
+.pzb-tile {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: #fff;
+}
+.pzb-tile img { width: 30px; height: 30px; }
+
+.pzb-menu {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: #3b1a78;
+  color: #fff;
+  font-size: 14px;
+}
+.pzb-menu img { width: 20px; height: 20px; }
+
+/* Matches the email frame's header (mailer.js). */
+.pzb-mail {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 20px;
+  border-radius: 9px 9px 0 0;
+  background: #414063;
+  color: #fff;
+  font-size: 15px;
+  letter-spacing: 1px;
+}
+.pzb-mail img { height: 28px; width: auto; max-width: 120px; }
+
+.pzb-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  align-self: flex-start;
+  padding: 8px 14px;
+  border-radius: 10px 10px 0 0;
+  background: #f1f3f8;
+  color: #2b2f3a;
+  font-size: 13px;
+}
+.pzb-tab img { width: 16px; height: 16px; }

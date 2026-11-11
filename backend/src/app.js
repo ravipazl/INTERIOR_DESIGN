@@ -42,7 +42,10 @@ app.configure(imageEditProxy)
 const defaultBody = bodyParser()
 const aiRenderBody = bodyParser({ jsonLimit: '12mb' })
 app.use((ctx, next) =>
-  ctx.path.startsWith('/ai-render') ? aiRenderBody(ctx, next) : defaultBody(ctx, next)
+  // /invoice-profiles and /branding carry a logo (up to 2 MB) as base64.
+  ctx.path.startsWith('/ai-render') || ctx.path.startsWith('/invoice-profiles') || ctx.path === '/branding'
+    ? aiRenderBody(ctx, next)
+    : defaultBody(ctx, next)
 )
 
 // Configure services and transports

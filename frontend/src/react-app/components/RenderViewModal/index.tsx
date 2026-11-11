@@ -1759,8 +1759,8 @@ const RenderViewModal: React.FC<{
                   marginBottom: 10,
                 }}
               >
-                AI rendering is not set up yet. Add MYARCHITECT_API_KEY to the
-                backend .env and restart the backend.
+                AI rendering is not set up yet. An admin can add the
+                MyArchitectAI key in Settings → Render.
               </div>
             )}
             {aiInfo && aiInfo.configured && aiInfo.ok === false && (

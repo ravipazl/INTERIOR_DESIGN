@@ -11,9 +11,20 @@ import Anthropic from '@anthropic-ai/sdk'
 import multer from '@koa/multer'
 import sharp from 'sharp'
 
-const client = new Anthropic() // reads ANTHROPIC_API_KEY from env
+// Key and model are read per request: the admin Settings page can change them
+// while the server runs (services/app-settings).
+let client = null
+let clientKey = ''
+const getClient = () => {
+  const key = process.env.ANTHROPIC_API_KEY || ''
+  if (!client || clientKey !== key) {
+    client = new Anthropic({ apiKey: key })
+    clientKey = key
+  }
+  return client
+}
 
-const MODEL = process.env.FLOORPLAN_AI_MODEL || 'claude-opus-4-8'
+const model = () => process.env.FLOORPLAN_AI_MODEL || 'claude-opus-4-8'
 const MAX_BYTES = 20 * 1024 * 1024 // 20 MB
 // Images are resized to at most this many px on the long side before they go to
 // Claude: phone photos / scans (e.g. 6000×4500, 12 MB) are rejected by the API
@@ -148,10 +159,10 @@ async function vectorize(buffer, mimetype, id = '-') {
     }
   }
 
-  log(id, `sending to AI (${MODEL}, ${isPdf ? 'PDF' : 'image'})…`)
+  log(id, `sending to AI (${model()}, ${isPdf ? 'PDF' : 'image'})…`)
   const started = Date.now()
-  const res = await client.messages.create({
-    model: MODEL,
+  const res = await getClient().messages.create({
+    model: model(),
     max_tokens: 16000,
     thinking: { type: 'adaptive' },
     messages: [{ role: 'user', content: [fileBlock, { type: 'text', text: PROMPT }] }],
@@ -223,6 +234,15 @@ export const floorplanAi = (app) => {
     }
 
     log(id, `file "${file.originalname}" ${file.mimetype || '?'} ${mb(file.size)}`)
+    if (!process.env.ANTHROPIC_API_KEY) {
+      log(id, 'stopped: no Claude API key')
+      ctx.status = 503
+      ctx.body = {
+        error: 'not_configured',
+        message: 'AI import is not set up. An admin can add the Claude API key in Settings → Claude.'
+      }
+      return
+    }
     try {
       const result = await vectorize(file.buffer, file.mimetype, id)
       log(

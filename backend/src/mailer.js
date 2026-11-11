@@ -10,21 +10,61 @@
 // break a user action.
 import nodemailer from 'nodemailer'
 
+// Rebuilt when the SMTP settings change (the admin Settings page can change
+// them while the server runs — see services/app-settings).
 let transporter = null
+let transporterFor = ''
 export const getTransporter = () => {
-  if (transporter) return transporter
   const host = process.env.SMTP_HOST
   if (!host) return null
-  transporter = nodemailer.createTransport({
+  const opts = {
     host,
     port: Number(process.env.SMTP_PORT) || 587,
     secure: String(process.env.SMTP_SECURE) === 'true', // true for 465, false for 587
+    ignoreTLS: String(process.env.SMTP_IGNORE_TLS) === 'true',
     auth: process.env.SMTP_USER
       ? { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS }
       : undefined
+  }
+  const key = JSON.stringify(opts)
+  if (transporter && transporterFor === key) return transporter
+  transporter?.close?.()
+  transporter = nodemailer.createTransport(opts)
+  transporterFor = key
+  // An email whose header shows the Branding logo carries it as an inline
+  // attachment (mail apps block data: images and can't reach localhost).
+  transporter.use('compile', (mail, done) => {
+    const logo = brandLogoAttachment()
+    const html = typeof mail.data.html === 'string' ? mail.data.html : ''
+    if (logo && html.includes(`cid:${BRAND_CID}`)) {
+      const list = Array.isArray(mail.data.attachments) ? mail.data.attachments : []
+      if (!list.some((a) => a?.cid === BRAND_CID)) mail.data.attachments = [...list, logo]
+    }
+    done()
   })
   return transporter
 }
+
+// Settings → Branding: the app name and logo every email header shows.
+// Set by services/branding at start-up and on every save.
+const BRAND_CID = 'pazl-brand-logo'
+let mailBrand = { appName: 'PAZL', logo: '' }
+export const setMailBrand = (b) => {
+  mailBrand = { appName: String(b?.appName || 'PAZL'), logo: String(b?.logo || '') }
+}
+// Only PNG / JPG: most mail apps can't show SVG.
+const brandLogoAttachment = () => {
+  const m = mailBrand.logo.match(/^data:image\/(png|jpeg);base64,(.+)$/)
+  return m
+    ? { filename: `logo.${m[1] === 'jpeg' ? 'jpg' : 'png'}`, content: Buffer.from(m[2], 'base64'), cid: BRAND_CID }
+    : null
+}
+const brandHeader = () =>
+  `${
+    brandLogoAttachment()
+      ? `<img src="cid:${BRAND_CID}" alt="" height="28" style="height:28px;width:auto;vertical-align:middle;margin-right:10px;border:0;" />`
+      : ''
+  }<span style="color:#ffffff;font-size:17px;font-weight:700;letter-spacing:1px;vertical-align:middle;">${esc(mailBrand.appName)}</span>`
 
 // Base URLs for links inside emails:
 //   getInspireUrl — the client app (project page the client reviews)
@@ -129,13 +169,21 @@ export const renderActionEmail = ({
              style="max-width:600px;width:100%;background:#ffffff;border:1px solid #e6e7ec;border-radius:10px;">
         <tr>
           <td style="background:${brand};padding:18px 28px;border-radius:9px 9px 0 0;">
-            <span style="color:#ffffff;font-size:17px;font-weight:700;letter-spacing:1px;">PAZL</span>
+            ${brandHeader()}
           </td>
         </tr>
         <tr>
           <td style="padding:28px;">
             <h1 style="margin:0 0 10px;font-size:19px;line-height:26px;color:#1f2033;font-weight:700;">${title}</h1>
-            ${intro ? `<p style="margin:0 0 20px;font-size:14px;line-height:22px;color:#5c5f73;">${intro}</p>` : ''}
+            ${
+              !intro
+                ? ''
+                : // An edited template (Settings → Email Templates) may hold its own
+                  // paragraphs or lists, which can't sit inside a <p>.
+                  /<(p|div|ul|ol|h[1-6]|table|blockquote)\b/i.test(intro)
+                  ? `<div style="margin:0 0 20px;font-size:14px;line-height:22px;color:#5c5f73;">${intro}</div>`
+                  : `<p style="margin:0 0 20px;font-size:14px;line-height:22px;color:#5c5f73;">${intro}</p>`
+            }
             ${
               imageUrl
                 ? `<img src="${imageUrl}" alt="${esc(imageAlt)}" width="544"

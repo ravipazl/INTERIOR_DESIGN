@@ -17,7 +17,8 @@
 import multer from '@koa/multer'
 import axios from 'axios'
 import { idQuery } from '../../utils/id-query.js'
-import { getTransporter, renderActionEmail, getInspireUrl, textToHtml } from '../../mailer.js'
+import { getTransporter, renderActionEmail, getInspireUrl, textToHtml, esc } from '../../mailer.js'
+import { emailTemplate } from '../../email-templates.js'
 import { isWhatsAppEnabled, sendTrackerUpdate, resolveClientPhone } from '../../whatsapp.js'
 
 // Best-effort WhatsApp mirror of a tracker-step email. WhatsApp body variables
@@ -106,29 +107,38 @@ export const sendTrackerMail = (app) => {
       ctx.status = 500
       ctx.body = {
         error: 'smtp_not_configured',
-        message: 'SMTP is not configured (set SMTP_HOST etc. in the backend .env).'
+        message: 'Email is not set up. An admin can turn it on in Settings → Email.'
       }
       return
     }
 
     const projectName = project?.name || 'your project'
-    const subject = (body.subject && String(body.subject).trim()) || `Update on ${projectName}`
-    const message =
-      (body.message && String(body.message).trim()) ||
-      `Hi${clientName ? ' ' + clientName : ''},\n\nHere is an update on your project "${projectName}".\n\nThank you,\nPazl`
-
     const projectUrl = `${getInspireUrl()}/project-detail/${projectId}`
+    // Words from Settings → Email Templates (tracker_update), used for whatever
+    // the team left empty in the composer.
+    const t = await emailTemplate(app, 'tracker_update', {
+      client_name: clientName,
+      project_name: projectName,
+      stage: body.stage ? String(body.stage) : '',
+      link: projectUrl
+    })
+    const typedSubject = (body.subject && String(body.subject).trim()) || ''
+    const typedMessage = (body.message && String(body.message).trim()) || ''
+    const subject = typedSubject || t.subject
+    const message = typedMessage || t.introText
+
     const mail = {
       from: process.env.SMTP_FROM || process.env.SMTP_USER,
       to,
       subject,
-      text: `${message}\n\nView your project: ${projectUrl}`,
+      text: `${message}\n\n${t.buttonText}: ${projectUrl}`,
       html: renderActionEmail({
-        title: subject,
+        title: typedSubject ? esc(typedSubject) : t.heading,
         // The team's message IS the content — render it (escaped, line breaks
         // kept) as the body, with a CTA to the client's project page.
-        bodyHtml: textToHtml(message),
-        ctaText: 'View your project',
+        bodyHtml: typedMessage ? textToHtml(typedMessage) : undefined,
+        intro: typedMessage ? undefined : t.introHtml,
+        ctaText: t.buttonText,
         ctaUrl: projectUrl
       })
     }

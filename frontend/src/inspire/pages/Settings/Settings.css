@@ -1,0 +1,472 @@
+/* Settings page — on top of Projects.css / ListPages.css (same `.pz-projects`
+   scope and --pzp-* tokens). Nothing here reaches outside `.pz-settings`.
+   Look: purple band headers on white cards, a menu of coloured tiles on the
+   left, the save bar as a card of its own under the form. */
+
+.pz-settings {
+  --pzs-ink: #2b2f3a;
+  --pzs-field-line: #dfe2ea;
+  --pzs-ok: #067647;
+  --pzs-bad: #b42318;
+  --pzs-band: linear-gradient(100deg, #4c1d95 0%, #5b21b6 48%, #7e22ce 78%, #a21caf 100%);
+  --pzs-btn: linear-gradient(135deg, #4c1d95 0%, #6d28d9 100%);
+}
+
+/* --- full width ----------------------------------------------------------
+   The list pages (Projects, Teams, Rate card) stop at 1480px and centre,
+   which left wide empty margins either side of Settings on big screens.
+   Settings uses the whole width with an even gutter instead. */
+.pz-projects.pz-settings {
+  padding: 24px 28px !important;
+}
+.pz-settings .pz-projects-inner {
+  max-width: none;
+}
+
+/* --- left menu beside the form ------------------------------------------- */
+.pzs-layout {
+  display: grid;
+  grid-template-columns: 300px minmax(0, 1fr);
+  gap: 30px;
+  align-items: start;
+}
+.pzs-nav {
+  background: #fff;
+  border: 1px solid var(--pzp-line);
+  border-radius: 18px;
+  box-shadow: var(--pzp-shadow-card);
+  padding: 18px 14px;
+  display: flex;
+  flex-direction: column;
+  position: sticky;
+  top: 0;
+}
+.pzs-nav-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-bottom: 14px;
+}
+.pzs-nav-group + .pzs-nav-group {
+  border-top: 1px solid var(--pzp-line);
+  padding-top: 18px;
+}
+.pzs-nav-group:last-child {
+  padding-bottom: 0;
+}
+.pz-settings button.pzs-nav-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  margin: 0 0 8px;
+  padding: 4px 10px;
+  border: 0;
+  background: transparent;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #8a8f9c;
+  cursor: pointer;
+}
+.pz-settings button.pzs-nav-title svg {
+  transition: transform 0.15s ease;
+}
+.pzs-nav-group.is-closed button.pzs-nav-title {
+  margin-bottom: 0;
+}
+.pzs-nav-group.is-closed button.pzs-nav-title svg {
+  transform: rotate(180deg);
+}
+.pz-settings button.pzs-nav-i {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  padding: 7px 10px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--pzs-ink);
+  font-size: 16px;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.pz-settings button.pzs-nav-i:hover {
+  background: #f5f3fa;
+}
+.pz-settings button.pzs-nav-i.is-active {
+  background: #efeaf8;
+  color: #3b1a78;
+  font-weight: 600;
+}
+.pz-settings button.pzs-nav-i:focus-visible,
+.pz-settings button.pzs-nav-title:focus-visible {
+  outline: 2px solid var(--pzp-accent);
+  outline-offset: 1px;
+}
+.pzs-nav-i { --pzs-c: #5b3df5; }
+.pzs-nav-i[data-tone="blue"] { --pzs-c: #2563eb; }
+.pzs-nav-i[data-tone="orange"] { --pzs-c: #ea580c; }
+.pzs-nav-i[data-tone="violet"] { --pzs-c: #7c3aed; }
+.pzs-nav-i[data-tone="teal"] { --pzs-c: #0d9488; }
+.pzs-nav-i[data-tone="red"] { --pzs-c: #e11d48; }
+.pzs-nav-i[data-tone="amber"] { --pzs-c: #d97706; }
+/* A coloured tile with a white glyph. */
+.pzs-nav-ic {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  color: #fff;
+  background: linear-gradient(145deg, color-mix(in srgb, var(--pzs-c) 65%, #fff), var(--pzs-c));
+  box-shadow: 0 2px 6px color-mix(in srgb, var(--pzs-c) 30%, transparent);
+}
+
+/* --- cards: Email's two sit side by side --------------------------------- */
+.pzs-main,
+.pzs-section {
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+  min-width: 0;
+}
+.pzs-cards {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 30px;
+  align-items: start;
+}
+.pzs-cards.is-pair {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.pzs-card {
+  background: #fff;
+  border: 1px solid var(--pzp-line);
+  border-radius: 18px;
+  box-shadow: var(--pzp-shadow-card);
+  overflow: hidden;
+}
+.pzs-card-head {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 56px;
+  padding: 12px 22px;
+  background: var(--pzs-band);
+  color: #fff;
+}
+/* The faint rings on the right of the band. */
+.pzs-card-head::after {
+  content: "";
+  position: absolute;
+  right: 70px;
+  top: -70px;
+  width: 170px;
+  height: 170px;
+  border-radius: 50%;
+  border: 22px solid rgba(255, 255, 255, 0.06);
+  box-shadow: 0 0 0 34px rgba(255, 255, 255, 0.035);
+  pointer-events: none;
+}
+.pzs-card-head > * {
+  position: relative;
+  z-index: 1;
+}
+.pzs-card-head h2 {
+  margin: 0;
+  font-size: 19px;
+  font-weight: 700;
+  color: #fff;
+}
+.pzs-card-head p {
+  margin: 2px 0 0;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.8);
+}
+.pzs-badge {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 11px;
+  border-radius: 999px;
+  white-space: nowrap;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+}
+.pzs-badge::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+}
+.pzs-badge.is-ok::before { background: #4ade80; }
+.pzs-badge.is-warn::before { background: #fbbf24; }
+.pzs-badge.is-bad::before { background: #f87171; }
+.pzs-badge.is-off::before { background: #cbd5e1; }
+
+.pzs-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 22px 30px;
+  padding: 24px 26px 28px;
+}
+.pzs-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.pzs-field.is-wide {
+  grid-column: 1 / -1;
+}
+.pzs-field > label {
+  margin: 0 0 4px;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--pzs-ink);
+}
+.pz-settings .pzs-field input[type="text"],
+.pz-settings .pzs-field input[type="password"],
+.pz-settings .pzs-field select {
+  width: 100%;
+  height: 50px;
+  padding: 0 14px;
+  border: 1px solid var(--pzs-field-line);
+  border-radius: 12px;
+  background: #fff;
+  color: var(--pzp-ink);
+  font-size: 15px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.pz-settings .pzs-field input:focus,
+.pz-settings .pzs-field select:focus {
+  outline: none;
+  border-color: #7c3aed;
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.15);
+}
+.pz-settings .pzs-field input:disabled,
+.pz-settings .pzs-field select:disabled {
+  background: #f8f9fb;
+  color: var(--pzp-ink-2);
+  cursor: not-allowed;
+}
+.pz-settings .pzs-field .is-invalid,
+.pz-settings .pzs-secret.is-invalid {
+  border-color: var(--pzs-bad) !important;
+}
+.pzs-err,
+.pzs-hint {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.4;
+}
+.pzs-err { color: var(--pzs-bad); }
+.pzs-hint { color: var(--pzp-ink-2); }
+
+/* A key field: the input and its show / hide button as one control. */
+.pz-settings .pzs-secret {
+  display: flex;
+  height: 50px;
+  border: 1px solid var(--pzs-field-line);
+  border-radius: 12px;
+  background: #fff;
+  overflow: hidden;
+}
+.pz-settings .pzs-secret:focus-within {
+  border-color: #7c3aed;
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.15);
+}
+.pz-settings .pzs-secret input {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 100% !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  letter-spacing: 0.04em;
+}
+.pz-settings .pzs-secret input::placeholder {
+  letter-spacing: 0;
+}
+.pz-settings button.pzs-eye {
+  flex: none;
+  width: 54px;
+  border: 0;
+  border-left: 1px solid var(--pzs-field-line);
+  background: #fff;
+  color: #475467;
+  cursor: pointer;
+}
+.pz-settings button.pzs-eye:hover { color: #6d28d9; }
+
+/* On / off switch. */
+.pzs-field--switch { justify-content: center; }
+.pzs-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  margin: 0;
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--pzs-ink);
+  cursor: pointer;
+  user-select: none;
+}
+.pzs-switch input {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+}
+.pzs-switch-track {
+  position: relative;
+  flex: none;
+  width: 54px;
+  height: 30px;
+  border-radius: 999px;
+  background: #d0d5dd;
+  transition: background 0.15s ease;
+}
+.pzs-switch-track::after {
+  content: "";
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.2);
+  transition: transform 0.15s ease;
+}
+.pzs-switch input:checked + .pzs-switch-track { background: linear-gradient(90deg, #6d28d9, #8b5cf6); }
+.pzs-switch input:checked + .pzs-switch-track::after { transform: translateX(24px); }
+.pzs-switch input:focus-visible + .pzs-switch-track {
+  outline: 2px solid #6d28d9;
+  outline-offset: 2px;
+}
+.pzs-switch input:disabled + .pzs-switch-track { opacity: 0.6; }
+
+/* --- the save bar, a card of its own ------------------------------------- */
+.pzs-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 78px;
+  padding: 14px 16px 14px 24px;
+  background: #fff;
+  border: 1px solid var(--pzp-line);
+  border-radius: 18px;
+  box-shadow: var(--pzp-shadow-card);
+}
+.pzs-bar-msg {
+  min-width: 0;
+  flex: 1 1 240px;
+  font-size: 14px;
+}
+.pzs-meta { color: var(--pzp-ink-2); }
+.pzs-notice { font-weight: 500; }
+.pzs-notice.is-ok { color: var(--pzs-ok); }
+.pzs-notice.is-bad { color: var(--pzs-bad); }
+.pzs-bar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.pz-settings button.pzs-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 50px;
+  padding: 0 20px;
+  border: 1px solid var(--pzs-field-line);
+  border-radius: 12px;
+  background: #fff;
+  color: var(--pzs-ink);
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, filter 0.15s ease;
+}
+.pz-settings button.pzs-btn:hover:not(:disabled) {
+  background: #f5f3fa;
+}
+.pz-settings button.pzs-btn--primary {
+  border: 0;
+  background: var(--pzs-btn);
+  color: #fff;
+  box-shadow: 0 6px 16px rgba(76, 29, 149, 0.28);
+}
+.pz-settings button.pzs-btn--primary:hover:not(:disabled) {
+  background: var(--pzs-btn);
+  filter: brightness(1.12);
+}
+.pz-settings button.pzs-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.pz-settings button.pzs-btn:focus-visible {
+  outline: 2px solid #6d28d9;
+  outline-offset: 2px;
+}
+
+.pzs-loading {
+  padding: 28px 24px;
+  color: var(--pzp-ink-2);
+  font-size: 15px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+/* --- smaller screens ----------------------------------------------------- */
+@media (max-width: 1280px) {
+  .pzs-cards.is-pair { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 900px) {
+  .pzs-layout {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 20px;
+  }
+  .pzs-nav {
+    position: static;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 4px;
+    padding: 10px;
+  }
+  .pzs-nav-group,
+  .pzs-nav-group + .pzs-nav-group {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    border: 0;
+    padding: 0;
+  }
+  .pz-settings button.pzs-nav-title { display: none; }
+  .pz-settings button.pzs-nav-i { width: auto; }
+  .pzs-main,
+  .pzs-section,
+  .pzs-cards { gap: 20px; }
+}
+@media (max-width: 640px) {
+  .pzs-grid { grid-template-columns: minmax(0, 1fr); padding: 20px; }
+  .pzs-bar-actions { width: 100%; }
+  .pz-settings button.pzs-btn { flex: 1 1 auto; justify-content: center; }
+}

@@ -40,8 +40,17 @@ export const config = () => ({
   dailyLimit: Number(process.env.CLAUDE_BLENDER_DAILY_LIMIT) || 20
 })
 
+// Rebuilt when the key changes (admin Settings page, services/app-settings).
 let client = null
-const getClient = () => (client ||= new Anthropic({ timeout: 5 * 60 * 1000, maxRetries: 2 }))
+let clientKey = ''
+const getClient = () => {
+  const key = process.env.ANTHROPIC_API_KEY || ''
+  if (!client || clientKey !== key) {
+    client = new Anthropic({ apiKey: key, timeout: 5 * 60 * 1000, maxRetries: 2 })
+    clientKey = key
+  }
+  return client
+}
 
 export class UserFacingError extends Error {
   constructor(message) {
@@ -254,7 +263,7 @@ async function renderPreview(dir, glbPath, tag) {
 export async function generateCandidate(job, { imageBuffer, sizeMm, categoryName, name, hint, workDir }) {
   const cfg = config()
   if (!cfg.enabled) throw new UserFacingError('Claude + Blender is switched off right now.')
-  if (!process.env.ANTHROPIC_API_KEY) throw new UserFacingError('Claude + Blender is not set up on this server yet.')
+  if (!process.env.ANTHROPIC_API_KEY) throw new UserFacingError('Claude + Blender is not set up. An admin can add the Claude API key in Settings → Claude.')
   for (const [k, v] of Object.entries(sizeMm)) {
     if (!Number.isFinite(v) || v < SIZE_LIMITS_MM.min || v > SIZE_LIMITS_MM.max) {
       throw new UserFacingError(

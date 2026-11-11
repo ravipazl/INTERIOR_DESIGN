@@ -1,6 +1,7 @@
 import React from "react";
 import { AuthService } from "@pazl/services/authService";
 import { UserPermission } from "@pazl/entities/User";
+import { useBranding } from "@pazl/services/BrandingService";
 import "./index.css";
 
 /**
@@ -153,7 +154,7 @@ const buildClientLinks = (hasProject?: boolean) => {
  * Routes out of the Designer, below the divider.
  *
  * ROLE-GATED, and it matters: inspire's Router.js does not even REGISTER
- * /teams or /rate-card unless the user is ADMIN or SUPER_ADMIN, so for an
+ * /teams, /rate-card or /settings unless the user is ADMIN or SUPER_ADMIN, so for an
  * architect — the main user of this editor — those links fall through to the
  * `*` NotFound route. Showing them to everyone would put two dead ends in the
  * rail. Dashboard is fine for every role.
@@ -203,6 +204,16 @@ const buildLinks = () => {
           <Svg>
             <path d="M20.6 12.7 12.7 20.6a2 2 0 0 1-2.8 0l-6.5-6.5a2 2 0 0 1-.6-1.4V4.5a2 2 0 0 1 2-2h8.2a2 2 0 0 1 1.4.6l6.2 6.2a2 2 0 0 1 0 2.8z" />
             <circle cx="7.6" cy="7.6" r="1.3" />
+          </Svg>
+        ),
+      },
+      {
+        href: "/settings",
+        label: "Settings",
+        icon: (
+          <Svg>
+            <circle cx="12" cy="12" r="3" />
+            <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z" />
           </Svg>
         ),
       }
@@ -271,6 +282,8 @@ const NavRail = ({
   const here =
     typeof window !== "undefined" ? window.location.pathname : "/";
   const user = AuthService.getCurrentUser();
+  // Settings → Branding (the PAZL logo until one is uploaded).
+  const brand = useBranding();
   const [leavingTo, setLeavingTo] = React.useState<string | null>(null);
 
   // Open (icons + names, 176px) or closed (icons only, 64px) — the person's
@@ -412,8 +425,8 @@ const NavRail = ({
           it and this whole row is hidden (index.css). Display only — Dashboard
           just below is the way home. */}
       <span className="pz-nav-brand">
-        <img src="/assets/icons/pazl_logo.svg" alt="" width={20} height={20} />
-        <b>PAZL</b>
+        <img src={brand.logo || "/assets/icons/pazl_logo.svg"} alt="" width={20} height={20} style={{ objectFit: "contain" }} />
+        <b>{brand.appName}</b>
       </span>
       <button
         type="button"

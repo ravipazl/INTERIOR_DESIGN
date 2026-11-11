@@ -186,3 +186,74 @@ export const ceilingSurfaceOf = (room) => {
     },
   };
 };
+
+// ---------------------------------------------------------------------------
+// A ROOM'S FLOOR, THE SAME WAY.
+//
+// The Floor Editor is the same page again, on the room's floor. Its face is
+// the same box as the ceiling's — seen from above, x with the plan, y up the
+// editor towards the plan's top — with the notch of an L-shaped room handed
+// over as openings. Only the frame differs: the panels lie on the floor and
+// face up, and the areas are kept per room in floorplan.floorRegions.
+// ---------------------------------------------------------------------------
+
+/** The event a room sends when its floor areas change (Floor3D redraws). */
+export const EVENT_FLOOR_REGIONS_CHANGED = "FLOOR_REGIONS_CHANGED";
+
+/** The floor's face: as faceOfCeiling, on the floor and facing up. */
+export const faceOfFloor = (room) => {
+  const ceiling = faceOfCeiling(room);
+  if (!ceiling) return null;
+  const outline = outlineOf(room);
+  const minX = Math.min(...outline.map((p) => p[0]));
+  const maxZ = Math.max(...outline.map((p) => p[1]));
+  // Just clear of the floor (Floor3D draws it at 0), so the panels never
+  // flicker against it.
+  const floorY = 0.3;
+  return {
+    kind: "floor",
+    width: ceiling.width,
+    height: ceiling.height,
+    openings: ceiling.openings,
+    mirrored: false,
+    floorY,
+    frame: {
+      // Editor (x, y), `out` cm up from the floor → world [x, y, z].
+      toWorld: (x, y, out) => [minX + x, floorY + out, maxZ - y],
+      // The panels face up, out of the floor.
+      faceNormal: [0, 1, 0],
+      inPlane: (ox, oy) => [ox, 0, -oy],
+      // Seen from above, the editor's anticlockwise is anticlockwise.
+      forward: true,
+      meshName: "floor",
+    },
+  };
+};
+
+/**
+ * A room's floor as something the editor can open, like ceilingSurfaceOf.
+ * Null when the room has no floor to edit.
+ */
+export const floorSurfaceOf = (room) => {
+  const floorplan = room && room.floorplan;
+  if (!floorplan || typeof floorplan.getFloorRegions !== "function") return null;
+  const face = faceOfFloor(room);
+  if (!face) return null;
+  const uuid = room.getUuid ? room.getUuid() : room.uuid;
+  return {
+    kind: "floor",
+    room,
+    face,
+    label: room.name || "Room",
+    getRegions: () => floorplan.getFloorRegions(uuid),
+    setRegions: (list) => {
+      floorplan.setFloorRegions(uuid, list);
+      // Redraw just this room's floor.
+      try {
+        room.dispatchEvent({ type: EVENT_FLOOR_REGIONS_CHANGED, item: room });
+      } catch (e) {
+        /* nothing listening */
+      }
+    },
+  };
+};

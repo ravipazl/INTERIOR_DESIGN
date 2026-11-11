@@ -1,4 +1,4 @@
-import { v4 as uuidv4 } from 'uuid'
+import { newQuoteNumber } from '../invoice-profiles/invoice-profiles.js'
 import { ObjectId } from 'mongodb'
 
 const convertMMtoFeet = (unitInMM) => {
@@ -179,7 +179,10 @@ export class GenerateBoqServiceService {
       const lookupCache = new Map()
       const lookup = (collection, id) => {
         if (!id) return Promise.resolve(null)
-        const key = `${collection}:${id}`
+        // The id's type is part of the key: a string id and its ObjectId print
+        // the same, and a miss on one must not hide a hit on the other (newer
+        // categories — wardrobe, wall cladding, TV back panel — have ObjectIds).
+        const key = `${collection}:${typeof id === 'string' ? 's' : 'o'}:${id}`
         if (!lookupCache.has(key)) {
           lookupCache.set(
             key,
@@ -743,11 +746,11 @@ export class GenerateBoqServiceService {
       )
 
       try {
+        // Prefix from Settings → Tax / Invoice (default profile); empty = as before.
+        const quoteNumber = await newQuoteNumber(this.app)
         await this.app.service('projects').patch(
           projectId,
-          project.boqNumber
-            ? { revisedBoqNumber: uuidv4().replaceAll('-', '').substring(0, 10).toUpperCase() }
-            : { boqNumber: uuidv4().replaceAll('-', '').substring(0, 10).toUpperCase() }
+          project.boqNumber ? { revisedBoqNumber: quoteNumber } : { boqNumber: quoteNumber }
         )
       } catch (e) {
         console.log('[BOQ] project patch skipped:', e.message)

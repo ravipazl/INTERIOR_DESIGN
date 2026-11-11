@@ -344,6 +344,12 @@ const WallEditorModal: React.FC<WallEditorModalProps> = ({
   // The Ceiling Editor: the same page on a room's ceiling. What is not ceiling
   // (the notch of an L-shaped room) arrives as the face's openings.
   const isCeiling = face?.kind === "ceiling";
+  // …and the Floor Editor, the same again on a room's floor. A ceiling and a
+  // floor are both flat faces seen from one side: no doors or windows, and
+  // "bottom" instead of "floor" for the lower edge.
+  const isFloor = face?.kind === "floor";
+  const isFlat = isCeiling || isFloor;
+  const faceName = isCeiling ? "ceiling" : isFloor ? "floor" : "wall face";
   const W = face?.width || 0;
   const H = face?.height || 0;
   const mirrored = !!face?.mirrored;
@@ -451,6 +457,14 @@ const WallEditorModal: React.FC<WallEditorModalProps> = ({
   const [finishings, setFinishings] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [categoryId, setCategoryId] = useState("");
+  // The subcategory picked under the main one ("" = All), and whether the
+  // subcategory buttons are open.
+  const [subId, setSubId] = useState("");
+  const [subsOpen, setSubsOpen] = useState(true);
+  const pickMain = (key: string) => {
+    setCategoryId(key);
+    setSubId("");
+  };
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(1);
   const [libraryTab, setLibraryTab] = useState<"public" | "mine">("public");
@@ -486,11 +500,23 @@ const WallEditorModal: React.FC<WallEditorModalProps> = ({
 
   // The same wall materials the Wall Properties panel offers, from the lists
   // the editor already keeps — nothing is fetched and nothing is hardcoded.
+  // The Wall, Ceiling and Floor Editors all offer this one list, so the three
+  // show the same menus (the brands' series are wall finishes only; a floor
+  // list would have none of them).
   useEffect(() => {
     const cats = TexturesService.getFinishingCategoriesFromLocalStorage() || [];
     const all = TexturesService.getFinishingsFromLocalStorage() || [];
+    const kind = "wall";
+    // "Glass and Mirrors" is not offered here: its finishes have no pictures
+    // to paint with. It stays in the database and in the other panels.
+    const left = new Set(
+      cats
+        .filter((c: any) => /^\s*glass\s*(and|&)\s*mirrors?\s*$/i.test(String(c?.name || "")))
+        .map((c: any) => String(c._id))
+    );
     const walls = all.filter(
-      (f: any) => f && f.type === "wall" && f.texture?.fileUrl
+      (f: any) =>
+        f && f.type === kind && f.texture?.fileUrl && !left.has(String(f.categoryId))
     );
     const usedCats = new Set(walls.map((f: any) => String(f.categoryId)));
     setFinishings(walls);
@@ -514,10 +540,69 @@ const WallEditorModal: React.FC<WallEditorModalProps> = ({
     return () => ro.disconnect();
   }, [libraryOpen, tool]);
 
+  type Sub = { key: string; name: string };
+
+  // The finish brands, so a brand's series sit under the brand instead of
+  // each being a main category of its own. Fetched once; without them (no
+  // connection, a failed request) every series stays a main category, as it
+  // was before.
+  const [brands, setBrands] = useState<any[]>([]);
+  useEffect(() => {
+    let live = true;
+    Promise.resolve(TexturesService.getAllFinishingBrands())
+      .then((r: any) => {
+        const list = Array.isArray(r) ? r : Array.isArray(r?.data) ? r.data : [];
+        if (live) setBrands(list);
+      })
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, []);
+
+  // THE MAIN CATEGORIES in the rail, each with its subcategories:
+  //   · a finish group without a brand (Wood Grain, Wallpaper…) — no subs;
+  //   · a brand (Merino, Royaltouch…) — its series as subs.
+  // `cats` is the finish categories a main shows when "All" is picked.
+  type Main = { key: string; name: string; subs: Sub[]; cats?: Set<string> };
+  const mains = useMemo(() => {
+    const brandName = new Map(brands.map((b: any) => [String(b._id), String(b.name || "")]));
+    const out: Main[] = [];
+    const byBrand = new Map<string, Main>();
+    categories.forEach((c: any) => {
+      const id = String(c._id);
+      const b = c.brandId != null ? String(c.brandId) : "";
+      if (b && brandName.has(b)) {
+        let m = byBrand.get(b);
+        if (!m) {
+          m = { key: "brand:" + b, name: brandName.get(b) || "", subs: [], cats: new Set() };
+          byBrand.set(b, m);
+        }
+        m.subs.push({ key: id, name: c.name });
+        m.cats!.add(id);
+      } else {
+        out.push({ key: id, name: c.name, subs: [], cats: new Set([id]) });
+      }
+    });
+    // The brands after the finish groups, in the brands' own order.
+    brands.forEach((b: any) => {
+      const m = byBrand.get(String(b._id));
+      if (m) out.push(m);
+    });
+    return out;
+  }, [categories, brands]);
+  const main = mains.find((m) => m.key === categoryId) || null;
+  /** Is this finish in the main category (and subcategory) picked? */
+  const inView = (f: any) => {
+    if (!main) return true;
+    if (subId) return String(f.categoryId) === subId;
+    return !!main.cats && main.cats.has(String(f.categoryId));
+  };
+
   const shown = useMemo(() => {
     const needle = query.trim().toLowerCase();
     const list = finishings.filter((f: any) => {
-      if (categoryId && String(f.categoryId) !== categoryId) return false;
+      if (!inView(f)) return false;
       if (!needle) return true;
       return `${f.name || ""} ${f.decorCode || ""}`
         .toLowerCase()
@@ -531,10 +616,11 @@ const WallEditorModal: React.FC<WallEditorModalProps> = ({
         (a: any, b: any) =>
           (rank.get(String(a._id)) ?? 1e9) - (rank.get(String(b._id)) ?? 1e9)
       );
-  }, [finishings, categoryId, query, rank]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [finishings, categoryId, subId, mains, query, rank]);
   const pages = Math.max(1, Math.ceil(shown.length / PAGE_SIZE));
   const pageNow = clamp(page, 1, pages);
-  useEffect(() => setPage(1), [categoryId, query, rank]);
+  useEffect(() => setPage(1), [categoryId, subId, query, rank]);
 
   // ── history ─────────────────────────────────────────────────────────────
 
@@ -560,9 +646,7 @@ const WallEditorModal: React.FC<WallEditorModalProps> = ({
     if (!regions.length) return;
     if (
       !window.confirm(
-        isCeiling
-          ? "Remove every area and material from this ceiling?"
-          : "Remove every area and material from this wall face?"
+        `Remove every area and material from this ${faceName}?`
       )
     )
       return;
@@ -782,7 +866,7 @@ const WallEditorModal: React.FC<WallEditorModalProps> = ({
     if (!(typed > 0) || typed >= limit) {
       alert(
         `Enter a distance between 1 and ${mm(limit) - 1} mm (${
-          splitAxis === "h" ? (isCeiling ? "from the bottom" : "from the floor") : "from the left"
+          splitAxis === "h" ? (isFlat ? "from the bottom" : "from the floor") : "from the left"
         }).`
       );
       return;
@@ -938,7 +1022,7 @@ const WallEditorModal: React.FC<WallEditorModalProps> = ({
       return;
     }
     const pool = finishings
-      .filter((f: any) => !categoryId || String(f.categoryId) === categoryId)
+      .filter((f: any) => inView(f))
       .slice(0, PICTURE_SEARCH_LIMIT);
     const next = new Map<string, number>();
     await Promise.all(
@@ -1449,15 +1533,17 @@ const WallEditorModal: React.FC<WallEditorModalProps> = ({
       const planner = BlueprintInterface?.blueprint3d?.roomplanner;
       if (planner) planner.needsUpdate = true;
       await BlueprintInterface.ProjectManagerService.updateFloorPlan(
-        isCeiling ? "Ceiling areas changed" : HISTORY_TITLES.WALL_TEXTURE_CHANGED
+        isCeiling
+          ? "Ceiling areas changed"
+          : isFloor
+          ? "Floor areas changed"
+          : HISTORY_TITLES.WALL_TEXTURE_CHANGED
       );
       onClose();
     } catch (e) {
       console.error("WallEditorModal ~ save", e);
       alert(
-        isCeiling
-          ? "The ceiling could not be saved. Please try again."
-          : "The wall could not be saved. Please try again."
+        `The ${isFlat ? faceName : "wall"} could not be saved. Please try again.`
       );
     } finally {
       setSaving(false);
@@ -1816,7 +1902,9 @@ const WallEditorModal: React.FC<WallEditorModalProps> = ({
       }}
     >
       <div className="we-top">
-        <div className="we-title">{isCeiling ? "Ceiling Editor" : "Wall Editor"}</div>
+        <div className="we-title">
+          {isCeiling ? "Ceiling Editor" : isFloor ? "Floor Editor" : "Wall Editor"}
+        </div>
         <div className="we-top-actions">
           <button className="we-link" onClick={undo} disabled={!past.length}>
             <Icon name="undo" /> Undo
@@ -1836,7 +1924,7 @@ const WallEditorModal: React.FC<WallEditorModalProps> = ({
             className="we-link"
             onClick={clearAll}
             disabled={!regions.length}
-            title={isCeiling ? "Remove every area from this ceiling" : "Remove every area from this wall face"}
+            title={`Remove every area from this ${faceName}`}
           >
             <Icon name="clear" /> Clear all
           </button>
@@ -1879,21 +1967,18 @@ const WallEditorModal: React.FC<WallEditorModalProps> = ({
                   <>
                     <button
                       className={"we-cat" + (categoryId === "" ? " is-on" : "")}
-                      onClick={() => setCategoryId("")}
+                      onClick={() => pickMain("")}
                     >
                       All
                     </button>
-                    {categories.map((c: any) => (
+                    {mains.map((m) => (
                       <button
-                        key={c._id}
-                        className={
-                          "we-cat" +
-                          (categoryId === String(c._id) ? " is-on" : "")
-                        }
-                        onClick={() => setCategoryId(String(c._id))}
-                        title={c.name}
+                        key={m.key}
+                        className={"we-cat" + (categoryId === m.key ? " is-on" : "")}
+                        onClick={() => pickMain(m.key)}
+                        title={m.name}
                       >
-                        {c.name}
+                        {m.name}
                       </button>
                     ))}
                   </>
@@ -1930,6 +2015,39 @@ const WallEditorModal: React.FC<WallEditorModalProps> = ({
                       <Icon name="search" />
                     </span>
                   </div>
+                  {main && main.subs.length ? (
+                    <div className="we-subs">
+                      {subsOpen ? (
+                        <div className="we-subs-list">
+                          <button
+                            type="button"
+                            className={"we-sub" + (subId === "" ? " is-on" : "")}
+                            onClick={() => setSubId("")}
+                          >
+                            All
+                          </button>
+                          {main.subs.map((sb) => (
+                            <button
+                              type="button"
+                              key={sb.key}
+                              className={"we-sub" + (subId === sb.key ? " is-on" : "")}
+                              onClick={() => setSubId(sb.key)}
+                              title={sb.name}
+                            >
+                              {sb.name}
+                            </button>
+                          ))}
+                        </div>
+                      ) : null}
+                      <button
+                        type="button"
+                        className={"we-subs-fold" + (subsOpen ? "" : " is-folded")}
+                        title={subsOpen ? "Hide subcategories" : "Show subcategories"}
+                        aria-label={subsOpen ? "Hide subcategories" : "Show subcategories"}
+                        onClick={() => setSubsOpen((v) => !v)}
+                      />
+                    </div>
+                  ) : null}
                   <div className="we-tabs">
                     <span className="we-tab is-on">Comprehensive</span>
                     {rank || ranking ? (
@@ -2103,15 +2221,15 @@ const WallEditorModal: React.FC<WallEditorModalProps> = ({
                   // looking broken.
                   const idle =
                     (id === "wallModel" || id === "modelDim") &&
-                    (isCeiling || !face.openings.length);
+                    (isFlat || !face.openings.length);
                   return (
                     <label
                       className={"we-menu-item we-check" + (idle ? " is-idle" : "")}
                       key={id}
                       title={
                         idle
-                          ? isCeiling
-                            ? "A ceiling has no doors or windows"
+                          ? isFlat
+                            ? `A ${faceName} has no doors or windows`
                             : "No doors or windows on this wall"
                           : undefined
                       }
@@ -2556,7 +2674,7 @@ const WallEditorModal: React.FC<WallEditorModalProps> = ({
               {/* On a ceiling: what of the box is not ceiling (outside the
                   room), drawn as the page behind it. Nothing is drawn there
                   in 3D either. */}
-              {isCeiling
+              {isFlat
                 ? face.openings.map((o: any, i: number) => (
                     <rect
                       key={"out" + i}
@@ -2573,7 +2691,7 @@ const WallEditorModal: React.FC<WallEditorModalProps> = ({
                 : null}
 
               {/* Doors and windows: a material is cut away here in 3D. */}
-              {!isCeiling && (show.wallModel || show.modelDim)
+              {!isFlat && (show.wallModel || show.modelDim)
                 ? face.openings.map((o: any, i: number) => (
                     <g key={i} pointerEvents="none">
                       {show.wallModel ? (
@@ -2654,7 +2772,7 @@ const WallEditorModal: React.FC<WallEditorModalProps> = ({
                     ? label(
                         -gap * 2.2,
                         guideAt.at,
-                        `${mm(guideAt.at)} mm from ${isCeiling ? "bottom" : "floor"}`,
+                        `${mm(guideAt.at)} mm from ${isFlat ? "bottom" : "floor"}`,
                         "gat",
                         "#9ff3e8",
                         10
@@ -3011,7 +3129,7 @@ const WallEditorModal: React.FC<WallEditorModalProps> = ({
                     </dd>
                     <dt>From left</dt>
                     <dd>{mm(mirrored ? W - sb.x - sb.w : sb.x)} mm</dd>
-                    <dt>{isCeiling ? "From bottom" : "From floor"}</dt>
+                    <dt>{isFlat ? "From bottom" : "From floor"}</dt>
                     <dd>{mm(sb.y)} mm</dd>
                     <dt>Material</dt>
                     <dd>
@@ -3069,7 +3187,7 @@ const WallEditorModal: React.FC<WallEditorModalProps> = ({
                         setSplitAxis(e.target.value as "h" | "v")
                       }
                     >
-                      <option value="h">{isCeiling ? "Line from bottom" : "Line from floor"}</option>
+                      <option value="h">{isFlat ? "Line from bottom" : "Line from floor"}</option>
                       <option value="v">Line from left</option>
                     </select>
                     <input

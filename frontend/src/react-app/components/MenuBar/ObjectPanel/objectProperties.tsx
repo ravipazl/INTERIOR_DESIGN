@@ -5,11 +5,14 @@ import { EVENT_ITEM_SELECTED } from "@pazl/main/core/events";
 import { RenderService } from "../../../services/RenderService";
 import { ROTATION_MODES } from "@pazl/entities/FurnishedModel";
 import UnitLengthInput from "../UnitLengthInput";
-import { mmToDisplayText, unitSuffix, useDisplayUnit } from "@pazl/utils/unitsUtils.js";
+import { mmToDisplayText, unitSuffix } from "@pazl/utils/unitsUtils.js";
+import { dimFeetAndInch, dimMilliMeter } from "@pazl/main/core/constants.js";
 import { capitalizeText } from "@pazl/utils/genericFunctions";
 import { MODEL_TYPES } from "@pazl/entities/Model";
 import { WallItem } from "@pazl/main/items/wall_item.js";
 import { ModelsService } from "@pazl/services/ModelsService";
+
+const SIZE_UNIT_KEY = "pazl-properties-size-unit";
 import { TexturesService } from "@pazl/services/texturesService";
 import { CategoriesService } from "@pazl/services/categoriesService";
 import {
@@ -40,7 +43,23 @@ function ObjectProperties({
   onHideObjectPanel,
   isMultiSelectMode,
 }: ObjectPropertiesProps) {
-  const displayUnit = useDisplayUnit();
+  // Sizes and positions read in mm by default, whatever unit the floor plan
+  // uses; the mm / ft switch beside Dimensions changes it, and is remembered.
+  const [displayUnit, setSizeUnit] = useState<string>(() => {
+    try {
+      return localStorage.getItem(SIZE_UNIT_KEY) === dimFeetAndInch ? dimFeetAndInch : dimMilliMeter;
+    } catch (e) {
+      return dimMilliMeter;
+    }
+  });
+  const switchSizeUnit = (unit: string) => {
+    setSizeUnit(unit);
+    try {
+      localStorage.setItem(SIZE_UNIT_KEY, unit);
+    } catch (e) {
+      /* only a preference */
+    }
+  };
   const [modelObject, setModelObject] = useState<any>(null);
   const [showCustomWidthInput, setShowCustomWidthInput] = useState(false);
   const [show2DDrawing, setShow2DDrawing] = useState(false);
@@ -806,17 +825,36 @@ function ObjectProperties({
               <div className="block w-full px-2 dark:bg-neutral-700">
                 <form>
                   <div className="flex flex-col mb-2">
-                    <h6 className="text-xs font-semibold leading-tight text-primary dark:text-neutral-200">
+                    <h6 className="mb-1 text-xs font-semibold leading-tight text-primary dark:text-neutral-200">
                       Name
                     </h6>
-                    <p className="font-normal bg-[color:var(--pz-input-bg)] text-xs text-primary h-7 flex items-center pl-1.5 dark:text-neutral-200">
+                    <p className="font-normal bg-[color:var(--pz-input-bg)] rounded text-xs leading-snug text-primary min-h-[28px] px-2 py-1.5 break-words dark:text-neutral-200">
                       {capitalizeText(modelObject.name)}
                     </p>
                   </div>
                   <div className="flex flex-col max-w-sm mb-2">
-                    <h6 className="text-xs font-semibold leading-tight text-primary dark:text-neutral-200">
-                      Dimensions{" "}
-                      <span style={{ fontSize: "10px" }}>(in {unitSuffix(displayUnit)})</span>
+                    <h6 className="flex items-center text-xs font-semibold leading-tight text-primary dark:text-neutral-200">
+                      <span>
+                        Dimensions{" "}
+                        <span style={{ fontSize: "10px" }}>(in {unitSuffix(displayUnit)})</span>
+                      </span>
+                      <span className="ml-auto inline-flex rounded border border-[color:var(--pz-panel-border)] overflow-hidden">
+                        {[dimMilliMeter, dimFeetAndInch].map((u) => (
+                          <button
+                            key={u}
+                            type="button"
+                            onClick={() => switchSizeUnit(u)}
+                            aria-pressed={displayUnit === u}
+                            className={`px-2 py-0.5 text-[10px] font-semibold ${
+                              displayUnit === u
+                                ? "bg-[#5b3df5] text-white"
+                                : "bg-transparent text-neutral-500 dark:text-neutral-300"
+                            }`}
+                          >
+                            {unitSuffix(u)}
+                          </button>
+                        ))}
+                      </span>
                     </h6>
                     <div className="flex items-center justify-between">
                       <div className="relative flex w-full flex-wrap items-stretch">
@@ -850,6 +888,7 @@ function ObjectProperties({
                         showCustomWidthInput ||
                         !hasWidthPresets() ? (
                           <UnitLengthInput
+                            unit={displayUnit}
                             className="relative m-0 -mr-0.5 block w-[1px] min-w-0 flex-auto border-neutral-300 bg-[color:var(--pz-input-bg)] bg-clip-padding px-1 py-[0.25rem] text-xs text-center font-normal leading-[1.6] text-neutral-700 outline-none transition duration-200 ease-in-out focus:z-[3] focus:border-primary focus:text-neutral-700 focus:shadow-[inset_0_0_0_1px_rgb(59,113,202)] focus:outline-none dark:border-neutral-600 dark:text-neutral-200 dark:placeholder:text-neutral-200 dark:focus:border-primary"
                             id="widthFormControlInput"
                             placeholder="Width"
@@ -923,6 +962,7 @@ function ObjectProperties({
                           H
                         </button>
                         <UnitLengthInput
+                          unit={displayUnit}
                           className="relative m-0 -mr-0.5 block w-[1px] min-w-0 flex-auto border-neutral-300 bg-[color:var(--pz-input-bg)] bg-clip-padding px-1 py-[0.25rem] text-xs text-center font-normal leading-[1.6] text-neutral-700 outline-none transition duration-200 ease-in-out focus:z-[3] focus:border-primary focus:text-neutral-700 focus:shadow-[inset_0_0_0_1px_rgb(59,113,202)] focus:outline-none dark:border-neutral-600 dark:text-neutral-200 dark:placeholder:text-neutral-200 dark:focus:border-primary"
                           id="heightFormControlInput"
                           placeholder="Height"
@@ -947,6 +987,7 @@ function ObjectProperties({
                           D
                         </button>
                         <UnitLengthInput
+                          unit={displayUnit}
                           className="relative m-0 -mr-0.5 block w-[1px] min-w-0 flex-auto border-neutral-300 bg-[color:var(--pz-input-bg)] bg-clip-padding px-1 py-[0.25rem] text-xs text-center font-normal leading-[1.6] text-neutral-700 outline-none transition duration-200 ease-in-out focus:z-[3] focus:border-primary focus:text-neutral-700 focus:shadow-[inset_0_0_0_1px_rgb(59,113,202)] focus:outline-none dark:border-neutral-600 dark:text-neutral-200 dark:placeholder:text-neutral-200 dark:focus:border-primary"
                           id="depthFormControlInput"
                           placeholder="Depth"
@@ -985,6 +1026,7 @@ function ObjectProperties({
                           X
                         </button>
                         <UnitLengthInput
+                          unit={displayUnit}
                           className="relative m-0 -mr-0.5 block w-[1px] min-w-0 flex-auto border-neutral-300 bg-[color:var(--pz-input-bg)] bg-clip-padding px-1 py-[0.25rem] text-xs text-center font-normal leading-[1.6] text-neutral-700 outline-none transition duration-200 ease-in-out focus:z-[3] focus:border-primary focus:text-neutral-700 focus:shadow-[inset_0_0_0_1px_rgb(59,113,202)] focus:outline-none dark:border-neutral-600 dark:text-neutral-200 dark:placeholder:text-neutral-200 dark:focus:border-primary"
                           aria-label="0"
                           aria-describedby="button-addon1"
@@ -1015,6 +1057,7 @@ function ObjectProperties({
                             the height of its TOP, a below-counter or tall
                             unit's its BOTTOM (yToMm / yFromMm above). */}
                         <UnitLengthInput
+                          unit={displayUnit}
                           className="relative m-0 -mr-0.5 block w-[1px] min-w-0 flex-auto border-neutral-300 bg-[color:var(--pz-input-bg)] bg-clip-padding px-1 py-[0.25rem] text-xs text-center font-normal leading-[1.6] text-neutral-700 outline-none transition duration-200 ease-in-out focus:z-[3] focus:border-primary focus:text-neutral-700 focus:shadow-[inset_0_0_0_1px_rgb(59,113,202)] focus:outline-none dark:border-neutral-600 dark:text-neutral-200 dark:placeholder:text-neutral-200 dark:focus:border-primary"
                           aria-label="0"
                           aria-describedby="button-addon1"
@@ -1050,6 +1093,7 @@ function ObjectProperties({
                           Z
                         </button>
                         <UnitLengthInput
+                          unit={displayUnit}
                           className="relative m-0 -mr-0.5 block w-[1px] min-w-0 flex-auto border-neutral-300 bg-[color:var(--pz-input-bg)] bg-clip-padding px-1 py-[0.25rem] text-xs text-center font-normal leading-[1.6] text-neutral-700 outline-none transition duration-200 ease-in-out focus:z-[3] focus:border-primary focus:text-neutral-700 focus:shadow-[inset_0_0_0_1px_rgb(59,113,202)] focus:outline-none dark:border-neutral-600 dark:text-neutral-200 dark:placeholder:text-neutral-200 dark:focus:border-primary"
                           aria-label="0"
                           aria-describedby="button-addon1"

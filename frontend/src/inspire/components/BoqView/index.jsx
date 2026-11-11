@@ -3,6 +3,8 @@ import { Button, Spinner } from "react-bootstrap";
 import { getBoqForProject } from "../../services/boqService";
 import { getInstallationRate } from "../../services/ratesService";
 import { listItems, fileUrl } from "../../services/projectWorkspaceService";
+import { useInvoiceProfile, pctLabel } from "@pazl/services/InvoiceProfileService";
+import { useBranding } from "@pazl/services/BrandingService";
 import "../BoqScreen/index.css";
 
 /**
@@ -36,6 +38,10 @@ function BoqView({ projectId, project, quoteNumber, prefetched }) {
   const [items, setItems] = useState([]);
   const [installRate, setInstallRate] = useState(0);
   const [pdfUrl, setPdfUrl] = useState("");
+  // Settings → Tax / Invoice. A sent quote (public page) brings its own copy,
+  // so it keeps the rates and details it was sent with.
+  const invoice = useInvoiceProfile(prefetched?.invoice);
+  const brand = useBranding();
 
   useEffect(() => {
     // Public quote page (no login) passes the BOQ already fetched from the
@@ -98,9 +104,9 @@ function BoqView({ projectId, project, quoteNumber, prefetched }) {
       .toFixed(2)
   );
   const installationCost = Number((includedArea * installRate).toFixed(2));
-  const transportCost = Number((0.0015 * totalPrice).toFixed(2));
-  const packagingCost = Number((0.0015 * totalPrice).toFixed(2));
-  const gst = Number((0.18 * totalPrice).toFixed(2));
+  const transportCost = Number(((invoice.transportPct / 100) * totalPrice).toFixed(2));
+  const packagingCost = Number(((invoice.packingPct / 100) * totalPrice).toFixed(2));
+  const gst = Number(((invoice.gstRate / 100) * totalPrice).toFixed(2));
   const grossTotal = Number(
     (totalPrice + transportCost + packagingCost + installationCost + gst).toFixed(2)
   );
@@ -137,11 +143,20 @@ function BoqView({ projectId, project, quoteNumber, prefetched }) {
       ) : null}
 
       <div className="gsw-paper">
-        <div className="gsw-watermark">P</div>
+        <div className="gsw-watermark">
+          {(invoice.companyName || "P").trim().charAt(0).toUpperCase()}
+        </div>
         <div className="gsw-content">
           <div className="gsw-head">
             <div className="gsw-brand">
-              <div className="gsw-brandname">PAZL</div>
+              {/* The invoice logo (Settings → Tax / Invoice), else the app logo
+                  (Settings → Branding), else PAZL — as in the 3D app's BOQ. */}
+              <img
+                className="gsw-logo"
+                src={invoice.logo || brand.logo || require("../../../react-app/images/pazl.png")}
+                alt={invoice.companyName}
+              />
+              <div className="gsw-brandname">{invoice.companyName}</div>
             </div>
             <div className="gsw-meta">
               <div className="gsw-doclabel">Bill of Quantity</div>
@@ -168,10 +183,34 @@ function BoqView({ projectId, project, quoteNumber, prefetched }) {
           <div className="gsw-parties">
             <div className="gsw-party">
               <div className="gsw-lbl">From</div>
-              <div className="gsw-who">PAZL</div>
-              <p>Regd. office: 17/12 #3B, Ganapathy Street, Chennai 600014</p>
-              <p>Contact: +91 94440 94422 · Email: gafoo.ak@pazl.in</p>
-              <p>R. Karthik (CEO) · +91 98405 44441 · karthik@nichedesginloft.com</p>
+              <div className="gsw-who">{invoice.companyName}</div>
+              {invoice.address
+                .split("\n")
+                .filter((l) => l.trim())
+                .map((l, i) => (
+                  <p key={i}>{l}</p>
+                ))}
+              {invoice.phone || invoice.email ? (
+                <p>
+                  {[
+                    invoice.phone ? `Contact: ${invoice.phone}` : "",
+                    invoice.email ? `Email: ${invoice.email}` : "",
+                  ]
+                    .filter(Boolean)
+                    .join(" · ")}
+                </p>
+              ) : null}
+              {invoice.contactLine ? <p>{invoice.contactLine}</p> : null}
+              {invoice.gstin || invoice.pan ? (
+                <p>
+                  {[
+                    invoice.gstin ? `GSTIN: ${invoice.gstin}` : "",
+                    invoice.pan ? `PAN: ${invoice.pan}` : "",
+                  ]
+                    .filter(Boolean)
+                    .join(" · ")}
+                </p>
+              ) : null}
             </div>
             <div className="gsw-party">
               <div className="gsw-lbl">Prepared for</div>
@@ -259,7 +298,7 @@ function BoqView({ projectId, project, quoteNumber, prefetched }) {
                 <span className="gsw-v">{money(installationCost)}</span>
               </div>
               <div className="gsw-tl">
-                <span className="gsw-k">GST 18%</span>
+                <span className="gsw-k">GST {pctLabel(invoice.gstRate)}%</span>
                 <span className="gsw-v">{money(gst)}</span>
               </div>
               <div className="gsw-tl gross">
@@ -277,45 +316,50 @@ function BoqView({ projectId, project, quoteNumber, prefetched }) {
             <div>
               <h4>Payment schedule</h4>
               <ol>
-                <li><b>10%</b> — upon order &amp; design confirmation</li>
-                <li><b>40%</b> — before commencement of work</li>
-                <li><b>40%</b> — upon delivery of products</li>
-                <li><b>10%</b> — after completion of work</li>
+                {invoice.paymentSchedule.map((r, i) => (
+                  <li key={i}>
+                    <b>{pctLabel(r.percent)}%</b> — {r.text}
+                  </li>
+                ))}
               </ol>
             </div>
             <div>
               <h4>Note</h4>
               <ol>
-                <li>
-                  Dimensions and estimation based on drawing provided by client,
-                  actual measurements may vary on site.
-                </li>
-                <li>Items not mentioned in estimate will be charged additionally.</li>
-                <li>All civil works not mentioned will be additional.</li>
-                <li>
-                  Estimate is valid for a time period of 30 days from date
-                  mentioned above.
-                </li>
-                <li>
-                  Light fittings will be based on final design, not included in
-                  this estimate, cost will be actual.
-                </li>
+                {invoice.notes.map((n, i) => (
+                  <li key={i}>{n}</li>
+                ))}
               </ol>
             </div>
             <div className="gsw-bank">
               <h4>Bank details</h4>
-              <p><span className="gsw-bk">Bank name</span> State Bank of India</p>
-              <p><span className="gsw-bk">Account name</span> NDL Interiors Private Ltd</p>
-              <p><span className="gsw-bk">Account number</span> 36342320833</p>
-              <p><span className="gsw-bk">IFSC code</span> SBIN0000962</p>
-              <p><span className="gsw-bk">Branch</span> Gopalapuram</p>
+              {[
+                ["Bank name", invoice.bankName],
+                ["Account name", invoice.accountName],
+                ["Account number", invoice.accountNumber],
+                ["IFSC code", invoice.ifsc],
+                ["Branch", invoice.branch],
+              ]
+                .filter(([, v]) => v)
+                .map(([k, v]) => (
+                  <p key={k}>
+                    <span className="gsw-bk">{k}</span> {v}
+                  </p>
+                ))}
             </div>
           </div>
 
           <div className="gsw-sign">
-            <p>For Pazl</p>
-            <p>Authorized seal or stamp</p>
+            <p>{invoice.forText}</p>
+            <p>{invoice.signText}</p>
           </div>
+          {invoice.footerTerms ? (
+            <div className="gsw-terms">
+              {invoice.footerTerms.split("\n").map((l, i) => (
+                <p key={i}>{l}</p>
+              ))}
+            </div>
+          ) : null}
         </div>
       </div>
     </div>

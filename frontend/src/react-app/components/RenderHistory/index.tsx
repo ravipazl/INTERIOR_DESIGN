@@ -594,6 +594,15 @@ const RenderHistory: React.FC<Props> = ({
         ? `Your quotation${projectName ? ` for ${projectName}` : ""}`
         : `Quote pending approval${projectName ? ` — ${projectName}` : ""}`
     );
+    // The saved subject from Settings → Email Templates replaces that default
+    // (the server picks "Revised quotation" after a change request).
+    if (projectId) {
+      ProjectWorkspaceService.fillEmailTemplate(isAdmin ? "quote_ready" : "pending_approval", projectId).then(
+        (filled) => {
+          if (filled?.subject) setSubject((s) => (s === "" || /^(Your quotation|Quote pending approval)/.test(s) ? filled.subject : s));
+        }
+      );
+    }
     setMessage("");
     setPreparing(true);
     let blob: Blob | null = null;

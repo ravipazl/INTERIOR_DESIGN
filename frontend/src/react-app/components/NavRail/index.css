@@ -459,6 +459,11 @@
 .pz-nav--tiles a.pz-nav-i[href="/rate-card"] {
   --pz-ic: #f43f5e;
 }
+/* Settings had no colour of its own and fell back to the pale default grey,
+   so its tile (and its white "you are here" tile's glyph) looked washed out. */
+.pz-nav--tiles a.pz-nav-i[href="/settings"] {
+  --pz-ic: #10b981;
+}
 .pz-nav--tiles a.pz-nav-i[href*="uploadedImages"] {
   --pz-ic: #ec4899;
 }
@@ -505,13 +510,21 @@
   box-shadow: 0 10px 20px rgba(15, 23, 42, 0.34),
     inset 0 1px 0 rgba(255, 255, 255, 0.32);
 }
-/* The page you are on: a white tile, its glyph in its colour. */
+/* The page you are on keeps its coloured tile and white glyph, like every
+   other item; a white ring (and the bar at the left, ::before) marks it. */
 .pz-nav--tiles .pz-nav-i.is-active,
 .pz-nav--tiles .pz-nav-i.is-active:hover {
-  background: #fff;
-  color: var(--pz-ic);
+  color: #fff;
+  /* Its own colour, set here so the older indigo "active" tile
+     (.pz-nav--flyout .pz-nav-i.is-active, above) can't take over. */
+  background: var(--pz-ic);
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--pz-ic) 78%, #fff) 0%,
+    var(--pz-ic) 100%
+  );
   transform: none;
-  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.32), 0 0 0 3px rgba(255, 255, 255, 0.22);
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.32), 0 0 0 3px rgba(255, 255, 255, 0.55);
 }
 .pz-nav--tiles .pz-nav-i.is-active::before {
   background: #fff;
@@ -840,15 +853,16 @@ html:root.pz-rail-open {
   background: linear-gradient(135deg, color-mix(in srgb, var(--pz-ic) 78%, #fff) 0%, var(--pz-ic) 100%);
   box-shadow: 0 3px 8px rgba(0, 0, 0, 0.22);
 }
-/* The page you are on: a lit row, its tile white with the glyph coloured. */
+/* The page you are on: a lit row; its tile keeps its colour and white glyph,
+   like every other item, with a white ring. */
 .pz-nav--tiles.is-open .pz-nav-i.is-active,
 .pz-nav--tiles.is-open .pz-nav-i.is-active:hover {
   background: rgba(255, 255, 255, 0.14);
   color: #fff;
 }
 .pz-nav--tiles.is-open .pz-nav-i.is-active svg {
-  background: #fff;
-  color: var(--pz-ic);
+  color: #fff;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.6), 0 3px 8px rgba(0, 0, 0, 0.22);
 }
 .pz-nav--tiles.is-open .pz-nav-i.is-active::before {
   left: -10px;

@@ -54,6 +54,20 @@ export const projectSchema = {
     // `quoteImageId` above is kept (holding the first) so projects saved before
     // multi-select, and anything still reading the single field, keep working.
     quoteImageIds: { type: 'array', items: { type: 'string' } },
+    // Header bell (Inspire AppHeader). Declared so the bell's "mark as read"
+    // PATCH is accepted — it was rejected with 400 before, so a notification
+    // could never be cleared. The *At times are stamped by projects.js when the
+    // status / architect really changes; the *ReadAt ones by the bell.
+    statusChangedAt: { type: 'string' },
+    quoteRequestedAt: { type: 'string' },
+    quoteRequestReadAt: { type: 'string' },
+    // Admin bell, one read time per status, so reading "Quotation requested"
+    // doesn't also hide the same project's later "Pending approval" item.
+    bellReads: { type: 'object', additionalProperties: { type: 'string' } },
+    architectAssignedAt: { type: 'string' },
+    architectAssignmentReadAt: { type: 'string' },
+    architectUpdateAt: { type: 'string' },
+    architectUpdateReadAt: { type: 'string' },
     createdAt: { type: 'string', format: 'date-time' },
     updatedAt: { type: 'string', format: 'date-time' }
   }

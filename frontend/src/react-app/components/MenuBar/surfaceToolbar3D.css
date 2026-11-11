@@ -1,0 +1,38 @@
+/* The "… Editor >" tab beside a clicked floor, wall or ceiling in the 3D view
+   (SurfaceToolbar3D.tsx). Fixed to the viewport, like the item toolbar,
+   because its position comes from projecting the clicked point through the 3D
+   camera.
+
+   The button rules are written ".pz-st3d .x": a bare ".x" ties with Tailwind's
+   [type='button'] reset, which loads later and wiped the tab's background. */
+
+.pz-st3d {
+  position: fixed;
+  z-index: 30;
+  user-select: none;
+}
+
+.pz-st3d .pz-st3d-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 7px 8px 7px 12px;
+  border: 0;
+  border-radius: 6px;
+  background: #3a3d42;
+  color: #fff;
+  font: 400 15px/1.2 Inter, Arial, sans-serif;
+  white-space: nowrap;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.22);
+  cursor: pointer;
+}
+.pz-st3d .pz-st3d-tab .material-symbols-outlined {
+  font-size: 18px;
+}
+.pz-st3d .pz-st3d-tab:hover {
+  background: #45494f;
+}
+.pz-st3d .pz-st3d-tab:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}

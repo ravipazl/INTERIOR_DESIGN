@@ -215,6 +215,72 @@
   border-left: 1px solid var(--we-line);
 }
 
+/* The subcategories of the main category picked in the rail ("All" first),
+   with a ▲ under them that folds them away. A brand's long list of series
+   scrolls inside its own box rather than pushing the swatches off. */
+.we-subs {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  border-bottom: 1px solid var(--we-line);
+}
+
+.we-subs-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  max-height: 150px;
+  overflow-y: auto;
+  padding-bottom: 4px;
+  scrollbar-width: thin;
+}
+
+.we-sub {
+  padding: 6px 12px;
+  border: 0;
+  border-radius: 3px;
+  background: var(--we-panel-2);
+  color: #e9e9ea;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.we-sub:hover {
+  background: #48484c;
+}
+
+.we-sub.is-on {
+  background: var(--we-accent);
+  color: #ffffff;
+}
+
+.we-subs-fold {
+  align-self: center;
+  width: 28px;
+  height: 16px;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  position: relative;
+}
+
+.we-subs-fold::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  border: 5px solid transparent;
+  border-top: 0;
+  border-bottom: 6px solid #c4c4c8;
+}
+
+.we-subs-fold.is-folded::before {
+  border-bottom: 0;
+  border-top: 6px solid #c4c4c8;
+}
+
 .we-tabs {
   flex: none;
   display: flex;

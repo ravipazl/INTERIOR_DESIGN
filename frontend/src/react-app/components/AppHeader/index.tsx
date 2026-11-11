@@ -4,6 +4,7 @@ import { AuthService } from "../../services/authService";
 import { ProjectsService } from "@pazl/services/projectsService";
 import { Project } from "@pazl/entities/Project";
 import { TOOLBAR_SLOT_ID } from "@pazl/components/MenuBar/ToolbarPortal";
+import { useBranding } from "@pazl/services/BrandingService";
 import "./index.css";
 
 interface AppHeaderProps {
@@ -22,6 +23,8 @@ const AppHeader: React.FC<AppHeaderProps> = ({
   handleSync,
 }) => {
   const navigate = useNavigate();
+  // Settings → Branding (the PAZL logo until one is uploaded).
+  const brand = useBranding();
   const [currentProject, setCurrentProject] = useState<Project | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -78,7 +81,8 @@ const AppHeader: React.FC<AppHeaderProps> = ({
           <span className="flex items-center justify-center w-9 h-9 rounded-lg bg-[color:var(--pz-accent-tint)] mr-1">
             <img
               alt="logo"
-              src="/assets/icons/pazl_logo.svg"
+              src={brand.logo || "/assets/icons/pazl_logo.svg"}
+              style={{ objectFit: "contain" }}
               width={"30px"}
               height={"30px"}
             />

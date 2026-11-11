@@ -7,7 +7,10 @@ button.pz-headset-btn {
   display: grid;
   place-items: center;
   padding: 0;
-  margin-right: 10px;
+  /* An even 12px either side: from the bell on its left (the bell's Bootstrap
+     row adds no space of its own), and to the profile pill on its right,
+     which brings its own 12px margin-left. */
+  margin: 0 0 0 12px;
   border-radius: 10px;
   border: 1px solid rgba(255, 255, 255, 0.28);
   background: rgba(255, 255, 255, 0.14);

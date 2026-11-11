@@ -232,6 +232,9 @@
 .gsw-bank p { margin: 2px 0; font-size: 12px; color: var(--gsw-muted); }
 .gsw-bank .gsw-bk { display: inline-block; width: 96px; color: var(--gsw-ink); font-weight: 700; }
 .gsw-sign { display: grid; justify-content: end; text-align: center; gap: 40px; margin: 24px 16px 0; padding-right: 8%; font-size: 13px; font-weight: 600; color: var(--gsw-ink); }
+/* Footer terms from Settings → Tax / Invoice (shown only when set). */
+.gsw-terms { margin: 20px 16px 0; padding-top: 10px; border-top: 1px solid var(--gsw-line, #e6e7ec); font-size: 12px; line-height: 1.5; color: var(--gsw-muted, #66666e); }
+.gsw-terms p { margin: 0 0 4px; }
 
 @media (max-width: 760px) {
   .gsw-parties, .gsw-foot { grid-template-columns: 1fr; }

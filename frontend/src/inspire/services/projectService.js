@@ -147,12 +147,19 @@ export const getProjectsCountByStatus = async (status) => {
 
 // Marks a quotation request as read by the admin (the header bell). Reuses the
 // normal project PATCH — no separate notifications service or collection.
-export const markQuoteRequestRead = async (projectId) => {
+// Marks one admin-bell item read. The read time is kept PER STATUS
+// (bellReads[status]), so reading a project's "Quotation requested" item
+// doesn't also hide its later "Pending approval" or "Accepted" item.
+export const markQuoteRequestRead = async (project) => {
   try {
     const accessToken = getAccessToken();
+    const now = new Date().toISOString();
     const response = await apiService.patch(
-      `/projects/${projectId}`,
-      { quoteRequestReadAt: new Date().toISOString() },
+      `/projects/${project._id}`,
+      {
+        bellReads: { ...(project.bellReads || {}), [project.status || "quotation_requested"]: now },
+        quoteRequestReadAt: now,
+      },
       { headers: { Authorization: `Bearer ${accessToken}` } }
     );
     return response?.data || null;

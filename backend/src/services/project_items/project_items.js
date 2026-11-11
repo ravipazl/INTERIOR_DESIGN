@@ -9,6 +9,7 @@ import {
   esc,
   fmtWhen
 } from '../../mailer.js'
+import { emailTemplate } from '../../email-templates.js'
 import {
   isWhatsAppEnabled,
   sendChangeReceived,
@@ -125,31 +126,41 @@ const notifyOnChangeRequest = async (context) => {
       change
     )}</div>`
     const teamUrl = `${getDesignUrl()}/project-detail/${item.projectId}`
-    await tx.sendMail({
-      from: process.env.SMTP_FROM || process.env.SMTP_USER,
-      to: to.join(','),
-      subject: `New change request — ${projectName}`,
-      text:
-        `A change was requested on "${projectName}". Please review and revise the design.\n\n` +
-        `Change:    ${change}\n` +
-        `Requested: ${requestedOn}\n` +
-        (item.createdBy ? `By:        ${item.createdBy}\n` : '') +
-        `\nReview it here: ${teamUrl}\n`,
-      html: renderActionEmail({
-        title: 'New change request',
-        intro: `The client requested a change on <strong>${esc(
-          projectName
-        )}</strong>. Please review and revise the design.`,
-        bodyHtml: changeBox,
-        details: [
-          ['Project', projectName],
-          item.createdBy ? ['Requested by', item.createdBy] : null,
-          ['Requested', requestedOn]
-        ].filter(Boolean),
-        ctaText: 'Review the change',
-        ctaUrl: teamUrl
-      })
+    // Words from Settings → Email Templates (change_request_team); an admin can
+    // switch this notification off there.
+    const tt = await emailTemplate(context.app, 'change_request_team', {
+      client_name: project?.clientName || item.createdBy || '',
+      project_name: projectName,
+      change_request: change,
+      link: teamUrl
     })
+    if (tt.active) {
+      await tx.sendMail({
+        from: process.env.SMTP_FROM || process.env.SMTP_USER,
+        to: to.join(','),
+        subject: tt.subject,
+        text:
+          `${tt.introText}\n\n` +
+          `Change:    ${change}\n` +
+          `Requested: ${requestedOn}\n` +
+          (item.createdBy ? `By:        ${item.createdBy}\n` : '') +
+          `\n${tt.buttonText}: ${teamUrl}\n`,
+        html: renderActionEmail({
+          title: tt.heading,
+          intro: tt.introHtml,
+          bodyHtml: changeBox,
+          details: [
+            ['Project', projectName],
+            item.createdBy ? ['Requested by', item.createdBy] : null,
+            ['Requested', requestedOn]
+          ].filter(Boolean),
+          ctaText: tt.buttonText,
+          ctaUrl: teamUrl
+        })
+      })
+    } else {
+      console.log('[change-notify] team email switched off in Email Templates')
+    }
 
     // Confirm back to the CLIENT that their change was received, so they aren't
     // left wondering whether it landed. Owner lookup (auth backend) → clientEmail
@@ -169,25 +180,27 @@ const notifyOnChangeRequest = async (context) => {
           console.warn('[change-notify] owner lookup failed:', e?.message)
         }
       }
-      if (clientEmail) {
-        const clientUrl = `${getInspireUrl()}/project-detail/${item.projectId}`
+      const clientUrl = `${getInspireUrl()}/project-detail/${item.projectId}`
+      const ct = await emailTemplate(context.app, 'change_received', {
+        client_name: clientName,
+        project_name: projectName,
+        change_request: change,
+        link: clientUrl
+      })
+      if (clientEmail && !ct.active) {
+        console.log('[change-notify] client confirmation switched off in Email Templates')
+      } else if (clientEmail) {
         await tx.sendMail({
           from: process.env.SMTP_FROM || process.env.SMTP_USER,
           to: clientEmail,
-          subject: `We received your change request — ${projectName}`,
+          subject: ct.subject,
           text:
-            `Hi${clientName ? ' ' + clientName : ''},\n\n` +
-            `Thanks — we've received your change request for "${projectName}" and our ` +
-            `team is reviewing it. We'll send you a revised quotation shortly.\n\n` +
+            `${ct.introText}\n\n` +
             `Your request:\n    ${change}\n\n` +
-            `Follow the progress here: ${clientUrl}\n\nThank you,\nPazl`,
+            `${ct.buttonText}: ${clientUrl}\n\nThank you,\nPazl`,
           html: renderActionEmail({
-            title: 'We received your change request',
-            intro: `Hi${
-              clientName ? ' ' + esc(clientName) : ''
-            }, thanks — we've received your change request for <strong>${esc(
-              projectName
-            )}</strong> and our team is reviewing it. We'll send you a revised quotation shortly.`,
+            title: ct.heading,
+            intro: ct.introHtml,
             bodyHtml: `<div style="background:#f8f9fb;border:1px solid #eceef3;border-left:4px solid #414063;border-radius:8px;padding:12px 14px;font-size:14px;line-height:21px;color:#1f2033;"><span style="color:#8a8d9f;font-size:12px;display:block;margin-bottom:4px;">Your request</span>${esc(
               change
             )}</div>`,
@@ -195,7 +208,7 @@ const notifyOnChangeRequest = async (context) => {
               ['Project', projectName],
               ['Requested', requestedOn]
             ],
-            ctaText: 'View your project',
+            ctaText: ct.buttonText,
             ctaUrl: clientUrl
           })
         })
@@ -277,30 +290,32 @@ const notifyOnStageEvent = async (context) => {
     const expected = item.expectedDate ? `\nExpected: ${item.expectedDate}` : ''
     const clientUrl = `${getInspireUrl()}/project-detail/${item.projectId}`
 
-    // 1) The CLIENT — the friendly "your project moved forward" note.
-    if (clientEmail) {
+    // 1) The CLIENT — the friendly "your project moved forward" note. Words from
+    // Settings → Email Templates (stage_update), which can switch it off.
+    const vars = {
+      client_name: clientName,
+      project_name: projectName,
+      stage: label,
+      expected_date: item.expectedDate || ''
+    }
+    const ct = await emailTemplate(context.app, 'stage_update', { ...vars, link: clientUrl })
+    if (clientEmail && !ct.active) {
+      console.log('[tracker-notify] client email switched off in Email Templates')
+    } else if (clientEmail) {
       await tx.sendMail({
         from,
         to: clientEmail,
-        subject: `${projectName} — ${label}`,
-        text:
-          `Hi${clientName ? ' ' + clientName : ''},\n\n` +
-          `Good news — your project "${projectName}" has moved to a new stage:\n\n` +
-          `    ${label}${expected}\n\n` +
-          `Track it here: ${clientUrl}\n`,
+        subject: ct.subject,
+        text: `${ct.introText}\n\n` + `    ${label}${expected}\n\n` + `${ct.buttonText}: ${clientUrl}\n`,
         html: renderActionEmail({
-          title: 'Your project moved forward',
-          intro: `Hi${
-            clientName ? ' ' + esc(clientName) : ''
-          }, good news — your project <strong>${esc(
-            projectName
-          )}</strong> has reached a new stage.`,
+          title: ct.heading,
+          intro: ct.introHtml,
           details: [
             ['Project', projectName],
             ['Stage', label],
             item.expectedDate ? ['Expected', item.expectedDate] : null
           ].filter(Boolean),
-          ctaText: 'Track your project',
+          ctaText: ct.buttonText,
           ctaUrl: clientUrl
         })
       })
@@ -338,22 +353,29 @@ const notifyOnStageEvent = async (context) => {
     }
     // De-duplicate, and don't re-send to the client if they're also on the team.
     const team = [...new Set(teamRecipients.filter((e) => e && e !== clientEmail))]
-    if (team.length) {
+    const teamUrl = `${getDesignUrl()}/project-detail/${item.projectId}`
+    const tt = await emailTemplate(context.app, 'project_update_team', {
+      ...vars,
+      client_name: clientName || clientEmail || '',
+      link: teamUrl
+    })
+    if (team.length && !tt.active) {
+      console.log('[tracker-notify] team email switched off in Email Templates')
+    } else if (team.length) {
       const movedOn = fmtWhen()
-      const teamUrl = `${getDesignUrl()}/project-detail/${item.projectId}`
       await tx.sendMail({
         from,
         to: team.join(','),
-        subject: `[Project update] ${projectName} — ${label}`,
+        subject: tt.subject,
         text:
-          `Project "${projectName}" has moved to a new stage:\n\n` +
+          `${tt.introText}\n\n` +
           `    ${label}${expected}\n\n` +
           `Client:  ${clientName || clientEmail || 'n/a'}\n` +
           `Updated: ${movedOn}\n` +
-          `\nOpen it here: ${teamUrl}\n`,
+          `\n${tt.buttonText}: ${teamUrl}\n`,
         html: renderActionEmail({
-          title: 'Project update',
-          intro: `Project <strong>${esc(projectName)}</strong> has reached a new stage.`,
+          title: tt.heading,
+          intro: tt.introHtml,
           details: [
             ['Project', projectName],
             ['Stage', label],
@@ -361,7 +383,7 @@ const notifyOnStageEvent = async (context) => {
             ['Client', clientName || clientEmail || 'n/a'],
             ['Updated', movedOn]
           ].filter(Boolean),
-          ctaText: 'Open project',
+          ctaText: tt.buttonText,
           ctaUrl: teamUrl
         })
       })
