@@ -22,6 +22,7 @@ import multer from '@koa/multer'
 import axios from 'axios'
 import { idQuery } from '../../utils/id-query.js'
 import { getTransporter, renderActionEmail, getDesignUrl, textToHtml } from '../../mailer.js'
+import { emailTemplate } from '../../email-templates.js'
 
 const __dirname = path.dirname(url.fileURLToPath(import.meta.url))
 
@@ -121,7 +122,7 @@ export const submitForApproval = (app) => {
       ctx.status = 500
       ctx.body = {
         error: 'smtp_not_configured',
-        message: 'SMTP is not configured (set SMTP_HOST etc. in the backend .env).'
+        message: 'Email is not set up. An admin can turn it on in Settings → Email.'
       }
       return
     }
@@ -220,7 +221,14 @@ export const submitForApproval = (app) => {
 
     // Email-composer overrides (all optional): the sender can set the subject,
     // write a custom message, and add Cc recipients before sending.
-    const subject = (body.subject && String(body.subject).trim()) || `Quote pending your approval — ${projectName}`
+    // Words from Settings → Email Templates (pending_approval).
+    const t = await emailTemplate(app, 'pending_approval', {
+      submitted_by: submittedBy,
+      project_name: projectName,
+      boq_number: boqNumber || '',
+      link: projectUrl
+    })
+    const subject = (body.subject && String(body.subject).trim()) || t.subject
     const customMessage = (body.message && String(body.message).trim()) || ''
     const cc = (body.cc && String(body.cc).trim()) || ''
 
@@ -230,21 +238,21 @@ export const submitForApproval = (app) => {
       subject,
       text:
         (customMessage ? `${customMessage}\n\n` : '') +
-        `${submittedBy} submitted "${projectName}" for your approval.\n\n` +
+        `${t.introText}\n\n` +
         (boqNumber ? `BOQ number: ${boqNumber}\n` : '') +
         (partsList ? `Attached: ${partsList}.\n` : '') +
         linksText +
-        `\n\nReview & approve: ${projectUrl}\n`,
+        `\n\n${t.buttonText}: ${projectUrl}\n`,
       html: renderActionEmail({
-        title: 'A quote is pending your approval',
-        intro: `<strong>${submittedBy}</strong> submitted "<strong>${projectName}</strong>" for your approval.`,
+        title: t.heading,
+        intro: t.introHtml,
         bodyHtml: customMessage ? textToHtml(customMessage) : undefined,
         imageUrl: heroImage,
         imageAlt: 'Submitted design render',
         details,
         links: linkedVideos,
         linksTitle: 'Videos too large to attach',
-        ctaText: 'Review & approve',
+        ctaText: t.buttonText,
         ctaUrl: projectUrl
       }),
       attachments

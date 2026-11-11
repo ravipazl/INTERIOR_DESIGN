@@ -2,8 +2,11 @@ import React, { useEffect, useState } from "react";
 import { Container, Modal } from "react-bootstrap";
 import NoData from "../../assets/images/no_data.svg";
 import TitleHeader from "../../components/TitleHeader";
-import { listItems, fileUrl } from "../../services/projectWorkspaceService";
+import { listItemsPage, fileUrl } from "../../services/projectWorkspaceService";
 import { formatDate } from "../../utils/genericFunctions";
+import { TablePager } from "../../components/PzTable";
+import { usePaging } from "../../components/ProjectWorkspace/paging";
+import "../../components/ProjectWorkspace/pager.css";
 
 /**
  * RendersVideos — the client-facing gallery of photorealistic renders and orbit
@@ -13,10 +16,18 @@ import { formatDate } from "../../utils/genericFunctions";
  * Read-only: clicking any card opens it full-size in an in-app modal (same
  * presentation as the BOQ screen) — images show large, videos play with
  * controls. Nothing is generated or edited here.
+ *
+ * Each grid pages on its own (Rows per page remembered in this browser): the
+ * app fetches one page of published items at a time from the server; the
+ * public quote page, which arrives with its items already, pages them here.
  */
 function RendersVideos({ projectId, prefetched }) {
   const [renders, setRenders] = useState([]);
   const [videos, setVideos] = useState([]);
+  const [renderTotal, setRenderTotal] = useState(0);
+  const [videoTotal, setVideoTotal] = useState(0);
+  const rp = usePaging("render");
+  const vp = usePaging("video");
   const [loading, setLoading] = useState(true);
   // The item opened full-size in the modal: { kind, url, title } | null.
   const [preview, setPreview] = useState(null);
@@ -25,38 +36,63 @@ function RendersVideos({ projectId, prefetched }) {
   const [failed, setFailed] = useState({});
   const markFailed = (id) => setFailed((f) => ({ ...f, [id]: true }));
 
-  useEffect(() => {
-    // Public quote page (no login) passes renders/videos already fetched from the
-    // token endpoint (already published) — use them directly.
+  // One page of one grid. Only admin-approved (published) items reach the
+  // client: renders an architect submitted sit at "pending_review" until an
+  // admin approves them, and must never show here — the server filters them.
+  const loadGrid = async (kind, paging, setList, setTotal) => {
     if (prefetched) {
-      setRenders(Array.isArray(prefetched.renders) ? prefetched.renders : []);
-      setVideos(Array.isArray(prefetched.videos) ? prefetched.videos : []);
-      setLoading(false);
+      const all = Array.isArray(prefetched[kind === "render" ? "renders" : "videos"])
+        ? prefetched[kind === "render" ? "renders" : "videos"]
+        : [];
+      const from = (paging.page - 1) * paging.rows;
+      setList(all.slice(from, from + paging.rows));
+      setTotal(all.length);
       return;
     }
+    if (!projectId) return;
+    const res = await listItemsPage(projectId, kind, {
+      limit: paging.rows,
+      skip: (paging.page - 1) * paging.rows,
+      status: "published",
+    });
+    setList(res.items);
+    setTotal(res.total);
+  };
+
+  useEffect(() => {
     let cancelled = false;
-    const load = async () => {
-      if (!projectId) return;
-      setLoading(true);
-      const [r, v] = await Promise.all([
-        listItems(projectId, "render"),
-        listItems(projectId, "video"),
-      ]);
-      if (cancelled) return;
-      // Only admin-approved (published) items reach the client. Renders an
-      // architect submitted sit at status "pending_review" until an admin
-      // approves them — those must never show here.
-      const published = (arr) =>
-        (Array.isArray(arr) ? arr : []).filter((i) => i.status === "published");
-      setRenders(published(r));
-      setVideos(published(v));
-      setLoading(false);
-    };
-    load();
+    (async () => {
+      await loadGrid("render", rp, (l) => !cancelled && setRenders(l), (t) => !cancelled && setRenderTotal(t));
+      if (!cancelled) setLoading(false);
+    })();
     return () => {
       cancelled = true;
     };
-  }, [projectId, prefetched]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projectId, prefetched, rp.page, rp.rows]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      await loadGrid("video", vp, (l) => !cancelled && setVideos(l), (t) => !cancelled && setVideoTotal(t));
+      if (!cancelled) setLoading(false);
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projectId, prefetched, vp.page, vp.rows]);
+
+  const pager = (paging, total) =>
+    total > 0 ? (
+      <TablePager
+        rowsPerPage={paging.rows}
+        rowCount={total}
+        currentPage={paging.page}
+        onChangePage={(p) => paging.setPage(p)}
+        onChangeRowsPerPage={paging.setRows}
+      />
+    ) : null;
 
   const openPreview = (item, kind) =>
     setPreview({
@@ -113,7 +149,7 @@ function RendersVideos({ projectId, prefetched }) {
     );
   }
 
-  if (renders.length === 0 && videos.length === 0) {
+  if (renderTotal === 0 && videoTotal === 0) {
     return (
       <Container
         fluid
@@ -132,6 +168,7 @@ function RendersVideos({ projectId, prefetched }) {
   return (
     <Container
       fluid
+      className="pz-rv"
       style={{ paddingBottom: "144px", marginLeft: "14px", overflowX: "hidden" }}
     >
       <div style={{ borderBottom: "0.5px solid #bdbbc07d" }}>
@@ -168,6 +205,7 @@ function RendersVideos({ projectId, prefetched }) {
             No renders yet.
           </p>
         )}
+        {pager(rp, renderTotal)}
       </div>
 
       <div>
@@ -237,6 +275,7 @@ function RendersVideos({ projectId, prefetched }) {
             No videos yet.
           </p>
         )}
+        {pager(vp, videoTotal)}
       </div>
 
       {/* Full-size preview modal — same in-app presentation as the BOQ screen. */}

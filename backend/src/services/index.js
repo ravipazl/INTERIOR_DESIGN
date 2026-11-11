@@ -43,6 +43,10 @@ import { submitForApproval } from './submit-for-approval/submit-for-approval.js'
 import { sendTrackerMail } from './send-tracker-mail/send-tracker-mail.js'
 import { publicQuote } from './public-quote/public-quote.js'
 import { whatsappTest } from './whatsapp-test/whatsapp-test.js'
+import { appSettings } from './app-settings/app-settings.js'
+import { emailTemplates } from './email-templates/email-templates.js'
+import { invoiceProfiles } from './invoice-profiles/invoice-profiles.js'
+import { branding } from './branding/branding.js'
 // Folded in from the former standalone auth backend (auth is now in-process).
 import { verify } from './verify/verify.js'
 import { deviceLogin } from './device_login/device_login.js'
@@ -99,6 +103,10 @@ export const services = (app) => {
   app.configure(sendTrackerMail)
   app.configure(publicQuote)
   app.configure(whatsappTest)
+  app.configure(appSettings)
+  app.configure(emailTemplates)
+  app.configure(invoiceProfiles)
+  app.configure(branding)
   app.configure(verify)
   app.configure(deviceLogin)
   app.configure(invite)

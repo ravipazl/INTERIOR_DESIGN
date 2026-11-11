@@ -18,6 +18,8 @@ import {
   LocalDBObjectStores,
 } from "@pazl/services/LocalDBManager";
 import { ProjectWorkspaceService } from "@pazl/services/ProjectWorkspaceService";
+import { useInvoiceProfile, pctLabel } from "@pazl/services/InvoiceProfileService";
+import { useBranding } from "@pazl/services/BrandingService";
 import { SyncService } from "@pazl/services/syncService";
 import { Autocomplete } from "@mui/material";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
@@ -134,9 +136,8 @@ const clientInfoColumns = [
   { id: 8, columnName: "Client GST Number" },
 ];
 
-// Transport + Packing together = 0.3% of the items subtotal, split evenly
-// (0.15% each). Adjust this one number to change the rate.
-const TRANSPORT_PACKING_PCT = 0.003;
+// Transport, Packing and GST rates come from Settings → Tax / Invoice
+// (useInvoiceProfile below); 0.15% + 0.15% and 18% unless changed there.
 
 const rupee = (n: number) =>
   n ? `₹${Math.round(n).toLocaleString("en-IN")}` : "—";
@@ -1536,6 +1537,11 @@ const BoqTable: React.FC<BoqTableProps> = ({
   }, []);
   const [totalPrice, setTotalPrice] = useState(0);
   const [grossTotalPrice, setGrossTotalPrice] = useState(0);
+  // Company, GST %, Transport / Packing %, payment, bank and footer details —
+  // Settings → Tax / Invoice (the default profile).
+  const invoice = useInvoiceProfile();
+  // The invoice logo, else the app logo (Settings → Branding), else PAZL.
+  const brand = useBranding();
   // Installation = global ₹/sqft rate × the area of objects that are INCLUDED
   // (each object has a per-object include/exclude toggle — e.g. a lamp = off).
   const [installationRate, setInstallationRate] = useState(0);
@@ -1581,14 +1587,15 @@ const BoqTable: React.FC<BoqTableProps> = ({
   );
   const installationCost = Number((includedArea * installationRate).toFixed(2));
 
-  // Transport & Packing as a percentage of the items subtotal (0.15% each →
-  // 0.3% combined), recomputed whenever the subtotal changes.
+  // Transport & Packing as a percentage of the items subtotal (Settings → Tax /
+  // Invoice; 0.15% each unless changed), recomputed whenever the subtotal changes.
   const transportCost = Number(
-    ((TRANSPORT_PACKING_PCT / 2) * totalPrice).toFixed(2)
+    ((invoice.transportPct / 100) * totalPrice).toFixed(2)
   );
   const packagingCost = Number(
-    ((TRANSPORT_PACKING_PCT / 2) * totalPrice).toFixed(2)
+    ((invoice.packingPct / 100) * totalPrice).toFixed(2)
   );
+  const gstAmount = (invoice.gstRate / 100) * totalPrice;
 
   // Single source of truth for the Gross/Net total. GST is charged on the items
   // subtotal only; Transport / Packing / Installation are added flat afterwards.
@@ -1598,10 +1605,10 @@ const BoqTable: React.FC<BoqTableProps> = ({
       transportCost +
       packagingCost +
       installationCost +
-      0.18 * totalPrice;
+      gstAmount;
     setGrossTotalPrice(Number(gross.toFixed(2)));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [totalPrice, installationCost]);
+  }, [totalPrice, installationCost, invoice]);
 
   // A saved Hardware / Other Costs change, applied in place (no BOQ
   // regeneration): the unit keeps the new rows, and its calculated price (which
@@ -2603,16 +2610,18 @@ const BoqTable: React.FC<BoqTableProps> = ({
           </div>
           <div ref={targetRef}>
             <div className="gsw-paper">
-              <div className="gsw-watermark">P</div>
+              <div className="gsw-watermark">
+                {(invoice.companyName || "P").trim().charAt(0).toUpperCase()}
+              </div>
               <div className="gsw-content">
                 <div className="gsw-head">
                   <div className="gsw-brand">
                     <img
                       className="gsw-logo"
-                      src={require("../../images/pazl.png")}
-                      alt="PAZL"
+                      src={invoice.logo || brand.logo || require("../../images/pazl.png")}
+                      alt={invoice.companyName}
                     />
-                    <div className="gsw-brandname">PAZL</div>
+                    <div className="gsw-brandname">{invoice.companyName}</div>
                   </div>
                   <div className="gsw-meta">
                     <div className="gsw-doclabel">Bill of Quantity</div>
@@ -2641,10 +2650,34 @@ const BoqTable: React.FC<BoqTableProps> = ({
                 <div className="gsw-parties">
                   <div className="gsw-party">
                     <div className="gsw-lbl">From</div>
-                    <div className="gsw-who">PAZL</div>
-                    <p>Regd. office: 17/12 #3B, Ganapathy Street, Chennai 600014</p>
-                    <p>Contact: +91 94440 94422 · Email: gafoo.ak@pazl.in</p>
-                    <p>R. Karthik (CEO) · +91 98405 44441 · karthik@nichedesginloft.com</p>
+                    <div className="gsw-who">{invoice.companyName}</div>
+                    {invoice.address
+                      .split("\n")
+                      .filter((l) => l.trim())
+                      .map((l, i) => (
+                        <p key={i}>{l}</p>
+                      ))}
+                    {invoice.phone || invoice.email ? (
+                      <p>
+                        {[
+                          invoice.phone ? `Contact: ${invoice.phone}` : "",
+                          invoice.email ? `Email: ${invoice.email}` : "",
+                        ]
+                          .filter(Boolean)
+                          .join(" · ")}
+                      </p>
+                    ) : null}
+                    {invoice.contactLine ? <p>{invoice.contactLine}</p> : null}
+                    {invoice.gstin || invoice.pan ? (
+                      <p>
+                        {[
+                          invoice.gstin ? `GSTIN: ${invoice.gstin}` : "",
+                          invoice.pan ? `PAN: ${invoice.pan}` : "",
+                        ]
+                          .filter(Boolean)
+                          .join(" · ")}
+                      </p>
+                    ) : null}
                   </div>
                   <div className="gsw-party">
                     <div className="gsw-lbl">Prepared for</div>
@@ -3622,8 +3655,8 @@ const BoqTable: React.FC<BoqTableProps> = ({
                   <span className="gsw-v">{money(installationCost)}</span>
                 </div>
                 <div className="gsw-tl">
-                  <span className="gsw-k">GST 18%</span>
-                  <span className="gsw-v">₹{(0.18 * totalPrice).toFixed(2)}</span>
+                  <span className="gsw-k">GST {pctLabel(invoice.gstRate)}%</span>
+                  <span className="gsw-v">₹{gstAmount.toFixed(2)}</span>
                 </div>
                 <div className="gsw-tl gross">
                   <span className="gsw-k">Gross total</span>
@@ -3640,45 +3673,50 @@ const BoqTable: React.FC<BoqTableProps> = ({
               <div>
                 <h4>Payment schedule</h4>
                 <ol>
-                  <li><b>10%</b> — upon order &amp; design confirmation</li>
-                  <li><b>40%</b> — before commencement of work</li>
-                  <li><b>40%</b> — upon delivery of products</li>
-                  <li><b>10%</b> — after completion of work</li>
+                  {invoice.paymentSchedule.map((r, i) => (
+                    <li key={i}>
+                      <b>{pctLabel(r.percent)}%</b> — {r.text}
+                    </li>
+                  ))}
                 </ol>
               </div>
               <div>
                 <h4>Note</h4>
                 <ol>
-                  <li>
-                    Dimensions and estimation based on drawing provided by client,
-                    actual measurements may vary on site.
-                  </li>
-                  <li>Items not mentioned in estimate will be charged additionally.</li>
-                  <li>All civil works not mentioned will be additional.</li>
-                  <li>
-                    Estimate is valid for a time period of 30 days from date
-                    mentioned above.
-                  </li>
-                  <li>
-                    Light fittings will be based on final design, not included in
-                    this estimate, cost will be actual.
-                  </li>
+                  {invoice.notes.map((n, i) => (
+                    <li key={i}>{n}</li>
+                  ))}
                 </ol>
               </div>
               <div className="gsw-bank">
                 <h4>Bank details</h4>
-                <p><span className="gsw-bk">Bank name</span> State Bank of India</p>
-                <p><span className="gsw-bk">Account name</span> NDL Interiors Private Ltd</p>
-                <p><span className="gsw-bk">Account number</span> 36342320833</p>
-                <p><span className="gsw-bk">IFSC code</span> SBIN0000962</p>
-                <p><span className="gsw-bk">Branch</span> Gopalapuram</p>
+                {[
+                  ["Bank name", invoice.bankName],
+                  ["Account name", invoice.accountName],
+                  ["Account number", invoice.accountNumber],
+                  ["IFSC code", invoice.ifsc],
+                  ["Branch", invoice.branch],
+                ]
+                  .filter(([, v]) => v)
+                  .map(([k, v]) => (
+                    <p key={k}>
+                      <span className="gsw-bk">{k}</span> {v}
+                    </p>
+                  ))}
               </div>
             </div>
 
             <div className="gsw-sign">
-              <p>For Pazl</p>
-              <p>Authorized seal or stamp</p>
+              <p>{invoice.forText}</p>
+              <p>{invoice.signText}</p>
             </div>
+            {invoice.footerTerms ? (
+              <div className="gsw-terms">
+                {invoice.footerTerms.split("\n").map((l, i) => (
+                  <p key={i}>{l}</p>
+                ))}
+              </div>
+            ) : null}
           </div>
         </div>
       ) : (

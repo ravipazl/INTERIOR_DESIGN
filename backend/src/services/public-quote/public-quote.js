@@ -24,6 +24,8 @@ import {
   esc,
   fmtWhen
 } from '../../mailer.js'
+import { emailTemplate } from '../../email-templates.js'
+import { SEED_PROFILE } from '../invoice-profiles/invoice-profiles.js'
 
 // A cached handle to the AI backend's database, so a public accept can mirror the
 // status there too (the Inspire admin dashboard/bell reads the AI backend). We
@@ -100,24 +102,23 @@ const notifyTeamOfAccept = async (project) => {
   const snap = project?.quoteSnapshot || {}
   const client = snap.clientName || project?.clientName || snap.clientEmail || 'the client'
   const teamUrl = `${getDesignUrl()}/project-detail/${project._id}`
+  // Words from Settings → Email Templates (quote_accepted), which can switch it off.
+  const t = await emailTemplate(appRef, 'quote_accepted', { client_name: client, project_name: projectName, link: teamUrl })
+  if (!t.active) return
   await tx.sendMail({
     from: process.env.SMTP_FROM || process.env.SMTP_USER,
     to: to.join(','),
-    subject: `Quote accepted — ${projectName}`,
-    text:
-      `${client} has accepted the quotation for "${projectName}". You can now close the project.\n\n` +
-      `Open it here: ${teamUrl}\n`,
+    subject: t.subject,
+    text: `${t.introText}\n\n` + `${t.buttonText}: ${teamUrl}\n`,
     html: renderActionEmail({
-      title: 'The client accepted the quote',
-      intro: `<strong>${esc(client)}</strong> has accepted the quotation for "<strong>${esc(
-        projectName
-      )}</strong>". You can now close the project.`,
+      title: t.heading,
+      intro: t.introHtml,
       details: [
         ['Project', projectName],
         ['Client', client],
         ['Accepted', fmtWhen()]
       ],
-      ctaText: 'Open project',
+      ctaText: t.buttonText,
       ctaUrl: teamUrl
     })
   })
@@ -163,22 +164,24 @@ const notifyTeamOfReject = async (project, reason) => {
     ['Rejected', fmtWhen()]
   ]
   if (reason) details.push(['Reason', reason])
+  // Words from Settings → Email Templates (quote_rejected), which can switch it off.
+  const t = await emailTemplate(appRef, 'quote_rejected', {
+    client_name: client,
+    project_name: projectName,
+    reason,
+    link: teamUrl
+  })
+  if (!t.active) return
   await tx.sendMail({
     from: process.env.SMTP_FROM || process.env.SMTP_USER,
     to: to.join(','),
-    subject: `Quote rejected — ${projectName}`,
-    text:
-      `${client} has rejected the quotation for "${projectName}".` +
-      (reason ? `\n\nReason: ${reason}` : '') +
-      `\n\nYou can send a revised quote or close the project.\n\nOpen it here: ${teamUrl}\n`,
+    subject: t.subject,
+    text: `${t.introText}` + (reason ? `\n\nReason: ${reason}` : '') + `\n\n${t.buttonText}: ${teamUrl}\n`,
     html: renderActionEmail({
-      title: 'The client rejected the quote',
-      intro:
-        `<strong>${esc(client)}</strong> has rejected the quotation for "<strong>${esc(
-          projectName
-        )}</strong>". You can send a revised quote or close the project.`,
+      title: t.heading,
+      intro: t.introHtml,
       details,
-      ctaText: 'Open project',
+      ctaText: t.buttonText,
       ctaUrl: teamUrl
     })
   })
@@ -187,7 +190,11 @@ const notifyTeamOfReject = async (project, reason) => {
 const findByToken = async (db, token) =>
   db.collection('projects').findOne({ quoteShareToken: token })
 
+// The app, for the template lookups in the notify helpers above.
+let appRef = null
+
 export const publicQuote = (app) => {
+  appRef = app
   app.use(async (ctx, next) => {
     const m = ctx.path.match(/^\/public-quote\/([^/]+)(\/accept|\/change|\/reject)?\/?$/)
     if (!m) return next()
@@ -229,7 +236,16 @@ export const publicQuote = (app) => {
       try {
         await db
           .collection('projects')
-          .updateOne(idQuery(pid), { $set: { status: 'quotation_accepted', changeRequestPending: false } })
+          // statusChangedAt / architectUpdateAt: the header bell's "new" times
+          // (projects.js stampBellTimes does the same for app saves).
+          .updateOne(idQuery(pid), {
+            $set: {
+              status: 'quotation_accepted',
+              changeRequestPending: false,
+              statusChangedAt: new Date().toISOString(),
+              architectUpdateAt: new Date().toISOString()
+            }
+          })
         // Mirror the status into the AI DB so the Inspire admin dashboard/bell
         // reflects the accept, and notify the team — both best-effort.
         syncAiProjectStatus(app, pid, 'quotation_accepted').catch(() => {})
@@ -255,7 +271,9 @@ export const publicQuote = (app) => {
         // the deal) or close the project — the reject is recoverable.
         await db
           .collection('projects')
-          .updateOne(idQuery(pid), { $set: { status: 'quotation_rejected', changeRequestPending: false } })
+          .updateOne(idQuery(pid), {
+            $set: { status: 'quotation_rejected', changeRequestPending: false, statusChangedAt: new Date().toISOString() }
+          })
         syncAiProjectStatus(app, pid, 'quotation_rejected').catch(() => {})
         notifyTeamOfReject(project, reason).catch((e) =>
           console.error('[reject-public] notify failed:', e?.message)
@@ -343,6 +361,9 @@ export const publicQuote = (app) => {
       changeRequestPending: !!project.changeRequestPending,
       boqItems: Array.isArray(snap.boqItems) ? snap.boqItems : [],
       installRate: Number(snap.installRate) || 0,
+      // Tax / Invoice details: as sent; quotes sent before the page existed get
+      // the original values (the seed profile), which is what they showed then.
+      invoice: snap.invoice || { ...SEED_PROFILE, id: SEED_PROFILE._id },
       renders,
       videos,
       sentAt: snap.sentAt || null

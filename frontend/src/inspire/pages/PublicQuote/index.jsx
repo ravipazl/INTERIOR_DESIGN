@@ -10,6 +10,7 @@ import {
 import RendersVideos from "../ProjectDetail/RendersVideos";
 import BoqView from "../../components/BoqView";
 import pazlLogo from "../../assets/images/pazl_logo.svg";
+import { BrandLogo, BrandName } from "@pazl/components/BrandLogo";
 
 /**
  * PublicQuote — the client's LOGIN-FREE quote page, opened from the email link
@@ -70,7 +71,7 @@ function PublicQuote() {
   if (error) {
     return centered(
       <div>
-        <img src={pazlLogo} alt="PAZL" width={56} height={56} />
+        <BrandLogo fallback={pazlLogo} alt="PAZL" width={56} height={56} />
         <p className="mt-3" style={{ color: "#b91c1c", maxWidth: 420 }}>
           {error}
         </p>
@@ -271,7 +272,7 @@ function PublicQuote() {
         className="d-flex flex-wrap align-items-center py-3 mb-2"
         style={{ borderBottom: "1px solid #ececf1", gap: 12 }}
       >
-        <img src={pazlLogo} alt="PAZL" width={48} height={48} />
+        <BrandLogo fallback={pazlLogo} alt="PAZL" width={48} height={48} />
         <div>
           <div style={{ fontWeight: 700, color: "#414063", fontSize: 16 }}>
             {project.name || "Your quotation"}
@@ -295,6 +296,8 @@ function PublicQuote() {
           prefetched={{
             items: data.boqItems || [],
             installRate: data.installRate || 0,
+            // The Tax / Invoice details this quote was sent with.
+            invoice: data.invoice,
             pdfUrl: "",
           }}
         />

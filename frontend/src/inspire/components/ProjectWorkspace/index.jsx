@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import {
-  listItems,
+  listItemsPage,
   createItem,
   updateItem,
   removeItem,
@@ -14,7 +14,10 @@ import { TRACKER_STAGES, stageLabel } from "../../utils/trackerStages";
 import TrackerAdmin from "../TrackerAdmin";
 import RendersVideos from "../../pages/ProjectDetail/RendersVideos";
 import BoqView from "../BoqView";
+import { TablePager } from "../PzTable";
+import { readRows, saveRows } from "./paging";
 import "@pazl/components/ProjectWorkspace/index.css";
+import "./pager.css";
 
 /**
  * ProjectWorkspace (Inspire admin) — same per-project workspace the 3D app
@@ -65,6 +68,11 @@ const ProjectWorkspace = ({ projectId, project, openSection, openSectionNonce, s
   const stageFilter = filterStage || "";
   const setStageFilter = onFilterChange || (() => {});
   const [items, setItems] = useState([]);
+  // Page by page from the server (Rows per page remembered per tab).
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [rowsByTab, setRowsByTab] = useState({});
+  const rows = rowsByTab[tab] || readRows(tab);
   const [loading, setLoading] = useState(false);
   const [busy, setBusy] = useState(false);
   const fileRef = useRef(null);
@@ -91,19 +99,40 @@ const ProjectWorkspace = ({ projectId, project, openSection, openSectionNonce, s
     ? [...baseTabs, boqTab, rendersTab]
     : [...baseTabs, boqTab, rendersTab, { key: "stage_event", label: "Tracker" }];
 
-  const load = async () => {
+  // One page of this tab, from the server (the step filter applies there too).
+  // `target` defaults to the page on screen, so an edit or delete stays put.
+  const load = async (target = page) => {
     if (!projectId) return;
-    // BOQ and Renders & Videos render their own components (fetch their own data).
-    if (tab === "renders" || tab === "boq") return;
+    // BOQ, Renders & Videos and the Tracker render their own components (fetch
+    // their own data).
+    if (tab === "renders" || tab === "boq" || tab === "stage_event") return;
     setLoading(true);
-    setItems(await listItems(projectId, tab));
+    const res = await listItemsPage(projectId, tab, {
+      limit: rows,
+      skip: (target - 1) * rows,
+      stage: stageFilter || undefined,
+    });
+    // A page emptied by a delete steps back to the last page that has items.
+    if (!res.items.length && res.total > 0 && target > 1) {
+      setLoading(false);
+      return load(Math.max(1, Math.ceil(res.total / rows)));
+    }
+    setItems(res.items);
+    setTotal(res.total);
+    setPage(target);
     setLoading(false);
   };
 
+  // A new tab, step filter or page size starts from page 1.
   useEffect(() => {
-    load();
+    load(1);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [projectId, tab]);
+  }, [projectId, tab, stageFilter, rows]);
+
+  const changeRows = (n) => {
+    setRowsByTab((m) => ({ ...m, [tab]: n }));
+    saveRows(tab, n);
+  };
 
   // Default the "Related to" step to the step you've filtered/clicked to.
   useEffect(() => {
@@ -132,7 +161,7 @@ const ProjectWorkspace = ({ projectId, project, openSection, openSectionNonce, s
     if (up) {
       await createItem({ projectId, kind: "document", type: docType, title: title || up.originalName, fileUrl: up.fileUrl, mimeType: up.mimeType, note, stage: relStage || undefined, createdBy: me });
       resetDraft();
-      await load();
+      await load(1);
     } else
       toast.error("Upload failed.", {
         position: toast.POSITION.TOP_RIGHT,
@@ -160,7 +189,7 @@ const ProjectWorkspace = ({ projectId, project, openSection, openSectionNonce, s
       createdChange = await createItem({ projectId, kind: "change", description: text, status: "pending", attachmentUrl, mimeType, stage: relStage || undefined, createdBy: me });
     else await createItem({ projectId, kind: "discussion", text, author: me, attachmentUrl, mimeType, stage: relStage || undefined, createdBy: me });
     resetDraft();
-    await load();
+    await load(1);
     // A change request reopens the quote for a revision — tell the parent to
     // refresh the project so the "Accept / Request a change" bar hides until the
     // team sends a revised quotation.
@@ -190,7 +219,7 @@ const ProjectWorkspace = ({ projectId, project, openSection, openSectionNonce, s
     setBusy(true);
     await createItem({ projectId, kind: "task", title, assignedTo: assignee, dueDate, status: "todo", stage: relStage || undefined, createdBy: me });
     resetDraft();
-    await load();
+    await load(1);
     setBusy(false);
   };
 
@@ -214,7 +243,8 @@ const ProjectWorkspace = ({ projectId, project, openSection, openSectionNonce, s
     </select>
   );
 
-  const shown = stageFilter ? items.filter((it) => it.stage === stageFilter) : items;
+  // The server already applied the step filter and the page.
+  const shown = items;
 
   return (
     <div className="pz-ws pz-ws--inspire">
@@ -242,7 +272,7 @@ const ProjectWorkspace = ({ projectId, project, openSection, openSectionNonce, s
       ) : tab === "renders" ? (
         <RendersVideos projectId={projectId} />
       ) : tab === "stage_event" && !isClient ? (
-        <TrackerAdmin projectId={projectId} status={status} clientEmail={clientEmail} onAdvance={load} />
+        <TrackerAdmin projectId={projectId} status={status} clientEmail={clientEmail} onAdvance={() => load()} />
       ) : (
       <>
       <div className="pz-ws-form">
@@ -388,6 +418,15 @@ const ProjectWorkspace = ({ projectId, project, openSection, openSectionNonce, s
         ))
       )}
       </div>
+      {total > 0 ? (
+        <TablePager
+          rowsPerPage={rows}
+          rowCount={total}
+          currentPage={page}
+          onChangePage={(p) => load(p)}
+          onChangeRowsPerPage={changeRows}
+        />
+      ) : null}
       </>
       )}
     </div>

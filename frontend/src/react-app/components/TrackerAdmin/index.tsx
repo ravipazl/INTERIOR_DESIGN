@@ -93,6 +93,8 @@ const TrackerAdmin: React.FC<Props> = ({
   const [mailFile, setMailFile] = useState<File | null>(null);
   const [mailCc, setMailCc] = useState("");
   const [mailSending, setMailSending] = useState(false);
+  const [mailTemplates, setMailTemplates] = useState<{ key: string; name: string }[]>([]);
+  const [mailTemplate, setMailTemplate] = useState("");
   // Toast for send success / failure (auto-dismisses).
   const [toast, setToast] = useState<{
     type: "success" | "error";
@@ -397,6 +399,19 @@ const TrackerAdmin: React.FC<Props> = ({
     setMailMessage("");
     setMailCc("");
     setMailFile(null);
+    setMailTemplate("");
+    // Templates the admin made in Settings → Email Templates.
+    WS.emailTemplateOptions().then(setMailTemplates);
+  };
+
+  // Picking a template fills the subject and message (still editable).
+  const pickMailTemplate = async (key: string) => {
+    setMailTemplate(key);
+    if (!key) return;
+    const filled = await WS.fillEmailTemplate(key, projectId);
+    if (!filled) return;
+    setMailSubject(filled.subject);
+    setMailMessage(filled.message);
   };
 
   const sendMail = async () => {
@@ -1138,6 +1153,30 @@ const TrackerAdmin: React.FC<Props> = ({
                 fontSize: 14,
               }}
             />
+
+            {mailTemplates.length ? (
+              <>
+                <label style={{ fontSize: 12, color: "#6b7280" }}>Template (optional)</label>
+                <select
+                  value={mailTemplate}
+                  onChange={(e) => pickMailTemplate(e.target.value)}
+                  style={{
+                    border: "1px solid #d1d5db",
+                    borderRadius: 8,
+                    padding: "8px 10px",
+                    fontSize: 14,
+                    background: "#fff",
+                  }}
+                >
+                  <option value="">Write my own</option>
+                  {mailTemplates.map((t) => (
+                    <option key={t.key} value={t.key}>
+                      {t.name}
+                    </option>
+                  ))}
+                </select>
+              </>
+            ) : null}
 
             <label style={{ fontSize: 12, color: "#6b7280" }}>Subject</label>
             <input

@@ -16,6 +16,7 @@ import LandingGate, { LandingPage } from "./LandingGate";
 import Teams from "../pages/Dashboard/AdminDashboard/Teams";
 import Projects from "../pages/Dashboard/AdminDashboard/Projects";
 import RateCard from "../pages/RateCard";
+import Settings from "../pages/Settings";
 import PublicQuote from "../pages/PublicQuote";
 
 const Router = () => {
@@ -144,6 +145,19 @@ const Router = () => {
             element={
               <ProtectedRoute>
                 <RateCard />
+              </ProtectedRoute>
+            }
+          />
+        )}
+        {/* Settings — email and the AI services' keys. Admin only; the
+            backend's /app-settings routes check the role again. */}
+        {(currentUser?.permissions === USER_ROLES.ADMIN ||
+          currentUser?.permissions === USER_ROLES.SUPER_ADMIN) && (
+          <Route
+            path="/settings"
+            element={
+              <ProtectedRoute>
+                <Settings />
               </ProtectedRoute>
             }
           />

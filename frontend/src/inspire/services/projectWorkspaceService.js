@@ -75,6 +75,25 @@ export const listItems = async (projectId, kind) => {
   }
 };
 
+// One PAGE of a project's items, newest first, fetched from the server — the
+// workspace tabs page through these instead of loading everything (listItems
+// above stops at 500). `stage` / `status` filter on the server too. Returns
+// { items, total }; total is the count across all pages.
+export const listItemsPage = async (projectId, kind, { limit = 10, skip = 0, stage, status } = {}) => {
+  try {
+    const params = { projectId, kind, $limit: limit, $skip: skip, "$sort[createdAt]": -1 };
+    if (stage) params.stage = stage;
+    if (status) params.status = status;
+    const res = await axios.get(`${DESIGN}/projectitems`, { ...authCfg(), params });
+    const body = res?.data;
+    if (Array.isArray(body)) return { items: body, total: body.length };
+    return { items: Array.isArray(body?.data) ? body.data : [], total: Number(body?.total) || 0 };
+  } catch (e) {
+    console.error("projectWorkspaceService.listItemsPage", e);
+    return { items: [], total: 0 };
+  }
+};
+
 export const createItem = async (data) => {
   const res = await axios.post(`${DESIGN}/projectitems`, data, authCfg());
   return ok(res) ? res.data : null;

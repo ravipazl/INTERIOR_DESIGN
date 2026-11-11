@@ -1,0 +1,523 @@
+/* Settings → Email Templates. On top of Settings.css (same `.pz-settings`
+   scope, cards, fields and buttons); only what the list and editor add. */
+
+.pzt-page {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  min-width: 0;
+}
+.pzt-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+}
+.pzt-title {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--pzs-ink);
+}
+.pzt-sub {
+  margin: 4px 0 0;
+  font-size: 14px;
+  color: var(--pzp-ink-2);
+}
+.pzt-crumbs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+  font-size: 13px;
+  color: var(--pzp-ink-2);
+}
+.pzt-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+.pz-settings .pzt-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 44px;
+  margin: 0;
+  padding: 0 12px;
+  border: 1px solid var(--pzs-field-line);
+  border-radius: 12px;
+  background: #fff;
+  color: var(--pzp-ink-2);
+}
+.pz-settings .pzt-search input {
+  width: 200px;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  font-size: 14px;
+  color: var(--pzp-ink);
+}
+.pz-settings .pzt-search:focus-within {
+  border-color: #7c3aed;
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.15);
+}
+.pz-settings .pzt-perpage {
+  display: flex;
+  align-items: center;
+  height: 44px;
+  margin: 0;
+  border: 1px solid var(--pzs-field-line);
+  border-radius: 12px;
+  background: #fff;
+  overflow: hidden;
+  font-size: 13px;
+  color: var(--pzp-ink-2);
+}
+.pz-settings .pzt-perpage span {
+  padding: 0 10px;
+  border-right: 1px solid var(--pzs-field-line);
+}
+.pz-settings .pzt-perpage select {
+  height: 100%;
+  padding: 0 8px;
+  border: 0;
+  background: #fff;
+  font-size: 14px;
+  color: var(--pzp-ink);
+}
+.pzt-notice {
+  margin: 0;
+  padding: 12px 16px;
+  border-radius: 12px;
+  background: var(--pzs-ok-bg, #ecfdf3);
+  color: var(--pzs-ok);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+/* --- the list ------------------------------------------------------------ */
+.pzt-card {
+  background: #fff;
+  border: 1px solid var(--pzp-line);
+  border-radius: 18px;
+  box-shadow: var(--pzp-shadow-card);
+  overflow: hidden;
+}
+.pzt-table-wrap {
+  overflow-x: auto;
+}
+.pzt-table {
+  width: 100%;
+  min-width: 760px;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+.pzt-table th {
+  padding: 14px 18px;
+  background: #efeaf8;
+  color: #3b1a78;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-align: left;
+  white-space: nowrap;
+}
+.pzt-table td {
+  padding: 14px 18px;
+  border-top: 1px solid var(--pzp-line);
+  color: var(--pzs-ink);
+  vertical-align: middle;
+}
+.pzt-table tbody tr:hover td {
+  background: #faf8fd;
+}
+.pzt-table .is-center { text-align: center; }
+.pzt-table .is-right { text-align: right; }
+.pzt-key {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 13px;
+  color: var(--pzp-ink-2);
+  white-space: nowrap;
+}
+.pzt-name { font-weight: 500; white-space: nowrap; }
+/* Takes whatever width is left and cuts off with "…", so Actions stays in view. */
+.pzt-table td.pzt-subject {
+  width: 100%;
+  max-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--pzp-ink-2);
+}
+.pzt-tag {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: #f2f4f7;
+  color: #475467;
+  font-size: 11px;
+  font-weight: 600;
+  vertical-align: 1px;
+}
+.pzt-tag.is-edited { background: #fffaeb; color: #b54708; }
+.pzt-pill {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.pzt-pill.is-client { background: #eff4ff; color: #1d4ed8; }
+.pzt-pill.is-admin { background: #fffaeb; color: #b54708; }
+.pzt-pill.is-team { background: #ecfdf3; color: #067647; }
+.pzt-pill.is-arch { background: #f4f0fd; color: #6d28d9; }
+.pzt-pill.is-any { background: #f2f4f7; color: #475467; }
+.pzt-on { color: #16a34a; display: inline-flex; }
+.pzt-off {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #f2f4f7;
+  color: #667085;
+  font-size: 12px;
+  font-weight: 600;
+}
+.pzt-actions {
+  display: inline-flex;
+  gap: 8px;
+}
+.pz-settings button.pzt-act {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--pzs-btn);
+  color: #fff;
+  cursor: pointer;
+  transition: filter 0.15s ease;
+}
+.pz-settings button.pzt-act:hover:not(:disabled) { filter: brightness(1.15); }
+.pz-settings button.pzt-act.is-danger { background: #fef3f2; color: #b42318; }
+.pz-settings button.pzt-act.is-danger:hover:not(:disabled) { background: #fee4e2; filter: none; }
+.pz-settings button.pzt-act:disabled { opacity: 0.35; cursor: not-allowed; }
+.pz-settings button.pzt-act:focus-visible {
+  outline: 2px solid #6d28d9;
+  outline-offset: 2px;
+}
+.pzt-empty {
+  padding: 32px 18px !important;
+  text-align: center;
+  color: var(--pzp-ink-2) !important;
+}
+.pz-settings button.pzt-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: #6d28d9;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.pz-settings button.pzt-link:hover { text-decoration: underline; }
+.pzt-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: -8px;
+  font-size: 13px;
+  color: var(--pzp-ink-2);
+}
+.pzt-pager {
+  display: inline-flex;
+  border: 1px solid var(--pzs-field-line);
+  border-radius: 10px;
+  overflow: hidden;
+  background: #fff;
+}
+.pz-settings .pzt-pager button {
+  min-width: 36px;
+  height: 34px;
+  border: 0;
+  border-left: 1px solid var(--pzs-field-line);
+  background: #fff;
+  color: var(--pzs-ink);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.pz-settings .pzt-pager button:first-child { border-left: 0; }
+.pz-settings .pzt-pager button.is-on { background: #efeaf8; color: #3b1a78; }
+.pz-settings .pzt-pager button:disabled { color: #c0c4ce; cursor: default; }
+
+/* --- the editor page ------------------------------------------------------ */
+.pzt-req { color: #b42318; }
+.pzt-content {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  padding: 24px 26px 28px;
+}
+.pzt-grid1 {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 18px;
+}
+.pzt-label {
+  margin: 0 0 8px;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--pzs-ink);
+}
+.pzt-label span {
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--pzp-ink-2);
+}
+.pzt-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.pz-settings button.pzt-chip {
+  padding: 3px 9px;
+  border: 1px solid #ddd3f3;
+  border-radius: 8px;
+  background: #f6f2fd;
+  color: #5b21b6;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  cursor: pointer;
+}
+.pz-settings button.pzt-chip:hover:not(:disabled) { background: #ece4fb; }
+.pz-settings button.pzt-chip:disabled { cursor: default; opacity: 0.7; }
+.pzt-split {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 26px;
+  align-items: start;
+}
+.pzt-col {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+/* Rich-text editor */
+.pzt-editor-modes {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.pz-settings .pzt-editor-modes button {
+  height: 32px;
+  padding: 0 14px;
+  border: 1px solid #ddd3f3;
+  border-radius: 999px;
+  background: #fff;
+  color: #5b21b6;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.pz-settings .pzt-editor-modes button.is-on {
+  border-color: transparent;
+  background: var(--pzs-btn);
+  color: #fff;
+}
+.pzt-editor-frame {
+  border: 1px solid var(--pzs-field-line);
+  border-radius: 12px;
+  background: #fff;
+  overflow: hidden;
+}
+.pzt-editor.is-invalid .pzt-editor-frame { border-color: var(--pzs-bad); }
+.pzt-editor-frame:focus-within {
+  border-color: #7c3aed;
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.15);
+}
+.pzt-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--pzp-line);
+  background: #fafbfc;
+}
+.pz-settings button.pzt-tool {
+  display: grid;
+  place-items: center;
+  min-width: 30px;
+  height: 30px;
+  padding: 0 6px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: #344054;
+  cursor: pointer;
+}
+.pz-settings button.pzt-tool:hover:not(:disabled) { background: #efeaf8; color: #5b21b6; }
+.pz-settings button.pzt-tool:disabled { opacity: 0.4; cursor: default; }
+.pzt-tool-text { font-size: 12px; font-weight: 700; }
+.pzt-tool-sep {
+  width: 1px;
+  height: 18px;
+  margin: 0 4px;
+  background: var(--pzp-line);
+}
+.pzt-editable,
+.pz-settings .pzt-source {
+  display: block;
+  width: 100%;
+  min-height: 260px;
+  padding: 14px 16px;
+  border: 0;
+  outline: 0;
+  font-size: 14px;
+  line-height: 1.6;
+  color: #1f2033;
+  overflow-wrap: anywhere;
+}
+.pz-settings .pzt-source {
+  resize: vertical;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 13px;
+}
+.pzt-editable p { margin: 0 0 10px; }
+.pzt-editable h2 { font-size: 19px; margin: 0 0 10px; }
+.pzt-editable h3 { font-size: 16px; margin: 0 0 8px; }
+.pzt-editable a { color: #5b21b6; }
+.pzt-editor.is-disabled .pzt-editable { background: #fcfcfd; }
+
+/* Preview */
+.pzt-preview {
+  padding: 14px;
+  border: 1px solid var(--pzp-line);
+  border-radius: 12px;
+  background: #f4f5f7;
+}
+.pzt-preview-subject {
+  margin: 0 0 10px;
+  font-size: 13px;
+  color: #5c5f73;
+  overflow-wrap: anywhere;
+}
+.pzt-preview-frame {
+  display: block;
+  width: 100%;
+  height: 560px;
+  border: 0;
+  border-radius: 8px;
+  background: #f4f5f7;
+}
+.pzt-preview-wait {
+  display: grid;
+  place-items: center;
+  color: var(--pzp-ink-2);
+  font-size: 14px;
+}
+.pzt-reset { margin-left: 14px; color: #b42318 !important; }
+
+/* Confirm dialog */
+.pzt-modal .modal-content {
+  border: 0;
+  border-radius: 16px;
+  box-shadow: 0 20px 50px rgba(16, 24, 40, 0.2);
+}
+.pzt-modal .modal-body { padding: 24px; }
+.pzt-modal-title {
+  margin: 0 0 8px;
+  font-size: 18px;
+  font-weight: 700;
+  color: #1f2033;
+}
+.pzt-modal-text {
+  margin: 0 0 20px;
+  font-size: 14px;
+  color: #5c5f73;
+}
+.pzt-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+.pzt-modal .pzs-btn {
+  display: inline-flex;
+  align-items: center;
+  height: 42px;
+  padding: 0 18px;
+  border: 1px solid #dfe2ea;
+  border-radius: 12px;
+  background: #fff;
+  color: #2b2f3a;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.pzt-modal .pzs-btn--primary,
+.pzt-modal .pzt-btn-danger {
+  border: 0;
+  color: #fff;
+}
+.pzt-modal .pzs-btn--primary { background: linear-gradient(135deg, #4c1d95 0%, #6d28d9 100%); }
+.pzt-modal .pzt-btn-danger { background: #d92d20; }
+.pzt-modal .pzs-btn:disabled { opacity: 0.6; cursor: default; }
+
+/* --- the list fits the window: header and pager stay put, rows scroll ------
+   Each box from the Settings page down to the table is told to take only the
+   height that is left (min-height: 0 lets a flex / grid child shrink below
+   its content), so the table's own box scrolls instead of the whole page. A
+   short list keeps its natural height. Phones and narrow windows (menu stacked
+   on top) keep the normal page scroll. */
+@media (min-width: 901px) {
+  .pz-settings:has(.pzt-page--list) .pzs-layout {
+    flex: 1 1 auto;
+    min-height: 0;
+    grid-template-rows: minmax(0, 1fr);
+    align-items: stretch;
+  }
+  .pz-settings:has(.pzt-page--list) .pzs-nav { align-self: start; }
+  .pz-settings:has(.pzt-page--list) .pzs-main { min-height: 0; }
+  .pzt-page--list {
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+  .pzt-page--list > .pzt-head,
+  .pzt-page--list > .pzt-notice,
+  .pzt-page--list > .pzt-foot { flex: none; }
+  .pzt-page--list > .pzt-card {
+    flex: 0 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  .pzt-page--list .pzt-table-wrap {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+  }
+  /* The column names stay visible while the rows scroll under them. */
+  .pzt-page--list .pzt-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+  }
+}
+
+@media (max-width: 1280px) {
+  .pzt-split { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 640px) {
+  .pzt-content { padding: 20px; }
+  .pz-settings .pzt-search input { width: 140px; }
+}

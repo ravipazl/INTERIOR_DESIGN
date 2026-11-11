@@ -1,0 +1,63 @@
+/* The list pager (PzTable's TablePager — the Projects page's pager) inside the
+   Project Workspace tabs and the Renders & Videos grid. Its select and buttons
+   are styled under `.pz-projects` on the list pages; these give them the same
+   look here. */
+
+.pz-ws .pzp-pager,
+.pz-rv .pzp-pager {
+  margin-top: 12px;
+  padding: 12px 4px 2px;
+  background: transparent;
+  border-top: 1px solid #e9ebf0;
+}
+.pz-ws select.pzp-pager-size,
+.pz-rv select.pzp-pager-size {
+  height: 32px;
+  padding: 0 28px 0 10px;
+  border: 1px solid #e2e5eb;
+  border-radius: 8px;
+  background-color: #fff;
+  font: 500 13px Inter, Arial, sans-serif;
+  color: #172033;
+  cursor: pointer;
+}
+.pz-ws select.pzp-pager-size:focus,
+.pz-rv select.pzp-pager-size:focus {
+  outline: none;
+  border-color: #5b3df5;
+  box-shadow: 0 0 0 3px rgba(91, 61, 245, 0.14);
+}
+.pz-ws button.pzp-page,
+.pz-rv button.pzp-page {
+  min-width: 32px;
+  height: 32px;
+  padding: 0 6px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  font: 500 13px Inter, Arial, sans-serif;
+  color: #172033;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  transition: background-color 0.15s, box-shadow 0.2s;
+}
+.pz-ws button.pzp-page:hover:not(:disabled),
+.pz-rv button.pzp-page:hover:not(:disabled) {
+  background: #eef0f5;
+}
+.pz-ws button.pzp-page.is-on,
+.pz-rv button.pzp-page.is-on {
+  background: #5b3df5;
+  color: #fff;
+  box-shadow: 0 4px 10px rgba(91, 61, 245, 0.3);
+}
+.pz-ws button.pzp-page:disabled,
+.pz-rv button.pzp-page:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.pz-ws button.pzp-page:focus-visible,
+.pz-rv button.pzp-page:focus-visible {
+  outline: 2px solid #5b3df5;
+  outline-offset: 2px;
+}

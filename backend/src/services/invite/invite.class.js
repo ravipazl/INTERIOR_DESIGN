@@ -21,6 +21,7 @@
 //     whether an email exists.
 import { BadRequest } from '@feathersjs/errors'
 import { getAppUrl, renderActionEmail, sendMail } from '../../mailer.js'
+import { emailTemplate } from '../../email-templates.js'
 
 // Must NOT be the login audience (config/default.json authentication.jwtOptions),
 // so an invite link can never be used as an access token.
@@ -147,24 +148,22 @@ export class InviteService {
       }
     )
     const link = `${getAppUrl()}/set-password?token=${encodeURIComponent(token)}`
-    const what = isReset ? 'reset your password' : 'set up your Pazl account'
-    const greeting = user.name ? `Hello ${user.name},` : 'Hello,'
+    // Words from Settings → Email Templates (password_reset / invite). These two
+    // can't be switched off there: they are the only way into an account.
+    const t = await emailTemplate(this.app, isReset ? 'password_reset' : 'invite', {
+      user_name: user.name || '',
+      link
+    })
     const result = await sendMail({
       to: user.email,
-      subject: isReset ? 'Reset your Pazl password' : 'You have been invited to Pazl',
-      text:
-        `${greeting}\n\n` +
-        `Please ${what} using the link below. It expires in 7 days and can be used once.\n\n` +
-        `${link}\n\n` +
-        `If you were not expecting this email you can ignore it.`,
+      subject: t.subject,
+      text: `${t.introText}\n\n${t.buttonText}: ${link}\n\nIf you were not expecting this email you can ignore it.`,
       // Same branded template as the quote / assignment emails, so every mail
       // Pazl sends looks like it came from the same product.
       html: renderActionEmail({
-        title: isReset ? 'Reset your password' : 'You have been invited to Pazl',
-        intro: isReset
-          ? `${greeting} use the button below to reset your password. The link expires in 7 days and can be used once. If you were not expecting this email you can ignore it.`
-          : `${greeting} you have been invited to Pazl. Use the button below to set your password and finish setting up your account. The link expires in 7 days and can be used once.`,
-        ctaText: isReset ? 'Reset password' : 'Set your password',
+        title: t.heading,
+        intro: t.introHtml,
+        ctaText: t.buttonText,
         ctaUrl: link
       })
     })

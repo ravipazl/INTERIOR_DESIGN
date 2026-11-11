@@ -15,6 +15,8 @@ import { ProjectService, getOptions } from './projects.class.js'
 import { projectPath, projectMethods } from './projects.shared.js'
 import { fastJoin } from 'feathers-hooks-common'
 import { getInspireUrl, renderActionEmail, sendMail, esc, fmtWhen } from '../../mailer.js'
+import { emailTemplate } from '../../email-templates.js'
+import { idQuery } from '../../utils/id-query.js'
 // For reading the client's chosen image off disk so it can be embedded in the
 // quote-request email. ESM has no __dirname, hence fileURLToPath — the same
 // pattern the upload services use.
@@ -216,28 +218,36 @@ const notifyArchitectOnAssignment = async (context) => {
     }
 
     const projectName = project.name || 'a project'
+    // Words from Settings → Email Templates (architect_assigned), which can
+    // switch it off.
+    const link = `${getInspireUrl()}/projects`
+    const t = await emailTemplate(context.app, 'architect_assigned', {
+      architect_name: architect.name || 'there',
+      client_name: project.clientName || '',
+      project_name: projectName,
+      link
+    })
+    if (!t.active) {
+      console.log('[assign-architect] email switched off in Email Templates')
+      return context
+    }
     const html = renderActionEmail({
-      title: 'You have been assigned to a project',
-      intro: `Hi ${esc(architect.name || 'there')}, you are now the architect for <strong>${esc(
-        projectName
-      )}</strong>.`,
+      title: t.heading,
+      intro: t.introHtml,
       details: [
         ['Project', projectName],
         ['Client', project.clientName],
         ['Address', project.address],
         ['Assigned', fmtWhen()]
       ],
-      ctaText: 'Open project',
-      ctaUrl: `${getInspireUrl()}/projects`
+      ctaText: t.buttonText,
+      ctaUrl: link
     })
 
     const result = await sendMail({
       to,
-      subject: `You have been assigned to ${projectName}`,
-      text:
-        `Hi ${architect.name || 'there'},\n\n` +
-        `You are now the architect for "${projectName}".\n\n` +
-        `Open it here: ${getInspireUrl()}/projects\n`,
+      subject: t.subject,
+      text: `${t.introText}\n\n${t.buttonText}: ${link}\n`,
       html
     })
 
@@ -479,11 +489,21 @@ const notifyAdminsOnQuoteRequest = async (context) => {
           } — open the project to see them all.</p>`
         : '')
 
+    // Words from Settings → Email Templates (quote_requested), which can switch
+    // it off.
+    const link = `${getInspireUrl()}/projects`
+    const t = await emailTemplate(context.app, 'quote_requested', {
+      client_name: clientName || 'A client',
+      project_name: projectName,
+      link
+    })
+    if (!t.active) {
+      console.log('[quote-request] email switched off in Email Templates')
+      return context
+    }
     const html = renderActionEmail({
-      title: 'A client has requested a quote',
-      intro: `<strong>${esc(clientName || 'A client')}</strong> has requested a quote for <strong>${esc(
-        projectName
-      )}</strong>.`,
+      title: t.heading,
+      intro: t.introHtml,
       bodyHtml,
       details: [
         ['Project', projectName],
@@ -491,16 +511,14 @@ const notifyAdminsOnQuoteRequest = async (context) => {
         ['Address', project.address],
         ['Requested', fmtWhen()]
       ],
-      ctaText: 'Open project',
-      ctaUrl: `${getInspireUrl()}/projects`
+      ctaText: t.buttonText,
+      ctaUrl: link
     })
 
     const result = await sendMail({
       to: to.join(', '),
-      subject: `Quote requested: ${projectName}`,
-      text:
-        `${clientName || 'A client'} has requested a quote for "${projectName}".\n\n` +
-        `Open it here: ${getInspireUrl()}/projects\n`,
+      subject: t.subject,
+      text: `${t.introText}\n\n${t.buttonText}: ${link}\n`,
       html,
       attachments
     })
@@ -523,6 +541,39 @@ const notifyAdminsOnQuoteRequest = async (context) => {
   } catch (err) {
     // Never fail the quote request itself over a mail problem.
     console.error('[quote-request] notify failed:', err?.message)
+  }
+  return context
+}
+
+// HEADER BELL — stamp WHEN things happened, so the bell (Inspire AppHeader)
+// can tell a new event from one already read:
+//   statusChangedAt      every real status change (the admin bell's items)
+//   quoteRequestedAt     status → quotation_requested (shown as the item date)
+//   architectUpdateAt    status → quotation_sent / quotation_accepted / closed
+//                        (the architect's "team update" items)
+//   architectAssignedAt  a different architect is assigned
+// Only when the value really changes: the frontend PATCHes twice for one save,
+// and a form save that resends the same status must not re-raise the bell.
+const ARCHITECT_UPDATE_STATUSES = ['quotation_sent', 'quotation_accepted', 'closed']
+const stampBellTimes = async (context) => {
+  const { status, architectUserId } = context.data || {}
+  if ((!status && !architectUserId) || context.id === null || context.id === undefined) return context
+  try {
+    const model = await context.service.getModel(context.params)
+    const prev = await model.findOne(idQuery(context.id), { projection: { status: 1, architectUserId: 1 } })
+    if (!prev) return context
+    const now = new Date().toISOString()
+    if (status && status !== prev.status) {
+      context.data.statusChangedAt = now
+      if (status === 'quotation_requested') context.data.quoteRequestedAt = now
+      if (ARCHITECT_UPDATE_STATUSES.includes(status)) context.data.architectUpdateAt = now
+    }
+    if (architectUserId && String(architectUserId) !== String(prev.architectUserId || '')) {
+      context.data.architectAssignedAt = now
+    }
+  } catch (err) {
+    // The save goes ahead; the bell just keeps the older time.
+    console.warn('[bell] could not stamp times:', err?.message)
   }
   return context
 }
@@ -574,7 +625,8 @@ export const project = (app) => {
           if (context.data?.status === 'quotation_sent') {
             context.data.changeRequestPending = false
           }
-        }
+        },
+        stampBellTimes
       ],
       remove: [authenticate('jwt')]
     },

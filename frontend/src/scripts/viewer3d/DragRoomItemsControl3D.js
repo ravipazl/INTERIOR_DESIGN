@@ -335,6 +335,9 @@ export class DragRoomItemsControl3D extends EventDispatcher {
     });
     (v.floors3d || []).forEach((f) => {
       if (f && f.floorPlane) meshes.push(f.floorPlane);
+      // The CEILING too, so it lights up like a wall or a floor. Only counted
+      // when it is looked at from below (see __setSurfaceHoverHighlight).
+      if (f && f.roofPlane) meshes.push(f.roofPlane);
     });
     return this.__pickable(meshes);
   }
@@ -366,7 +369,21 @@ export class DragRoomItemsControl3D extends EventDispatcher {
         return;
       }
       const hits = this.__raycaster.intersectObjects(surfaces, true);
-      const mesh = hits.length ? hits[0].object : null;
+      // A ceiling counts only from inside the room, looking up — the same rule
+      // a click on it follows (__ceilingRoomAtMouse). Seen from above it is
+      // passed over, so the floor under it still lights up as before.
+      const roofs = new Set();
+      ((BlueprintInterface?.blueprint3d?.roomplanner || {}).floors3d || []).forEach((f) => {
+        if (f && f.roofPlane) roofs.add(f.roofPlane);
+      });
+      const isRoof = (o) => {
+        for (let n = o; n; n = n.parent) if (roofs.has(n)) return true;
+        return false;
+      };
+      const hit = hits.find(
+        (h) => !isRoof(h.object) || this.__camera.position.y < h.point.y
+      );
+      const mesh = hit ? hit.object : null;
       if (mesh === this.__hoveredSurface) return; // no change → keep outline
       this.__clearSurfaceHover();
       this.__hoveredSurface = mesh;

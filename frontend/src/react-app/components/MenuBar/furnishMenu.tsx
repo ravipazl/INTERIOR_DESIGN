@@ -31,7 +31,8 @@ import { Box3, Vector3 } from "three";
 import { MENU_TABS } from ".";
 import WallPropertiesModal from "../WallPropertiesModal";
 import WallEditorModal from "../WallEditorModal";
-import { ceilingSurfaceOf } from "@pazl/main/model/ceilingRegions";
+import SurfaceToolbar3D from "./SurfaceToolbar3D";
+import { ceilingSurfaceOf, floorSurfaceOf } from "@pazl/main/model/ceilingRegions";
 import DoorPropertiesModal from "../DoorPropertiesModal";
 import { Texture } from "@pazl/entities/Texture";
 import Wall from "@pazl/main/model/wall";
@@ -154,6 +155,12 @@ const FurnishMenu = ({
   const openCeilingEditor = (room: any) => {
     const surface = ceilingSurfaceOf(room);
     if (surface) setCeilingSurface(surface);
+  };
+  // The Floor Editor: the Wall Editor opened on one room's floor.
+  const [floorSurface, setFloorSurface] = useState<any>(null);
+  const openFloorEditor = (room: any) => {
+    const surface = floorSurfaceOf(room);
+    if (surface) setFloorSurface(surface);
   };
   // Full Room View (2D drawings + rendered views of the room), opened from the
   // toolbar button beside One room / All rooms.
@@ -378,7 +385,9 @@ const FurnishMenu = ({
       wiredRef.current = true;
       handleWallClicked((evt: any) => {
         /* PERF-REMOVED */ // console.debug("furnishedMenu.tsx ~ handleWallClicked ~ event", evt);
-        setShowWallPropertiesModal(true);
+        // The click no longer opens Wall Properties on its own: it brings up
+        // the "Wall Editor" tab beside the wall (SurfaceToolbar3D), which
+        // opens the Wall Editor.
         // One properties panel at a time: they open in the same corner, so
         // a room's panel left open sat on top of the wall's.
         setShowRoomPropertiesModal(false);
@@ -479,7 +488,8 @@ const FurnishMenu = ({
         /* PERF-REMOVED */ // console.debug("furnishedMenu.tsx ~ handleRoomSelected ~ event", evt);
         if (evt.item) {
           setSelectedRoom(evt.item);
-          setShowRoomPropertiesModal(true);
+          // The click only brings up the "Floor Editor" tab beside the floor
+          // (SurfaceToolbar3D), which opens the Floor Editor.
           // …and the other way round: picking a room closes the wall's panel.
           setShowWallPropertiesModal(false);
         } else {
@@ -1131,6 +1141,13 @@ const FurnishMenu = ({
           isMultiSelectMode={mode === ACTION_MODES.MULTI_SELECT}
         />
       )}
+      {/* The "… Editor >" tab beside a clicked floor, wall or ceiling; it opens
+          the Floor, Wall or Ceiling Editor. */}
+      <SurfaceToolbar3D
+        onOpenWallEditor={(edge: any) => setWallEditorEdge(edge)}
+        onOpenCeilingEditor={(room: any) => openCeilingEditor(room)}
+        onOpenFloorEditor={(room: any) => openFloorEditor(room)}
+      />
       {showWallPropertiesModal && (
         <WallPropertiesModal
           onOpenRoomPanel={() => {
@@ -1165,6 +1182,15 @@ const FurnishMenu = ({
           surface={ceilingSurface}
           onClose={() => setCeilingSurface(null)}
           onSwitchSurface={(room: any) => openCeilingEditor(room)}
+        />
+      )}
+      {floorSurface && (
+        <WallEditorModal
+          // A fresh editor per room, as per ceiling above.
+          key={`floor-${floorSurface.room?.getUuid?.() || ""}`}
+          surface={floorSurface}
+          onClose={() => setFloorSurface(null)}
+          onSwitchSurface={(room: any) => openFloorEditor(room)}
         />
       )}
       {showDoorPropertiesModal && selectedDoorClass && (

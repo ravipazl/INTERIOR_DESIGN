@@ -1,0 +1,72 @@
+/* TablePager's « ‹ › » arrows and page buttons: a hover colour, and the name
+   as a tooltip (data-tip). Wherever the pager is used — Teams, Rate card, the
+   Project Workspace tabs, Renders & Videos. */
+
+:is(.pz-projects, .pz-ws, .pz-rv) button.pzp-page.pzp-arrow {
+  font-size: 15px;
+  line-height: 1;
+}
+/* An arrow you can use lights up. */
+:is(.pz-projects, .pz-ws, .pz-rv) button.pzp-page.pzp-arrow:not([aria-disabled="true"]):hover,
+:is(.pz-projects, .pz-ws, .pz-rv) button.pzp-page.pzp-arrow:not([aria-disabled="true"]):focus-visible {
+  background: #efeaf8;
+  color: #5b3df5;
+}
+/* One you can't (first / last page) is dimmed, but still shows its tooltip.
+   Dimmed by colour, not opacity: opacity would fade the tooltip with it. */
+:is(.pz-projects, .pz-ws, .pz-rv) button.pzp-page.pzp-arrow[aria-disabled="true"],
+:is(.pz-projects, .pz-ws, .pz-rv) button.pzp-page.pzp-arrow[aria-disabled="true"]:hover {
+  background: transparent;
+  color: #c3c7d1;
+  opacity: 1;
+  cursor: not-allowed;
+}
+:is(.pz-projects, .pz-ws, .pz-rv) button.pzp-page:not(.is-on):not(.pzp-arrow):hover {
+  background: #efeaf8;
+  color: #5b3df5;
+}
+
+/* Tooltip. */
+.pzp-page[data-tip] {
+  position: relative;
+}
+.pzp-page[data-tip]:hover::after,
+.pzp-page[data-tip]:focus-visible::after {
+  content: attr(data-tip);
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 5px 9px;
+  border-radius: 6px;
+  background: #172033;
+  color: #fff;
+  font: 500 12px/1.3 Inter, Arial, sans-serif;
+  white-space: nowrap;
+  box-shadow: 0 6px 16px rgba(23, 32, 51, 0.18);
+  pointer-events: none;
+  z-index: 30;
+}
+.pzp-page[data-tip]:hover::before,
+.pzp-page[data-tip]:focus-visible::before {
+  content: "";
+  position: absolute;
+  bottom: calc(100% + 3px);
+  left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-top-color: #172033;
+  pointer-events: none;
+  z-index: 30;
+}
+/* The rightmost buttons open their tooltip leftwards, so it stays on screen. */
+.pzp-pages > .pzp-page:nth-last-child(-n + 2)[data-tip]:hover::after,
+.pzp-pages > .pzp-page:nth-last-child(-n + 2)[data-tip]:focus-visible::after {
+  left: auto;
+  right: 0;
+  transform: none;
+}
+/* The pager's cards clip their content; let the tooltip out above the pager. */
+.pzp-pager {
+  overflow: visible;
+}

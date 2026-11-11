@@ -20,6 +20,7 @@ import { Alert } from "react-bootstrap";
 import VisibilityOn from "../../assets/images/visibility-on.svg";
 import VisibilityOff from "../../assets/images/visibility-off.svg";
 import AuthLayout from "../../components/AuthLayout";
+import { BrandName } from "@pazl/components/BrandLogo";
 
 const SignIn = () => {
   const { userRole, setUserRole } = useContext(UserRoleContext);
@@ -268,11 +269,15 @@ const SignIn = () => {
       subtitle={
         showForgotPasswordField
           ? "Enter your account's email and we'll send you a link to set a new password."
-          : "Sign in to your Pazl workspace."
+          : (
+              <>
+                Sign in to your <BrandName fallback="Pazl" /> workspace.
+              </>
+            )
       }
       footer={
         <>
-          New to Pazl?
+          New to <BrandName fallback="Pazl" />?
           <Link
             to={
               redirectToUrl && requestedFromOrigin && location.search

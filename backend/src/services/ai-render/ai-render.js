@@ -32,7 +32,8 @@ import { v4 as uuidv4 } from 'uuid'
 const __dirname = path.dirname(url.fileURLToPath(import.meta.url))
 
 const BASE = (process.env.MYARCHITECT_BASE || 'https://api.myarchitectai.com/v1').replace(/\/$/, '')
-const DEFAULT_FORMAT = process.env.MYARCHITECT_FORMAT || 'jpg'
+// Read per request: the admin Settings page can change it (services/app-settings).
+const defaultFormat = () => process.env.MYARCHITECT_FORMAT || 'jpg'
 const ALLOWED_FORMATS = ['webp', 'jpg', 'png', 'avif']
 const apiKey = () => process.env.MYARCHITECT_API_KEY || ''
 
@@ -88,7 +89,7 @@ function describeHttpError(status, bodyText) {
   switch (status) {
     case 401:
     case 403:
-      return 'The AI render service rejected the API key. Check MYARCHITECT_API_KEY in backend/.env and that the key is active.'
+      return 'The AI render service rejected the API key. An admin can check it in Settings → Render (Test connection).'
     case 402:
       return 'The MyArchitectAI balance has run out. Top up in the MyArchitectAI portal — nothing was charged.'
     case 413:
@@ -151,7 +152,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
  */
 async function callApi(endpoint, body) {
   const key = apiKey()
-  if (!key) throw new Error('MYARCHITECT_API_KEY is not set. Add it to backend/.env and restart the backend.')
+  if (!key) throw new Error('AI rendering is not set up. An admin can add the MyArchitectAI key in Settings → Render.')
   const delays = [1000, 2000, 4000, 8000]
   for (let attempt = 0; ; attempt++) {
     const res = await fetch(`${BASE}${endpoint}`, {
@@ -224,7 +225,7 @@ const text = (v) => (typeof v === 'string' && v.trim() ? v.trim().slice(0, 2000)
 /** Validate a /ai-render/run body and build the API calls it needs. */
 function planOp(body) {
   const op = body.op
-  const format = ALLOWED_FORMATS.includes(body.outputFormat) ? body.outputFormat : DEFAULT_FORMAT
+  const format = ALLOWED_FORMATS.includes(body.outputFormat) ? body.outputFormat : defaultFormat()
   switch (op) {
     case 'render': {
       const scene = body.sceneType === 'exterior' ? 'exterior' : 'interior'
@@ -409,7 +410,7 @@ export const aiRender = (app) => {
       if (!(await requireUser(app, ctx))) return
       if (!apiKey()) {
         ctx.status = 200
-        ctx.body = { configured: false, message: 'MYARCHITECT_API_KEY is not set.' }
+        ctx.body = { configured: false, message: 'AI rendering is not set up. An admin can add the MyArchitectAI key in Settings → Render.' }
         return
       }
       try {
@@ -439,7 +440,7 @@ export const aiRender = (app) => {
             configured: true,
             ok: false,
             message: forbidden
-              ? 'The AI render service rejected the API key. Activate the key in the MyArchitectAI portal, or check MYARCHITECT_API_KEY.'
+              ? 'The AI render service rejected the API key. Activate the key in the MyArchitectAI portal, or check it in Settings → Render.'
               : `The AI render service reported: ${data.error}`
           }
           return

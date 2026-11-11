@@ -5,6 +5,7 @@ import { OverlayTrigger, Tooltip } from "react-bootstrap";
 // all three read as one).
 import "../../pages/Dashboard/AdminDashboard/Projects.css";
 import "./ListPages.css";
+import "./pager.css";
 
 /**
  * The parts of the refreshed list pages that Teams and Rate card share with
@@ -154,6 +155,24 @@ export const pageList = (current, total) => {
   return pages;
 };
 
+/**
+ * « ‹ › » with its name as a tooltip. When it can't be used it stays hoverable
+ * (aria-disabled, not `disabled`, which swallows the hover) so the tooltip
+ * still shows, over a greyed arrow, instead of looking broken.
+ */
+const PagerArrow = ({ label, off, onClick, children }) => (
+  <button
+    type="button"
+    className="pzp-page pzp-arrow"
+    aria-label={label}
+    aria-disabled={off || undefined}
+    data-tip={label}
+    onClick={off ? undefined : onClick}
+  >
+    {children}
+  </button>
+);
+
 /** The table's foot: rows per page, "1–10 of 48", and the page buttons. */
 export const TablePager = ({ rowsPerPage, rowCount, currentPage, onChangePage, onChangeRowsPerPage, query }) => {
   const pages = Math.max(1, Math.ceil(rowCount / rowsPerPage));
@@ -182,12 +201,12 @@ export const TablePager = ({ rowsPerPage, rowCount, currentPage, onChangePage, o
         </span>
       </div>
       <div className="pzp-pages">
-        <button type="button" className="pzp-page" aria-label="First page" disabled={currentPage <= 1} onClick={() => go(1)}>
+        <PagerArrow label="First page" off={currentPage <= 1} onClick={() => go(1)}>
           «
-        </button>
-        <button type="button" className="pzp-page" aria-label="Previous page" disabled={currentPage <= 1} onClick={() => go(currentPage - 1)}>
+        </PagerArrow>
+        <PagerArrow label="Previous page" off={currentPage <= 1} onClick={() => go(currentPage - 1)}>
           ‹
-        </button>
+        </PagerArrow>
         {pageList(currentPage, pages).map((p, i) =>
           p === "…" ? (
             <span key={`gap-${i}`} className="pzp-gap">
@@ -199,18 +218,19 @@ export const TablePager = ({ rowsPerPage, rowCount, currentPage, onChangePage, o
               type="button"
               className={`pzp-page${p === currentPage ? " is-on" : ""}`}
               aria-current={p === currentPage ? "page" : undefined}
+              data-tip={`Page ${p}`}
               onClick={() => go(p)}
             >
               {p}
             </button>
           )
         )}
-        <button type="button" className="pzp-page" aria-label="Next page" disabled={currentPage >= pages} onClick={() => go(currentPage + 1)}>
+        <PagerArrow label="Next page" off={currentPage >= pages} onClick={() => go(currentPage + 1)}>
           ›
-        </button>
-        <button type="button" className="pzp-page" aria-label="Last page" disabled={currentPage >= pages} onClick={() => go(pages)}>
+        </PagerArrow>
+        <PagerArrow label="Last page" off={currentPage >= pages} onClick={() => go(pages)}>
           »
-        </button>
+        </PagerArrow>
       </div>
     </div>
   );

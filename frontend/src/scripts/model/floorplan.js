@@ -127,6 +127,8 @@ export class Floorplan extends EventDispatcher {
     // Per-room ceiling areas drawn in the Ceiling Editor (uuid → regions, in
     // the same shape as a wall's regions); serialized with the design.
     this.ceilingRegions = {};
+    // Per-room floor areas drawn in the Floor Editor, the same way.
+    this.floorRegions = {};
     /**
      * The {@link CarbonSheet} that handles the background image to show in
      * the 2D view
@@ -749,6 +751,7 @@ export class Floorplan extends EventDispatcher {
     floorplans.newFloorTextures = this.floorTextures;
     floorplans.ceilingTextures = this.ceilingTextures;
     floorplans.ceilingRegions = this.ceilingRegions;
+    floorplans.floorRegions = this.floorRegions;
     return floorplans;
   }
 
@@ -874,6 +877,9 @@ export class Floorplan extends EventDispatcher {
     // A design saved before the Ceiling Editor has none.
     this.ceilingRegions =
       ("ceilingRegions" in floorplan && floorplan.ceilingRegions) || {};
+    // …and one saved before the Floor Editor has no floor areas.
+    this.floorRegions =
+      ("floorRegions" in floorplan && floorplan.floorRegions) || {};
 
     // The plan background (an image, or a CAD drawing's lines) if this plan
     // has one — an empty sheet, as plans and templates without one carry,
@@ -1136,6 +1142,18 @@ export class Floorplan extends EventDispatcher {
     if (!this.ceilingRegions) this.ceilingRegions = {};
     if (Array.isArray(list) && list.length) this.ceilingRegions[uuid] = list;
     else delete this.ceilingRegions[uuid];
+  }
+
+  // Per-room floor areas (Floor Editor), stored like the ceiling areas.
+  getFloorRegions(uuid) {
+    const list = this.floorRegions && this.floorRegions[uuid];
+    return Array.isArray(list) ? list : [];
+  }
+
+  setFloorRegions(uuid, list) {
+    if (!this.floorRegions) this.floorRegions = {};
+    if (Array.isArray(list) && list.length) this.floorRegions[uuid] = list;
+    else delete this.floorRegions[uuid];
   }
 
   /** clear out obsolete floor textures */

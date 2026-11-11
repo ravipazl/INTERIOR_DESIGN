@@ -1,4 +1,4 @@
-import { v4 as uuidv4 } from 'uuid'
+import { newQuoteNumber } from '../invoice-profiles/invoice-profiles.js'
 import { ObjectId } from 'mongodb'
 
 const convertMMtoFeet = (unitInMM) => {
@@ -746,11 +746,11 @@ export class GenerateBoqServiceService {
       )
 
       try {
+        // Prefix from Settings → Tax / Invoice (default profile); empty = as before.
+        const quoteNumber = await newQuoteNumber(this.app)
         await this.app.service('projects').patch(
           projectId,
-          project.boqNumber
-            ? { revisedBoqNumber: uuidv4().replaceAll('-', '').substring(0, 10).toUpperCase() }
-            : { boqNumber: uuidv4().replaceAll('-', '').substring(0, 10).toUpperCase() }
+          project.boqNumber ? { revisedBoqNumber: quoteNumber } : { boqNumber: quoteNumber }
         )
       } catch (e) {
         console.log('[BOQ] project patch skipped:', e.message)

@@ -31,7 +31,7 @@ function authHeaders() {
   const key = process.env.TRIPO_API_KEY
   if (!key) {
     throw new Error(
-      'TRIPO_API_KEY is not set in pazl-design-backend/.env. Add it and restart the backend.'
+      'Photo to 3D is not set up. An admin can add the Tripo API key in Settings → Tripo 3D.'
     )
   }
   return { Authorization: `Bearer ${key}` }

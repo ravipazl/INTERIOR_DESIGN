@@ -1,0 +1,98 @@
+/* Settings → Tax / Invoice. On top of Settings.css and EmailTemplates.css. */
+
+/* --- form + preview ------------------------------------------------------ */
+.pzi-cols {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(320px, 1fr);
+  gap: 26px;
+  align-items: start;
+}
+.pzi-form {
+  display: flex;
+  flex-direction: column;
+  gap: 26px;
+  min-width: 0;
+}
+.pzi-preview {
+  position: sticky;
+  top: 0;
+  min-width: 0;
+}
+.pz-settings .pzi-textarea {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid var(--pzs-field-line);
+  border-radius: 12px;
+  background: #fff;
+  color: var(--pzp-ink);
+  font-size: 15px;
+  line-height: 1.5;
+  font-family: inherit;
+  resize: vertical;
+}
+.pz-settings .pzi-textarea:focus {
+  outline: none;
+  border-color: #7c3aed;
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.15);
+}
+.pz-settings .pzi-textarea.is-invalid { border-color: var(--pzs-bad); }
+
+.pzi-logo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px;
+  padding: 12px;
+  border: 1px dashed #cfc6e6;
+  border-radius: 12px;
+  background: #fbfaff;
+}
+.pzi-logo.is-invalid { border-color: var(--pzs-bad); }
+.pzi-logo img {
+  width: 56px;
+  height: 56px;
+  object-fit: contain;
+  border-radius: 10px;
+  background: #fff;
+  border: 1px solid var(--pzp-line);
+}
+.pzi-logo .pzs-hint { flex: 1 1 180px; }
+.pzi-logo-actions { display: flex; gap: 8px; }
+
+.pzi-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 22px 26px 24px;
+}
+.pzi-row {
+  display: grid;
+  grid-template-columns: 84px 18px minmax(0, 1fr) 34px;
+  align-items: center;
+  gap: 8px;
+}
+.pz-settings .pzi-row input {
+  height: 46px;
+  padding: 0 12px;
+  border: 1px solid var(--pzs-field-line);
+  border-radius: 12px;
+  font-size: 15px;
+  color: var(--pzp-ink);
+  min-width: 0;
+}
+.pz-settings .pzi-row input:focus {
+  outline: none;
+  border-color: #7c3aed;
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.15);
+}
+.pz-settings .pzi-row input.is-invalid { border-color: var(--pzs-bad); }
+.pzi-pct { color: var(--pzp-ink-2); font-weight: 600; }
+
+@media (max-width: 1280px) {
+  .pzi-cols { grid-template-columns: minmax(0, 1fr); }
+  .pzi-preview { position: static; }
+}
+@media (max-width: 640px) {
+  .pzi-rows { padding: 18px; }
+  .pzi-row { grid-template-columns: 64px 14px minmax(0, 1fr) 34px; }
+}

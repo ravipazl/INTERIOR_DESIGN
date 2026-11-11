@@ -15,6 +15,7 @@ import { ToastContainer, toast } from "react-toastify";
 import FavoriteIcon from "../../assets/images/fav_icon.svg";
 import HistoryIcon from "../../assets/images/history_icon.svg";
 import pazlLogo from "../../assets/images/pazl_logo.svg";
+import { useBranding } from "@pazl/services/BrandingService";
 import Share from "../../assets/images/share_icon.svg";
 import { CountContext } from "../../context/CountContext";
 import ProjectContext from "../../context/ProjectContext";
@@ -49,6 +50,8 @@ import SplitButton from 'react-bootstrap/SplitButton';
 
 const AppHeader = ({ user, showLogo, isGuestUser }) => {
   const { activeStep } = useContext(StepperContext);
+  // Settings → Branding (the PAZL logo and name until changed).
+  const brand = useBranding();
   const navigate = useNavigate();
   const location = useLocation();
   const { currentUser } = useContext(UserContext);
@@ -71,12 +74,15 @@ const AppHeader = ({ user, showLogo, isGuestUser }) => {
   const [quoteGenerated, setQuoteGenerated] = useState([]);
   // Quotation requests shown in the header bell dropdown. A notification is
   // just a project awaiting a quote — no separate notifications collection.
-  // Unread = never read, or read BEFORE the latest request on that project.
+  // Unread = this status was never read, or was read BEFORE the project moved
+  // into it (statusChangedAt, stamped by the backend). Read times are kept per
+  // status (bellReads), so each step of a project is its own notification.
   const [quoteNotifications, setQuoteNotifications] = useState([]);
-  const isUnread = (p) =>
-    !p.quoteRequestReadAt ||
-    (p.quoteRequestedAt &&
-      new Date(p.quoteRequestReadAt) < new Date(p.quoteRequestedAt));
+  const bellEventAt = (p) => p.statusChangedAt || p.quoteRequestedAt || p.createdAt;
+  const isUnread = (p) => {
+    const read = p.bellReads?.[p.status];
+    return !read || new Date(read) < new Date(bellEventAt(p) || 0);
+  };
   const quoteRequestCount = quoteNotifications.filter(isUnread).length;
 
   // Architect bell: projects assigned to the logged-in architect. Same shape as
@@ -164,8 +170,16 @@ const AppHeader = ({ user, showLogo, isGuestUser }) => {
 
   // Combined badge counts (a change request is an extra unread item on the
   // admin's and the assigned architect's existing bell).
-  const adminBellCount = quoteRequestCount + changeReqCount;
-  const architectBellCount = assignmentCount + changeReqCount + updateCount;
+  const adminBellCount = quoteRequestCount + changeReqCount + stepMoveCount;
+  const architectBellCount = assignmentCount + changeReqCount + updateCount + stepMoveCount;
+
+  // The bell re-reads every minute, so a new request shows up without having
+  // to move to another page (each fetch below also runs on navigation).
+  const [bellTick, setBellTick] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => setBellTick((n) => n + 1), 60 * 1000);
+    return () => clearInterval(t);
+  }, []);
   // The sidebar button opens and closes the rail (icons only <-> icons with
   // names). The rail owns that state (NavRail); this button asks it to switch
   // ("pz:rail-toggle") and follows what it reports ("pz:rail-change").
@@ -209,7 +223,7 @@ const AppHeader = ({ user, showLogo, isGuestUser }) => {
       .toUpperCase() || "?";
 
   const headerTitle = {
-    title: "PAZL",
+    title: brand.appName,
     color: "#414063",
     fontSize: "18px",
     fontWeight: "700",
@@ -268,9 +282,7 @@ const AppHeader = ({ user, showLogo, isGuestUser }) => {
       if (!cancelled) {
         // Newest first.
         const sorted = [...list].sort(
-          (a, b) =>
-            new Date(b.quoteRequestedAt || b.createdAt || 0) -
-            new Date(a.quoteRequestedAt || a.createdAt || 0)
+          (a, b) => new Date(bellEventAt(b) || 0) - new Date(bellEventAt(a) || 0)
         );
         setQuoteNotifications(sorted);
         setChangeReqNotifications(changeReq);
@@ -279,12 +291,12 @@ const AppHeader = ({ user, showLogo, isGuestUser }) => {
     return () => {
       cancelled = true;
     };
-  }, [isAdmin, isSuperAdmin, location.pathname]);
+  }, [isAdmin, isSuperAdmin, location.pathname, bellTick]);
 
   // Opening a notification marks it read and takes the admin to the request.
   const handleOpenNotification = async (project) => {
     if (isUnread(project)) {
-      const updated = await markQuoteRequestRead(project._id);
+      const updated = await markQuoteRequestRead(project);
       if (updated?._id) {
         setQuoteNotifications((prev) =>
           prev.map((p) => (p._id === project._id ? { ...p, ...updated } : p))
@@ -323,7 +335,7 @@ const AppHeader = ({ user, showLogo, isGuestUser }) => {
     return () => {
       cancelled = true;
     };
-  }, [isArchitect, currentUser?._id, location.pathname]);
+  }, [isArchitect, currentUser?._id, location.pathname, bellTick]);
 
   // Client bell: the client's own projects whose quote is ready to review. The
   // client gets no email-only silence in-app now — a header bell mirrors the
@@ -349,7 +361,7 @@ const AppHeader = ({ user, showLogo, isGuestUser }) => {
     return () => {
       cancelled = true;
     };
-  }, [isUser, currentUser?._id, location.pathname]);
+  }, [isUser, currentUser?._id, location.pathname, bellTick]);
 
   const handleOpenClientNotification = (project) => {
     navigate(`/project-detail/${project._id}`);
@@ -410,7 +422,7 @@ const AppHeader = ({ user, showLogo, isGuestUser }) => {
     return () => {
       cancelled = true;
     };
-  }, [isAdmin, isSuperAdmin, isArchitect, currentUser?._id, location.pathname]);
+  }, [isAdmin, isSuperAdmin, isArchitect, currentUser?._id, location.pathname, bellTick]);
 
   // Opening a step-move notification marks it read and opens the project.
   const handleOpenStepMove = async (project) => {
@@ -495,7 +507,11 @@ const AppHeader = ({ user, showLogo, isGuestUser }) => {
   // refresh, and it is the exact mechanism the emailed "Review request" button
   // already uses. Router state is invisible and does nothing when you are
   // already on /projects, which made the link look broken.
-  const QUOTE_REQUESTS_URL = "/projects?status=quotation_requested";
+  //
+  // The bell holds requests, quotes pending approval AND accepted quotes, so
+  // "View all" opens every project (the old quotation-requested filter was
+  // often empty while the bell itself had items).
+  const QUOTE_REQUESTS_URL = "/projects";
   const navigateToQuoteRequests = () => {
     navigate(QUOTE_REQUESTS_URL);
   };
@@ -693,7 +709,8 @@ const AppHeader = ({ user, showLogo, isGuestUser }) => {
                   onClick={handleLogoClick}
                 >
                   <img
-                    src={pazlLogo}
+                    src={brand.logo || pazlLogo}
+                    style={{ objectFit: "contain" }}
                     alt="PazlLogo"
                     width={"60px"}
                     height={"60px"}
@@ -775,7 +792,8 @@ const AppHeader = ({ user, showLogo, isGuestUser }) => {
                       style={{ cursor: "pointer" }}
                     >
                       <img
-                        src={pazlLogo}
+                        src={brand.logo || pazlLogo}
+                        style={{ objectFit: "contain" }}
                         alt="PazlLogo"
                         width={"60px"}
                         height={"60px"}
@@ -965,8 +983,8 @@ const AppHeader = ({ user, showLogo, isGuestUser }) => {
                                     </div>
                                     <div style={{ fontSize: "12px", color: "#8a8d9f" }}>
                                       {p.ownerUser?.email || p.clientEmail || "Client"}
-                                      {p.quoteRequestedAt &&
-                                        ` · ${new Date(p.quoteRequestedAt).toLocaleString("en-GB", {
+                                      {bellEventAt(p) &&
+                                        ` · ${new Date(bellEventAt(p)).toLocaleString("en-GB", {
                                           dateStyle: "medium",
                                           timeStyle: "short",
                                         })}`}
@@ -981,7 +999,7 @@ const AppHeader = ({ user, showLogo, isGuestUser }) => {
                                     onClick={navigateToQuoteRequests}
                                     style={{ fontSize: "13px", textAlign: "center" }}
                                   >
-                                    View all quotation requests
+                                    View all projects
                                   </Dropdown.Item>
                                 </>
                               )}

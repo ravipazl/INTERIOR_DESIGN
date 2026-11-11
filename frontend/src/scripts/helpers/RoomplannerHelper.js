@@ -160,13 +160,19 @@ export class RoomPlannerHelper {
       color: 0x0000f0,
       linewidth: 1,
     });
+    // The previous outline goes, as the wall branch does it — otherwise every
+    // click left one more (hidden) outline in the scene.
+    if (this.__boxhelper) this.__roomplanner.remove(this.__boxhelper);
     this.__boxhelper = new LineSegments(
       new EdgesGeometry(
         new ShapeGeometry(new Shape(this.__selectedRoom.interiorCorners))
       ),
       this.__selectedMaterial
     );
-    this.__boxhelper.position.set(0, 5, 0);
+    // A click on the CEILING outlines the ceiling, just under it (where the
+    // click landed); a click on the floor outlines the floor, as before.
+    const atCeiling = !!(evt.ceiling && evt.point && isFinite(evt.point.y));
+    this.__boxhelper.position.set(0, atCeiling ? evt.point.y - 1 : 5, 0);
     this.__boxhelper.rotation.set(1.57, 0, 0);
     this.__boxhelper.material.linewidth = 1;
     this.__roomplanner.add(this.__boxhelper);

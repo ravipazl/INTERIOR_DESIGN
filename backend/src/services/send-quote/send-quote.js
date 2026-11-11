@@ -20,6 +20,8 @@ import multer from '@koa/multer'
 import axios from 'axios'
 import { idQuery } from '../../utils/id-query.js'
 import { getTransporter, renderActionEmail, getInspireUrl, textToHtml } from '../../mailer.js'
+import { emailTemplate } from '../../email-templates.js'
+import { getActiveInvoiceProfile } from '../invoice-profiles/invoice-profiles.js'
 import { isWhatsAppEnabled, sendQuoteReady, resolveClientPhone } from '../../whatsapp.js'
 
 // Build + store the client's public quote SNAPSHOT (BOQ + installation rate) in
@@ -70,6 +72,9 @@ const snapshotQuoteInBackground = (app, db, projectId, meta) => {
               clientPhoneNumber: fresh?.clientPhoneNumber || '',
               clientGSTNumber: fresh?.clientGSTNumber || '',
               quoteNumber: fresh?.revisedBoqNumber || fresh?.boqNumber || '',
+              // The Tax / Invoice profile as it was when sent: the client's quote
+              // page keeps these rates and details even if Settings change later.
+              invoice: await getActiveInvoiceProfile(app),
               sentAt: new Date().toISOString()
             }
           }
@@ -187,7 +192,7 @@ export const sendQuote = (app) => {
     const tx = getTransporter()
     if (!tx) {
       ctx.status = 500
-      ctx.body = { error: 'smtp_not_configured', message: 'SMTP is not configured (set SMTP_HOST etc. in the backend .env).' }
+      ctx.body = { error: 'smtp_not_configured', message: 'Email is not set up. An admin can turn it on in Settings → Email.' }
       return
     }
 
@@ -301,8 +306,14 @@ export const sendQuote = (app) => {
 
     // Email-composer overrides (all optional): the sender can set the subject,
     // write a custom message, and add Cc recipients before sending.
-    const subject = (body.subject && String(body.subject).trim()) ||
-      `${isRevised ? 'Revised quotation' : 'Your quotation'} for ${projectName}`
+    // Words from Settings → Email Templates (quote_ready / quote_revised).
+    const t = await emailTemplate(app, isRevised ? 'quote_revised' : 'quote_ready', {
+      client_name: clientName,
+      project_name: projectName,
+      boq_number: boqNumber || '',
+      link: projectUrl
+    })
+    const subject = (body.subject && String(body.subject).trim()) || t.subject
     const customMessage = (body.message && String(body.message).trim()) || ''
     const cc = (body.cc && String(body.cc).trim()) || ''
 
@@ -311,29 +322,19 @@ export const sendQuote = (app) => {
       to,
       subject,
       text:
-        (customMessage
-          ? `${customMessage}\n\n`
-          : `Hi ${clientName},\n\n` +
-            `Your ${isRevised ? 'revised ' : ''}quotation for ${projectName} is ready — ` +
-            `you can review the full Bill of Quantity any time on your project page` +
-            (hasPdf ? ' (a PDF copy is attached)' : '') +
-            (hasRenders ? '. The design renders are attached.' : '.')) +
+        (customMessage ? `${customMessage}\n\n` : `${t.introText}\n\n`) +
         linksText +
-        `\n\nReview it here: ${projectUrl}\n\nThank you,\nPazl`,
+        `\n\n${t.buttonText}: ${projectUrl}\n\nThank you,\nPazl`,
       html: renderActionEmail({
-        title: isRevised ? 'Your revised quotation is ready' : 'Your quotation is ready',
-        intro: `Hi ${clientName}, your ${
-          isRevised ? 'revised ' : ''
-        }quotation for <strong>${projectName}</strong> is ready. Review the full Bill of Quantity on your project page${
-          hasPdf ? ' — a PDF copy is also attached' : ''
-        }.`,
+        title: t.heading,
+        intro: t.introHtml,
         bodyHtml: customMessage ? textToHtml(customMessage) : undefined,
         imageUrl: heroImage,
         imageAlt: 'Your design render',
         details,
         links: linkedVideos,
         linksTitle: 'Videos',
-        ctaText: 'View your quotation',
+        ctaText: t.buttonText,
         ctaUrl: projectUrl
       }),
       attachments

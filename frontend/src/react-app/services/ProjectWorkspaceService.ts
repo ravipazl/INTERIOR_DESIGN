@@ -253,6 +253,35 @@ export const ProjectWorkspaceService = {
     }
   },
 
+  // Email templates (Settings → Email Templates) for the composers: the ones
+  // the team can pick, and one filled in for this project.
+  emailTemplateOptions: async (): Promise<{ key: string; name: string }[]> => {
+    try {
+      const res = await axios.get("/email-templates/options", {
+        headers: { Authorization: `${AuthService.getAccessToken()}` },
+      });
+      return Array.isArray(res?.data) ? res.data : [];
+    } catch {
+      return [];
+    }
+  },
+
+  fillEmailTemplate: async (
+    key: string,
+    projectId: string
+  ): Promise<{ key: string; subject: string; message: string } | null> => {
+    try {
+      const res = await axios.post(
+        "/email-templates/fill",
+        { key, projectId },
+        { headers: { Authorization: `${AuthService.getAccessToken()}` } }
+      );
+      return res?.data || null;
+    } catch {
+      return null;
+    }
+  },
+
   // Upload a file, returns { fileUrl, mimeType, size, originalName }.
   uploadFile: async (
     projectId: string,
