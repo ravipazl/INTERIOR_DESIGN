@@ -490,6 +490,11 @@ export class DragRoomItemsControl3D extends EventDispatcher {
       }
       // A new drag: a wall unit's held height is read from where it is now.
       this.__selected.__wallUnitSnapTop = undefined;
+      // Nothing left over from an earlier drag: not marked as moving (the
+      // first real pointer move marks it), no glide still running.
+      this.__stopFollow();
+      this.__selected.__dragging = false;
+      this.__selected.__dragRawTarget = null;
       // …and where the pointer holds the item is measured afresh.
       this.__grabOffset = null;
       this.__rememberSpots(this.__selected);
@@ -520,12 +525,14 @@ export class DragRoomItemsControl3D extends EventDispatcher {
       }
       this.__domElement.style.cursor = "move";
       this.dispatchEvent({ type: EVENT_ITEM_SELECTED, item: this.__selected });
-      // A finger on an item holds the camera still from the very start. Moves
-      // arrive once per frame here but straight away in OrbitControls, so
-      // otherwise the view turned a little before the item began to move.
-      if (evt.identifier !== undefined) {
-        this.dispatchEvent({ type: EVENT_ITEM_MOVE, item: this.__selected });
-      }
+      // A press on an item holds the camera still from the very start — a
+      // finger and the mouse alike. Moves arrive once per frame here but
+      // straight away in OrbitControls, so otherwise the view turned while the
+      // item was being dragged: selecting the item re-enables the camera, and
+      // the first moves of every mouse drag turned it (a metre and more in a
+      // test drag), which read as the item lagging and swimming. The release
+      // hands the camera back (EVENT_ITEM_MOVE_FINISH), click or drag.
+      this.dispatchEvent({ type: EVENT_ITEM_MOVE, item: this.__selected });
       return;
     }
     //if (deltaTime < 300) {
@@ -655,8 +662,19 @@ export class DragRoomItemsControl3D extends EventDispatcher {
       // the final target before any wall-cleanup runs.
       try {
         const t = this.__selected.__dragRawTarget;
+        // The drag is over: the next placement runs the full checks again (see
+        // Physical3DItem.handleFloorItemsPositioning). `__dropping` marks this
+        // one landing as the end of a drag, so a neighbour that is only NEAR
+        // the item does not pull it across on release.
+        this.__stopFollow();
+        this.__selected.__dragging = false;
         if (t && t.location) {
-          this.__selected.snapToPoint(t.location, t.normal, t.intersectingPlane);
+          this.__selected.__dropping = true;
+          try {
+            this.__selected.snapToPoint(t.location, t.normal, t.intersectingPlane);
+          } finally {
+            this.__selected.__dropping = false;
+          }
         }
         // Only a real drag settles a cabinet: this release also runs for a plain
         // click, and clicking a cabinet must never move it. Nor does one that
@@ -1190,6 +1208,47 @@ export class DragRoomItemsControl3D extends EventDispatcher {
   }
 
   /**
+   * One step of the dragged item's glide toward its target, and the next step
+   * queued for the next frame until it is there. Each step goes through the
+   * item's own placement (snapToPoint), so walls, rooms and snaps hold exactly
+   * as before. It stops by itself when a step no longer moves the item (it has
+   * arrived, or something it may not cross holds it), and on release.
+   */
+  __followTarget() {
+    const item = this.__selected;
+    const t = item && item.__dragRawTarget;
+    if (!item || !t || !t.location) return;
+    const before = item.position.clone();
+    const next = before.clone().lerp(t.location, DRAG_FOLLOW);
+    item.snapToPoint(next, t.normal, t.intersectingPlane);
+    item.userData.currentPosition.copy(item.position);
+    this.dispatchEvent({ type: EVENT_ITEM_MOVE, item });
+    this.__followSteps = (this.__followSteps || 0) + 1;
+    if (item.position.distanceTo(before) < 0.05 || this.__followSteps > 40) {
+      this.__followSteps = 0;
+      return;
+    }
+    if (this.__followFrame != null) return;
+    this.__followFrame = requestAnimationFrame(() => {
+      this.__followFrame = null;
+      if (this.__selected !== item || !item.__dragging || !item.__dragRawTarget) return;
+      try {
+        this.__followTarget();
+      } catch (e) {
+        console.warn("drag follow failed", e);
+      }
+    });
+  }
+
+  __stopFollow() {
+    if (this.__followFrame != null) {
+      cancelAnimationFrame(this.__followFrame);
+      this.__followFrame = null;
+    }
+    this.__followSteps = 0;
+  }
+
+  /**
    * WHERE AN ITEM CAME FROM, so it can go back exactly.
    *
    * A drag ends wherever the mouse is, and nobody can hit a spot to the
@@ -1678,25 +1737,25 @@ export class DragRoomItemsControl3D extends EventDispatcher {
                 location.y = snapTop - halfY;
               }
             }
-            // SMOOTH MOVE: ease the item TOWARD the (snapped) target each frame
-            // instead of teleporting straight to it — so it glides fluidly and
-            // eases into walls/corners instead of jumping. The raw target is
-            // kept so __releaseListener can land the item EXACTLY on release.
+            // SMOOTH MOVE: the item glides TOWARD the (snapped) target and keeps
+            // gliding, frame by frame, until it is there (__followTarget) — so
+            // it eases into walls and corners instead of jumping, and it never
+            // stops short when the pointer stops. It used to take one 80 % step
+            // per pointer event only, so it trailed the pointer for the whole
+            // drag and stopped a fifth of the way short whenever the pointer
+            // paused. The raw target is kept so __releaseListener can land the
+            // item EXACTLY on release.
             this.__selected.__dragRawTarget = {
               location: location.clone(),
               normal: normal && normal.clone ? normal.clone() : normal,
               intersectingPlane,
             };
-            const smoothed = this.__selected.position
-              .clone()
-              .lerp(location, DRAG_FOLLOW);
-            this.__selected.snapToPoint(smoothed, normal, intersectingPlane);
-            if (this.__selected.__itemType != 1) {
-              //this.magnetEffect(this.__selected, "wall");
-            }
-            this.__selected.userData.currentPosition.copy(
-              this.__selected.position
-            );
+            // Tells the item it is being dragged: the per-placement neighbour
+            // checks and the re-selection it does on every move wait for the
+            // drop (Physical3DItem).
+            this.__selected.__dragging = true;
+            this.__followSteps = 0; // a new target: a fresh glide toward it
+            this.__followTarget();
           }
         }
 
