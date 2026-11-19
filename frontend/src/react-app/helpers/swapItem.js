@@ -107,16 +107,39 @@ export async function swapSelectedItem(newModel) {
     // the normal, and nothing has set one if no wall or room was clicked yet.
     helper.__selectedEdgePoint = pos.clone();
     helper.__selectedEdgeNormal = { x: 0, y: 0, z: 1 };
+    // THE OLD ITEM'S OWN ROOM — not whichever room was clicked last.
+    //
+    // addItemScene keeps every floor item inside the selected room: a point
+    // outside it is moved to that room's middle. The selected room is simply
+    // the last one clicked, so swapping a cot in one bedroom after a click in
+    // the living room sent the new cot to the middle of the living room (and
+    // filed it under that room). The room the old item stands in is the one
+    // around its position; failing that, the one its record names.
+    const rooms = BI?.blueprint3d?.model?.__floorplan?.rooms || [];
+    const roomAround = rooms.find((r) => {
+      try {
+        return typeof r.pointInRoom === "function" && r.pointInRoom({ x: pos.x, y: pos.z });
+      } catch (e) {
+        return false;
+      }
+    });
+    const roomOnRecord = record?.roomId
+      ? rooms.find((r) => r.uuid === record.roomId || r.getUuid?.() === record.roomId)
+      : null;
     helper.__selectedRoom =
+      roomAround ||
+      roomOnRecord ||
       BI.focusedRoom3D?.() ||
       helper.__selectedRoom ||
-      BI?.blueprint3d?.model?.__floorplan?.rooms?.[0] ||
+      rooms[0] ||
       null;
     if (helper.__selectedRoom) helper.__roomName = helper.__selectedRoom.name;
     helper.__hasExplicitDropPoint = true;
   }
 
   // --- in with the new --------------------------------------------------------
+  // What is in the scene before the new one comes, to tell it apart after.
+  const before = new Set(rp.__physicalRoomItems || []);
   const arrived = await placeOne(swapModel, 12000);
   try {
     helper.__hasExplicitDropPoint = false;
@@ -129,8 +152,14 @@ export async function swapSelectedItem(newModel) {
   }
 
   // --- exactly where the old one was -----------------------------------------
+  // THE ONE THAT WAS NOT THERE BEFORE — not simply the last in the list. The
+  // 3D view moves an item to the end of its list whenever that item is
+  // updated (Viewer3D.__itemUpdate), so the last one can be another item, the
+  // old one included; moving and saving that left the new one where the add
+  // put it.
   const list = rp.__physicalRoomItems || [];
-  const phys = list[list.length - 1];
+  const phys =
+    list.find((p) => !before.has(p) && p !== sel) || list[list.length - 1];
   if (!phys || !phys.__itemModel) {
     return refuse("The new model could not be placed. Your item was not changed.");
   }

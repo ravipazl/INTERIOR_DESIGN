@@ -388,7 +388,16 @@ export class Item extends EventDispatcher {
     this.__currentWall.addItem(this); //This causes wall to dispatch event_moved triggering followWall, which will trigger this method again
     this.__offlineUpdate = false; //Really important as it will lead to a lot of recursion
 
-    this.combinedRotation = this.__combineRotations();
+    // Only announce the turn when it has changed. This runs on every frame of a
+    // wall item's drag, and each announcement starts six turning animations and
+    // re-selects the item (Physical3DItem.__itemUpdated) — while the turn on a
+    // wall stays the same all the way along it. That made dragging wall items
+    // lag. A real change (another wall, a turn) is announced as before.
+    const turned = this.__combineRotations();
+    const was = this.__combinedRotation;
+    if (!was || !was.distanceTo || was.distanceTo(turned) > 1e-6) {
+      this.combinedRotation = turned;
+    }
   }
 
   /** */

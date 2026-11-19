@@ -274,10 +274,15 @@ export class Physical3DItem extends Mesh {
             scope.__itemModel.position.z
           );
         }
-        scope.parent.__roomItemSelected({
-          type: EVENT_ITEM_SELECTED,
-          item: scope,
-        });
+        // Not on every frame of a drag: re-selecting re-runs the side panel,
+        // the toolbar and the view's re-fit each time. The item is already
+        // selected while it is dragged.
+        if (!scope.__dragging) {
+          scope.parent.__roomItemSelected({
+            type: EVENT_ITEM_SELECTED,
+            item: scope,
+          });
+        }
         // gsap.to(this.position, { duration: duration, x: this.__itemModel.position.x, onUpdate: __tinyUpdate });
         // gsap.to(this.position, { duration: duration, y: this.__itemModel.position.y });
         // gsap.to(this.position, { duration: duration, z: this.__itemModel.position.z });
@@ -402,10 +407,13 @@ export class Physical3DItem extends Mesh {
             scope.__itemModel.position.z
           );
         }
-        scope.parent.__roomItemSelected({
-          type: EVENT_ITEM_SELECTED,
-          item: scope,
-        });
+        // As above: not on every frame of a drag.
+        if (!scope.__dragging) {
+          scope.parent.__roomItemSelected({
+            type: EVENT_ITEM_SELECTED,
+            item: scope,
+          });
+        }
       }
 
       if (evt.property === "size") {
@@ -2630,6 +2638,14 @@ export class Physical3DItem extends Mesh {
           // Signed clearance ALONG that direction — negative when the item has
           // crossed to the far side, so the correction still brings it back.
           const clearance = dist * sign;
+          // NOT A WALL IT IS IN. An item WHOLLY beyond the wall's far face does
+          // not touch this wall at all: it is in another room. Measured with no
+          // limit, it looked "crossed to the far side", so every exterior wall
+          // of a neighbouring room hauled it toward that room — a cot 4.5 m away
+          // in the next room was pulled back each frame and ended pinned
+          // against its own nearest wall, able only to slide along it. Only an
+          // item whose footprint still reaches the wall is brought back.
+          if (clearance < -p.reachPerp) continue;
           const penetration = needed - clearance;
           if (penetration <= 0) continue; // already clear of this wall
 
@@ -2697,7 +2713,16 @@ export class Physical3DItem extends Mesh {
       false,
       1.25
     );
-    for (i = 0; i < this.parent?.__physicalRoomItems?.length; i++) {
+    // NOT WHILE IT IS BEING DRAGGED. This pass "aligns" an item with any
+    // neighbour its footprint — enlarged by a quarter — touches, and the
+    // aligned spot is worked out from where the item IS, not from where the
+    // pointer is taking it. So a bed between two bedside tables (always
+    // within a quarter of them) had every sideways move thrown away and could
+    // only slide one way. It also sent every part's exposure to the server on
+    // every frame of the drag, which is what made dragging lag. It runs once,
+    // on the drop (and for every placement that is not a drag), as before.
+    const midDrag = !!this.__dragging;
+    for (i = 0; !midDrag && i < this.parent?.__physicalRoomItems?.length; i++) {
       let otherObject = this.parent?.__physicalRoomItems[i];
       let otherPolygon2D = null;
       let flag = false;
@@ -2741,7 +2766,16 @@ export class Physical3DItem extends Mesh {
           // item flush on the correct face. The legacy corner-based alignment
           // above is one-sided, so don't let it override the snap — only use it
           // when there's no active object snap.
-          if (alignedCoordinate && !this.__activeObjectSnap) {
+          // On the drop of a drag, only when the item really overlaps it: a
+          // neighbour that is merely near (inside the enlarged footprint)
+          // must not pull the item across the moment it is let go.
+          const reallyOverlaps =
+            !this.__dropping ||
+            Utils.polygonPolygonIntersect(
+              this.getItemPolygon(coordinate3d),
+              otherPolygon2D
+            );
+          if (alignedCoordinate && !this.__activeObjectSnap && reallyOverlaps) {
             coordinate3d = alignedCoordinate;
           }
           break;
@@ -2795,7 +2829,11 @@ export class Physical3DItem extends Mesh {
     let myWallUUID = this.itemModel.currentWall
       ? this.itemModel.currentWall.uuid
       : null;
-    for (i = 0; i < this.parent?.__physicalRoomItems?.length; i++) {
+    // Not while it is being dragged (see handleFloorItemsPositioning): it held
+    // a wall item against any neighbour it touched, so it could not slide
+    // away along the wall, and it measured two boxes per item on every frame.
+    const midDrag = !!this.__dragging;
+    for (i = 0; !midDrag && i < this.parent?.__physicalRoomItems?.length; i++) {
       let otherObject = this.parent?.__physicalRoomItems[i];
       let otherWallUUID =
         otherObject.itemModel.isWallDependent &&
@@ -2819,8 +2857,13 @@ export class Physical3DItem extends Mesh {
           prevPosition
         ); */
         this.position.set(coordinate3d.x, coordinate3d.y, coordinate3d.z);
-        const box1 = new Box3().setFromObject(this);
-        const box2 = new Box3().setFromObject(otherObject);
+        // The ITEMS' OWN SHAPES. A box taken from the whole item also takes in
+        // its selection outline and its arrow helper, which reach well out of
+        // the wall: a TV 5 cm deep then "touched" a bed standing in front of it
+        // and was pulled back on release. The loaded model is the real shape;
+        // an item still loading falls back to the whole item, as before.
+        const box1 = new Box3().setFromObject(this.__loadedItem || this);
+        const box2 = new Box3().setFromObject(otherObject.__loadedItem || otherObject);
         /* PERF-REMOVED console.debug: console.debug(
           "handleWallItemsPositioning -> collision check",
           box1,

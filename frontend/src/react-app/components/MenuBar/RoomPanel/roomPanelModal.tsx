@@ -8,6 +8,25 @@ import {
 import { modelFallbackUrl } from "@pazl/main/helpers/modelUrlFallback";
 import { warmModelCache } from "@pazl/viewer3d-state-interface";
 
+/**
+ * NOTHING UNDER THE CURSOR BUT THE ITEM ITSELF.
+ *
+ * Left alone, the browser drags a picture of the card — its whole grey
+ * thumbnail square — across the room. Over the 3D view the item's own
+ * translucent preview already follows the cursor (showDropPreviewAtScreen),
+ * so the browser is handed an empty, see-through picture to drag instead.
+ * Made once, up front: a drag picture has to be loaded before the drag starts.
+ */
+const EMPTY_DRAG_IMAGE: HTMLImageElement | null = (() => {
+  try {
+    const img = new Image(1, 1);
+    img.src = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
+    return img;
+  } catch (e) {
+    return null;
+  }
+})();
+
 function RoomPanelModal({
   modalData,
   onAddItemToSceneClick,
@@ -130,6 +149,7 @@ function RoomPanelModal({
         try {
           e.dataTransfer.setData("text/plain", "pazl-model");
           e.dataTransfer.effectAllowed = "copy";
+          if (EMPTY_DRAG_IMAGE) e.dataTransfer.setDragImage(EMPTY_DRAG_IMAGE, 0, 0);
         } catch (_) {
           /* some browsers restrict dataTransfer — non-fatal */
         }
