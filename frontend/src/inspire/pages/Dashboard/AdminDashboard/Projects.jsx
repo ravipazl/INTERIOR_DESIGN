@@ -22,6 +22,7 @@ import NavRail from "@pazl/components/NavRail";
 import ConfirmationModal from "../../../components/ConfirmationModal";
 import UserContext from "../../../context/UserContext";
 import {
+  copyProject,
   deleteProject,
   getAllProjects,
   getClosedProjectsCount,
@@ -40,6 +41,7 @@ import { USER_ROLES } from "../../../utils/constants";
 import { getAccessToken } from "../../../services/authService";
 import { getChangeRequestedProjectIds } from "../../../services/projectWorkspaceService";
 import EditProjectModal from "../../../components/EditProjectModal";
+import CopyProjectModal from "../../../components/CopyProjectModal";
 import AssignArchitectModal from "../../../components/AssignArchitectModal";
 import DataTable from "react-data-table-component";
 import differenceBy from "lodash/differenceBy";
@@ -109,6 +111,12 @@ const EditIcon = () => (
   <Icon size={17}>
     <path d="M11 4H5a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h13a2 2 0 0 0 2-2v-6" />
     <path d="M18.5 2.5a2.1 2.1 0 0 1 3 3L12 15l-4 1 1-4z" />
+  </Icon>
+);
+const CopyIcon = () => (
+  <Icon size={17}>
+    <rect x="9" y="9" width="12" height="12" rx="2" />
+    <path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1" />
   </Icon>
 );
 const ActionIcon = ({ label, onClick, primary, children }) => (
@@ -407,6 +415,8 @@ const Projects = () => {
   const [projectShareId, setProjectShareId] = useState(null);
   const [editingProject, setEditingProject] = useState(null);
   const [showEditProjectModal, setShowEditProjectModal] = useState(false);
+  // "Copy project": the row being copied (null = dialog closed).
+  const [copyingProject, setCopyingProject] = useState(null);
   const [quotationRequestedProjectsCount, setQuotationRequestedProjectsCount] =
     useState(null);
   const [closedProjectsCount, setClosedProjectsCount] = useState(null);
@@ -811,6 +821,35 @@ const Projects = () => {
     }
   };
 
+  // Make the copy, refresh the list (the copy is newest, so it lands on top)
+  // and say so, with a way straight into it. Errors go back to the dialog.
+  const handleCopyProject = async (name) => {
+    const source = copyingProject;
+    if (!source?._id) return;
+    const created = await copyProject(source._id, name);
+    setCopyingProject(null);
+    await getProjects(true);
+    const newId = created?._id;
+    toast.success(
+      <span>
+        Copy created: {created?.name || name}
+        {newId ? (
+          <>
+            {" · "}
+            <button
+              type="button"
+              className="pzp-toast-link"
+              onClick={() => navigate(`/project-detail/${newId}?tab=workspace`)}
+            >
+              Open
+            </button>
+          </>
+        ) : null}
+      </span>,
+      { position: toast.POSITION.TOP_RIGHT, theme: "colored", autoClose: 7000 }
+    );
+  };
+
   const handleAssignArchitect = async (architect) => {
     try {
       if (editingProject?._id && architect?._id) {
@@ -889,6 +928,8 @@ const Projects = () => {
   const isStaffAdmin =
     currentUser?.permissions === USER_ROLES.ADMIN ||
     currentUser?.permissions === USER_ROLES.SUPER_ADMIN;
+  const canCopyProjects =
+    isStaffAdmin || currentUser?.permissions === USER_ROLES.ARCHITECT;
 
   // The table's foot, told the search so its count can say "matching …".
   const Pager = React.useCallback(
@@ -1113,7 +1154,7 @@ const Projects = () => {
     {
       id: "actions",
       name: "Actions",
-      width: isStaffAdmin ? "160px" : "110px",
+      width: isStaffAdmin ? "205px" : canCopyProjects ? "155px" : "110px",
       center: true,
       // One icon per action, its name on hover. The first (indigo) is the
       // main step: into the 3D app.
@@ -1145,6 +1186,13 @@ const Projects = () => {
               }}
             >
               <EditIcon />
+            </ActionIcon>
+          )}
+          {/* Copy: admins on any project, an architect on the projects
+              assigned to them (the only rows they see). Never clients. */}
+          {canCopyProjects && (
+            <ActionIcon label="Copy project" onClick={() => setCopyingProject(row)}>
+              <CopyIcon />
             </ActionIcon>
           )}
         </div>
@@ -1182,6 +1230,12 @@ const Projects = () => {
         onHide={() => setShowEditProjectModal(false)}
         onConfirm={handleEditProject}
         project={editingProject}
+      />
+      <CopyProjectModal
+        show={!!copyingProject}
+        project={copyingProject}
+        onHide={() => setCopyingProject(null)}
+        onConfirm={handleCopyProject}
       />
       <AssignArchitectModal
         show={showAssignArchitectModal}

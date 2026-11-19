@@ -1,0 +1,60 @@
+/* Copy project dialog — the shared .pz-modal look plus the two short lists. */
+.pz-copy-project .pzc-from {
+  margin: 0 0 16px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #4d5566;
+}
+.pz-copy-project .pzc-from strong {
+  color: #172033;
+}
+.pz-copy-project .pzc-lists {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-top: 18px;
+  padding: 14px 16px;
+  border: 1px solid #eef0f4;
+  border-radius: 12px;
+  background: #fafbfc;
+}
+.pz-copy-project .pzc-head {
+  margin-bottom: 6px;
+  font: 600 11px/1.2 Inter, Arial, sans-serif;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #697386;
+}
+.pz-copy-project .pzc-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 6px;
+  font-size: 13px;
+  line-height: 1.35;
+  color: #333b4d;
+}
+.pz-copy-project .pzc-list li {
+  position: relative;
+  padding-left: 20px;
+}
+.pz-copy-project .pzc-list li::before {
+  position: absolute;
+  left: 0;
+  top: 0;
+  font-weight: 700;
+}
+.pz-copy-project .pzc-list--yes li::before {
+  content: "\2713";
+  color: #1f9d55;
+}
+.pz-copy-project .pzc-list--fresh li::before {
+  content: "\21BA";
+  color: #8a93a6;
+}
+@media (max-width: 520px) {
+  .pz-copy-project .pzc-lists {
+    grid-template-columns: 1fr;
+  }
+}

@@ -989,3 +989,15 @@ button.pzp-link {
   font-size: 12px !important;
 }
 
+
+/* "Open" inside the "Copy created" toast. */
+.Toastify button.pzp-toast-link {
+  padding: 0;
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-weight: 700;
+  text-decoration: underline;
+  cursor: pointer;
+}

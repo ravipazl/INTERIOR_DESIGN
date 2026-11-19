@@ -47,6 +47,7 @@ import { appSettings } from './app-settings/app-settings.js'
 import { emailTemplates } from './email-templates/email-templates.js'
 import { invoiceProfiles } from './invoice-profiles/invoice-profiles.js'
 import { branding } from './branding/branding.js'
+import { projectCopy } from './project-copy/project-copy.js'
 // Folded in from the former standalone auth backend (auth is now in-process).
 import { verify } from './verify/verify.js'
 import { deviceLogin } from './device_login/device_login.js'
@@ -107,6 +108,7 @@ export const services = (app) => {
   app.configure(emailTemplates)
   app.configure(invoiceProfiles)
   app.configure(branding)
+  app.configure(projectCopy)
   app.configure(verify)
   app.configure(deviceLogin)
   app.configure(invite)

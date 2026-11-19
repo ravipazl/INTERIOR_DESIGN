@@ -435,6 +435,30 @@ export const updateProject = async (projectId, data) => {
   return aiResult;
 };
 
+/**
+ * Copy a project — its details, floor plan, furniture and finishes — under a
+ * new name (backend: services/project-copy). Resolves to the new project;
+ * throws an Error whose message can be shown to the user.
+ */
+export const copyProject = async (id, name) => {
+  const accessToken = getAccessToken();
+  // Plain axios, not apiService: apiService signs the user out on any 403, and
+  // a refused copy should just say why.
+  try {
+    const response = await axios.post(
+      `${process.env.REACT_APP_API_BASE_URL}/projects/${encodeURIComponent(id)}/copy`,
+      { name },
+      { headers: { Authorization: `Bearer ${accessToken}` } }
+    );
+    return response?.data;
+  } catch (err) {
+    const message =
+      err?.response?.data?.message ||
+      "The project could not be copied. Please try again.";
+    throw new Error(message);
+  }
+};
+
 export const deleteProject = async (id) => {
   try {
     const accessToken = getAccessToken();
